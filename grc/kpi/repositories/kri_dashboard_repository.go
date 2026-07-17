@@ -3,6 +3,7 @@ package repositories
 import (
 	"fmt"
 	kpiDTOs "jethur/grc/kpi/dtos"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
@@ -56,7 +57,10 @@ func (repo *KRIDashboardRepository) GetKRIOverview(params *kpiDTOs.KriDashboardQ
 		Select("COUNT(DISTINCT rk.kri_register_id) AS high_count").
 		Joins("JOIN risk_register rr ON rr.id = rk.risk_register_id").
 		Joins("JOIN risk_matrix_risk_ratings rmr ON rmr.id = rr.current_risk_rating_id").
-		Where("rmr.type = ?", highestRating)
+		Joins("JOIN risk_statuses rs ON rs.id = rr.risk_status_id").
+		Where("rmr.type = ?", highestRating).
+		Where("rs.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("rr.is_cyber_risk = ?", false)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		highRiskQuery = highRiskQuery.Where("rk.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")

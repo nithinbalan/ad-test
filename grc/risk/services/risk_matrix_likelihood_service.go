@@ -14,7 +14,7 @@ import (
 )
 
 type RiskMatrixLikelihoodServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, matrixType string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error)
 	GetByID(id uint) (*models.RiskMatrixLikelihood, error)
 	Create(currentUserID uint, riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO) error
@@ -38,8 +38,8 @@ func NewRiskMatrixLikelihoodService(repo repositories.RiskMatrixLikelihoodReposi
 	}
 }
 
-func (rmls *RiskMatrixLikelihoodService) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error) {
-	return rmls.repo.GetAll(sort, sortBy, keyword, status)
+func (rmls *RiskMatrixLikelihoodService) GetAll(sort string, sortBy string, keyword string, status string, matrixType string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error) {
+	return rmls.repo.GetAll(sort, sortBy, keyword, status, matrixType)
 }
 
 func (rmls RiskMatrixLikelihoodService) GetByID(id uint) (*models.RiskMatrixLikelihood, error) {

@@ -185,8 +185,10 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			LEFT JOIN organization_units AS sections ON sections.id = risk_register.section_id
 			LEFT JOIN organization_units AS sub_sections ON sub_sections.id = risk_register.sub_section_id
 			LEFT JOIN risk_register_update_plans ON risk_register_update_plans.id = risk_register.risk_register_update_plan_id
-        `).Where("risk_statuses.type NOT IN (?)", []string{"identified", "submitted", "rejected"}).
-		Where("(risk_register_update_plans.approved_by_id IS NOT NULL OR risk_register_update_plans.id IS NULL)")
+        `).
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("(risk_register_update_plans.approved_by_id IS NOT NULL OR risk_register_update_plans.id IS NULL)").
+		Where("risk_register.is_cyber_risk = ?", false)
 
 	if params.RiskAppetiteToleranceLevelID != 0 {
 		query = query.Joins(`
@@ -736,7 +738,8 @@ func (repo *RiskRegisterRepository) GetAllIdentifiedRisks(params *riskDTOs.RiskR
             LEFT JOIN organization_units AS sections ON sections.id = risk_register.section_id
             LEFT JOIN organization_units AS sub_sections ON sub_sections.id = risk_register.sub_section_id
         `).
-		Where("risk_statuses.type IN (?)", []string{"identified", "submitted", "rejected"})
+		Where("risk_statuses.type IN (?)", models.PendingRiskStatusTypes).
+		Where("risk_register.is_cyber_risk = ?", false)
 
 	if params.RiskAppetiteToleranceLevelID != 0 {
 		query = query.Joins(`
