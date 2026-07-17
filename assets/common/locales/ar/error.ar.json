@@ -252,8 +252,23 @@
 {
   "id": "employee_analysise_required",
   "translation": "تحليل الموظفين مطلوب قبل إضافة عملية إلى BIA."
+},
+{
+  "id": "workflow_already_submitted",
+  "translation": "تم تقديم {{.Field}} بالفعل."
+},
+{
+  "id": "workflow_already_completed",
+  "translation": "تم إكمال سير عمل {{.Field}} بالفعل."
+},
+{
+  "id": "workflow_not_active",
+  "translation": "سير عمل {{.Field}} غير نشط."
+},
+{
+  "id": "review_comment_workflow_not_active",
+  "translation": "لا يمكن إضافة تعليقات المراجعة إلا عندما يكون سير عمل {{.Field}} نشطًا."
 }
-
 
 
 

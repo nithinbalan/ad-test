@@ -89,17 +89,22 @@ func (arrs *AssetRiskReviewService) Submit(riskID uint, currentUserID uint) (err
 		return err
 	}
 
-	identifiedRiskStatus, err := arrs.riskSvc.GetRiskStatusByType("identified", tx)
+	openRiskStatus, err := arrs.riskSvc.GetRiskStatusByType("open", tx)
+	if err != nil {
+		return err
+	}
+
+	rejectedRiskStatus, err := arrs.riskSvc.GetRiskStatusByType("rejected", tx)
 	if err != nil {
 		return err
 	}
 
 	if riskRegister.NextReviewLevel != nil {
-		return utility.NewValidationError(fmt.Errorf("risk has already been submitted"), "already_submitted", "risk")
+		return utility.NewValidationError(fmt.Errorf("workflow has already submitted"), "workflow_already_submitted", "risk acceptance")
 	}
 
-	if riskRegister.RiskStatusID != identifiedRiskStatus.ID {
-		return utility.NewValidationError(fmt.Errorf("workflow has already completed"), "already_completed", "risk")
+	if riskRegister.RiskStatusID == openRiskStatus.ID || riskRegister.RiskStatusID == rejectedRiskStatus.ID {
+		return utility.NewValidationError(fmt.Errorf("workflow has already completed"), "workflow_already_completed", "risk acceptance")
 	}
 
 	if err := arrs.riskWorkflowSvc.CreateRiskWorkflow(riskRegister.ID, "asset_risk", currentUserID, tx); err != nil {
@@ -193,8 +198,13 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 		return err
 	}
 
-	if riskRegister.NextReviewLevel == nil {
-		return utility.NewValidationError(fmt.Errorf("risk has not been submitted for approval"), "not_submitted", "risk")
+	rejectedRiskStatus, err := arrs.riskSvc.GetRiskStatusByType("rejected", tx)
+	if err != nil {
+		return err
+	}
+
+	if riskRegister.NextReviewLevel == nil || riskRegister.RiskStatusID == rejectedRiskStatus.ID {
+		return utility.NewValidationError(fmt.Errorf("workflow not active"), "workflow_not_active", "risk acceptance")
 	}
 	currentApprovalLevel := *riskRegister.NextReviewLevel
 
@@ -407,8 +417,13 @@ func (arrs *AssetRiskReviewService) Reject(riskID uint, currentUserID uint) (err
 		return err
 	}
 
-	if riskRegister.NextReviewLevel == nil {
-		return utility.NewValidationError(fmt.Errorf("risk has not been submitted for approval"), "not_submitted", "risk")
+	rejectedRiskStatus, err := arrs.riskSvc.GetRiskStatusByType("rejected", tx)
+	if err != nil {
+		return err
+	}
+
+	if riskRegister.NextReviewLevel == nil || riskRegister.RiskStatusID == rejectedRiskStatus.ID {
+		return utility.NewValidationError(fmt.Errorf("workflow not active"), "workflow_not_active", "risk acceptance")
 	}
 
 	currentRiskWorkflow, err := arrs.riskWorkflowSvc.GetRiskWorkflowByLevel(riskID, *riskRegister.NextReviewLevel, tx)
@@ -458,7 +473,6 @@ func (arrs *AssetRiskReviewService) Reject(riskID uint, currentUserID uint) (err
 	}
 
 	riskRegister.RiskStatusID = riskStatus.ID
-	riskRegister.NextReviewLevel = nil
 	if err := arrs.repo.UpdateRisk(riskRegister, tx); err != nil {
 		return err
 	}

@@ -162,7 +162,7 @@ func (arrcs *AssetRiskReviewCommentService) Create(riskID uint, currentUserID ui
 	}
 
 	if riskRegister.NextReviewLevel == nil {
-		err = utility.NewValidationError(errors.New("risk has not been submitted for approval"), "not_submitted", "risk")
+		err = utility.NewValidationError(errors.New("workflow not active"), "review_comment_workflow_not_active", "risk acceptance")
 		return
 	}
 
