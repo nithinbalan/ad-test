@@ -42,8 +42,8 @@ func (arrcc *AssetRiskReviewCommentController) GetAllComments(c *gin.Context) {
 	validSortFields := map[string]string{
 		"comment":                 "risk_review_comments.comment",
 		"level":                   "risk_review_comments.level",
-		"comment_status_title_en": "comment_statuses.title_ar",
-		"comment_status_title_ar": "comment_statuses.title_en",
+		"comment_status_title_en": "comment_statuses.title_en",
+		"comment_status_title_ar": "comment_statuses.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
