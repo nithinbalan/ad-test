@@ -28,6 +28,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityTypeController := app.AssetModule.VulnerabilityTypeController
 	vulnerabilityStatusController := app.AssetModule.VulnerabilityStatusController
 	vulnerabilityController := app.AssetModule.VulnerabilityController
+	vulnerabilityWorkflowController := app.AssetModule.VulnerabilityWorkflowController
+	vulnerabilityReviewController := app.AssetModule.VulnerabilityReviewController
 	threatTypeController := app.AssetModule.ThreatTypeController
 	threatStatusController := app.AssetModule.ThreatStatusController
 	threatController := app.AssetModule.ThreatController
@@ -442,4 +444,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/vulnerabilities/:id/qualys-history", qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)
 	assetRoutes.POST("/vulnerabilities/:id/qualys-history/:historyId/documents", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), qualysVulnerabilityHistoryController.CreateQualysVulnerabilityHistoryDocuments)
 	unauthenticatedRoutes.GET("/vulnerabilities/:id/qualys-history/:historyId/document-preview", qualysVulnerabilityHistoryController.GetQualysVulnerabilityHistoryDocumentPreview)
+
+	//  Vulnerability Reject Workflow
+	assetRoutes.POST("/vulnerabilities/:id/submit", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityReviewController.SubmitVulnerability)
+	assetRoutes.POST("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityReviewController.ApproveVulnerability)
+	assetRoutes.POST("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityReviewController.RejectVulnerability)
+	assetRoutes.GET("/vulnerabilities/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityWorkflowController.GetWorkflowList)
 }
