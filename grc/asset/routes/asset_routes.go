@@ -65,8 +65,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRiskWorkflowController := app.AssetModule.AssetRiskWorkflowController
 	assetRiskReviewController := app.AssetModule.AssetRiskReviewController
 	assetRiskReviewCommentController := app.AssetModule.AssetRiskReviewCommentController
-	vulnerabilityWorkflowController := app.AssetModule.VulnerabilityWorkflowController
-	vulnerabilityReviewController := app.AssetModule.VulnerabilityReviewController
+	vulnerabilityWorkflowController := app.AssetModule.VulnerabilityClosedWorkflowController
+	vulnerabilityClosedReviewController := app.AssetModule.VulnerabilityClosedReviewController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -471,8 +471,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.ResolveComment)
 
 	//  Vulnerability Reject Workflow
-	assetRoutes.POST("/vulnerabilities/:id/submit", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityReviewController.SubmitVulnerability)
-	assetRoutes.POST("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityReviewController.ApproveVulnerability)
-	assetRoutes.POST("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityReviewController.RejectVulnerability)
+	assetRoutes.POST("/vulnerabilities/:id/submit", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityClosedReviewController.SubmitVulnerability)
+	assetRoutes.POST("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.ApproveVulnerability)
+	assetRoutes.POST("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.RejectVulnerability)
 	assetRoutes.GET("/vulnerabilities/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityWorkflowController.GetWorkflowList)
 }
