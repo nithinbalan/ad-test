@@ -3,14 +3,20 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/grc/project/dtos"
 	"jethur/grc/project/repositories"
 	"jethur/utility"
+
+	"golang.org/x/net/html"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -24,6 +30,7 @@ type ProjectServiceInterface interface {
 	Update(id uint, currentUserID uint, form *dtos.ProjectFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	UpdateStatus(id uint, currentUserID uint, form *dtos.ProjectStatusUpdateDTO) error
+	ExportProjects(data []*dtos.ProjectListDTO, currentUserID uint) (*os.File, error)
 }
 
 type ProjectService struct {
@@ -32,6 +39,8 @@ type ProjectService struct {
 	projectTypeSvc   ProjectTypeServiceInterface
 	projectStatusSvc ProjectStatusServiceInterface
 	userSvc          organizationServices.UserServiceInterface
+	userSettingSvc   organizationServices.UserSettingServiceInterface
+	notificationSvc  commonServices.NotificationServiceInterface
 }
 
 func NewProjectService(
@@ -40,6 +49,8 @@ func NewProjectService(
 	projectTypeSvc ProjectTypeServiceInterface,
 	projectStatusSvc ProjectStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ProjectServiceInterface {
 	return &ProjectService{
 		repo:             repo,
@@ -47,6 +58,8 @@ func NewProjectService(
 		projectTypeSvc:   projectTypeSvc,
 		projectStatusSvc: projectStatusSvc,
 		userSvc:          userSvc,
+		userSettingSvc:   userSettingSvc,
+		notificationSvc:  notificationSvc,
 	}
 }
 
@@ -140,6 +153,72 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 				"error":    err.Error(),
 			})
 		}
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "project"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{form.ResponsibleUserID},
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Project Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية المشروع",
+			TitleEn:              form.TitleEn,
+			TitleAr:              form.TitleAr,
+			ReferenceNumber:      "",
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := s.userSvc.GetByID(form.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user for project assignment notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := s.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch creator user for project assignment notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Project/%s: Responsibility Assigned", form.TitleEn)
+		appURL := utility.GetAppURL()
+
+		emailData := map[string]interface{}{
+			"FirstNameEn":          responsibleUser.FirstNameEn,
+			"LastNameEn":           responsibleUser.LastNameEn,
+			"ProjectTitleEn":       form.TitleEn,
+			"ProjectTitleAr":       form.TitleAr,
+			"ProjectDescription":   stripHTML(form.DescriptionEn),
+			"CreatedByFirstNameEn": createdBy.FirstNameEn,
+			"CreatedByLastNameEn":  createdBy.LastNameEn,
+			"AssignedOn":           time.Now().Format("2006-01-02"),
+			"RedirectURL":          fmt.Sprintf("%s/project/%d/overview", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "project/templates/email/project_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = s.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
+		if err != nil {
+			utility.LogError("Failed to send project assignment notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -153,6 +232,8 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 		}
 		return err
 	}
+
+	oldResponsibleUserID := project.ResponsibleUserID
 
 	oldData := map[string]interface{}{
 		"title_en":            project.TitleEn,
@@ -206,6 +287,135 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 				utility.LogError("Failed to log update activity", map[string]interface{}{
 					"recordID": id,
 					"error":    err.Error(),
+				})
+			}
+		}
+
+		// Send notifications to old and new responsible users if the responsible user has changed
+		if oldResponsibleUserID != form.ResponsibleUserID {
+			// URL param for notifications
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "project"
+
+			// Old responsible user notification (Removal)
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{oldResponsibleUserID},
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Project Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية المشروع",
+				TitleEn:              project.TitleEn,
+				TitleAr:              project.TitleAr,
+				ReferenceNumber:      "",
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// New responsible user notification (Assignment)
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{form.ResponsibleUserID},
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Project Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية المشروع",
+				TitleEn:              project.TitleEn,
+				TitleAr:              project.TitleAr,
+				ReferenceNumber:      "",
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Fetch the responsible users' data
+			oldResponsibleUser, err := s.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user for project assignment change", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := s.userSvc.GetByID(form.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user for project assignment change", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			// Fetch details of the user making the assignment
+			updatedByUser, err := s.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user for project assignment change", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			// Email notification for the old responsible user
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Project/%s: Responsibility Removed", project.TitleEn)
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":          oldResponsibleUser.FirstNameEn,
+				"LastNameEn":           oldResponsibleUser.LastNameEn,
+				"ProjectTitle":         project.TitleEn,
+				"ProjectTitleAr":       project.TitleAr,
+				"ProjectDescription":   stripHTML(project.DescriptionEn),
+				"UpdatedByFirstNameEn": updatedByUser.FirstNameEn,
+				"UpdatedByLastNameEn":  updatedByUser.LastNameEn,
+				"RedirectURL":          fmt.Sprintf("%s/project/%d/overview", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: "project/templates/email/project_remove_responsible_user_mail.html",
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			// Email notification for the new responsible user
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Project/%s: Responsibility Assigned", project.TitleEn)
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"ProjectTitle":          project.TitleEn,
+				"ProjectTitleAr":        project.TitleAr,
+				"ProjectDescription":    stripHTML(project.DescriptionEn),
+				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
+				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/project/%d/overview", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: "project/templates/email/project_change_responsible_user_mail.html",
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			// Send notifications and emails
+			err = s.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "project_management")
+			if err != nil {
+				utility.LogError("Failed to send notifications to new responsible user for project", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = s.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "project_management")
+			if err != nil {
+				utility.LogError("Failed to send notifications to old responsible user for project", map[string]interface{}{
+					"error": err.Error(),
 				})
 			}
 		}
@@ -340,4 +550,73 @@ func (s *ProjectService) UpdateStatus(id uint, currentUserID uint, projectStatus
 	}()
 
 	return nil
+}
+
+func (s *ProjectService) ExportProjects(data []*dtos.ProjectListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := s.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	headers := []string{
+		"Title",
+		"Description",
+		"Project Type",
+		"Start Date",
+		"End Date",
+		"Responsible User",
+		"Project Status",
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, project := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				project.TitleAr,
+				stripHTML(project.DescriptionAr),
+				project.ProjectTypeTitleAr,
+				project.StartDate,
+				project.EndDate,
+				fmt.Sprintf("%s %s", project.ResponsibleUserFirstNameAr, project.ResponsibleUserLastNameAr),
+				project.ProjectStatusTitleAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				project.TitleEn,
+				stripHTML(project.DescriptionEn),
+				project.ProjectTypeTitleEn,
+				project.StartDate,
+				project.EndDate,
+				fmt.Sprintf("%s %s", project.ResponsibleUserFirstNameEn, project.ResponsibleUserLastNameEn),
+				project.ProjectStatusTitleEn,
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+func stripHTML(content *string) string {
+	if content == nil {
+		return ""
+	}
+
+	document, err := html.Parse(strings.NewReader(*content))
+	if err != nil {
+		return *content
+	}
+
+	var text strings.Builder
+	var collectText func(*html.Node)
+	collectText = func(node *html.Node) {
+		if node.Type == html.TextNode {
+			text.WriteString(node.Data)
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			collectText(child)
+		}
+	}
+
+	collectText(document)
+	return strings.TrimSpace(text.String())
 }

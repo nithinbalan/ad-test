@@ -68,6 +68,7 @@ type ProjectListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 type ProjectFormDTO struct {

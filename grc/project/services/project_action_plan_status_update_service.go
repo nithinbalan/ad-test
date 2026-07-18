@@ -6,8 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -37,6 +40,7 @@ type ProjectActionPlanStatusUpdateService struct {
 	projectActionPlanSvc ProjectActionPlanServiceInterface
 	actionPlanStatusSvc  masterServices.ActionPlanStatusServiceInterface
 	userSvc              organizationServices.UserServiceInterface
+	notificationSvc      commonServices.NotificationServiceInterface
 }
 
 func NewProjectActionPlanStatusUpdateService(
@@ -46,6 +50,7 @@ func NewProjectActionPlanStatusUpdateService(
 	projectActionPlanSvc ProjectActionPlanServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ProjectActionPlanStatusUpdateServiceInterface {
 	return &ProjectActionPlanStatusUpdateService{
 		repo:                 repo,
@@ -54,6 +59,7 @@ func NewProjectActionPlanStatusUpdateService(
 		projectActionPlanSvc: projectActionPlanSvc,
 		actionPlanStatusSvc:  actionPlanStatusSvc,
 		userSvc:              userSvc,
+		notificationSvc:      notificationSvc,
 	}
 }
 
@@ -422,6 +428,11 @@ func (pasus *ProjectActionPlanStatusUpdateService) Approve(projectID uint, proje
 		return err
 	}
 
+	project, err := pasus.projectSvc.GetFullDetailsByID(projectID)
+	if err != nil {
+		return err
+	}
+
 	tx := pasus.repo.BeginTransaction()
 
 	if existingProjectActionPlan.ActionPlanStatusID != projectActionPlanStatusResolved.ID {
@@ -455,6 +466,72 @@ func (pasus *ProjectActionPlanStatusUpdateService) Approve(projectID uint, proje
 	}
 
 	go func() {
+		urlParam := fmt.Sprintf(`{"project_id":%d, "action_plan_id":%d}`, projectID, projectActionPlanID)
+		queryParam := ""
+		entity := "project-action-plan"
+		action := "close-project-action-plan"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{existingProjectActionPlan.ResponsibleUserID},
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Project Action Plan Status Update",
+			HeadingAr:            "تحديث حالة خطة عمل المشروع",
+			TitleEn:              existingProjectActionPlan.Title,
+			TitleAr:              existingProjectActionPlan.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := pasus.userSvc.GetByID(existingProjectActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		resolvedBy, err := pasus.userSvc.GetByID(*existingProjectActionPlan.ReviewUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Project Action Plan %s: Closed", existingProjectActionPlan.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"ProjectTitle":          project.TitleEn,
+			"ProjectTitleAr":        project.TitleAr,
+			"ActionPlanTitle":       existingProjectActionPlan.Title,
+			"ActionPlanDescription": existingProjectActionPlan.Description,
+			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
+			"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
+			"ResolvedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           fmt.Sprintf("%s/project/%d/action-plans?action_plan_id=%d", appURL, projectID, projectActionPlanID),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "project/templates/email/project_action_plan_closed_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = pasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
 		err = pasus.activityLogSvc.LogActivity(
 			models.ApproveAction,
 			models.ProjectActionPlanStatusUpdate{}.TableName(),
@@ -498,6 +575,11 @@ func (pasus *ProjectActionPlanStatusUpdateService) Revert(projectID uint, projec
 		return err
 	}
 
+	project, err := pasus.projectSvc.GetFullDetailsByID(projectID)
+	if err != nil {
+		return err
+	}
+
 	tx := pasus.repo.BeginTransaction()
 
 	if existingProjectActionPlan.ActionPlanStatusID != projectActionPlanStatusResolved.ID {
@@ -528,6 +610,72 @@ func (pasus *ProjectActionPlanStatusUpdateService) Revert(projectID uint, projec
 	tx.Commit()
 
 	go func() {
+		urlParam := fmt.Sprintf(`{"project_id":%d, "action_plan_id":%d}`, projectID, projectActionPlanID)
+		queryParam := ""
+		entity := "project-action-plan"
+		action := "reopen-project-action-plan"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{existingProjectActionPlan.ResponsibleUserID},
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Project Action Plan Status Update",
+			HeadingAr:            "تحديث حالة خطة عمل المشروع",
+			TitleEn:              existingProjectActionPlan.Title,
+			TitleAr:              existingProjectActionPlan.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := pasus.userSvc.GetByID(existingProjectActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		resolvedBy, err := pasus.userSvc.GetByID(*existingProjectActionPlan.ReviewUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Project Action Plan %s: Reopened", existingProjectActionPlan.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"ProjectTitle":          project.TitleEn,
+			"ProjectTitleAr":        project.TitleAr,
+			"ActionPlanTitle":       existingProjectActionPlan.Title,
+			"ActionPlanDescription": existingProjectActionPlan.Description,
+			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
+			"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
+			"ResolvedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           fmt.Sprintf("%s/project/%d/action-plans?action_plan_id=%d", appURL, projectID, projectActionPlanID),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "project/templates/email/project_action_plan_reopen_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = pasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
 		err = pasus.activityLogSvc.LogActivity(
 			models.RejectAction,
 			models.ProjectActionPlanStatusUpdate{}.TableName(),

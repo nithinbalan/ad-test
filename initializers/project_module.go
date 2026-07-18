@@ -39,6 +39,8 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectTypeSvc,
 		projectStatusSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
+		commonModule.NotificationService,
 	)
 	projectController := controllers.NewProjectController(projectSvc)
 
@@ -74,6 +76,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectActionPlanSvc,
 		masterModule.ActionPlanStatusSvc,
 		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	projectActionPlanStatusUpdateController := controllers.NewProjectActionPlanStatusUpdateController(projectActionPlanStatusUpdateSvc)
 

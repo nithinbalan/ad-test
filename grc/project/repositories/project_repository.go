@@ -129,13 +129,17 @@ func (r *ProjectRepository) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dto
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Apply pagination
-	offset := (params.Page - 1) * params.PageSize
-	if err := query.Offset(offset).Limit(params.PageSize).Find(&projects).Error; err != nil {
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&projects).Error; err != nil {
 		return nil, err
 	}
 
 	totalPages := 1
-	if params.PageSize > 0 {
+	if !params.Export && params.PageSize > 0 {
 		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 	}
 

@@ -29,6 +29,21 @@ func (pc *ProjectController) GetAllProjects(c *gin.Context) {
 	status := c.Query("status")
 	keyword := c.Query("keyword")
 
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(pc.db, c, "Invalid export parameter")
+			return
+		}
+	}
+
 	// Support for quick filter
 	quickFilter := c.QueryArray("quick_filter")
 
@@ -85,6 +100,7 @@ func (pc *ProjectController) GetAllProjects(c *gin.Context) {
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	projects, err := pc.service.GetAll(params)
@@ -93,7 +109,35 @@ func (pc *ProjectController) GetAllProjects(c *gin.Context) {
 		return
 	}
 
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(pc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := pc.service.ExportProjects(projects.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(pc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Projects.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, projects)
+}
+
+func (pc *ProjectController) GetProjectsExport(c *gin.Context) {
+	c.Set("export", true)
+
+	pc.GetAllProjects(c)
 }
 
 func (pc *ProjectController) GetProjectDetails(c *gin.Context) {

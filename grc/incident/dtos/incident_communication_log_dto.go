@@ -37,7 +37,7 @@ type IncidentCommunicationLogListResponseDTO struct {
 }
 
 type IncidentCommunicationLogFormDTO struct {
-	CommunicatedAt      string `json:"communicated_at" binding:"required,datetime=2006-01-02T15:04:05"`
+	CommunicatedAt      string `json:"communicated_at" binding:"required"`
 	CommunicatedBy      string `json:"communicated_by" binding:"required"`
 	CommunicatedTo      string `json:"communicated_to" binding:"required"`
 	CommunicationMethod string `json:"communication_method" binding:"required"`
