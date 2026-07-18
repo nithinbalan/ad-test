@@ -95,7 +95,7 @@
                 {{if eq .Type "executive-summary"}}
                 <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #000;">{{.TitleEn}}</h4>
 
-                <p style="margin: 0 0 20px 0; color: #000;">{{.DescriptionEn}}</p>
+                <p style="margin: 0 0 20px 0; color: #000;">{{safeHTML .DescriptionEn}}</p>
 
                 {{end}}
 
@@ -357,7 +357,7 @@
                 </h5>
 
 
-                <p style="margin: 0 0 20px 0; color: #000;">{{.DescriptionEn}}</p>
+                <p style="margin: 0 0 20px 0; color: #000;">{{safeHTML .DescriptionEn}}</p>
 
 
 

@@ -40,6 +40,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Projects
 	projectRoutes.GET("/projects", projectController.GetAllProjects)
+	projectRoutes.GET("/projects/export", projectController.GetProjectsExport)
 	projectRoutes.GET("/projects/:projectId", projectController.GetProjectDetails)
 	projectRoutes.POST("/projects", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectController.CreateProject)
 	projectRoutes.PUT("/projects/:projectId", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectController.UpdateProject)

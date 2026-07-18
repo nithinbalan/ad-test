@@ -179,7 +179,7 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 
 	urlParam := fmt.Sprintf(`{"project_id":%d, "action_plan_id":%d}`, projectID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:    "project_management",
+		ModuleIdentifier:    "organization",
 		ProjectActionPlanID: &id,
 		Title:               ProjectActionPlanFormDTO.Title,
 		Description:         ProjectActionPlanFormDTO.Description,
@@ -231,7 +231,7 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{ProjectActionPlanFormDTO.ResponsibleUserID},
-			ModuleIdentifier:     "project_management",
+			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Project Action Plan Responsibility Assigned",
 			HeadingAr:            "تم تعيين مسؤولية خطة عمل المشروع",
@@ -263,13 +263,18 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Project Action Plan/%s: Responsibility Assigned", ProjectActionPlanFormDTO.Title)
 		appURL := utility.GetAppURL()
+		targetDate := ""
+		if dates.TargetDate != nil {
+			targetDate = dates.TargetDate.Format("2006-01-02")
+		}
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
 			"LastNameEn":            responsibleUser.LastNameEn,
 			"ProjectTitle":          project.TitleEn,
+			"ProjectTitleAr":        project.TitleAr,
 			"ActionPlanTitle":       ProjectActionPlanFormDTO.Title,
 			"ActionPlanDescription": ProjectActionPlanFormDTO.Description,
-			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
+			"TargetDate":            targetDate,
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
@@ -279,12 +284,12 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "compliance/templates/email/compliance_action_plan_create_responsible_user_mail.html",
+			TemplateRelativePath: "project/templates/email/project_action_plan_create_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 
 		// send notification and mail
-		err = paps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+		err = paps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_action_plan")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
@@ -447,7 +452,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{oldResponsibleUserID},
-				ModuleIdentifier:     "project_management",
+				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Project Action Plan Responsibility Removed",
 				HeadingAr:            "تمت إزالة مسؤولية خطة العمل",
@@ -464,7 +469,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{ProjectActionPlanFormDTO.ResponsibleUserID},
-				ModuleIdentifier:     "project_management",
+				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Project Action Plan Responsibility Assigned",
 				HeadingAr:            "تم تعيين مسؤولية خطة العمل",
@@ -506,11 +511,12 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 
 			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
 			oldResponsibleUserSubject := fmt.Sprintf("Project Action Plan/%s: Responsibility Removed", existingProjectActionPlan.Title)
-			oldResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserTemplateRelativePath := "project/templates/email/project_action_plan_remove_responsible_user_mail.html"
 			oldResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
 				"LastNameEn":            oldResponsibleUser.LastNameEn,
 				"ProjectTitle":          project.TitleEn,
+				"ProjectTitleAr":        project.TitleAr,
 				"ActionPlanTitle":       existingProjectActionPlan.Title,
 				"ActionPlanDescription": existingProjectActionPlan.Description,
 				"RedirectURL":           fmt.Sprintf("%s/project/%d/action-plans?action_plan_id=%d", appURL, projectID, id),
@@ -525,14 +531,19 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 
 			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
 			newResponsibleUserSubject := fmt.Sprintf("Project Action Plan/%s: Responsibility Assigned", existingProjectActionPlan.Title)
-			newResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserTemplateRelativePath := "project/templates/email/project_action_plan_change_responsible_user_mail.html"
+			targetDate := ""
+			if existingProjectActionPlan.TargetDate != nil {
+				targetDate = existingProjectActionPlan.TargetDate.Format("2006-01-02")
+			}
 			newResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           newResponsibleUser.FirstNameEn,
 				"LastNameEn":            newResponsibleUser.LastNameEn,
 				"ProjectTitle":          project.TitleEn,
+				"ProjectTitleAr":        project.TitleAr,
 				"ActionPlanTitle":       existingProjectActionPlan.Title,
 				"ActionPlanDescription": existingProjectActionPlan.Description,
-				"TargetDate":            existingProjectActionPlan.TargetDate.Format("2006-01-02"),
+				"TargetDate":            targetDate,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
@@ -547,7 +558,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 			}
 
 			err = paps.notificationSvc.SendNotification(
-				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_action_plan",
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "project_action_plan",
 			)
 			if err != nil {
 				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{

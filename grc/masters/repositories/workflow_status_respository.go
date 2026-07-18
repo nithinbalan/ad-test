@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type WorkflowStatusRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowStatus, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isBcm bool) ([]*models.WorkflowStatus, error)
 	GetByID(id uint) (*models.WorkflowStatus, error)
 	GetByType(status string) (*models.WorkflowStatus, error)
 }
@@ -26,7 +26,7 @@ func NewWorkflowStatusRepository(db *gorm.DB) *WorkflowStatusRepository {
 	}
 }
 
-func (repo *WorkflowStatusRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowStatus, error) {
+func (repo *WorkflowStatusRepository) GetAll(sort string, sortBy string, keyword string, status string, isBcm bool) ([]*models.WorkflowStatus, error) {
 	var workflowStatuses []*models.WorkflowStatus
 
 	query := repo.db
@@ -43,6 +43,10 @@ func (repo *WorkflowStatusRepository) GetAll(sort string, sortBy string, keyword
 
 	if status == "active" || status == "inactive" {
 		query = query.Where("status = ?", status)
+	}
+
+	if isBcm {
+		query = query.Where("type IN (?)", []string{"submit", "revert", "approve"})
 	}
 
 	query = query.Order(sortBy + " " + sort)

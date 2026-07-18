@@ -27,8 +27,9 @@ func (wsc *WorkflowStatusController) GetAllWorkflowStatuses(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	isBcm, _ := strconv.ParseBool(c.Query("is_bcm"))
 
-	workflowStatuses, err := wsc.service.GetAll(sort, sortBy, keyword, status)
+	workflowStatuses, err := wsc.service.GetAll(sort, sortBy, keyword, status, isBcm)
 
 	if err != nil {
 		utility.SendInternalErrResp(wsc.db, c, err.Error())
