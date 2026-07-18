@@ -382,11 +382,15 @@ func NewAssetModule(db *gorm.DB,
 	)
 	assetRiskReviewCommentController := controllers.NewAssetRiskReviewCommentController(assetRiskReviewCommentSvc)
 
+	vulnerabilityClosureRepo := repositories.NewVulnerabilityClosureRepository(db)
+	vulnerabilityClosureSvc := services.NewVulnerabilityClosureService(vulnerabilityClosureRepo)
+
 	vulnerabilityWorkflowRepo := repositories.NewVulnerabilityWorkflowRepository(db)
 	vulnerabilityWorkflowSvc := services.NewVulnerabilityWorkflowService(vulnerabilityWorkflowRepo, sharedModule.ActivityLogService, settingsModule.WorkflowSvc, masterModule.WorkflowStatusSvc, organizationModule.UserSvc, masterModule.WorkflowContextSvc)
+	vulnerabilityWorkflowSvc.SetVulnerabilityClosureService(vulnerabilityClosureSvc)
 	vulnerabilityWorkflowController := controllers.NewVulnerabilityWorkflowController(vulnerabilityWorkflowSvc)
 	vulnerabilityReviewRepo := repositories.NewVulnerabilityReviewRepository(db)
-	vulnerabilityReviewSvc := services.NewVulnerabilityReviewService(vulnerabilityReviewRepo, sharedModule.ActivityLogService, vulnerabilitySvc, vulnerabilityWorkflowSvc, masterModule.WorkflowStatusSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, organizationModule.OrganizationUnitsSvc)
+	vulnerabilityReviewSvc := services.NewVulnerabilityReviewService(vulnerabilityReviewRepo, sharedModule.ActivityLogService, vulnerabilitySvc, vulnerabilityWorkflowSvc, vulnerabilityClosureSvc, masterModule.WorkflowStatusSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, organizationModule.OrganizationUnitsSvc)
 	vulnerabilityReviewController := controllers.NewVulnerabilityReviewController(vulnerabilityReviewSvc)
 
 	return &AssetModule{

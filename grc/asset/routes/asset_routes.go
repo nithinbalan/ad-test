@@ -475,5 +475,4 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityReviewController.ApproveVulnerability)
 	assetRoutes.POST("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityReviewController.RejectVulnerability)
 	assetRoutes.GET("/vulnerabilities/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityWorkflowController.GetWorkflowList)
-
 }
