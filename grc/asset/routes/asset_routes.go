@@ -458,6 +458,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-risk-register/:id/submit", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewController.SubmitAssetRiskRegister)
 	assetRoutes.POST("/asset-risk-register/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewController.ApproveAssetRiskRegister)
 	assetRoutes.POST("/asset-risk-register/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewController.RejectAssetRiskRegister)
+	assetRoutes.POST("/asset-risk-register/:id/resubmit", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewController.ResubmitAssetRiskRegister)
+	assetRoutes.POST("/asset-risk-register/:id/revert", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewController.RevertAssetRiskRegister)
 	assetRoutes.GET("/asset-risk-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), assetRiskWorkflowController.GetWorkflowList)
 
 	// Risk Acceptance Workflow Review Comment

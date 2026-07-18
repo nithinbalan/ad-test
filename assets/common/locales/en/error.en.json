@@ -274,6 +274,10 @@
 {
   "id": "review_comment_workflow_not_active",
   "translation": "Review comments can only be added while the {{.Field}} workflow is active."
+},
+{
+  "id": "workflow_not_rejected",
+  "translation": "The {{.Field}} can only be resubmitted if it has been rejected."
 }
 
 
