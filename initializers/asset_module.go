@@ -59,6 +59,7 @@ type AssetModule struct {
 	AssetRiskReviewCommentController              *controllers.AssetRiskReviewCommentController
 	VulnerabilityClosedWorkflowController         *controllers.VulnerabilityClosedWorkflowController
 	VulnerabilityClosedReviewController           *controllers.VulnerabilityClosedReviewController
+	VulnerabilityClosedReviewCommentController    *controllers.VulnerabilityClosedReviewCommentController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -392,6 +393,9 @@ func NewAssetModule(db *gorm.DB,
 	vulnerabilityClosedReviewRepo := repositories.NewVulnerabilityClosedReviewRepository(db)
 	vulnerabilityClosedReviewSvc := services.NewVulnerabilityClosedReviewService(vulnerabilityClosedReviewRepo, sharedModule.ActivityLogService, vulnerabilitySvc, vulnerabilityClosedWorkflowSvc, vulnerabilityClosureSvc, masterModule.WorkflowStatusSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, organizationModule.OrganizationUnitsSvc)
 	vulnerabilityClosedReviewController := controllers.NewVulnerabilityClosedReviewController(vulnerabilityClosedReviewSvc)
+	vulnerabilityClosedReviewCommentRepo := repositories.NewVulnerabilityClosedReviewCommentRepository(db)
+	vulnerabilityClosedReviewCommentSvc := services.NewVulnerabilityClosedReviewCommentService(vulnerabilityClosedReviewCommentRepo, organizationModule.UserSvc,sharedModule.ActivityLogService, vulnerabilityClosureSvc, masterModule.CommentStatusSvc)
+	vulnerabilityClosedReviewCommentController := controllers.NewVulnerabilityClosedReviewCommentController(vulnerabilityClosedReviewCommentSvc)
 
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
@@ -444,6 +448,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetRiskReviewCommentController:              assetRiskReviewCommentController,
 		VulnerabilityClosedWorkflowController:         vulnerabilityClosedWorkflowController,
 		VulnerabilityClosedReviewController:           vulnerabilityClosedReviewController,
+		VulnerabilityClosedReviewCommentController:    vulnerabilityClosedReviewCommentController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
