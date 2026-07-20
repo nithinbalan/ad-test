@@ -356,6 +356,9 @@ func NewAssetModule(db *gorm.DB,
 		masterModule.WorkflowStatusSvc,
 		organizationModule.UserSvc,
 		masterModule.WorkflowContextSvc,
+		assetRiskRegisterSvc,
+		organizationModule.OrganizationUnitsSvc,
+		settingsModule.OrganizationUnitSvc,
 	)
 	assetRiskWorkflowController := controllers.NewAssetRiskWorkflowController(assetRiskWorkflowSvc)
 

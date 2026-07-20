@@ -125,3 +125,73 @@ func (arrc *AssetRiskReviewController) RejectAssetRiskRegister(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (arrc *AssetRiskReviewController) ResubmitAssetRiskRegister(c *gin.Context) {
+	riskIdStr := c.Param("id")
+	riskId, err := strconv.ParseUint(riskIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(arrc.db, c, err.Error())
+		return
+	}
+
+	err = arrc.service.Resubmit(uint(riskId), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(arrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (arrc *AssetRiskReviewController) RevertAssetRiskRegister(c *gin.Context) {
+	riskIdStr := c.Param("id")
+	riskId, err := strconv.ParseUint(riskIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(arrc.db, c, err.Error())
+		return
+	}
+
+	err = arrc.service.Revert(uint(riskId), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(arrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
