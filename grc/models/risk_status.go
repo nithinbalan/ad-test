@@ -1,6 +1,6 @@
 package models
 
-var PendingRiskStatusTypes = []string{"identified", "submitted", "rejected"}
+var PendingRiskStatusTypes = []string{"identified", "submitted", "resubmitted", "rejected"}
 
 type RiskStatus struct {
 	ID            uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
