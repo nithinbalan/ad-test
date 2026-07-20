@@ -444,6 +444,12 @@ func (arws *AssetRiskWorkflowService) mapOverallWorkflowStatus(riskRegister *mod
 		} else {
 			statusType = "pending"
 		}
+	case "resubmitted":
+		if riskRegister.NextReviewLevel != nil && *riskRegister.NextReviewLevel == 1 {
+			statusType = "resubmit"
+		} else {
+			statusType = "pending"
+		}
 	default:
 		return nil, nil
 	}

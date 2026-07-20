@@ -574,7 +574,7 @@ func (arrs *AssetRiskReviewService) Resubmit(riskID uint, currentUserID uint) (e
 		return err
 	}
 
-	submittedRiskStatus, err := arrs.riskSvc.GetRiskStatusByType("submitted", tx)
+	resubmittedRiskStatus, err := arrs.riskSvc.GetRiskStatusByType("resubmitted", tx)
 	if err != nil {
 		return err
 	}
@@ -582,7 +582,7 @@ func (arrs *AssetRiskReviewService) Resubmit(riskID uint, currentUserID uint) (e
 	level := 1
 	now := time.Now()
 
-	riskRegister.RiskStatusID = submittedRiskStatus.ID
+	riskRegister.RiskStatusID = resubmittedRiskStatus.ID
 	riskRegister.SubmittedBy = &currentUserID
 	riskRegister.SubmittedAt = &now
 	riskRegister.NextReviewLevel = &level
@@ -614,7 +614,7 @@ func (arrs *AssetRiskReviewService) Resubmit(riskID uint, currentUserID uint) (e
 		return err
 	}
 
-	workflowStatus, err := arrs.workflowStatusSvc.GetByType("submit")
+	workflowStatus, err := arrs.workflowStatusSvc.GetByType("resubmit")
 	if err != nil {
 		return err
 	}
