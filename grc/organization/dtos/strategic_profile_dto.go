@@ -56,10 +56,10 @@ type StrategicProfileMissionFormDTO struct {
 
 type StrategicProfileValueFormDTO struct {
 	ID            *uint   `json:"id"`
-	TitleEn       string  `json:"title_en" binding:"max=255"`
-	TitleAr       string  `json:"title_ar" binding:"max=255"`
-	DescriptionEn *string `json:"description_en" binding:"omitempty,max=500"`
-	DescriptionAr *string `json:"description_ar" binding:"omitempty,max=500"`
+	TitleEn       string  `json:"title_en" binding:"required"`
+	TitleAr       string  `json:"title_ar" binding:"required"`
+	DescriptionEn *string `json:"description_en" binding:"omitempty"`
+	DescriptionAr *string `json:"description_ar" binding:"omitempty"`
 }
 
 type StrategicProfileValueDetailsDTO struct {

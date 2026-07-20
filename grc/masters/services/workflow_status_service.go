@@ -6,7 +6,7 @@ import (
 )
 
 type WorkflowStatusServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowStatus, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isBcm bool) ([]*models.WorkflowStatus, error)
 	GetByID(id uint) (*models.WorkflowStatus, error)
 	GetByType(status string) (*models.WorkflowStatus, error)
 }
@@ -22,8 +22,8 @@ func NewWorkflowStatusService(repo repositories.WorkflowStatusRepositoryInterfac
 	}
 }
 
-func (wss *WorkflowStatusService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowStatus, error) {
-	return wss.repo.GetAll(sort, sortBy, keyword, status)
+func (wss *WorkflowStatusService) GetAll(sort string, sortBy string, keyword string, status string, isBcm bool) ([]*models.WorkflowStatus, error) {
+	return wss.repo.GetAll(sort, sortBy, keyword, status, isBcm)
 }
 
 func (wss WorkflowStatusService) GetByID(id uint) (*models.WorkflowStatus, error) {

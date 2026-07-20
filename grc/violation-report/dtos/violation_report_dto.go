@@ -72,7 +72,7 @@ type ViolationReportFormDTO struct {
 	EmailOfReporter              *string                           `json:"email_of_reporter"`
 	TitleEn                      string                            `json:"title_en" binding:"required,max=255"`
 	TitleAr                      string                            `json:"title_ar" binding:"required,max=255"`
-	ReportedEntity               *string                           `json:"reported_entity" binding:"required"`
+	ReportedEntity               *string                           `json:"reported_entity"`
 	DescriptionEn                *string                           `json:"description_en"`
 	DescriptionAr                *string                           `json:"description_ar"`
 	EvidenceDescription          *string                           `json:"evidence_description"`

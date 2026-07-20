@@ -13,12 +13,22 @@ type AssetRiskWorkflowRepositoryInterface interface {
 	CreateRiskWorkflow(riskWorkflow *models.RiskWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateRiskWorkflow(riskWorkflow *models.RiskWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateRiskWorkflowParticipant(riskWorkflowParticipant *models.RiskWorkflowParticipant, tx ...utility.DatabaseTransaction) error
+	UpdateRiskWorkflowParticipant(riskWorkflowParticipant *models.RiskWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 	CreateRiskReview(riskReview *models.RiskWorkflowReview, tx ...utility.DatabaseTransaction) error
 
 	GetRiskWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskWorkflow, error)
 	GetRiskWorkflowByLevel(riskID uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.RiskWorkflow, error)
 	GetNextLevel(riskID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.RiskWorkflow, error)
 	CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
+
+	GetWorkflowsForDeletion(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
+	DeleteRiskWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	DeleteRiskWorkflowReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error
+	ResetRiskWorkflowParticipantsStatusByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error
+	UpdateRiskWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AssetRiskWorkflowRepository struct {
@@ -93,6 +103,18 @@ func (repo *AssetRiskWorkflowRepository) CreateRiskWorkflowParticipant(riskWorkf
 	return nil
 }
 
+func (repo *AssetRiskWorkflowRepository) UpdateRiskWorkflowParticipant(riskWorkflowParticipant *models.RiskWorkflowParticipant, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(riskWorkflowParticipant).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (repo *AssetRiskWorkflowRepository) CreateRiskReview(riskReview *models.RiskWorkflowReview, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -161,6 +183,105 @@ func (repo *AssetRiskWorkflowRepository) GetNextLevel(riskID uint, currentLevel 
 	}
 
 	return &nextWorkflow, nil
+}
+
+func (repo *AssetRiskWorkflowRepository) GetWorkflowsForDeletion(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var risk models.RiskRegister
+	result := db.
+		Preload("RiskWorkflows").
+		Preload("RiskWorkflows.RiskWorkflowParticipants").
+		Preload("RiskWorkflows.RiskWorkflowReviews").
+		Where("id = ?", riskID).
+		Find(&risk)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &risk, nil
+}
+
+func (repo *AssetRiskWorkflowRepository) DeleteRiskWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", reviewIds).Delete(&models.RiskWorkflowReview{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AssetRiskWorkflowRepository) DeleteRiskWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", participantIds).Delete(&models.RiskWorkflowParticipant{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AssetRiskWorkflowRepository) DeleteRiskWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", workflowIds).Delete(&models.RiskWorkflow{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AssetRiskWorkflowRepository) DeleteRiskWorkflowReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("risk_workflow_id = ?", workflowID).Delete(&models.RiskWorkflowReview{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AssetRiskWorkflowRepository) ResetRiskWorkflowParticipantsStatusByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Model(&models.RiskWorkflowParticipant{}).Where("risk_workflow_id = ?", workflowID).Update("workflow_status_id", nil).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AssetRiskWorkflowRepository) UpdateRiskWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Model(&models.RiskWorkflow{}).Where("id = ?", workflowID).Update("workflow_status_id", statusID).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *AssetRiskWorkflowRepository) CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error) {

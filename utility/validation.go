@@ -583,6 +583,16 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "workflow_not_rejected":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "workflow_not_rejected",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+
 		}
 
 		return errors

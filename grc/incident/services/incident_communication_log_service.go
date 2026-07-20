@@ -371,7 +371,7 @@ func (icls *IncidentCommunicationLogService) parseIncidentCommunicationLogDates(
 	fmt.Println(timezoneName)
 
 	if dto.CommunicatedAt != "" {
-		parsed.CommunicatedAt, err = utility.ConvertToUTC(dto.CommunicatedAt, timezoneName)
+		parsed.CommunicatedAt, err = utility.ConvertToUTCWithLayouts(dto.CommunicatedAt, timezoneName)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid communicated date: %w", err), "invalid_date", "communicated at")
 		}
