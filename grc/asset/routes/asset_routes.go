@@ -28,6 +28,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityTypeController := app.AssetModule.VulnerabilityTypeController
 	vulnerabilityStatusController := app.AssetModule.VulnerabilityStatusController
 	vulnerabilityController := app.AssetModule.VulnerabilityController
+	vulnerabilityAssociatedItemController := app.AssetModule.VulnerabilityAssociatedItemController
 	threatTypeController := app.AssetModule.ThreatTypeController
 	threatStatusController := app.AssetModule.ThreatStatusController
 	threatController := app.AssetModule.ThreatController
@@ -167,6 +168,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.ApproveVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id/deferred", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeferVulnerability)
 	assetRoutes.POST("/vulnerability-remediation/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.CreateVulnerabilityRemediation)
+	assetRoutes.GET("/vulnerabilities/:id/incidents", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityAssociatedItemController.GetAllVulnerabilityIncidents)
+	assetRoutes.POST("/vulnerabilities/:id/incidents", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityAssociatedItemController.CreateVulnerabilityIncident)
+	assetRoutes.DELETE("/vulnerabilities/:id/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityAssociatedItemController.DeleteVulnerabilityIncident)
 
 	// Threat types
 	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)

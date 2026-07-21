@@ -21,6 +21,7 @@ type AssetModule struct {
 	VulnerabilityTypeController                   *controllers.VulnerabilityTypeController
 	VulnerabilityStatusController                 *controllers.VulnerabilityStatusController
 	VulnerabilityController                       *controllers.VulnerabilityController
+	VulnerabilityAssociatedItemController         *controllers.VulnerabilityAssociatedItemController
 	ThreatTypeController                          *controllers.ThreatTypeController
 	ThreatStatusController                        *controllers.ThreatStatusController
 	ThreatController                              *controllers.ThreatController
@@ -165,6 +166,13 @@ func NewAssetModule(db *gorm.DB,
 		slaEscalationMatrixSvc,
 	)
 	vulnerabilityController := controllers.NewVulnerabilityController(vulnerabilitySvc)
+	vulnerabilityAssociatedItemRepo := repositories.NewVulnerabilityAssociatedItemRepository(db)
+	vulnerabilityAssociatedItemSvc := services.NewVulnerabilityAssociatedItemService(
+		vulnerabilityAssociatedItemRepo,
+		vulnerabilitySvc,
+		commonModule.AssociatedItemValidationService,
+	)
+	vulnerabilityAssociatedItemController := controllers.NewVulnerabilityAssociatedItemController(vulnerabilityAssociatedItemSvc)
 
 	threatTypeRepo := repositories.NewThreatTypeRepository(db)
 	threatTypeSvc := services.NewThreatTypeService(threatTypeRepo, sharedModule.ActivityLogService)
@@ -413,6 +421,7 @@ func NewAssetModule(db *gorm.DB,
 		VulnerabilityTypeController:                   vulnerabilityTypeController,
 		VulnerabilityStatusController:                 vulnerabilityStatusController,
 		VulnerabilityController:                       vulnerabilityController,
+		VulnerabilityAssociatedItemController:         vulnerabilityAssociatedItemController,
 		ThreatTypeController:                          threatTypeController,
 		ThreatStatusController:                        threatStatusController,
 		ThreatController:                              threatController,
