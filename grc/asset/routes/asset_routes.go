@@ -477,7 +477,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-risk-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.DeleteComment)
 	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.ResolveComment)
 
-	// Vulnerability Reject Workflow
+	// Vulnerability Closure Workflow
 	assetRoutes.POST("/vulnerabilities/:id/submit", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.SubmitVulnerability)
 	assetRoutes.POST("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.ApproveVulnerability)
 	assetRoutes.POST("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.RejectVulnerability)
