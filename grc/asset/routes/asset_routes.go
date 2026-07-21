@@ -65,6 +65,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRiskWorkflowController := app.AssetModule.AssetRiskWorkflowController
 	assetRiskReviewController := app.AssetModule.AssetRiskReviewController
 	assetRiskReviewCommentController := app.AssetModule.AssetRiskReviewCommentController
+	vulnerabilityWorkflowController := app.AssetModule.VulnerabilityClosedWorkflowController
+	vulnerabilityClosedReviewController := app.AssetModule.VulnerabilityClosedReviewController
+	vulnerabilityClosedReviewCommentController := app.AssetModule.VulnerabilityClosedReviewCommentController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -470,4 +473,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-risk-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.DeleteComment)
 	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.ResolveComment)
 
+	// Vulnerability Reject Workflow
+	assetRoutes.POST("/vulnerabilities/:id/submit", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.SubmitVulnerability)
+	assetRoutes.POST("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.ApproveVulnerability)
+	assetRoutes.POST("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.RejectVulnerability)
+	assetRoutes.POST("/vulnerabilities/:id/resubmit", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.ResubmitVulnerability)
+	assetRoutes.POST("/vulnerabilities/:id/revert", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewController.RevertVulnerability)
+	assetRoutes.GET("/vulnerabilities/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityWorkflowController.GetWorkflowList)
+
+	assetRoutes.GET("/vulnerabilities/:id/review-comments", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityClosedReviewCommentController.GetAllComments)
+	assetRoutes.GET("/vulnerabilities/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityClosedReviewCommentController.GetCommentDetails)
+	assetRoutes.POST("/vulnerabilities/:id/review-comments", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewCommentController.CreateComment)
+	assetRoutes.PUT("/vulnerabilities/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewCommentController.UpdateComment)
+	assetRoutes.POST("/vulnerabilities/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewCommentController.DeleteComments)
+	assetRoutes.PUT("/vulnerabilities/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewCommentController.ResolveComment)
 }

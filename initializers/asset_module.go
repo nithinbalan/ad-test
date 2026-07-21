@@ -57,6 +57,9 @@ type AssetModule struct {
 	AssetRiskWorkflowController                   *controllers.AssetRiskWorkflowController
 	AssetRiskReviewController                     *controllers.AssetRiskReviewController
 	AssetRiskReviewCommentController              *controllers.AssetRiskReviewCommentController
+	VulnerabilityClosedWorkflowController         *controllers.VulnerabilityClosureWorkflowController
+	VulnerabilityClosedReviewController           *controllers.VulnerabilityClosureReviewController
+	VulnerabilityClosedReviewCommentController    *controllers.VulnerabilityClosureReviewCommentController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -383,6 +386,20 @@ func NewAssetModule(db *gorm.DB,
 	)
 	assetRiskReviewCommentController := controllers.NewAssetRiskReviewCommentController(assetRiskReviewCommentSvc)
 
+	vulnerabilityClosureRepo := repositories.NewVulnerabilityClosureRepository(db)
+	vulnerabilityClosureSvc := services.NewVulnerabilityClosureService(vulnerabilityClosureRepo)
+
+	vulnerabilityClosedWorkflowRepo := repositories.NewVulnerabilityClosureWorkflowRepository(db)
+	vulnerabilityClosedWorkflowSvc := services.NewVulnerabilityClosureWorkflowService(vulnerabilityClosedWorkflowRepo, sharedModule.ActivityLogService, settingsModule.WorkflowSvc, masterModule.WorkflowStatusSvc, organizationModule.UserSvc, masterModule.WorkflowContextSvc)
+	vulnerabilityClosedWorkflowSvc.SetVulnerabilityClosureService(vulnerabilityClosureSvc)
+	vulnerabilityClosedWorkflowController := controllers.NewVulnerabilityClosureWorkflowController(vulnerabilityClosedWorkflowSvc)
+	vulnerabilityClosedReviewRepo := repositories.NewVulnerabilityClosureReviewRepository(db)
+	vulnerabilityClosedReviewSvc := services.NewVulnerabilityClosureReviewService(vulnerabilityClosedReviewRepo, sharedModule.ActivityLogService, vulnerabilitySvc, vulnerabilityClosedWorkflowSvc, vulnerabilityClosureSvc, masterModule.WorkflowStatusSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, organizationModule.OrganizationUnitsSvc)
+	vulnerabilityClosedReviewController := controllers.NewVulnerabilityClosureReviewController(vulnerabilityClosedReviewSvc)
+	vulnerabilityClosedReviewCommentRepo := repositories.NewVulnerabilityClosureReviewCommentRepository(db)
+	vulnerabilityClosedReviewCommentSvc := services.NewVulnerabilityClosureReviewCommentService(vulnerabilityClosedReviewCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, vulnerabilityClosureSvc, masterModule.CommentStatusSvc)
+	vulnerabilityClosedReviewCommentController := controllers.NewVulnerabilityClosureReviewCommentController(vulnerabilityClosedReviewCommentSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -432,6 +449,9 @@ func NewAssetModule(db *gorm.DB,
 		AssetRiskWorkflowController:                   assetRiskWorkflowController,
 		AssetRiskReviewController:                     assetRiskReviewController,
 		AssetRiskReviewCommentController:              assetRiskReviewCommentController,
+		VulnerabilityClosedWorkflowController:         vulnerabilityClosedWorkflowController,
+		VulnerabilityClosedReviewController:           vulnerabilityClosedReviewController,
+		VulnerabilityClosedReviewCommentController:    vulnerabilityClosedReviewCommentController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
