@@ -1504,7 +1504,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 				"PublishedByFirstNameEn": assignedBy.FirstNameEn,
 				"PublishedByLastNameEn":  assignedBy.LastNameEn,
 				"PublishedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%s/audits/%d", appURL, auditID),
+				"RedirectURL":            fmt.Sprintf("%s/audit/audits/%d/final-report", appURL, auditID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
