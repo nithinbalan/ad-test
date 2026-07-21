@@ -94,6 +94,7 @@ func (arrs AssetRiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 
 	riskDTO.CreatedAt = risk.CreatedAt
 	riskDTO.UpdatedAt = risk.UpdatedAt
+	riskDTO.RegistrationDateStr = risk.RegistrationDate.Format("2006-01-02")
 
 	return &riskDTO, nil
 }
@@ -454,7 +455,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 		oldData := map[string]interface{}{
 			"risk_code":         oldRiskRegister.RiskCode,
 			"title":             oldRiskRegister.Title,
-			"registration_date": oldRiskRegister.RegistrationDate,
+			"registration_date": oldRiskRegister.RegistrationDateStr,
 			"justification":     oldRiskRegister.Justification,
 			"expected_cause":    oldRiskRegister.ExpectedCause,
 			"division":          oldRiskRegister.Division.TitleEn,
@@ -490,7 +491,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 		newData := map[string]interface{}{
 			"risk_code":         newRisk.RiskCode,
 			"title":             newRisk.Title,
-			"registration_date": newRisk.RegistrationDate,
+			"registration_date": newRisk.RegistrationDateStr,
 			"justification":     newRisk.Justification,
 			"expected_cause":    newRisk.ExpectedCause,
 			"division":          newRisk.Division.TitleEn,

@@ -103,7 +103,7 @@ type AssetRiskRegisterDetailDTO struct {
 	ID                   uint       `json:"id"`
 	ReferenceNumber      string     `json:"reference_number"`
 	RiskCode             string     `json:"risk_code"`
-	RegistrationDate     time.Time  `json:"registration_date"`
+	RegistrationDateStr  string     `json:"registration_date"`
 	Title                string     `json:"title"`
 	Justification        *string    `json:"justification"`
 	IsStrategic          bool       `json:"is_strategic"`
