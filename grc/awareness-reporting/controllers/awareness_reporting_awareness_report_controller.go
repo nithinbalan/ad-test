@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"errors"
-	commonDTOs "jethur/grc/common/dtos"
 	awarenessDTOs "jethur/grc/awareness-reporting/dtos"
 	"jethur/grc/awareness-reporting/services"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -52,22 +52,22 @@ func (arc *AwarenessReportController) GetAllAwarenessReports(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"reference_number":                       "awareness_reports.reference_number",
-		"report_source_channel":                  "awareness_reports.report_source_channel",
-		"report_date":                            "awareness_reports.report_date",
-		"resulted_from_campaign":                 "awareness_reports.resulted_from_campaign",
-		"closure_date":                           "awareness_reports.closure_date",
-		"awareness_report_type_title_en":         "awareness_campaign_types.title_en",
-		"awareness_report_type_title_ar":         "awareness_campaign_types.title_ar",
-		"sub_category_title_en":                  "awareness_report_sub_categories.title_en",
-		"sub_category_title_ar":                  "awareness_report_sub_categories.title_ar",
-		"severity_title_en":                      "severity_levels.title_en",
-		"severity_title_ar":                      "severity_levels.title_ar",
-		"awareness_handling_status_title_en":     "awareness_handling_statuses.title_en",
-		"awareness_handling_status_title_ar":     "awareness_handling_statuses.title_ar",
-		"handling_owner_first_name_en":           "handling_owner_user.first_name_en",
-		"handling_owner_first_name_ar":           "handling_owner_user.first_name_ar",
-		"result":								   "awareness_reports.result",
+		"reference_number":                   "awareness_reports.reference_number",
+		"report_source_channel":              "awareness_reports.report_source_channel",
+		"report_date":                        "awareness_reports.report_date",
+		"resulted_from_campaign":             "awareness_reports.resulted_from_campaign",
+		"closure_date":                       "awareness_reports.closure_date",
+		"awareness_report_type_title_en":     "awareness_campaign_types.title_en",
+		"awareness_report_type_title_ar":     "awareness_campaign_types.title_ar",
+		"sub_category_title_en":              "awareness_report_sub_categories.title_en",
+		"sub_category_title_ar":              "awareness_report_sub_categories.title_ar",
+		"severity_title_en":                  "severity_levels.title_en",
+		"severity_title_ar":                  "severity_levels.title_ar",
+		"awareness_handling_status_title_en": "awareness_handling_statuses.title_en",
+		"awareness_handling_status_title_ar": "awareness_handling_statuses.title_ar",
+		"handling_owner_first_name_en":       "handling_owner_user.first_name_en",
+		"handling_owner_first_name_ar":       "handling_owner_user.first_name_ar",
+		"result":                             "awareness_reports.result",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -109,6 +109,28 @@ func (arc *AwarenessReportController) GetAllAwarenessReports(c *gin.Context) {
 	reports, err := arc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(arc.db, c, err.Error())
+		return
+	}
+	
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := arc.service.ExportAwarenessReport(reports.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="AwarenessReports.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 

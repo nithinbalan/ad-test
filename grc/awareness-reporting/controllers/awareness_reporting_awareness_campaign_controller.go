@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"errors"
-	commonDTOs "jethur/grc/common/dtos"
 	awarenessDTOs "jethur/grc/awareness-reporting/dtos"
 	"jethur/grc/awareness-reporting/services"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
 	"path/filepath"
@@ -53,25 +53,25 @@ func (acc *AwarenessCampaignController) GetAllAwarenessCampaigns(c *gin.Context)
 	}
 
 	validSortFields := map[string]string{
-		"campaign_title":                        "awareness_campaigns.campaign_title",
-		"reference_number":                      "awareness_campaigns.reference_number",
-		"objective":                             "awareness_campaigns.objective",
-		"target_audience":                       "awareness_campaigns.target_audience",
-		"start_date":                            "awareness_campaigns.start_date",
-		"end_date":                              "awareness_campaigns.end_date",
-		"awareness_campaign_type_title_en":      "awareness_campaign_types.title_en",
-		"awareness_campaign_type_title_ar":      "awareness_campaign_types.title_ar",
-		"awareness_priority_title_en":           "awareness_priorities.title_en",
-		"awareness_priority_title_ar":           "awareness_priorities.title_ar",
-		"awareness_campaign_status_title_en":    "awareness_campaign_statuses.title_en",
-		"awareness_campaign_status_title_ar":    "awareness_campaign_statuses.title_ar",
-		"organization_unit_title_en":            "organization_units.title_en",
-		"organization_unit_title_ar":            "organization_units.title_ar",
-		"owner_first_name_en":                   "owner_user.first_name_en",
-		"owner_first_name_ar":                   "owner_user.first_name_ar",
-		"owner_last_name_en":                    "owner_user.last_name_en",
-		"owner_last_name_ar":                    "owner_user.last_name_ar",
-		"owner_email":                           "owner_user.email",
+		"campaign_title":                     "awareness_campaigns.campaign_title",
+		"reference_number":                   "awareness_campaigns.reference_number",
+		"objective":                          "awareness_campaigns.objective",
+		"target_audience":                    "awareness_campaigns.target_audience",
+		"start_date":                         "awareness_campaigns.start_date",
+		"end_date":                           "awareness_campaigns.end_date",
+		"awareness_campaign_type_title_en":   "awareness_campaign_types.title_en",
+		"awareness_campaign_type_title_ar":   "awareness_campaign_types.title_ar",
+		"awareness_priority_title_en":        "awareness_priorities.title_en",
+		"awareness_priority_title_ar":        "awareness_priorities.title_ar",
+		"awareness_campaign_status_title_en": "awareness_campaign_statuses.title_en",
+		"awareness_campaign_status_title_ar": "awareness_campaign_statuses.title_ar",
+		"organization_unit_title_en":         "organization_units.title_en",
+		"organization_unit_title_ar":         "organization_units.title_ar",
+		"owner_first_name_en":                "owner_user.first_name_en",
+		"owner_first_name_ar":                "owner_user.first_name_ar",
+		"owner_last_name_en":                 "owner_user.last_name_en",
+		"owner_last_name_ar":                 "owner_user.last_name_ar",
+		"owner_email":                        "owner_user.email",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -113,6 +113,28 @@ func (acc *AwarenessCampaignController) GetAllAwarenessCampaigns(c *gin.Context)
 	campaigns, err := acc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(acc.db, c, err.Error())
+		return
+	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(acc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := acc.service.ExportAwarenessCampaign(campaigns.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(acc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="AwarenessCampaigns.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 

@@ -33,6 +33,7 @@ type AwarenessCampaignServiceInterface interface {
 	Update(id uint, currentUserID uint, formDTO *awarenessDTOs.AwarenessCampaignFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(id uint, token string) (string, error)
+	ExportAwarenessCampaign(data []*awarenessDTOs.AwarenessCampaignListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -46,6 +47,7 @@ type AwarenessCampaignService struct {
 	organizationUnitSvc          settingsServices.OrganizationUnitServiceInterface
 	userSvc                      organizationServices.UserServiceInterface
 	notificationSvc              commonServices.NotificationServiceInterface
+	userSettingSvc               organizationServices.UserSettingServiceInterface
 }
 
 func NewAwarenessCampaignService(
@@ -58,6 +60,7 @@ func NewAwarenessCampaignService(
 	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AwarenessCampaignServiceInterface {
 	return &AwarenessCampaignService{
 		repo:                         repo,
@@ -69,6 +72,7 @@ func NewAwarenessCampaignService(
 		organizationUnitSvc:          organizationUnitSvc,
 		userSvc:                      userSvc,
 		notificationSvc:              notificationSvc,
+		userSettingSvc:               userSettingSvc,
 	}
 }
 
@@ -1021,4 +1025,85 @@ func (acs *AwarenessCampaignService) GetDocumentPath(id uint, token string) (str
 	}
 
 	return fullPath, nil
+}
+
+func (acs *AwarenessCampaignService) ExportAwarenessCampaign(data []*awarenessDTOs.AwarenessCampaignListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := acs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"عنوان الحملة",
+			"الهدف",
+			"الجمهور المستهدف",
+			"نوع الحملة",
+			"الأولوية",
+			"حالة الحملة",
+			"الوحدة التنظيمية المسؤولة",
+			"المالك",
+			"تاريخ البدء",
+			"تاريخ الانتهاء",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Campaign Title",
+			"Objective",
+			"Target Audience",
+			"Campaign Type",
+			"Priority",
+			"Campaign Status",
+			"Responsible Unit",
+			"Owner",
+			"Start Date",
+			"End Date",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, campaign := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				campaign.ReferenceNumber,
+				campaign.CampaignTitle,
+				utility.GetStringValue(campaign.Objective),
+				utility.GetStringValue(campaign.TargetAudience),
+				utility.GetStringValue(campaign.AwarenessCampaignTypeTitleAr),
+				utility.GetStringValue(campaign.AwarenessPriorityTitleAr),
+				utility.GetStringValue(campaign.AwarenessCampaignStatusTitleAr),
+				utility.GetStringValue(campaign.OrganizationUnitTitleAr),
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(campaign.OwnerFirstNameAr),
+					utility.GetStringValue(campaign.OwnerLastNameAr)),
+				campaign.StartDate,
+				utility.GetStringValue(campaign.EndDate),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				campaign.ReferenceNumber,
+				campaign.CampaignTitle,
+				utility.GetStringValue(campaign.Objective),
+				utility.GetStringValue(campaign.TargetAudience),
+				utility.GetStringValue(campaign.AwarenessCampaignTypeTitleEn),
+				utility.GetStringValue(campaign.AwarenessPriorityTitleEn),
+				utility.GetStringValue(campaign.AwarenessCampaignStatusTitleEn),
+				utility.GetStringValue(campaign.OrganizationUnitTitleEn),
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(campaign.OwnerFirstNameEn),
+					utility.GetStringValue(campaign.OwnerLastNameEn)),
+				campaign.StartDate,
+				utility.GetStringValue(campaign.EndDate),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

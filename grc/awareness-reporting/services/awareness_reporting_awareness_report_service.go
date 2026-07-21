@@ -1,9 +1,9 @@
-
 package services
 
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	awarenessDTOs "jethur/grc/awareness-reporting/dtos"
 	awarenessRepositories "jethur/grc/awareness-reporting/repositories"
@@ -25,16 +25,18 @@ type AwarenessReportServiceInterface interface {
 	Create(currentUserID uint, formDTO *awarenessDTOs.AwarenessReportFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, formDTO *awarenessDTOs.AwarenessReportFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ExportAwarenessReport(data []*awarenessDTOs.AwarenessReportListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AwarenessReportService struct {
-	repo                      awarenessRepositories.AwarenessReportRepositoryInterface
-	activityLogSvc            logServices.ActivityLogServiceInterface
-	awarenessCampaignTypeSvc  AwarenessCampaignTypeServiceInterface
-	awarenessReportSubCatSvc  AwarenessReportSubCategoryServiceInterface
-	severityLevelSvc          masterServices.SeverityLevelServiceInterface
+	repo                       awarenessRepositories.AwarenessReportRepositoryInterface
+	activityLogSvc             logServices.ActivityLogServiceInterface
+	awarenessCampaignTypeSvc   AwarenessCampaignTypeServiceInterface
+	awarenessReportSubCatSvc   AwarenessReportSubCategoryServiceInterface
+	severityLevelSvc           masterServices.SeverityLevelServiceInterface
 	awarenessHandlingStatusSvc AwarenessHandlingStatusServiceInterface
-	userSvc                   organizationServices.UserServiceInterface
+	userSvc                    organizationServices.UserServiceInterface
+	userSettingSvc             organizationServices.UserSettingServiceInterface
 }
 
 func NewAwarenessReportService(
@@ -45,6 +47,7 @@ func NewAwarenessReportService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	awarenessHandlingStatusSvc AwarenessHandlingStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AwarenessReportServiceInterface {
 	return &AwarenessReportService{
 		repo:                       repo,
@@ -54,6 +57,7 @@ func NewAwarenessReportService(
 		severityLevelSvc:           severityLevelSvc,
 		awarenessHandlingStatusSvc: awarenessHandlingStatusSvc,
 		userSvc:                    userSvc,
+		userSettingSvc:             userSettingSvc,
 	}
 }
 
@@ -206,21 +210,21 @@ func (ars *AwarenessReportService) Update(id uint, currentUserID uint, formDTO *
 		changedData := make(map[string]interface{})
 
 		oldData := map[string]interface{}{
-			"awareness_report_type":      oldReport.AwarenessReportType.TitleEn,
-			"report_source_channel":      utility.GetStringValue(oldReport.ReportSourceChannel),
-			"resulted_from_campaign":     oldReport.ResultedFromCampaign,
-			"report_date":                oldReport.ReportDate,
-			"closure_date":               oldReport.ClosureDate,
-			"result":                     utility.GetStringValue(oldReport.Result),
+			"awareness_report_type":  oldReport.AwarenessReportType.TitleEn,
+			"report_source_channel":  utility.GetStringValue(oldReport.ReportSourceChannel),
+			"resulted_from_campaign": oldReport.ResultedFromCampaign,
+			"report_date":            oldReport.ReportDate,
+			"closure_date":           oldReport.ClosureDate,
+			"result":                 utility.GetStringValue(oldReport.Result),
 		}
 
 		newData := map[string]interface{}{
-			"awareness_report_type":      existingFullReport.AwarenessReportType.TitleEn,
-			"report_source_channel":      utility.GetStringValue(existingFullReport.ReportSourceChannel),
-			"resulted_from_campaign":     existingFullReport.ResultedFromCampaign,
-			"report_date":                existingFullReport.ReportDate,
-			"closure_date":               existingFullReport.ClosureDate,
-			"result":                     utility.GetStringValue(existingFullReport.Result),
+			"awareness_report_type":  existingFullReport.AwarenessReportType.TitleEn,
+			"report_source_channel":  utility.GetStringValue(existingFullReport.ReportSourceChannel),
+			"resulted_from_campaign": existingFullReport.ResultedFromCampaign,
+			"report_date":            existingFullReport.ReportDate,
+			"closure_date":           existingFullReport.ClosureDate,
+			"result":                 utility.GetStringValue(existingFullReport.Result),
 		}
 
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -336,4 +340,85 @@ func (ars *AwarenessReportService) validateAwarenessReportFormDTO(formDTO *aware
 	}
 
 	return nil
+}
+
+func (ars *AwarenessReportService) ExportAwarenessReport(data []*awarenessDTOs.AwarenessReportListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := ars.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"نوع البلاغ",
+			"الفئة الفرعية",
+			"قناة مصدر البلاغ",
+			"مستوى الخطورة",
+			"تاريخ البلاغ",
+			"ناتج عن حملة",
+			"حالة المعالجة",
+			"مالك المعالجة",
+			"تاريخ الإغلاق",
+			"النتيجة",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Report Type",
+			"Sub Category",
+			"Report Source Channel",
+			"Severity",
+			"Report Date",
+			"Resulted From Campaign",
+			"Handling Status",
+			"Handling Owner",
+			"Closure Date",
+			"Result",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, report := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				report.ReferenceNumber,
+				utility.GetStringValue(report.AwarenessReportTypeTitleAr),
+				utility.GetStringValue(report.SubCategoryTitleAr),
+				utility.GetStringValue(report.ReportSourceChannel),
+				utility.GetStringValue(report.SeverityTitleAr),
+				report.ReportDate,
+				report.ResultedFromCampaign,
+				utility.GetStringValue(report.AwarenessHandlingStatusTitleAr),
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(report.HandlingOwnerFirstNameAr),
+					utility.GetStringValue(report.HandlingOwnerLastNameAr)),
+				utility.GetStringValue(report.ClosureDate),
+				utility.GetStringValue(report.Result),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				report.ReferenceNumber,
+				utility.GetStringValue(report.AwarenessReportTypeTitleEn),
+				utility.GetStringValue(report.SubCategoryTitleEn),
+				utility.GetStringValue(report.ReportSourceChannel),
+				utility.GetStringValue(report.SeverityTitleEn),
+				report.ReportDate,
+				report.ResultedFromCampaign,
+				utility.GetStringValue(report.AwarenessHandlingStatusTitleEn),
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(report.HandlingOwnerFirstNameEn),
+					utility.GetStringValue(report.HandlingOwnerLastNameEn)),
+				utility.GetStringValue(report.ClosureDate),
+				utility.GetStringValue(report.Result),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
