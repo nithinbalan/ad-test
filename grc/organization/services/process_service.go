@@ -378,12 +378,16 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			}
 
 			appURL := utility.GetAppURL()
+			processGroupTitleEn := ""
+			if existingProcess.ProcessGroup != nil {
+				processGroupTitleEn = existingProcess.ProcessGroup.TitleEn
+			}
 			emailData = map[string]interface{}{
 				"DepartmentNameEn":       department.TitleEn,
 				"DepartmentNameAr":       department.TitleAr,
 				"ProcessReferenceNumber": existingProcess.ReferenceNumber,
 				"ProcessName":            existingProcess.TitleEn,
-				"ProcessGroup":           existingProcess.ProcessGroup.TitleEn,
+				"ProcessGroup":           processGroupTitleEn,
 				"AssignedByFirstNameEn":  existingProcess.CreatedByUser.FirstNameEN,
 				"AssignedByLastNameEn":   existingProcess.CreatedByUser.LastNameEN,
 				"AssignedOn":             existingProcess.CreatedAt.Format("2006-01-02"),

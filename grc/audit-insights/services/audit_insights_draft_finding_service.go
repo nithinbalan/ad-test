@@ -376,7 +376,7 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 				"LastNameEn":              responsibleUser.LastNameEn,
 				"AuditTitle":              auditDraftReport.Audit.AuditPlan.Title,
 				"FindingTitle":            existingAuditDraftFinding.Title,
-				"FindingDescription":      existingAuditDraftFinding.Description,
+				"FindingDescription":      *existingAuditDraftFinding.Description,
 				"FindingCategoryTitle":    existingAuditDraftFinding.AuditFindingCategory.TitleEn,
 				"ChallengedByFirstNameEn": assignedBy.FirstNameEn,
 				"ChallengedByLastNameEn":  assignedBy.LastNameEn,

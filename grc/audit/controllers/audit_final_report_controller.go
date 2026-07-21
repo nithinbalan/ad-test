@@ -8,8 +8,8 @@ import (
 	"jethur/utility"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -199,14 +199,13 @@ func (afrc *AuditFinalReportController) ExportAuditFinalReportPDF(c *gin.Context
 	}
 
 	// Delegate to service to handle PDF generation
-	fileName, err := afrc.service.ExportAuditFinalReportToPDF(uint(auditID), uint(currentUserID))
+	filePath, err := afrc.service.ExportAuditFinalReportToPDF(uint(auditID), uint(currentUserID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		case *utility.ForbiddenError:
-			// Return a 403 Forbidden response with the error message
 			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
@@ -215,22 +214,14 @@ func (afrc *AuditFinalReportController) ExportAuditFinalReportPDF(c *gin.Context
 		}
 	}
 
-	// Set headers to ensure the file is served with the correct file name
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
-	c.Header("Content-Type", "application/pdf")
-
-	// Serve the PDF file
-	c.File(fileName)
-	// Cleanup after the response has been sent
-	c.Writer.Flush()
-
-	go func() {
-		time.Sleep(2 * time.Second) // Add a small delay to ensure file is no longer in use
-		err := os.Remove(fileName)
-		if err != nil {
-			fmt.Printf("Failed to delete file %s: %v\n", fileName, err)
-		} else {
-			fmt.Printf("Successfully deleted file %s\n", fileName)
+	// Ensure the temp file is deleted after the response is sent
+	defer func() {
+		if removeErr := os.Remove(filePath); removeErr != nil {
+			fmt.Printf("Failed to delete temp PDF %s: %v\n", filePath, removeErr)
 		}
 	}()
+
+	// Serve the PDF as a downloadable attachment using only the base filename
+	downloadName := filepath.Base(filePath)
+	c.FileAttachment(filePath, downloadName)
 }

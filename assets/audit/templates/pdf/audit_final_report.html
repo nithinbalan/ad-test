@@ -51,12 +51,12 @@
                 {{.Data.PreparedAt}}
                 </p> -->
                 <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; line-height: 80px; margin-top: 0px; text-align: left; margin-bottom: 4px;">
-                    <span style="color: #DB8016; margin: 40px 0; font-size: 64px; font-weight: bold;
-                    ">{{.Data.Title}} <br> {{.Data.PreparedAt}} </span></p>
+                    <span style="color: #DB8016; margin: 40px 0; font-size: 64px; font-weight: bold;">{{.Data.Title}} <br> {{.Data.PreparedAt}} </span>
+                </p>
                 <div style="width: 40%; margin-top: 30px;">
                     <p
                         style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 18px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 5px;">
-                        {{.Data.Description}}
+                        {{if .Data.Description}}{{.Data.Description}}{{end}}
                     </p>
                 </div>
             </div>
@@ -65,7 +65,8 @@
             <div class="keep-together">
                 {{range .Data.MainSections}}
                 <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #000;">{{.Order}}. {{.TitleEn}}</h4>
-                {{if .DescriptionEn}}<p style="margin: 0 0 20px 0; color: #000;">{{.DescriptionEn}}</p>{{end}}
+                {{if .DescriptionEn}}<p style="margin: 0 0 20px 0; color: #000;">{{safeHTML .DescriptionEn}}</p>{{end}}
+
                 {{if eq .Type "finding-summary"}}
                 {{if .FindingCategorySummary}}
                 <table
@@ -112,36 +113,32 @@
                             <td
                                 style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
                                 {{if eq .AuditableItem.Type "control"}}
-                                    {{.AuditableItem.Control.TitleEn}}
+                                    {{if .AuditableItem.Control}}{{.AuditableItem.Control.TitleEn}}{{end}}
                                 {{else if eq .AuditableItem.Type "process"}}
-                                    {{.AuditableItem.Process.TitleEn}}
+                                    {{if .AuditableItem.Process}}{{.AuditableItem.Process.TitleEn}}{{end}}
                                 {{else if eq .AuditableItem.Type "risk"}}
-                                    {{.AuditableItem.RiskRegister.Title}}
+                                    {{if .AuditableItem.RiskRegister}}{{.AuditableItem.RiskRegister.Title}}{{end}}
                                 {{else if eq .AuditableItem.Type "compliance_requirement"}}
-                                    {{.AuditableItem.ComplianceRequirement.Title}}
+                                    {{if .AuditableItem.ComplianceRequirement}}{{.AuditableItem.ComplianceRequirement.Title}}{{end}}
                                 {{else if eq .AuditableItem.Type "compliance_register"}}
-                                    {{.AuditableItem.ComplianceRegister.Title}}
+                                    {{if .AuditableItem.ComplianceRegister}}{{.AuditableItem.ComplianceRegister.Title}}{{end}}
                                 {{else if eq .AuditableItem.Type "incident"}}
-                                    {{.AuditableItem.IncidentRegister.Title}}
+                                    {{if .AuditableItem.IncidentRegister}}{{.AuditableItem.IncidentRegister.Title}}{{end}}
                                 {{else if eq .AuditableItem.Type "user"}}
-                                    {{.AuditableItem.User.FirstNameEn}} {{.AuditableItem.User.LastNameEn}}
+                                    {{if .AuditableItem.User}}{{.AuditableItem.User.FirstNameEN}} {{.AuditableItem.User.LastNameEN}}{{end}}
                                 {{else if eq .AuditableItem.Type "document"}}
-                                    {{.AuditableItem.Document.DocumentTitleEn}}
+                                    {{if .AuditableItem.Document}}{{.AuditableItem.Document.DocumentTitleEn}}{{end}}
                                 {{else}}
-                                    {{.AuditableItem.TitleEn}}
+                                    {{if .AuditableItem.TitleEn}}{{.AuditableItem.TitleEn}}{{end}}
                                 {{end}}
                             </td>
                             <td
                                 style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
-                                {{if .AuditFindingCategory}}
-                                    {{.AuditFindingCategory.TitleEn}}
-                                {{end}}
+                                {{.AuditFindingCategory.TitleEn}}
                             </td>
                             <td
                                 style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
-                                {{if .SeverityLevel}}
-                                    {{.SeverityLevel.TitleEn}}
-                                {{end}}
+                                {{.SeverityLevel.TitleEn}}
                             </td>
 
                         </tr>
@@ -149,16 +146,19 @@
                     </tbody>
                 </table>
                 <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px;">Description:</h6>
-                <p style="margin: 0 0 20px 0; color: #000;">{{.Description}}</p>
+                <p style="margin: 0 0 20px 0; color: #000;">{{if .Description}}{{.Description}}{{else}}N/A{{end}}</p>
                 <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px;">Recommendations:</h6>
 
                 <ol style=" padding: 0 0 0 20px;">
-                    <li>{{.Recommendations}}</li>
-
+                    <li>{{if .Recommendations}}{{.Recommendations}}{{else}}N/A{{end}}</li>
                 </ol>
                 <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px; ">Department Response:</h6>
+                {{if .DepartmentResponse}}
+                <p style="margin: 0 0 20px 0; color: #000;">{{.DepartmentResponse}}</p>
+                {{else}}
                 <p style="margin: 0 0 20px 0; color: #000;margin-bottom: 5px;">(Auditor):</p>
                 <p style="margin: 0 0 20px 0; color: #000;"> </p>
+                {{end}}
                 
                 {{if .ActionPlans}}
                 <h6 style="margin: 0 0 10px 0;font-weight: bold; font-size: 14px; ">Action Plan:</h6>
@@ -186,11 +186,8 @@
                                     {{.TargetDate}}</td>
                                 <td
                                     style="text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.3em; border: 1px solid #ccc; padding: 10px 10px;">
-                                    {{if .ResponsibleUser}}
-                                        {{.ResponsibleUser.FirstNameEN}}&nbsp; {{.ResponsibleUser.LastNameEN}}
-                                    {{end}}
+                                    {{.ResponsibleUser.FirstNameEN}}&nbsp;{{.ResponsibleUser.LastNameEN}}
                                 </td>
-
                             </tr>
                         {{end}}
                     </tbody>
