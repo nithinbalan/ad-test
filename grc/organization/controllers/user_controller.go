@@ -259,6 +259,7 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
+	userFormDTO.IsADUser = false
 	id, err := uc.service.Create(currentUserID, &userFormDTO)
 
 	if err != nil {
@@ -694,12 +695,15 @@ func (uc *UserController) ListUsersInGroups(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
-	users, err := uc.service.ListUsersInGroups(req.GroupDNs)
+	users, nextToken, err := uc.service.ListUsersInGroups(req.GroupDNs,req.NextToken,req.PageSize,req.Search)
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, users)
+	c.JSON(http.StatusOK, gin.H{
+		"data":       users,
+		"next_token": nextToken,
+	})
 }
 
 func (uc *UserController) GetADUsers(c *gin.Context) {

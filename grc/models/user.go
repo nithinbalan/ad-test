@@ -28,6 +28,7 @@ type User struct {
 	MarkedAsAuditableItem bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 	ReportingUserID       *uint      `json:"reporting_user"`
 	LicenseTypeID         *uint      `json:"license_type_id"`
+	IsADUser              bool       `json:"is_ad_user"`
 	DelegationUserID      *uint      `json:"delegatee_user_id"  gorm:"column:delegatee_user_id"`
 
 	CreatedAt   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
