@@ -61,8 +61,15 @@ type AssetModule struct {
 	VulnerabilityClosedWorkflowController         *controllers.VulnerabilityClosureWorkflowController
 	VulnerabilityClosedReviewController           *controllers.VulnerabilityClosureReviewController
 	VulnerabilityClosedReviewCommentController    *controllers.VulnerabilityClosureReviewCommentController
+	AssetRiskRootCauseAnalysisController          *controllers.AssetRiskRootCauseAnalysisController
+	AssetRiskAssociatedItemController             *controllers.AssetRiskAssociatedItemController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
+}
+
+func (am *AssetModule) SetRiskControllers(riskModule *RiskModule) {
+	am.AssetRiskRootCauseAnalysisController = controllers.NewAssetRiskRootCauseAnalysisController(riskModule.RiskRootCauseAnalysisSvc)
+	am.AssetRiskAssociatedItemController = controllers.NewAssetRiskAssociatedItemController(riskModule.RiskAssociatedItemSvc)
 }
 
 func NewAssetModule(db *gorm.DB,
