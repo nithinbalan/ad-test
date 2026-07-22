@@ -166,8 +166,15 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 	var impactAnalyses []*models.RiskImpactAnalysis
 	var analysisGuidelines []*models.RiskImpactAnalysisGuideline
 	evaluationImpactAnalysisIndices := make(map[int][]int)
+	submittedRiskIDs := make(map[uint]struct{}, len(formDTO.Analysis))
 
 	for evalIdx, evaluationForm := range formDTO.Analysis {
+		if _, exists := submittedRiskIDs[evaluationForm.RiskRegisterID]; exists {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("duplicate inherent analysis for risk register ID %d", evaluationForm.RiskRegisterID), "duplicate", "risk_register_id")
+		}
+		submittedRiskIDs[evaluationForm.RiskRegisterID] = struct{}{}
+
 		// Validate risk register exists
 		if _, err := rrups.riskRegisterSvc.GetByID(evaluationForm.RiskRegisterID); err != nil {
 			tx.Rollback()
@@ -251,6 +258,15 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 			impactAnalyses = append(impactAnalyses, riskImpactAnalysis)
 			evaluationImpactAnalysisIndices[evalIdx] = append(evaluationImpactAnalysisIndices[evalIdx], len(impactAnalyses)-1)
 		}
+	}
+
+	riskRegisterIDs := make([]uint, 0, len(evaluations))
+	for _, evaluation := range evaluations {
+		riskRegisterIDs = append(riskRegisterIDs, evaluation.RiskRegisterID)
+	}
+	if err := rrups.repo.DeletePlanInherentEvaluationsByRiskRegisterIDs(riskRegisterIDs, planID, tx); err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	// Create evaluations in bulk

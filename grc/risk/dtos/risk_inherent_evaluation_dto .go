@@ -9,6 +9,7 @@ type RiskInherentEvaluationDetailsDTO struct {
 	RiskMatrixRiskRatingValue RiskMatrixRiskRatingValueDTO `json:"risk_matrix_risk_rating_value"`
 	RiskImpactAnalyses        []RiskImpactAnalysisDTO      `json:"risk_impact_analyses"`
 	RiskAppetiteAlignments    []RiskAppetiteAlignmentDTO   `json:"risk_appetite_alignments"`
+	IsLatest                  bool                         `json:"is_latest"`
 }
 
 type RiskImpactAnalysisDTO struct {

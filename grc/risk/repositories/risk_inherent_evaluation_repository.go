@@ -58,7 +58,7 @@ func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(riskID uint, tx
 		Preload("RiskAppetiteAlignments.RiskAppetiteStatement").
 		Preload("RiskAppetiteAlignments.RiskAppetiteToleranceLevel").
 		Where(
-			"risk_register_id = ? AND type = ? AND is_latest = ? AND risk_register_update_plan_id IS NOT NULL",
+			"risk_register_id = ? AND type = ? AND is_latest = ?",
 			riskID,
 			"inherent",
 			true,

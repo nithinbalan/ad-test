@@ -505,6 +505,47 @@ func (repo *RiskRegisterUpdatePlanRepository) ForceDelete(id uint, tx ...utility
 	}
 
 	queries := []string{
+		`DELETE FROM risk_control_analyses
+		WHERE control_test_id IN (
+			SELECT id FROM control_tests WHERE risk_register_update_plan_id = ?
+		)`,
+
+		`DELETE FROM control_test_documents
+		WHERE control_test_id IN (
+			SELECT id FROM control_tests WHERE risk_register_update_plan_id = ?
+		)`,
+
+		`DELETE FROM control_tests WHERE risk_register_update_plan_id = ?`,
+
+		`DELETE FROM risk_impact_analysis_guidelines
+		WHERE risk_impact_analysis_id IN (
+			SELECT id FROM risk_impact_analyses
+			WHERE risk_evaluation_id IN (
+				SELECT id FROM risk_evaluations WHERE risk_register_update_plan_id = ?
+			)
+		)`,
+
+		`DELETE FROM risk_impact_analyses
+		WHERE risk_evaluation_id IN (
+			SELECT id FROM risk_evaluations WHERE risk_register_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_appetite_alignments
+		WHERE risk_evaluation_id IN (
+			SELECT id FROM risk_evaluations WHERE risk_register_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_residual_evaluation_histories
+		WHERE risk_evaluation_id IN (
+			SELECT id FROM risk_evaluations WHERE risk_register_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_evaluations WHERE risk_register_update_plan_id = ?`,
+
+		`UPDATE risk_register
+		SET risk_register_update_plan_id = NULL
+		WHERE risk_register_update_plan_id = ?`,
+
 		// --- Deepest children first ---
 		// Review comment documents (child of review comments)
 		`DELETE FROM risk_update_plan_review_comment_documents
