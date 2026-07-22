@@ -58,6 +58,7 @@ type AuditFinalReportService struct {
 	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
 	settingSvc                settingsServices.AuditTemplateSettingServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
+	auditTimelineSvc 		  AuditTimelineServiceInterface
 }
 
 func NewAuditFinalReportService(
@@ -73,6 +74,7 @@ func NewAuditFinalReportService(
 	auditFindingSvc AuditFindingServiceInterface,
 	settingSvc settingsServices.AuditTemplateSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditFinalReportServiceInterface {
 	return &AuditFinalReportService{
 		repo:                      repo,
@@ -87,6 +89,7 @@ func NewAuditFinalReportService(
 		auditFindingSvc:           auditFindingSvc,
 		settingSvc:                settingSvc,
 		notificationSvc:           notificationSvc,
+		auditTimelineSvc:          auditTimelineSvc,
 	}
 }
 
@@ -1455,6 +1458,28 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 	}
 	err = afrs.auditSvc.StatusUpdate(auditID, currentUserID, uint(auditCompleteStatus.ID), tx)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	publishType, err := afrs.auditTimelineSvc.GetByType("publish")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	completedStatus, err := afrs.auditTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	now := time.Now()
+	timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+		AuditID:             auditID,
+		AuditTimelineTypeID: publishType.ID,
+		TimelineStatusID:    completedStatus.ID,
+		PerformedByID:       &currentUserID,
+		PerformedAt:         &now,
+	}
+	if err := afrs.auditTimelineSvc.Update(auditID, timelineFormDTO, publishType.ID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

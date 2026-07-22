@@ -37,6 +37,7 @@ type AuditReportReviewService struct {
 	userSvc                   organizationSvc.UserServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
 	taskSvc                   taskServices.TaskServiceInterface
+	auditTimelineSvc          AuditTimelineServiceInterface
 }
 
 func NewAuditReportReviewService(
@@ -49,6 +50,7 @@ func NewAuditReportReviewService(
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditReportReviewServiceInterface {
 	return &AuditReportReviewService{
 		repo:                      repo,
@@ -60,6 +62,7 @@ func NewAuditReportReviewService(
 		userSvc:                   userSvc,
 		notificationSvc:           notificationSvc,
 		taskSvc:                   taskSvc,
+		auditTimelineSvc:          auditTimelineSvc,
 	}
 }
 
@@ -320,6 +323,26 @@ func (arrs *AuditReportReviewService) AddComment(id uint, currentUserID uint, au
 	}
 }
 
+func (arrs *AuditReportReviewService) markFinalReportTimelineCompleted(auditID uint, currentUserID uint) error {
+	finalReportType, err := arrs.auditTimelineSvc.GetByType("final-report")
+	if err != nil {
+		return err
+	}
+	completedStatus, err := arrs.auditTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+		AuditID:             auditID,
+		AuditTimelineTypeID: finalReportType.ID,
+		TimelineStatusID:    completedStatus.ID,
+		PerformedByID:       &currentUserID,
+		PerformedAt:         &now,
+	}
+	return arrs.auditTimelineSvc.Update(auditID, timelineFormDTO, finalReportType.ID)
+}
+
 func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID uint, auditReportReviewCommentFormDTO *auditDTOs.AuditReportReviewCommentFormDTO, auditFinalReport *auditDTOs.AuditFinalReportDetailDTO, currentAuditReportWorkflow *models.AuditReportWorkflow, currentApprovalLevel int) error {
 	workflowStatus, err := arrs.workflowStatusSvc.GetByType("approve")
 	if err != nil {
@@ -380,6 +403,11 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 			if err != nil {
 				return err
 			}
+
+			if err := arrs.markFinalReportTimelineCompleted(auditFinalReport.AuditID, currentUserID); err != nil {
+				return err
+			}
+
 		} else {
 			existingAuditFinalReport, err := arrs.auditFinalReportSvc.GetByID(id)
 			if err != nil {
@@ -472,6 +500,10 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 					if err != nil {
 						return err
 					}
+
+					if err := arrs.markFinalReportTimelineCompleted(auditFinalReport.AuditID, currentUserID); err != nil {
+						return err
+					}
 				} else {
 					existingAuditFinalReport, err := arrs.auditFinalReportSvc.GetByID(id)
 					if err != nil {
@@ -551,6 +583,10 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 				existingAuditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
 				err = arrs.auditFinalReportSvc.Update(existingAuditFinalReport)
 				if err != nil {
+					return err
+				}
+
+				if err := arrs.markFinalReportTimelineCompleted(auditFinalReport.AuditID, currentUserID); err != nil {
 					return err
 				}
 			} else {
@@ -1083,4 +1119,3 @@ func (arrs *AuditReportReviewService) sendCommentNotification(currentUserID uint
 		}
 	}()
 }
-

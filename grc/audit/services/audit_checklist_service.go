@@ -42,6 +42,7 @@ type AuditChecklistService struct {
 	conformanceSvc            masterServices.ConformanceServiceInterface
 	statusSvc                 masterServices.StatusServiceInterface
 	auditPlanAuditableItemSvc AuditPlanAuditableItemServiceInterface
+	auditTimelineSvc          AuditTimelineServiceInterface
 }
 
 func NewAuditChecklistService(
@@ -52,6 +53,7 @@ func NewAuditChecklistService(
 	conformanceSvc masterServices.ConformanceServiceInterface,
 	statusSvc masterServices.StatusServiceInterface,
 	auditPlanAuditableItemSvc AuditPlanAuditableItemServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditChecklistServiceInterface {
 	return &AuditChecklistService{
 		repo:                      repo,
@@ -61,6 +63,7 @@ func NewAuditChecklistService(
 		conformanceSvc:            conformanceSvc,
 		statusSvc:                 statusSvc,
 		auditPlanAuditableItemSvc: auditPlanAuditableItemSvc,
+		auditTimelineSvc:          auditTimelineSvc,
 	}
 }
 
@@ -498,6 +501,42 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 	for _, document := range documentsToDelete {
 		storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	
+	// Mark "checklist" timeline as completed when first checklist is answered
+	checklistType, err := acs.auditTimelineSvc.GetByType("checklist")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	pendingStatus, err := acs.auditTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	completedStatus, err := acs.auditTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	timeline, err := acs.auditTimelineSvc.GetByID(auditId, checklistType.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if timeline.TimelineStatusID == pendingStatus.ID {
+		timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+			AuditID:             auditId,
+			AuditTimelineTypeID: checklistType.ID,
+			TimelineStatusID:    completedStatus.ID,
+			PerformedByID:       &currentUserID,
+			PerformedAt:         &now,
+		}
+		if err := acs.auditTimelineSvc.Update(auditId, timelineFormDTO, checklistType.ID, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
