@@ -3,6 +3,7 @@ package services
 import (
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -68,7 +69,7 @@ type UserServiceInterface interface {
 	SyncUsersFromAD(currentUserID uint) (int, error)
 	ListOUs() ([]userDTOs.ADOUFlatDTO, error)
 	ListSecurityGroups(ouDN string) ([]userDTOs.ADGroupFlatDTO, error)
-	ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFlatDTO, error)
+	ListUsersInGroups(groupDNs []string, nextToken string, pageSize int, search string) ([]userDTOs.ADUserFlatDTO, string, error)
 	GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error)
 
 	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
@@ -1444,11 +1445,11 @@ func (us *UserService) ValidateUserTemplate(file io.Reader) ([]map[string]interf
 	// Expected display headers (from Excel) and corresponding internal snake_case headers
 	expectedHeaders := []string{
 		"FirstNameEn", "LastNameEn", "FirstNameAr", "LastNameAr",
-		"Email", "MobileNumber", "Designation", "UserStatus", "Roles",
+		"Email", "MobileNumber", "Designation", "UserStatus", "Roles", "LicenseType",
 	}
 	snakeCaseHeaders := []string{
 		"first_name_en", "last_name_en", "first_name_ar", "last_name_ar",
-		"email", "mobile_number", "designation", "user_status", "roles",
+		"email", "mobile_number", "designation", "user_status", "roles", "license_type",
 	}
 
 	for _, level := range orgLevels {
@@ -1525,10 +1526,13 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 	var createdUserIDs []uint
 	for _, record := range validatedData {
 
+		licenseTypeID := record["license_type_id"].(uint)
+
 		initial := generateInitial(
 			record["first_name_en"].(string),
 			record["last_name_en"].(string),
 		)
+
 		color := utility.GenerateColorCode("user")
 		user := &models.User{
 			FirstNameEn:   record["first_name_en"].(string),
@@ -1542,6 +1546,7 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 			CreatedByID:   currentUserID,
 			Initial:       initial,
 			Color:         color,
+			LicenseTypeID: &licenseTypeID,
 			IsADUser:      true,
 		}
 
@@ -1612,7 +1617,7 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[string]interface{}, error) {
 	headers := []string{
 		"first_name_en", "last_name_en", "first_name_ar", "last_name_ar",
-		"email", "mobile_number", "designation", "user_status", "primary_department", "roles",
+		"email", "mobile_number", "designation", "user_status", "primary_department", "license_type", "roles",
 	}
 
 	// Fetch designations
@@ -1633,6 +1638,15 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 	userStatusTitles := make(map[string]uint)
 	for _, s := range statuses {
 		userStatusTitles[strings.TrimSpace(s.TitleEn)] = s.ID
+	}
+
+	licenseTypes, err := us.licenseTypeSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching user licensetypes: %v", err)
+	}
+	licenseTypeTitles := make(map[string]uint)
+	for _, s := range licenseTypes {
+		licenseTypeTitles[strings.TrimSpace(s.TitleEn)] = s.ID
 	}
 
 	// Fetch organization levels and units
@@ -1662,15 +1676,21 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 	if err != nil {
 		return nil, fmt.Errorf("error fetching roles: %v", err)
 	}
+
 	roleTitleToID := make(map[string]uint)
+	roleTitleToLicenseTypeID := make(map[string]uint)
 	for _, r := range roles {
-		roleTitleToID[strings.TrimSpace(r.TitleEn)] = r.ID
+		title := strings.TrimSpace(r.TitleEn)
+		roleTitleToID[title] = r.ID
+		roleTitleToLicenseTypeID[title] = r.LicenseTypeID
 	}
 
 	var validatedData []map[string]interface{}
 	seenEmails := make(map[string]bool)
 
 	for _, record := range input {
+		var selectedLicenseTypeID uint
+		hasSelectedLicenseType := false
 		rowErrors := make(map[string]interface{})
 		userRecord := make(map[string]interface{})
 		for key, value := range record {
@@ -1719,6 +1739,16 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 				} else {
 					userRecord["user_status_id"] = id
 				}
+			case "license_type":
+				if value == "" {
+					rowErrors[header] = "Field is required"
+				} else if id, exists := licenseTypeTitles[value]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid user license type: %s", value)
+				} else {
+					userRecord["license_type_id"] = id
+					selectedLicenseTypeID = id
+					hasSelectedLicenseType = true
+				}
 			case "roles":
 				var roleIDs []uint
 				if val, ok := record[header]; ok {
@@ -1731,7 +1761,11 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 							for _, r := range split {
 								r = strings.TrimSpace(r)
 								if id, ok := roleTitleToID[r]; ok {
-									roleIDs = append(roleIDs, id)
+									if hasSelectedLicenseType && roleTitleToLicenseTypeID[r] != selectedLicenseTypeID {
+										rowErrors[header] = fmt.Sprintf("Role %s license type does not match selected user license type", r)
+									} else {
+										roleIDs = append(roleIDs, id)
+									}
 								} else {
 									rowErrors[header] = fmt.Sprintf("Invalid role: %s", r)
 								}
@@ -1744,7 +1778,11 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 						for _, r := range v {
 							r = strings.TrimSpace(r)
 							if id, ok := roleTitleToID[r]; ok {
-								roleIDs = append(roleIDs, id)
+								if hasSelectedLicenseType && roleTitleToLicenseTypeID[r] != selectedLicenseTypeID {
+									rowErrors[header] = fmt.Sprintf("Role %s license type does not match selected user license type", r)
+								} else {
+									roleIDs = append(roleIDs, id)
+								}
 							} else {
 								rowErrors[header] = fmt.Sprintf("Invalid role: %s", r)
 							}
@@ -1757,7 +1795,11 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 							if s, ok := r.(string); ok {
 								s = strings.TrimSpace(s)
 								if id, ok := roleTitleToID[s]; ok {
-									roleIDs = append(roleIDs, id)
+									if hasSelectedLicenseType && roleTitleToLicenseTypeID[s] != selectedLicenseTypeID {
+										rowErrors[header] = fmt.Sprintf("role license type does not match selected user license type")
+									} else {
+										roleIDs = append(roleIDs, id)
+									}
 								} else {
 									rowErrors[header] = fmt.Sprintf("Invalid role: %s", s)
 								}
@@ -2108,23 +2150,24 @@ func (us *UserService) ListSecurityGroups(ouDN string) ([]userDTOs.ADGroupFlatDT
 	return result, nil
 }
 
-func (us *UserService) ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFlatDTO, error) {
+func (us *UserService) ListUsersInGroups(groupDNs []string, nextToken string, pageSize int, search string) ([]userDTOs.ADUserFlatDTO, string, error) {
 	// ✅ Validate AD connection
 	if err := us.activeDirectorySettingSvc.GetADConnection(); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	adSetting, err := us.activeDirectorySettingSvc.GetFirst()
 	if err != nil || adSetting == nil {
-		return nil, fmt.Errorf("Active Directory configuration not found")
+		return nil, "", fmt.Errorf("Active Directory configuration not found")
 	}
 
 	bindPassword, err := utility.DecryptData(adSetting.BindPassword)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt bind password: %w", err)
+		return nil, "", fmt.Errorf("failed to decrypt bind password: %w", err)
 	}
 
 	address := fmt.Sprintf("%s:%d", adSetting.Server, adSetting.Port)
+
 	var l *ldap.Conn
 	if adSetting.UseSSL {
 		l, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
@@ -2132,94 +2175,128 @@ func (us *UserService) ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFl
 		l, err = ldap.Dial("tcp", address)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("LDAP connection failed: %w", err)
+		return nil, "", fmt.Errorf("LDAP connection failed: %w", err)
 	}
 	defer l.Close()
 
 	if err := l.Bind(adSetting.BindDN, string(bindPassword)); err != nil {
-		return nil, fmt.Errorf("bind failed: %w", err)
+		return nil, "", fmt.Errorf("bind failed: %w", err)
 	}
 
-	var filter string
-	// ✅ Case 1: groupDNs provided
+	// ✅ Default page size
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+
+	search = strings.TrimSpace(search)
+
+	// 🔍 Base filter (active users with email)
+	baseFilter := "(&(objectCategory=person)(objectClass=user)(mail=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+
+	// 🔍 Search filter
+	if search != "" {
+		escaped := ldap.EscapeFilter(search)
+		baseFilter = fmt.Sprintf(
+			"(&%s(|(givenName=*%s*)(sn=*%s*)(mail=*%s*)(sAMAccountName=*%s*)))",
+			baseFilter,
+			escaped, escaped, escaped, escaped,
+		)
+	}
+
+	// 🔥 ✅ FIX: Use memberOf instead of DN OR explosion
 	if len(groupDNs) > 0 {
-		userDNMap := map[string]struct{}{}
-		for _, groupDN := range groupDNs {
-			searchReq := ldap.NewSearchRequest(
-				groupDN,
-				ldap.ScopeBaseObject,
-				ldap.NeverDerefAliases,
-				0, 0, false,
-				"(objectClass=group)",
-				[]string{"member"},
-				nil,
-			)
-			sr, err := l.Search(searchReq)
-			if err != nil {
-				return nil, fmt.Errorf("LDAP search for group %s failed: %w", groupDN, err)
-			}
-			for _, entry := range sr.Entries {
-				for _, m := range entry.GetAttributeValues("member") {
-					userDNMap[m] = struct{}{}
-				}
-			}
+		var groupFilters []string
+		for _, g := range groupDNs {
+			groupFilters = append(groupFilters, fmt.Sprintf("(memberOf=%s)", ldap.EscapeFilter(g)))
 		}
+		groupFilter := fmt.Sprintf("(|%s)", strings.Join(groupFilters, ""))
 
-		if len(userDNMap) == 0 {
-			return []userDTOs.ADUserFlatDTO{}, nil
-		}
-
-		var filters []string
-		for dn := range userDNMap {
-			filters = append(filters, fmt.Sprintf("(distinguishedName=%s)", ldap.EscapeFilter(dn)))
-		}
-		filter = fmt.Sprintf("(|%s)", strings.Join(filters, ""))
-
-	} else {
-		// ✅ Case 2: no groupDNs—list all active users
-		filter = "(&(objectCategory=person)(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+		baseFilter = fmt.Sprintf("(&%s%s)", baseFilter, groupFilter)
 	}
 
-	// ✅ Search users
+	// ✅ Paging control
+	pagingControl := ldap.NewControlPaging(uint32(pageSize))
+
+	// 🔥 ✅ FIX: Strict token validation
+	if nextToken != "" {
+		cookie, err := base64.URLEncoding.DecodeString(nextToken)
+		if err != nil {
+			return nil, "", fmt.Errorf("invalid next_token")
+		}
+		pagingControl.SetCookie(cookie)
+	}
+
+	// ✅ Search request
 	searchReq := ldap.NewSearchRequest(
 		adSetting.BaseDN,
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
-		0, 0, false,
-		filter,
-		[]string{"givenName", "sn", "mail", "sAMAccountName", "distinguishedName", "title"},
+		0,
+		0,
+		false,
+		baseFilter,
+		[]string{
+			"givenName",
+			"sn",
+			"mail",
+			"sAMAccountName",
+			"distinguishedName",
+			"title",
+			"mobile",
+			"userAccountControl",
+			"memberOf",
+		},
 		nil,
 	)
 
-	sr, err := l.SearchWithPaging(searchReq, 500)
+	// 🔥 Attach control explicitly
+	searchReq.Controls = []ldap.Control{pagingControl}
+
+	sr, err := l.Search(searchReq)
 	if err != nil {
-		return nil, fmt.Errorf("LDAP search failed: %w", err)
+		return nil, "", fmt.Errorf("LDAP search failed: %w", err)
 	}
 
+	result := []userDTOs.ADUserFlatDTO{}
 	slNo := 1
+
 	orgLevels, err := us.organizationLevelSvc.GetAll()
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch organization levels: %w", err)
+		return nil, "", fmt.Errorf("failed to fetch organization levels: %w", err)
 	}
 	orgLevelCount := len(orgLevels)
 
-	var result []userDTOs.ADUserFlatDTO
 	for _, entry := range sr.Entries {
-		firstName := entry.GetAttributeValue("givenName")
-		lastName := entry.GetAttributeValue("sn")
-		email := entry.GetAttributeValue("mail")
-		distinguishedName := entry.GetAttributeValue("distinguishedName")
-		designationTitle := entry.GetAttributeValue("title")
 
+		email := entry.GetAttributeValue("mail")
 		if email == "" {
 			continue
 		}
 
-		exists, err := us.repo.ExistsByEmail(email)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check user existence: %w", err)
+		firstName := entry.GetAttributeValue("givenName")
+		lastName := entry.GetAttributeValue("sn")
+		distinguishedName := entry.GetAttributeValue("distinguishedName")
+		designationTitle := entry.GetAttributeValue("title")
+		mobile := entry.GetAttributeValue("mobile")
+
+		// 🔥 Use DN as user_id (safe)
+		userID := distinguishedName
+
+		status := "Active"
+		uac := entry.GetAttributeValue("userAccountControl")
+		if uac != "" {
+			val, _ := strconv.Atoi(uac)
+			if val&2 != 0 {
+				status = "Inactive"
+			}
 		}
 
+		exists, err := us.repo.ExistsByEmail(email)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to check user existence: %w", err)
+		}
+
+		// 🔍 Extract OU hierarchy
 		ouParts := []string{}
 		for _, part := range strings.Split(distinguishedName, ",") {
 			part = strings.TrimSpace(part)
@@ -2230,15 +2307,16 @@ func (us *UserService) ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFl
 
 		user := userDTOs.ADUserFlatDTO{
 			"sl_no":         slNo,
+			"user_id":       userID,
 			"first_name_en": firstName,
 			"last_name_en":  lastName,
 			"first_name_ar": firstName,
 			"last_name_ar":  lastName,
 			"email":         email,
-			"mobile_number": "",
+			"mobile_number": mobile,
 			"designation":   designationTitle,
-			"user_status":   "Active",
-			"roles":         []string{},
+			"user_status":   status,
+			"roles":         "",
 			"primary_department": func() string {
 				if len(ouParts) > 0 {
 					return ouParts[0]
@@ -2257,7 +2335,18 @@ func (us *UserService) ListUsersInGroups(groupDNs []string) ([]userDTOs.ADUserFl
 		result = append(result, user)
 		slNo++
 	}
-	return result, nil
+
+	// ✅ Extract next token
+	var newNextToken string
+	control := ldap.FindControl(sr.Controls, ldap.ControlTypePaging)
+	if control != nil {
+		pc := control.(*ldap.ControlPaging)
+		if len(pc.Cookie) > 0 {
+			newNextToken = base64.URLEncoding.EncodeToString(pc.Cookie)
+		}
+	}
+
+	return result, newNextToken, nil
 }
 
 func (us *UserService) GetUsersFromAD() ([]userDTOs.ADUserFlatDTO, error) {

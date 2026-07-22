@@ -355,7 +355,10 @@ type ADGroupFlatDTO struct {
 // }
 
 type ADGroupUsersRequest struct {
-	GroupDNs []string `json:"group_dns"`
+	GroupDNs  []string `json:"group_dns"`
+	Search    string   `json:"search"`
+	PageSize  int      `json:"page_size"`
+	NextToken string   `json:"next_token"`
 }
 
 type ADUserDTO struct {
