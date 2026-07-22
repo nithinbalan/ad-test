@@ -29,10 +29,18 @@ func (apcsc *AwarenessPostCampaignSurveyController) GetAllAwarenessPostCampaignS
 	sortBy := c.DefaultQuery("sort_by", "reference_number")
 	keyword := c.Query("keyword")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(apcsc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(apcsc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	allowedParams := []string{
@@ -94,6 +102,28 @@ func (apcsc *AwarenessPostCampaignSurveyController) GetAllAwarenessPostCampaignS
 	surveys, err := apcsc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(apcsc.db, c, err.Error())
+		return
+	}
+	
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(apcsc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := apcsc.service.ExportAwarenessPostCampaignSurvey(surveys.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(apcsc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="AwarenessPostCampaignSurveys.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 
@@ -217,4 +247,9 @@ func (apcsc *AwarenessPostCampaignSurveyController) DeleteAwarenessPostCampaignS
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (apcsc *AwarenessPostCampaignSurveyController) GetAwarenessPostCampaignSurveysExport(c *gin.Context) {
+	c.Set("export", true)
+	apcsc.GetAllAwarenessPostCampaignSurveys(c)
 }
