@@ -20,6 +20,7 @@ type RiskUpdatePlanRiskControlAssociationRepositoryInterface interface {
 	GetControlAnalysesByRiskRegisterID(riskRegisterID uint) ([]*models.RiskControlAnalysis, error)
 	// Residual Evaluation for Risk Register Update Plan
 	GetResidualEvaluationByRiskRegisterID(riskRegisterID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error)
+	GetResidualEvaluationByRiskRegisterIDAndPlanID(riskRegisterID uint, planID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error)
 	DeleteResidualEvaluationsByRiskRegisterIDs(riskRegisterIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateBulkResidualEvaluations(evaluations []*models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
 	CreateResidualEvaluation(evaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
@@ -205,7 +206,7 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetRiskControlAssoci
 		return []*riskDTOs.RiskControlAssociationListDTO{}, nil
 	}
 
-	// Build main query with all joins
+	// Build main query with all joins, preferring plan draft inherent evaluation
 	query := repo.db.Table("risk_register").
 		Select(`
 			risk_register.id,
@@ -319,23 +320,27 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetRiskControlAssoci
 			LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
 			LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
 			LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id
-			LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id
-			LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id
-			LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id
-			LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = risk_register.inherent_risk_rating_value_id
-			LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id
-			LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
-			LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
-			LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
+			LEFT JOIN risk_evaluations AS plan_inherent_eval ON plan_inherent_eval.id = (SELECT MAX(id) FROM risk_evaluations WHERE risk_register_id = risk_register.id AND type = 'inherent' AND risk_register_update_plan_id = ? AND is_latest = 0)
+			LEFT JOIN risk_evaluations AS live_inherent_eval ON live_inherent_eval.risk_register_id = risk_register.id AND live_inherent_eval.type = 'inherent' AND live_inherent_eval.risk_register_update_plan_id IS NULL AND live_inherent_eval.is_latest = 1
+			LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = COALESCE(plan_inherent_eval.risk_matrix_likelihood_id, live_inherent_eval.risk_matrix_likelihood_id, risk_register.inherent_likelihood_id)
+			LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = COALESCE(plan_inherent_eval.risk_matrix_impact_id, live_inherent_eval.risk_matrix_impact_id, risk_register.inherent_impact_id)
+			LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = COALESCE(plan_inherent_eval.risk_matrix_risk_rating_id, live_inherent_eval.risk_matrix_risk_rating_id, risk_register.inherent_risk_rating_id)
+			LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = COALESCE(plan_inherent_eval.risk_matrix_risk_rating_value_id, live_inherent_eval.risk_matrix_risk_rating_value_id, risk_register.inherent_risk_rating_value_id)
+			LEFT JOIN risk_evaluations AS plan_residual_eval ON plan_residual_eval.id = (SELECT MAX(id) FROM risk_evaluations WHERE risk_register_id = risk_register.id AND type = 'residual' AND risk_register_update_plan_id = ? AND is_latest = 0)
+			LEFT JOIN risk_evaluations AS live_residual_eval ON live_residual_eval.risk_register_id = risk_register.id AND live_residual_eval.type = 'residual' AND live_residual_eval.risk_register_update_plan_id IS NULL AND live_residual_eval.is_latest = 1
+			LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = COALESCE(plan_residual_eval.risk_matrix_likelihood_id, live_residual_eval.risk_matrix_likelihood_id, risk_register.residual_likelihood_id)
+			LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = COALESCE(plan_residual_eval.risk_matrix_impact_id, live_residual_eval.risk_matrix_impact_id, risk_register.residual_impact_id)
+			LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = COALESCE(plan_residual_eval.risk_matrix_risk_rating_id, live_residual_eval.risk_matrix_risk_rating_id, risk_register.residual_risk_rating_id)
+			LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = COALESCE(plan_residual_eval.risk_matrix_risk_rating_value_id, live_residual_eval.risk_matrix_risk_rating_value_id, risk_register.residual_risk_rating_value_id)
 			LEFT JOIN organization_units AS divisions ON divisions.id = risk_register.division_id
 			LEFT JOIN organization_units AS sections ON sections.id = risk_register.section_id
 			LEFT JOIN organization_units AS sub_sections ON sub_sections.id = risk_register.sub_section_id
-		`).
+		`, planID, planID).
 		Where("risk_register.id IN ?", riskIDs)
 
 	// Apply critical filter if needed
 	if isCritical {
-		query = query.Where("current_risk_rating.type IN ?", []string{"high", "critical"})
+		query = query.Where("residual_risk_rating.type IN ?", []string{"high", "critical"})
 	}
 
 	if err := query.Find(&risks).Error; err != nil {
@@ -483,6 +488,23 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetResidualEvaluatio
 
 	var evaluation models.RiskEvaluation
 	err := db.Where("risk_register_id = ? AND type = ?", riskRegisterID, "residual").First(&evaluation).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &evaluation, nil
+}
+
+func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetResidualEvaluationByRiskRegisterIDAndPlanID(riskRegisterID uint, planID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var evaluation models.RiskEvaluation
+	err := db.Where("risk_register_id = ? AND type = ? AND risk_register_update_plan_id = ?", riskRegisterID, "residual", planID).First(&evaluation).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil

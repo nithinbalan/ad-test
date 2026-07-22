@@ -15,6 +15,7 @@ type ControlTestRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error)
 	GetLatestByControlID(controlID uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error)
+	GetLatestByControlIDAndPlanID(controlID uint, planID uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error)
 	Create(controlTest *models.ControlTest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(controlTest *models.ControlTest, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -268,13 +269,38 @@ func (repo *ControlTestRepository) GetLatestByControlID(controlID uint, tx ...ut
 		Preload("TestedByUser").
 		Preload("UpdatedByUser").
 		Where("control_id = ?", controlID).
-		First(&controlTest)
+		Order("id DESC").
+		Take(&controlTest)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	return controlTest, nil
 
+}
+
+func (repo *ControlTestRepository) GetLatestByControlIDAndPlanID(controlID uint, planID uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var controlTest *models.ControlTest
+
+	result := db.
+		Preload("Documents").
+		Preload("ControlImplementationStatus").
+		Preload("ControlEfficiencyStatus").
+		Preload("ControlEffectivenessRating").
+		Preload("TestedByUser").
+		Preload("UpdatedByUser").
+		Where("control_id = ? AND risk_register_update_plan_id = ?", controlID, planID).
+		Order("id DESC").
+		Take(&controlTest)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return controlTest, nil
 }
 
 func (repo *ControlTestRepository) Create(controlTest *models.ControlTest, tx ...utility.DatabaseTransaction) (uint, error) {

@@ -17,6 +17,8 @@ type RiskEvaluation struct {
 	CreatedAt                        time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                        *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	UpdatedByID                      *uint      `json:"updated_by_id" gorm:"default:null"`
+	IsLatest                         *bool      `json:"is_latest" gorm:"not null;default:true"`
+	RiskRegisterUpdatePlanID         *uint      `json:"risk_register_update_plan_id" gorm:"default:null"`
 
 	// Relationships
 	RiskRegister              *RiskRegister              `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -28,6 +30,7 @@ type RiskEvaluation struct {
 	RiskAppetiteAlignments    *[]RiskAppetiteAlignment   `gorm:"foreignKey:RiskEvaluationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser             *User                      `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser             *User                      `gorm:"foreignKey:UpdatedByID"`
+	RiskRegisterUpdatePlan    *RiskRegisterUpdatePlan    `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 // TableName overrides the table name used by RiskEvaluation to `risk_evaluations`

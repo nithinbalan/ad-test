@@ -361,6 +361,12 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) Approve(riskRegisterUpdatePla
 				return err
 			}
 
+			// Promote the plan's draft evaluations to live and update risk register ratings
+			if err := rruprs.promotePlanEvaluationsAndUpdateRatings(riskRegisterUpdatePlanID, currentUserID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
 			// Get all risks under the plan and generate reference numbers
 			risks, err := rruprs.riskRegisterUpdatePlanSvc.GetRisksByPlanID(riskRegisterUpdatePlanID, tx)
 			if err != nil {
@@ -501,6 +507,12 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) Approve(riskRegisterUpdatePla
 			}
 
 			if err := rruprs.riskRegisterUpdatePlanSvc.UpdatePlanStatus(riskRegisterUpdatePlanID, uint(completedStatus.ID), tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Promote the plan's draft evaluations to live and update risk register ratings
+			if err := rruprs.promotePlanEvaluationsAndUpdateRatings(riskRegisterUpdatePlanID, currentUserID, tx); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -830,6 +842,46 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) sendRejectedNotification(id u
 			})
 		}
 	}()
+}
+
+func (rruprs *RiskRegisterUpdatePlanReviewService) promotePlanEvaluationsAndUpdateRatings(planID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
+	// Workflow skip logic:
+	// risk_analysis not applicable | risk_control_association not applicable | action
+	// true                       | true                                      | skip
+	// true                       | false                                     | update
+	// false                      | true                                      | skip
+	// false                      | false                                     | update
+	riskAnalysisNotApplicable, riskControlAssociationNotApplicable, err := rruprs.repo.GetRiskAnalysisAndControlAssociationNotApplicable(planID, tx)
+	if err != nil {
+		return err
+	}
+	if (riskAnalysisNotApplicable && riskControlAssociationNotApplicable) || (!riskAnalysisNotApplicable && riskControlAssociationNotApplicable) {
+		return nil
+	}
+
+	inherentEvaluations, err := rruprs.repo.UpdateRiskEvaluationIsLatestByPlanIDAndType(planID, "inherent", tx)
+	if err != nil {
+		return err
+	}
+
+	residualEvaluations, err := rruprs.repo.UpdateRiskEvaluationIsLatestByPlanIDAndType(planID, "residual", tx)
+	if err != nil {
+		return err
+	}
+
+	for _, evaluation := range inherentEvaluations {
+		if err := rruprs.riskRegisterSvc.UpdateRiskRating(evaluation.RiskRegisterID, currentUserID, evaluation, tx, "inherent"); err != nil {
+			return err
+		}
+	}
+
+	for _, evaluation := range residualEvaluations {
+		if err := rruprs.riskRegisterSvc.UpdateRiskRating(evaluation.RiskRegisterID, currentUserID, evaluation, tx, "residual"); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Helper function to create review in both current and history tables

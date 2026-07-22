@@ -11,6 +11,7 @@ import (
 type RiskInherentEvaluationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error)
+	GetLatestPlanDraftFullDetailsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error)
 	GetByID(id uint) (*models.RiskEvaluation, error)
 	Create(riskInherentEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskInherentEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
@@ -56,8 +57,43 @@ func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(riskID uint, tx
 		Preload("RiskImpactAnalyses.RiskImpactAnalysisGuidelines.RiskMatrixImpactGuideline").
 		Preload("RiskAppetiteAlignments.RiskAppetiteStatement").
 		Preload("RiskAppetiteAlignments.RiskAppetiteToleranceLevel").
-		Where("risk_register_id = ? AND type = ?", riskID, "inherent").
+		Where(
+			"risk_register_id = ? AND type = ? AND is_latest = ? AND risk_register_update_plan_id IS NOT NULL",
+			riskID,
+			"inherent",
+			true,
+		).
 		First(&riskInherentEvaluation)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+
+	return &riskInherentEvaluation, nil
+}
+
+func (repo *RiskInherentEvaluationRepository) GetLatestPlanDraftFullDetailsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var riskInherentEvaluation models.RiskEvaluation
+	result := db.
+		Preload("RiskMatrixLikelihood").
+		Preload("RiskMatrixImpact").
+		Preload("RiskMatrixRiskRating").
+		Preload("RiskMatrixRiskRatingValue").
+		Preload("RiskImpactAnalyses.RiskImpactCategory").
+		Preload("RiskImpactAnalyses.RiskMatrixImpact").
+		Preload("RiskImpactAnalyses.RiskImpactAnalysisGuidelines.RiskMatrixImpactGuideline").
+		Preload("RiskAppetiteAlignments.RiskAppetiteStatement").
+		Preload("RiskAppetiteAlignments.RiskAppetiteToleranceLevel").
+		Where("risk_register_id = ? AND type = ? AND is_latest = ? AND risk_register_update_plan_id IS NOT NULL", riskID, "inherent", false).
+		Order("id DESC").
+		Take(&riskInherentEvaluation)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
