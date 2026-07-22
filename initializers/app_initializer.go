@@ -28,6 +28,7 @@ type App struct {
 	BusinessContinuityModule    *BusinessContinuityModule
 	OrganizationalContextModule *OrganizationalContextModule
 	StrategyModule              *StrategyModule
+	KPIRegisterModule           *KPIRegisterModule
 	TprmModule                  *TprmModule
 	ProjectModule               *ProjectModule
 	JethurAIModule              *JethurAIModule
@@ -61,6 +62,7 @@ func NewApp(db *gorm.DB) *App {
 	organizationalContextModule := NewOrganizationalContextModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 	projectModule := NewProjectModule(db, sharedModule, organizationModule, masterModule, commonModule, taskModule)
 	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule, assetModule, tprmModule, complianceModule, documentModule, projectModule)
+	kpiRegisterModule := NewKPIRegisterModule(db, sharedModule, settingsModule, masterModule, organizationModule, commonModule, riskModule, assetModule, tprmModule, complianceModule, documentModule, strategyModule)
 	jethurAIModule := NewJethurAIModule(db, documentModule, organizationModule, settingsModule, complianceModule)
 	policyModule := NewPolicyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, documentModule)
 	consultationRequestModule := NewConsultationRequestModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule, documentModule)
@@ -90,6 +92,7 @@ func NewApp(db *gorm.DB) *App {
 		BusinessContinuityModule:    businessFunctionModule,
 		OrganizationalContextModule: organizationalContextModule,
 		StrategyModule:              strategyModule,
+		KPIRegisterModule:           kpiRegisterModule,
 		TprmModule:                  tprmModule,
 		ProjectModule:               projectModule,
 		JethurAIModule:              jethurAIModule,

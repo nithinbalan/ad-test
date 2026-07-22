@@ -15,6 +15,7 @@ import (
 	documentRoutes "jethur/grc/documents/routes"
 	incidentRoutes "jethur/grc/incident/routes"
 	jethurAIRoutes "jethur/grc/jethur-ai/routes"
+	kpiRegisterRoutes "jethur/grc/kpi-register/routes"
 	kpiRoutes "jethur/grc/kpi/routes"
 	libraryRoutes "jethur/grc/library/routes"
 	logRoutes "jethur/grc/logs/routes"
@@ -98,6 +99,7 @@ func main() {
 	documentRoutes.RegisterRoutes(app, r)
 	auditRoutes.RegisterRoutes(app, r)
 	kpiRoutes.RegisterRoutes(app, r)
+	kpiRegisterRoutes.RegisterRoutes(app, r)
 	auditInsightsRoutes.RegisterRoutes(app, r)
 	reportRoutes.RegisterRoutes(app, r)
 	assetRoutes.RegisterRoutes(app, r)

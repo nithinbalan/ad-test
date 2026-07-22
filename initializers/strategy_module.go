@@ -40,6 +40,11 @@ type StrategyModule struct {
 	StrategyProfileProjectActionPlanController      *controllers.StrategyProfileProjectActionPlanController
 	StrategicInitiativeStatusController             *controllers.StrategicInitiativeStatusController
 	StrategyInitiativeStatusUpdateController        *controllers.StrategyInitiativeStatusUpdateController
+	KpiStatusSvc                                    services.KPIStatusServiceInterface
+	EntryTypeSvc                                    services.EntryTypeServiceInterface
+	DataSourceSvc                                   services.DataSourceServiceInterface
+	StrategyProfileKpiSvc                           services.StrategyProfileKpiServiceInterface
+	StrategyProfileStrategicObjectiveSvc            services.StrategyProfileStrategicObjectiveServiceInterface
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -240,5 +245,10 @@ func NewStrategyModule(db *gorm.DB,
 		StrategyProfileProjectActionPlanController:      strategyProfileProjectActionPlanController,
 		StrategicInitiativeStatusController:             strategicInitiativeStatusController,
 		StrategyInitiativeStatusUpdateController:        strategyInitiativeStatusUpdateController,
+		KpiStatusSvc:                                    kpiStatusSvc,
+		EntryTypeSvc:                                    entryTypeSvc,
+		DataSourceSvc:                                   dataSourceSvc,
+		StrategyProfileKpiSvc:                           strategyProfileKpiSvc,
+		StrategyProfileStrategicObjectiveSvc:            strategyProfileStrategicObjectiveSvc,
 	}
 }
