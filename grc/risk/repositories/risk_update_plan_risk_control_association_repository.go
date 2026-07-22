@@ -321,13 +321,27 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetRiskControlAssoci
 			LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
 			LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id
 			LEFT JOIN risk_evaluations AS plan_inherent_eval ON plan_inherent_eval.id = (SELECT MAX(id) FROM risk_evaluations WHERE risk_register_id = risk_register.id AND type = 'inherent' AND risk_register_update_plan_id = ? AND is_latest = 0)
-			LEFT JOIN risk_evaluations AS live_inherent_eval ON live_inherent_eval.risk_register_id = risk_register.id AND live_inherent_eval.type = 'inherent' AND live_inherent_eval.risk_register_update_plan_id IS NULL AND live_inherent_eval.is_latest = 1
+			LEFT JOIN risk_evaluations AS live_inherent_eval ON live_inherent_eval.id = (
+				SELECT MAX(id)
+				FROM risk_evaluations
+				WHERE risk_register_id = risk_register.id
+					AND type = 'inherent'
+					AND risk_register_update_plan_id IS NULL
+					AND is_latest = 1
+			)
 			LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = COALESCE(plan_inherent_eval.risk_matrix_likelihood_id, live_inherent_eval.risk_matrix_likelihood_id, risk_register.inherent_likelihood_id)
 			LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = COALESCE(plan_inherent_eval.risk_matrix_impact_id, live_inherent_eval.risk_matrix_impact_id, risk_register.inherent_impact_id)
 			LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = COALESCE(plan_inherent_eval.risk_matrix_risk_rating_id, live_inherent_eval.risk_matrix_risk_rating_id, risk_register.inherent_risk_rating_id)
 			LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = COALESCE(plan_inherent_eval.risk_matrix_risk_rating_value_id, live_inherent_eval.risk_matrix_risk_rating_value_id, risk_register.inherent_risk_rating_value_id)
 			LEFT JOIN risk_evaluations AS plan_residual_eval ON plan_residual_eval.id = (SELECT MAX(id) FROM risk_evaluations WHERE risk_register_id = risk_register.id AND type = 'residual' AND risk_register_update_plan_id = ? AND is_latest = 0)
-			LEFT JOIN risk_evaluations AS live_residual_eval ON live_residual_eval.risk_register_id = risk_register.id AND live_residual_eval.type = 'residual' AND live_residual_eval.risk_register_update_plan_id IS NULL AND live_residual_eval.is_latest = 1
+			LEFT JOIN risk_evaluations AS live_residual_eval ON live_residual_eval.id = (
+				SELECT MAX(id)
+				FROM risk_evaluations
+				WHERE risk_register_id = risk_register.id
+					AND type = 'residual'
+					AND risk_register_update_plan_id IS NULL
+					AND is_latest = 1
+			)
 			LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = COALESCE(plan_residual_eval.risk_matrix_likelihood_id, live_residual_eval.risk_matrix_likelihood_id, risk_register.residual_likelihood_id)
 			LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = COALESCE(plan_residual_eval.risk_matrix_impact_id, live_residual_eval.risk_matrix_impact_id, risk_register.residual_impact_id)
 			LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = COALESCE(plan_residual_eval.risk_matrix_risk_rating_id, live_residual_eval.risk_matrix_risk_rating_id, risk_register.residual_risk_rating_id)

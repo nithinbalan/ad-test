@@ -73,7 +73,14 @@ func (repo *RiskUpdatePlanRiskAnalysisRepository) GetRiskAnalysisList(planID uin
 		) AS combined_risks
 		INNER JOIN risk_register AS rr ON rr.id = combined_risks.id
 		LEFT JOIN risk_evaluations AS plan_eval ON plan_eval.id = (SELECT MAX(id) FROM risk_evaluations WHERE risk_register_id = rr.id AND type = 'inherent' AND risk_register_update_plan_id = ?)
-		LEFT JOIN risk_evaluations AS live_eval ON live_eval.risk_register_id = rr.id AND live_eval.type = 'inherent' AND live_eval.risk_register_update_plan_id IS NULL AND live_eval.is_latest = 1
+		LEFT JOIN risk_evaluations AS live_eval ON live_eval.id = (
+			SELECT MAX(id)
+			FROM risk_evaluations
+			WHERE risk_register_id = rr.id
+				AND type = 'inherent'
+				AND risk_register_update_plan_id IS NULL
+				AND is_latest = 1
+		)
 		LEFT JOIN risk_matrix_likelihoods AS ill ON ill.id = COALESCE(plan_eval.risk_matrix_likelihood_id, live_eval.risk_matrix_likelihood_id, rr.inherent_likelihood_id)
 		LEFT JOIN risk_matrix_impacts AS iil ON iil.id = COALESCE(plan_eval.risk_matrix_impact_id, live_eval.risk_matrix_impact_id, rr.inherent_impact_id)
 		LEFT JOIN risk_matrix_risk_ratings AS irr ON irr.id = COALESCE(plan_eval.risk_matrix_risk_rating_id, live_eval.risk_matrix_risk_rating_id, rr.inherent_risk_rating_id)
