@@ -236,7 +236,7 @@ func (acc *AwarenessCampaignController) UpdateAwarenessCampaign(c *gin.Context) 
 }
 
 func (acc *AwarenessCampaignController) CompleteAwarenessCampaign(c *gin.Context) {
-	campaignID, err := strconv.ParseUint(c.Param("campaignId"), 10, 32)
+	campaignID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -262,7 +262,7 @@ func (acc *AwarenessCampaignController) CompleteAwarenessCampaign(c *gin.Context
 }
 
 func (acc *AwarenessCampaignController) CancelAwarenessCampaign(c *gin.Context) {
-	campaignID, err := strconv.ParseUint(c.Param("campaignId"), 10, 32)
+	campaignID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
