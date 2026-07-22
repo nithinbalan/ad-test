@@ -45,6 +45,7 @@ type AuditDraftReportService struct {
 	auditDraftFindingSvc      AuditDraftFindingServiceInterface
 	userSvc                   organizationServices.UserServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
+	auditTimelineSvc          AuditTimelineServiceInterface
 }
 
 func NewAuditDraftReportService(
@@ -55,6 +56,7 @@ func NewAuditDraftReportService(
 	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditDraftReportServiceInterface {
 	return &AuditDraftReportService{
 		repo:                      repo,
@@ -64,6 +66,7 @@ func NewAuditDraftReportService(
 		auditDraftFindingSvc:      auditDraftFindingSvc,
 		userSvc:                   userSvc,
 		notificationSvc:           notificationSvc,
+		auditTimelineSvc:          auditTimelineSvc,
 	}
 }
 
@@ -921,7 +924,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 			for _, item := range existingAuditDraftReportFullDetails.Audit.AuditPlan.AuditableItems {
 				if item.AuditableItem.ResponsibleUser == nil {
 					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-						"error": err.Error(),
+						"error": "ResponsibleUser is nil",
 					})
 					return
 				}
@@ -1121,6 +1124,30 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 		return err
 	}
 
+	
+	// Mark "draft-report" timeline as completed
+	draftReportType, err := adrs.auditTimelineSvc.GetByType("draft-report")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	draftReportCompletedStatus, err := adrs.auditTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	draftReportNow := time.Now()
+	draftReportTimelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+		AuditID:             auditID,
+		AuditTimelineTypeID: draftReportType.ID,
+		TimelineStatusID:    draftReportCompletedStatus.ID,
+		PerformedByID:       &currentUserID,
+		PerformedAt:         &draftReportNow,
+	}
+	if err := adrs.auditTimelineSvc.Update(auditID, draftReportTimelineFormDTO, draftReportType.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	// todo - notification to auditable item responsible user where findings captured.
 
 	tx.Commit()

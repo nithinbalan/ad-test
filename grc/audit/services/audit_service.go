@@ -681,6 +681,11 @@ func (as *AuditService) StatusUpdate(id uint, currentUserID uint, auditStatusID 
 		return err
 	}
 
+	err = as.auditPlanSvc.StatusUpdate(existingAudit.AuditPlanID, currentUserID, auditStatusID, tx)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

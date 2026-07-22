@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -57,6 +58,7 @@ type AuditFinalReportService struct {
 	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
 	settingSvc                settingsServices.AuditTemplateSettingServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
+	auditTimelineSvc 		  AuditTimelineServiceInterface
 }
 
 func NewAuditFinalReportService(
@@ -72,6 +74,7 @@ func NewAuditFinalReportService(
 	auditFindingSvc AuditFindingServiceInterface,
 	settingSvc settingsServices.AuditTemplateSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditFinalReportServiceInterface {
 	return &AuditFinalReportService{
 		repo:                      repo,
@@ -86,6 +89,7 @@ func NewAuditFinalReportService(
 		auditFindingSvc:           auditFindingSvc,
 		settingSvc:                settingSvc,
 		notificationSvc:           notificationSvc,
+		auditTimelineSvc:          auditTimelineSvc,
 	}
 }
 
@@ -1311,6 +1315,9 @@ func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, c
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch audit report details: %w", err)
 	}
+	if auditFinalReport == nil {
+		return "", fmt.Errorf("audit final report not found for audit ID %d", auditID)
+	}
 	// auditTemplateSetting, err := afrs.settingSvc.GetFirst()
 	// if err != nil {
 	// 	return "", fmt.Errorf("failed to fetch audit template details: %w", err)
@@ -1325,7 +1332,7 @@ func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, c
 	// }
 	// Define template paths
 	templatePaths := []string{
-		"audit/templates/pdf/audit_final_report.html", // Content-specific template
+		"audit/templates/pdf/audit_final_report.html",
 	}
 	// Ensure paths are properly formatted for use in wkhtmltopdf
 	// logoImagePath = "file:///" + strings.ReplaceAll(logoImagePath, "\\", "/")
@@ -1340,8 +1347,9 @@ func (afrs *AuditFinalReportService) ExportAuditFinalReportToPDF(auditID uint, c
 	if err != nil {
 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
 	}
-	// Define the output PDF file name
-	pdfFileName := fmt.Sprintf("AuditFinalReport_%d.pdf", auditID)
+
+	// Write the output PDF to the OS temp directory to avoid working-directory issues
+	pdfFileName := filepath.Join(os.TempDir(), fmt.Sprintf("AuditFinalReport_%d.pdf", auditID))
 
 	// Convert HTML content to a PDF file
 	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
@@ -1453,6 +1461,28 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 		tx.Rollback()
 		return err
 	}
+	publishType, err := afrs.auditTimelineSvc.GetByType("publish")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	completedStatus, err := afrs.auditTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	now := time.Now()
+	timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+		AuditID:             auditID,
+		AuditTimelineTypeID: publishType.ID,
+		TimelineStatusID:    completedStatus.ID,
+		PerformedByID:       &currentUserID,
+		PerformedAt:         &now,
+	}
+	if err := afrs.auditTimelineSvc.Update(auditID, timelineFormDTO, publishType.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	tx.Commit()
 	go func() {
 		urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
@@ -1504,7 +1534,7 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 				"PublishedByFirstNameEn": assignedBy.FirstNameEn,
 				"PublishedByLastNameEn":  assignedBy.LastNameEn,
 				"PublishedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%s/audits/%d", appURL, auditID),
+				"RedirectURL":            fmt.Sprintf("%s/audit/audits/%d/final-report", appURL, auditID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

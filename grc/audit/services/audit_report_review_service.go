@@ -37,6 +37,7 @@ type AuditReportReviewService struct {
 	userSvc                   organizationSvc.UserServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
 	taskSvc                   taskServices.TaskServiceInterface
+	auditTimelineSvc          AuditTimelineServiceInterface
 }
 
 func NewAuditReportReviewService(
@@ -49,6 +50,7 @@ func NewAuditReportReviewService(
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditReportReviewServiceInterface {
 	return &AuditReportReviewService{
 		repo:                      repo,
@@ -60,6 +62,7 @@ func NewAuditReportReviewService(
 		userSvc:                   userSvc,
 		notificationSvc:           notificationSvc,
 		taskSvc:                   taskSvc,
+		auditTimelineSvc:          auditTimelineSvc,
 	}
 }
 
@@ -274,7 +277,7 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/audits/%d", appURL, auditID),
+				"RedirectURL":           fmt.Sprintf("%s/audit/audits/%d/final-report", appURL, auditID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -318,6 +321,26 @@ func (arrs *AuditReportReviewService) AddComment(id uint, currentUserID uint, au
 	} else {
 		return arrs.handleCommentOnlyCase(auditFinalReportID, currentUserID, auditFinalReport, auditReportReviewCommentFormDTO, currentAuditReportWorkflow)
 	}
+}
+
+func (arrs *AuditReportReviewService) markFinalReportTimelineCompleted(auditID uint, currentUserID uint) error {
+	finalReportType, err := arrs.auditTimelineSvc.GetByType("final-report")
+	if err != nil {
+		return err
+	}
+	completedStatus, err := arrs.auditTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+		AuditID:             auditID,
+		AuditTimelineTypeID: finalReportType.ID,
+		TimelineStatusID:    completedStatus.ID,
+		PerformedByID:       &currentUserID,
+		PerformedAt:         &now,
+	}
+	return arrs.auditTimelineSvc.Update(auditID, timelineFormDTO, finalReportType.ID)
 }
 
 func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID uint, auditReportReviewCommentFormDTO *auditDTOs.AuditReportReviewCommentFormDTO, auditFinalReport *auditDTOs.AuditFinalReportDetailDTO, currentAuditReportWorkflow *models.AuditReportWorkflow, currentApprovalLevel int) error {
@@ -380,6 +403,11 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 			if err != nil {
 				return err
 			}
+
+			if err := arrs.markFinalReportTimelineCompleted(auditFinalReport.AuditID, currentUserID); err != nil {
+				return err
+			}
+
 		} else {
 			existingAuditFinalReport, err := arrs.auditFinalReportSvc.GetByID(id)
 			if err != nil {
@@ -472,6 +500,10 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 					if err != nil {
 						return err
 					}
+
+					if err := arrs.markFinalReportTimelineCompleted(auditFinalReport.AuditID, currentUserID); err != nil {
+						return err
+					}
 				} else {
 					existingAuditFinalReport, err := arrs.auditFinalReportSvc.GetByID(id)
 					if err != nil {
@@ -551,6 +583,10 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 				existingAuditFinalReport.AuditFinalReportStatusID = auditFinalReportStatus.ID
 				err = arrs.auditFinalReportSvc.Update(existingAuditFinalReport)
 				if err != nil {
+					return err
+				}
+
+				if err := arrs.markFinalReportTimelineCompleted(auditFinalReport.AuditID, currentUserID); err != nil {
 					return err
 				}
 			} else {
@@ -759,7 +795,7 @@ func (arrs *AuditReportReviewService) handleCommentOnlyCase(id, currentUserID ui
 		return err
 	}
 	// todo
-	// arrs.sendCommentNotification(id, currentUserID, auditReportReviewCommentFormDTO.Comment, auditFinalReportDetailDTO)
+	arrs.sendCommentNotification(currentUserID, auditReportReviewCommentFormDTO.Comment, auditFinalReportDetailDTO)
 
 	return nil
 }
@@ -848,7 +884,7 @@ func (arrs *AuditReportReviewService) sendApprovalNotification(id uint, currentU
 		appURL := utility.GetAppURL()
 		emailTo := []string{auditFinalReportDetailDTO.PreparedBy.Email}
 		subject := fmt.Sprintf("Audit Final Report/%s: Approval Notification", auditFinalReportDetailDTO.Title)
-		urlParam = fmt.Sprintf("%s/audits/%d/final-reports/%d", appURL, auditFinalReportDetailDTO.AuditID, id)
+		urlParam = fmt.Sprintf("%s/audit/audits/%d/final-report", appURL, auditFinalReportDetailDTO.AuditID)
 
 		emailData := map[string]interface{}{
 			"AuditTitle":            auditFinalReportDetailDTO.Title,
@@ -916,7 +952,7 @@ func (arrs *AuditReportReviewService) notifyNextLevelUsers(id uint, nextDocWorkf
 			emailTo := []string{responsibleUser.Email}
 			subject := fmt.Sprintf("Document/%s: Review Assigned", auditFinalReportDetailDTO.Title)
 			appURL := utility.GetAppURL()
-			urlParam = fmt.Sprintf("%s/audits/%d/final-reports/%d", appURL, auditFinalReportDetailDTO.AuditID, id)
+			urlParam = fmt.Sprintf("%s/audit/audits/%d/final-report", appURL, auditFinalReportDetailDTO.AuditID)
 
 			emailData := map[string]interface{}{
 				"FirstNameEn":           responsibleUser.FirstNameEn,
@@ -958,7 +994,7 @@ func (arrs *AuditReportReviewService) sendRevertedNotification(id uint, currentU
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{uint(auditFinalReportDetailDTO.PreparedBy.ID)},
 			ModuleIdentifier:     "audit",
-			NotificationType:     string(commonDTOs.ApprovalType),
+			NotificationType:     string(commonDTOs.RevertType),
 			HeadingEn:            "Audit Final Report Reverted",
 			HeadingAr:            "تم إرجاع التقرير النهائي للتدقيق",
 			ReferenceNumber:      auditFinalReportDetailDTO.ReferenceNumber,
@@ -983,17 +1019,17 @@ func (arrs *AuditReportReviewService) sendRevertedNotification(id uint, currentU
 		// Prepare email details
 		appURL := utility.GetAppURL()
 		emailTo := []string{auditFinalReportDetailDTO.PreparedBy.Email}
-		subject := fmt.Sprintf("Audit Final Report/%s: Approval Notification", auditFinalReportDetailDTO.Title)
-		urlParam = fmt.Sprintf("%s/audits/%d/final-reports/%d", appURL, auditFinalReportDetailDTO.AuditID, id)
+		subject := fmt.Sprintf("Audit Final Report/%s: Reverted Notification", auditFinalReportDetailDTO.Title)
+		urlParam = fmt.Sprintf("%s/audit/audits/%d/final-report", appURL, auditFinalReportDetailDTO.AuditID)
 
 		emailData := map[string]interface{}{
 			"AuditTitle":            auditFinalReportDetailDTO.Title,
 			"Description":           auditFinalReportDetailDTO.Description,
 			"FirstNameEn":           auditFinalReportDetailDTO.PreparedBy.FirstNameEN,
 			"LastNameEn":            auditFinalReportDetailDTO.PreparedBy.LastNameEN,
-			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
-			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
-			"ApprovedAt":            time.Now().Format("2006-01-02"),
+			"RevertedByFirstNameEn": approvedByUser.FirstNameEn,
+			"RevertedByLastNameEn":  approvedByUser.LastNameEn,
+			"RevertedAt":            time.Now().Format("2006-01-02"),
 			"RedirectURL":           urlParam,
 		}
 
@@ -1009,6 +1045,75 @@ func (arrs *AuditReportReviewService) sendRevertedNotification(id uint, currentU
 		err = arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
 		if err != nil {
 			utility.LogError("Failed to send reverted notification email", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
+}
+
+func (arrs *AuditReportReviewService) sendCommentNotification(currentUserID uint, comment string, auditFinalReportDetailDTO *auditDTOs.AuditFinalReportDetailDTO) {
+	go func() {
+		// Prepare URL and parameters for the notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, auditFinalReportDetailDTO.AuditID)
+		entity := "audit-final-report"
+		action := "commented"
+
+		// Create the database notification DTO
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{uint(auditFinalReportDetailDTO.PreparedBy.ID)},
+			ModuleIdentifier:     "audit",
+			NotificationType:     string(commonDTOs.CommentType),
+			HeadingEn:            "Audit Final Report Comment Added",
+			HeadingAr:            "تمت إضافة تعليق على التقرير النهائي للتدقيق",
+			ReferenceNumber:      auditFinalReportDetailDTO.ReferenceNumber,
+			TitleEn:              auditFinalReportDetailDTO.Title,
+			TitleAr:              auditFinalReportDetailDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		// Get the user who performed the comment
+		commentedByUser, err := arrs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch comment performed user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare email details
+		appURL := utility.GetAppURL()
+		emailTo := []string{auditFinalReportDetailDTO.PreparedBy.Email}
+		subject := fmt.Sprintf("Audit Final Report/%s: Comment Notification", auditFinalReportDetailDTO.Title)
+		urlParam = fmt.Sprintf("%s/audit/audits/%d/final-report", appURL, auditFinalReportDetailDTO.AuditID)
+
+		emailData := map[string]interface{}{
+			"AuditTitle":             auditFinalReportDetailDTO.Title,
+			"Description":            auditFinalReportDetailDTO.Description,
+			"FirstNameEn":            auditFinalReportDetailDTO.PreparedBy.FirstNameEN,
+			"LastNameEn":             auditFinalReportDetailDTO.PreparedBy.LastNameEN,
+			"CommentedByFirstNameEn": commentedByUser.FirstNameEn,
+			"CommentedByLastNameEn":  commentedByUser.LastNameEn,
+			"Comment":                comment,
+			"CommentedAt":            time.Now().Format("2006-01-02"),
+			"RedirectURL":            urlParam,
+		}
+
+		// Create the email notification DTO
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "audit/templates/email/audit_report_workflow_comment_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// Send the notification
+		err = arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+		if err != nil {
+			utility.LogError("Failed to send comment notification email", map[string]interface{}{
 				"error": err.Error(),
 			})
 		}

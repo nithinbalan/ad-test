@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
@@ -37,6 +38,7 @@ type AuditScheduleService struct {
 	userSvc                organizationServices.UserServiceInterface
 	auditScheduleStatusSvc AuditScheduleStatusServiceInterface
 	auditableItemSvc       AuditableItemServiceInterface
+	auditTimelineSvc	   AuditTimelineServiceInterface
 }
 
 func NewAuditScheduleService(
@@ -47,6 +49,7 @@ func NewAuditScheduleService(
 	userSvc organizationServices.UserServiceInterface,
 	auditScheduleStatusSvc AuditScheduleStatusServiceInterface,
 	auditableItemSvc AuditableItemServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditScheduleServiceInterface {
 	return &AuditScheduleService{
 		repo:                   repo,
@@ -56,6 +59,7 @@ func NewAuditScheduleService(
 		userSvc:                userSvc,
 		auditScheduleStatusSvc: auditScheduleStatusSvc,
 		auditableItemSvc:       auditableItemSvc,
+		auditTimelineSvc:       auditTimelineSvc,
 	}
 }
 
@@ -550,6 +554,42 @@ func (ass *AuditScheduleService) StatusUpdate(auditScheduleID uint, auditSchedul
 	err = ass.repo.Update(existingAuditSchedule, tx)
 	if err != nil {
 		return err
+	}
+
+		newStatus, err := ass.auditScheduleStatusSvc.GetByID(auditScheduleStatusUpdateFormDTO.AuditScheduleStatusID)
+	if err != nil {
+		return err
+	}
+	if newStatus.Type == "scheduled" || newStatus.Type == "completed" {
+		scheduleType, err := ass.auditTimelineSvc.GetByType("schedule")
+		if err != nil {
+			return err
+		}
+		pendingStatus, err := ass.auditTimelineSvc.GetByStatusType("pending")
+		if err != nil {
+			return err
+		}
+		completedStatus, err := ass.auditTimelineSvc.GetByStatusType("completed")
+		if err != nil {
+			return err
+		}
+		timeline, err := ass.auditTimelineSvc.GetByID(existingAuditSchedule.AuditID, scheduleType.ID)
+		if err != nil {
+			return err
+		}
+		if timeline.TimelineStatusID == pendingStatus.ID {
+			now := time.Now()
+			timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+				AuditID:             existingAuditSchedule.AuditID,
+				AuditTimelineTypeID: scheduleType.ID,
+				TimelineStatusID:    completedStatus.ID,
+				PerformedByID:       &currentUserID,
+				PerformedAt:         &now,
+			}
+			if err := ass.auditTimelineSvc.Update(existingAuditSchedule.AuditID, timelineFormDTO, scheduleType.ID, tx); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

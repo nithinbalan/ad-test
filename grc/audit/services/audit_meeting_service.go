@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
@@ -27,17 +28,20 @@ type AuditMeetingService struct {
 	repo           repositories.AuditMeetingRepositoryInterface
 	activityLogSvc logServices.ActivityLogServiceInterface
 	auditSvc       AuditServiceInterface
+	auditTimelineSvc AuditTimelineServiceInterface
 }
 
 func NewAuditMeetingService(
 	repo repositories.AuditMeetingRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditSvc AuditServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditMeetingServiceInterface {
 	return &AuditMeetingService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 		auditSvc:       auditSvc,
+		auditTimelineSvc: auditTimelineSvc,
 	}
 }
 
@@ -233,6 +237,42 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 
 	if len(participants) > 0 {
 		if err := ams.repo.CreateParticipants(participants, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+		// Mark "meetings" timeline as completed when first meeting is created
+	meetingsType, err := ams.auditTimelineSvc.GetByType("meetings")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	pendingStatus, err := ams.auditTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	completedStatus, err := ams.auditTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timeline, err := ams.auditTimelineSvc.GetByID(auditId, meetingsType.ID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if timeline.TimelineStatusID == pendingStatus.ID {
+		now := time.Now()
+		timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+			AuditID:             auditId,
+			AuditTimelineTypeID: meetingsType.ID,
+			TimelineStatusID:    completedStatus.ID,
+			PerformedByID:       &currentUserID,
+			PerformedAt:         &now,
+		}
+		if err := ams.auditTimelineSvc.Update(auditId, timelineFormDTO, meetingsType.ID, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
