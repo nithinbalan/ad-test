@@ -383,6 +383,15 @@ func (ars *AwarenessReportService) ExportAwarenessReport(data []*awarenessDTOs.A
 
 	rows := make([][]interface{}, len(data))
 	for i, report := range data {
+		reportDate := ""
+		if report.ReportDate != nil {
+			reportDate = report.ReportDate.Format("2006-01-02")
+		}
+		closureDate := ""
+		if report.ClosureDate != nil {
+			closureDate = report.ClosureDate.Format("2006-01-02")
+		}
+
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
 				i + 1,
@@ -391,14 +400,14 @@ func (ars *AwarenessReportService) ExportAwarenessReport(data []*awarenessDTOs.A
 				utility.GetStringValue(report.SubCategoryTitleAr),
 				utility.GetStringValue(report.ReportSourceChannel),
 				utility.GetStringValue(report.SeverityTitleAr),
-				report.ReportDate,
+				reportDate,
 				report.ResultedFromCampaign,
 				utility.GetStringValue(report.AwarenessHandlingStatusTitleAr),
 				fmt.Sprintf("%s %s",
 					utility.GetStringValue(report.HandlingOwnerFirstNameAr),
 					utility.GetStringValue(report.HandlingOwnerLastNameAr)),
-				utility.GetStringValue(report.ClosureDate),
-				utility.GetStringValue(report.Result),
+				closureDate,
+				utility.StripAllHTMLTags(utility.GetStringValue(report.Result)),
 			}
 		} else {
 			rows[i] = []interface{}{
@@ -408,14 +417,14 @@ func (ars *AwarenessReportService) ExportAwarenessReport(data []*awarenessDTOs.A
 				utility.GetStringValue(report.SubCategoryTitleEn),
 				utility.GetStringValue(report.ReportSourceChannel),
 				utility.GetStringValue(report.SeverityTitleEn),
-				report.ReportDate,
+				reportDate,
 				report.ResultedFromCampaign,
 				utility.GetStringValue(report.AwarenessHandlingStatusTitleEn),
 				fmt.Sprintf("%s %s",
 					utility.GetStringValue(report.HandlingOwnerFirstNameEn),
 					utility.GetStringValue(report.HandlingOwnerLastNameEn)),
-				utility.GetStringValue(report.ClosureDate),
-				utility.GetStringValue(report.Result),
+				closureDate,
+				utility.StripAllHTMLTags(utility.GetStringValue(report.Result)),
 			}
 		}
 	}

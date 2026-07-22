@@ -235,6 +235,58 @@ func (acc *AwarenessCampaignController) UpdateAwarenessCampaign(c *gin.Context) 
 	c.Status(http.StatusOK)
 }
 
+func (acc *AwarenessCampaignController) CompleteAwarenessCampaign(c *gin.Context) {
+	campaignID, err := strconv.ParseUint(c.Param("campaignId"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(acc.db, c, err.Error())
+		return
+	}
+
+	if err := acc.service.CompleteCampaign(uint(campaignID), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(acc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Awareness campaign completed successfully"})
+}
+
+func (acc *AwarenessCampaignController) CancelAwarenessCampaign(c *gin.Context) {
+	campaignID, err := strconv.ParseUint(c.Param("campaignId"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(acc.db, c, err.Error())
+		return
+	}
+
+	if err := acc.service.CancelCampaign(uint(campaignID), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(acc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Awareness campaign cancelled successfully"})
+}
+
 func (acc *AwarenessCampaignController) DeleteAwarenessCampaigns(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`

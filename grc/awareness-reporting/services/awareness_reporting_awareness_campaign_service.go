@@ -31,6 +31,8 @@ type AwarenessCampaignServiceInterface interface {
 	GetByID(id uint) (*models.AwarenessCampaign, error)
 	Create(currentUserID uint, formDTO *awarenessDTOs.AwarenessCampaignFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, formDTO *awarenessDTOs.AwarenessCampaignFormDTO) error
+	CancelCampaign(campaignID uint, currentUserID uint) error
+	CompleteCampaign(campaignID uint, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(id uint, token string) (string, error)
 	ExportAwarenessCampaign(data []*awarenessDTOs.AwarenessCampaignListDTO, currentUserID uint) (*os.File, error)
@@ -147,6 +149,60 @@ func (acs *AwarenessCampaignService) GetFullDetailsByID(id uint, tx ...utility.D
 	}
 
 	return &campaignDTO, nil
+}
+
+func (acs *AwarenessCampaignService) CancelCampaign(campaignID uint, currentUserID uint) error {
+	existingCampaign, err := acs.repo.GetByID(campaignID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, campaignID)
+		}
+		return err
+	}
+
+	cancelledStatus, err := acs.awarenessCampaignStatusSvc.GetByType("cancelled")
+	if err != nil {
+		return err
+	}
+
+	existingCampaign.AwarenessCampaignStatusID = cancelledStatus.ID
+	existingCampaign.UpdatedByID = &currentUserID
+
+	tx := acs.repo.BeginTransaction()
+	if err := acs.repo.Update(existingCampaign, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	return nil
+}
+
+func (acs *AwarenessCampaignService) CompleteCampaign(campaignID uint, currentUserID uint) error {
+	existingCampaign, err := acs.repo.GetByID(campaignID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, campaignID)
+		}
+		return err
+	}
+
+	completedStatus, err := acs.awarenessCampaignStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+
+	existingCampaign.AwarenessCampaignStatusID = completedStatus.ID
+	existingCampaign.UpdatedByID = &currentUserID
+
+	tx := acs.repo.BeginTransaction()
+	if err := acs.repo.Update(existingCampaign, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	return nil
 }
 
 func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarenessDTOs.AwarenessCampaignFormDTO) (uint, error) {
@@ -359,7 +415,7 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "awareness/templates/email/awareness_campaign_create_responsible_user_mail.html",
+			TemplateRelativePath: "awareness-reporting/templates/email/awareness_campaign_create_owner_mail.html",
 			EmailData:            emailData,
 		}
 		err = acs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "awareness_campaign")
@@ -1068,12 +1124,18 @@ func (acs *AwarenessCampaignService) ExportAwarenessCampaign(data []*awarenessDT
 
 	rows := make([][]interface{}, len(data))
 	for i, campaign := range data {
+		startDate := campaign.StartDate.Format("2006-01-02")
+		endDate := ""
+		if campaign.EndDate != nil {
+			endDate = campaign.EndDate.Format("2006-01-02")
+		}
+
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
 				i + 1,
 				campaign.ReferenceNumber,
 				campaign.CampaignTitle,
-				utility.GetStringValue(campaign.Objective),
+				utility.StripAllHTMLTags(campaign.Objective),
 				utility.GetStringValue(campaign.TargetAudience),
 				utility.GetStringValue(campaign.AwarenessCampaignTypeTitleAr),
 				utility.GetStringValue(campaign.AwarenessPriorityTitleAr),
@@ -1082,15 +1144,15 @@ func (acs *AwarenessCampaignService) ExportAwarenessCampaign(data []*awarenessDT
 				fmt.Sprintf("%s %s",
 					utility.GetStringValue(campaign.OwnerFirstNameAr),
 					utility.GetStringValue(campaign.OwnerLastNameAr)),
-				campaign.StartDate,
-				utility.GetStringValue(campaign.EndDate),
+				startDate,
+				endDate,
 			}
 		} else {
 			rows[i] = []interface{}{
 				i + 1,
 				campaign.ReferenceNumber,
 				campaign.CampaignTitle,
-				utility.GetStringValue(campaign.Objective),
+				utility.StripAllHTMLTags(campaign.Objective),
 				utility.GetStringValue(campaign.TargetAudience),
 				utility.GetStringValue(campaign.AwarenessCampaignTypeTitleEn),
 				utility.GetStringValue(campaign.AwarenessPriorityTitleEn),
@@ -1099,8 +1161,8 @@ func (acs *AwarenessCampaignService) ExportAwarenessCampaign(data []*awarenessDT
 				fmt.Sprintf("%s %s",
 					utility.GetStringValue(campaign.OwnerFirstNameEn),
 					utility.GetStringValue(campaign.OwnerLastNameEn)),
-				campaign.StartDate,
-				utility.GetStringValue(campaign.EndDate),
+				startDate,
+				endDate,
 			}
 		}
 	}

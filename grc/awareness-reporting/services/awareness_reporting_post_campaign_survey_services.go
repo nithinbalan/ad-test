@@ -435,17 +435,22 @@ func (apcss *AwarenessPostCampaignSurveyService) ExportAwarenessPostCampaignSurv
 
 	rows := make([][]interface{}, len(data))
 	for i, survey := range data {
+		sendDate := ""
+		if survey.SendDate != nil {
+			sendDate = survey.SendDate.Format("2006-01-02")
+		}
+
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
 				i + 1,
 				survey.ReferenceNumber,
 				utility.GetStringValue(survey.LinkedCampaignTitle),
-				survey.SendDate,
+				sendDate,
 				utility.GetStringValue(survey.TargetAudience),
-				survey.Recipients,
-				survey.ResponseRate,
-				survey.QuestionCount,
-				survey.AverageRating,
+				utility.GetIntValueAsString(survey.Recipients),
+				utility.GetIntValueAsString(survey.ResponseRate),
+				utility.GetIntValueAsString(survey.QuestionCount),
+				utility.GetIntValueAsString(survey.AverageRating),
 				utility.GetStringValue(survey.MaturityLevelTitleAr),
 				utility.GetStringValue(survey.ExecutingParty),
 				utility.GetStringValue(survey.Recommendations),
@@ -455,12 +460,12 @@ func (apcss *AwarenessPostCampaignSurveyService) ExportAwarenessPostCampaignSurv
 				i + 1,
 				survey.ReferenceNumber,
 				utility.GetStringValue(survey.LinkedCampaignTitle),
-				survey.SendDate,
+				sendDate,
 				utility.GetStringValue(survey.TargetAudience),
-				survey.Recipients,
-				survey.ResponseRate,
-				survey.QuestionCount,
-				survey.AverageRating,
+				utility.GetIntValueAsString(survey.Recipients),
+				utility.GetIntValueAsString(survey.ResponseRate),
+				utility.GetIntValueAsString(survey.QuestionCount),
+				utility.GetIntValueAsString(survey.AverageRating),
 				utility.GetStringValue(survey.MaturityLevelTitleEn),
 				utility.GetStringValue(survey.ExecutingParty),
 				utility.GetStringValue(survey.Recommendations),

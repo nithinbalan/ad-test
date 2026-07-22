@@ -62,6 +62,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessRoutes.GET("/awareness-reporting/awareness-campaigns/:id", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessCampaignController.GetAwarenessCampaignDetails)
 	awarenessRoutes.POST("/awareness-reporting/awareness-campaigns", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "modify"), awarenessCampaignController.CreateAwarenessCampaign)
 	awarenessRoutes.PUT("/awareness-reporting/awareness-campaigns/:id", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "modify"), awarenessCampaignController.UpdateAwarenessCampaign)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-campaigns/:campaignId/cancel", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "modify"), awarenessCampaignController.CancelAwarenessCampaign)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-campaigns/:campaignId/complete", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "modify"), awarenessCampaignController.CompleteAwarenessCampaign)
 	awarenessRoutes.POST("/awareness-reporting/awareness-campaigns/delete", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "modify"), awarenessCampaignController.DeleteAwarenessCampaigns)
 	awarenessRoutes.GET("/awareness-reporting/awareness-campaigns/export", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "modify"), awarenessCampaignController.GetAwarenessCampaignExport)
 
