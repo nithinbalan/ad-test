@@ -3,10 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	awarenessDTOs "jethur/grc/awareness-reporting/dtos"
 	awarenessRepositories "jethur/grc/awareness-reporting/repositories"
 	logServices "jethur/grc/logs/services"
+	organizationServices "jethur/grc/organization/services"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -22,6 +24,7 @@ type AwarenessPostCampaignSurveyServiceInterface interface {
 	Create(currentUserID uint, formDTO *awarenessDTOs.AwarenessPostCampaignSurveyFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, formDTO *awarenessDTOs.AwarenessPostCampaignSurveyFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ExportAwarenessPostCampaignSurvey(data []*awarenessDTOs.AwarenessPostCampaignSurveyListDTO, currentUserID uint) (*os.File, error)
 }
 
 type AwarenessPostCampaignSurveyService struct {
@@ -30,6 +33,7 @@ type AwarenessPostCampaignSurveyService struct {
 	awarenessMaturityLevelSvc   AwarenessMaturityLevelServiceInterface
 	awarenessCampaignService    AwarenessCampaignServiceInterface
 	awarenessAssessmentThemeSvc AwarenessAssessmentThemeServiceInterface
+	userSettingSvc              organizationServices.UserSettingServiceInterface
 }
 
 func NewAwarenessPostCampaignSurveyService(
@@ -38,6 +42,7 @@ func NewAwarenessPostCampaignSurveyService(
 	awarenessMaturityLevelSvc AwarenessMaturityLevelServiceInterface,
 	awarenessCampaignService AwarenessCampaignServiceInterface,
 	awarenessAssessmentThemeSvc AwarenessAssessmentThemeServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) AwarenessPostCampaignSurveyServiceInterface {
 	return &AwarenessPostCampaignSurveyService{
 		repo:                        repo,
@@ -45,6 +50,7 @@ func NewAwarenessPostCampaignSurveyService(
 		awarenessMaturityLevelSvc:   awarenessMaturityLevelSvc,
 		awarenessCampaignService:    awarenessCampaignService,
 		awarenessAssessmentThemeSvc: awarenessAssessmentThemeSvc,
+		userSettingSvc:              userSettingSvc,
 	}
 }
 
@@ -386,4 +392,86 @@ func (apcss *AwarenessPostCampaignSurveyService) validateAwarenessPostCampaignSu
 	}
 
 	return nil
+}
+
+func (apcss *AwarenessPostCampaignSurveyService) ExportAwarenessPostCampaignSurvey(data []*awarenessDTOs.AwarenessPostCampaignSurveyListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := apcss.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"الحملة المرتبطة",
+			"تاريخ الإرسال",
+			"الجمهور المستهدف",
+			"عدد المستلمين",
+			"معدل الاستجابة",
+			"عدد الأسئلة",
+			"متوسط التقييم",
+			"مستوى النضج",
+			"الجهة المنفذة",
+			"التوصيات",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Linked Campaign",
+			"Send Date",
+			"Target Audience",
+			"Recipients",
+			"Response Rate",
+			"Question Count",
+			"Average Rating",
+			"Maturity Level",
+			"Executing Party",
+			"Recommendations",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, survey := range data {
+		sendDate := ""
+		if survey.SendDate != nil {
+			sendDate = survey.SendDate.Format("2006-01-02")
+		}
+
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				survey.ReferenceNumber,
+				utility.GetStringValue(survey.LinkedCampaignTitle),
+				sendDate,
+				utility.GetStringValue(survey.TargetAudience),
+				utility.GetIntValueAsString(survey.Recipients),
+				utility.GetIntValueAsString(survey.ResponseRate),
+				utility.GetIntValueAsString(survey.QuestionCount),
+				utility.GetIntValueAsString(survey.AverageRating),
+				utility.GetStringValue(survey.MaturityLevelTitleAr),
+				utility.GetStringValue(survey.ExecutingParty),
+				utility.GetStringValue(survey.Recommendations),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				survey.ReferenceNumber,
+				utility.GetStringValue(survey.LinkedCampaignTitle),
+				sendDate,
+				utility.GetStringValue(survey.TargetAudience),
+				utility.GetIntValueAsString(survey.Recipients),
+				utility.GetIntValueAsString(survey.ResponseRate),
+				utility.GetIntValueAsString(survey.QuestionCount),
+				utility.GetIntValueAsString(survey.AverageRating),
+				utility.GetStringValue(survey.MaturityLevelTitleEn),
+				utility.GetStringValue(survey.ExecutingParty),
+				utility.GetStringValue(survey.Recommendations),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

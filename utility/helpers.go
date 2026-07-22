@@ -418,3 +418,8 @@ func IsPassiveAccess(c *gin.Context) bool {
 	b, _ := v.(bool)
 	return b
 }
+
+func StripAllHTMLTags(input string) string {
+	re := regexp.MustCompile(`<[^>]+>`)
+	return re.ReplaceAllString(input, "")
+}

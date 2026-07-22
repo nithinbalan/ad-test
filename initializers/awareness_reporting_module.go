@@ -63,6 +63,7 @@ func NewAwarenessReportingModule(
 		settingsModule.OrganizationUnitSvc,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
+		organizationModule.UserSettingSvc,
 	)
 	awarenessCampaignController := controllers.NewAwarenessCampaignController(awarenessCampaignSvc)
 
@@ -81,6 +82,7 @@ func NewAwarenessReportingModule(
 		awarenessMaturityLevelSvc,
 		awarenessCampaignSvc,
 		awarenessAssessmentThemeSvc,
+		organizationModule.UserSettingSvc,
 	)
 	awarenessPostCampaignSurveyController := controllers.NewAwarenessPostCampaignSurveyController(awarenessPostCampaignSurveySvc)
 
@@ -106,6 +108,7 @@ func NewAwarenessReportingModule(
 		masterModule.SeverityLevelSvc,
 		awarenessHandlingStatusSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 	)
 	awarenessReportController := controllers.NewAwarenessReportController(awarenessReportSvc)
 
