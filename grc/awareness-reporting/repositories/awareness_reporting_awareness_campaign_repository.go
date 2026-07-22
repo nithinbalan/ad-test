@@ -117,6 +117,10 @@ func (repo *AwarenessCampaignRepository) GetAll(params *awarenessDTOs.AwarenessC
 		switch filter {
 		case "completed":
 			query = query.Where("awareness_campaign_statuses.type = ?", "completed")
+		case "cancelled":
+			query = query.Where("awareness_campaign_statuses.type = ?", "cancelled")
+		case "not_started":
+			query = query.Where("awareness_campaign_statuses.type = ?", "not_started")
 		}
 	}
 
