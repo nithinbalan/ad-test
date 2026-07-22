@@ -167,9 +167,16 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 			}
 			controlDetailsMap[item.ControlID] = control
 
-			latestControlTest, err := rupras.controlTestSvc.GetLatestByControlID(item.ControlID)
+			latestControlTest, err := rupras.controlTestSvc.GetLatestByControlIDAndPlanID(item.ControlID, planID)
 			if err != nil {
-				return err
+				if _, notFound := err.(*utility.ResourceNotFoundError); !notFound {
+					return err
+				}
+
+				latestControlTest, err = rupras.controlTestSvc.GetLatestByControlID(item.ControlID)
+				if err != nil {
+					return err
+				}
 			}
 			controlTestMap[item.ControlID] = latestControlTest
 		}
@@ -179,7 +186,7 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 	inherentEvaluationMap := make(map[uint]*riskDTOs.RiskInherentEvaluationDetailsDTO)
 	for _, riskRegisterID := range riskRegisterIDs {
 		if _, exists := inherentEvaluationMap[riskRegisterID]; !exists {
-			inherentEvaluation, err := rupras.riskInherentEvaluationSvc.GetFullDetailsByID(riskRegisterID)
+			inherentEvaluation, err := rupras.riskInherentEvaluationSvc.GetLatestPlanDraftFullDetailsByRiskID(riskRegisterID)
 			if err != nil {
 				return err
 			}
@@ -283,19 +290,6 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 	}
 
 	// Step 3: Residual Evaluation (using inherent evaluation's likelihood and impact ID)
-	// Get existing residual evaluations for update or create new ones
-	existingEvaluationsMap := make(map[uint]*models.RiskEvaluation)
-	for _, riskRegisterID := range riskRegisterIDs {
-		existingEval, err := rupras.repo.GetResidualEvaluationByRiskRegisterID(riskRegisterID, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-		if existingEval != nil {
-			existingEvaluationsMap[riskRegisterID] = existingEval
-		}
-	}
-
 	// Get risk matrix for calculations
 	riskMatrixType, err := rupras.riskMatrixSvc.GetByType("erm")
 	if err != nil {
@@ -364,41 +358,26 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 			return utility.NewValidationError(fmt.Errorf("no risk rating found for score %d", residualScore), "not_found", "risk rating")
 		}
 
-		// Check if evaluation exists for this risk
-		existingEval, exists := existingEvaluationsMap[item.RiskRegisterID]
-
-		if exists {
-			// Update existing evaluation
-			existingEval.RiskMatrixLikelihoodID = inherentEvaluation.RiskMatrixLikelihood.ID
-			existingEval.RiskMatrixImpactID = inherentEvaluation.RiskMatrixImpact.ID
-			existingEval.RiskMatrixRiskRatingID = riskRating.RiskMatrixRiskRatingID
-			existingEval.RiskMatrixRiskRatingValueID = riskRating.RiskMatrixRiskRatingValueID
-			existingEval.AverageControlEffectivenessScore = averageRiskReduction
-
-			if err := rupras.repo.UpdateResidualEvaluation(existingEval, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-			evaluations = append(evaluations, existingEval)
-		} else {
-			// Create new evaluation
-			riskResidualEvaluation := &models.RiskEvaluation{
-				RiskRegisterID:                   item.RiskRegisterID,
-				Type:                             "residual",
-				RiskMatrixLikelihoodID:           inherentEvaluation.RiskMatrixLikelihood.ID,
-				RiskMatrixImpactID:               inherentEvaluation.RiskMatrixImpact.ID,
-				RiskMatrixRiskRatingID:           riskRating.RiskMatrixRiskRatingID,
-				RiskMatrixRiskRatingValueID:      riskRating.RiskMatrixRiskRatingValueID,
-				AverageControlEffectivenessScore: averageRiskReduction,
-				CreatedByID:                      currentUserID,
-			}
-
-			if err := rupras.repo.CreateResidualEvaluation(riskResidualEvaluation, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-			evaluations = append(evaluations, riskResidualEvaluation)
+		// Create new draft evaluation for this plan
+		isLatest := false
+		riskResidualEvaluation := &models.RiskEvaluation{
+			RiskRegisterID:                   item.RiskRegisterID,
+			Type:                             "residual",
+			RiskMatrixLikelihoodID:           inherentEvaluation.RiskMatrixLikelihood.ID,
+			RiskMatrixImpactID:               inherentEvaluation.RiskMatrixImpact.ID,
+			RiskMatrixRiskRatingID:           riskRating.RiskMatrixRiskRatingID,
+			RiskMatrixRiskRatingValueID:      riskRating.RiskMatrixRiskRatingValueID,
+			AverageControlEffectivenessScore: averageRiskReduction,
+			CreatedByID:                      currentUserID,
+			IsLatest:                         &isLatest,
+			RiskRegisterUpdatePlanID:         &planID,
 		}
+
+		if err := rupras.repo.CreateResidualEvaluation(riskResidualEvaluation, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+		evaluations = append(evaluations, riskResidualEvaluation)
 
 		// Create history record for this evaluation
 		history := &models.RiskResidualEvaluationHistory{
@@ -413,14 +392,6 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 		}
 
 		if err := rupras.repo.CreateResidualEvaluationHistory(history, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Update risk register ratings
-	for _, evaluation := range evaluations {
-		if err := rupras.riskRegisterSvc.UpdateRiskRating(evaluation.RiskRegisterID, currentUserID, evaluation, tx, "residual"); err != nil {
 			tx.Rollback()
 			return err
 		}

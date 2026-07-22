@@ -130,18 +130,6 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 
 	tx := rrups.repo.BeginTransaction()
 
-	// Extract risk register IDs
-	var riskRegisterIDs []uint
-	for _, evaluation := range formDTO.Analysis {
-		riskRegisterIDs = append(riskRegisterIDs, evaluation.RiskRegisterID)
-	}
-
-	// Delete existing inherent evaluations for the given risk register IDs
-	if err := rrups.repo.DeleteInherentEvaluationsByRiskRegisterIDs(riskRegisterIDs, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	// Get risk matrix for calculations
 	riskMatrixType, err := rrups.riskMatrixSvc.GetByType("erm")
 	if err != nil {
@@ -177,8 +165,9 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 	var evaluations []*models.RiskEvaluation
 	var impactAnalyses []*models.RiskImpactAnalysis
 	var analysisGuidelines []*models.RiskImpactAnalysisGuideline
+	evaluationImpactAnalysisIndices := make(map[int][]int)
 
-	for _, evaluationForm := range formDTO.Analysis {
+	for evalIdx, evaluationForm := range formDTO.Analysis {
 		// Validate risk register exists
 		if _, err := rrups.riskRegisterSvc.GetByID(evaluationForm.RiskRegisterID); err != nil {
 			tx.Rollback()
@@ -224,7 +213,8 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 		score := rrups.riskMatrixRiskRatingValueSvc.EvaluateScore(impact, likelihood, calculationMethod)
 		riskRating, _ := rrups.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
 
-		// Create risk evaluation
+		// Create draft risk evaluation under this update plan
+		isLatest := false
 		riskEvaluation := &models.RiskEvaluation{
 			RiskRegisterID:              evaluationForm.RiskRegisterID,
 			Type:                        "inherent",
@@ -233,8 +223,11 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 			RiskMatrixRiskRatingID:      riskRating.RiskMatrixRiskRatingID,
 			RiskMatrixRiskRatingValueID: riskRating.RiskMatrixRiskRatingValueID,
 			CreatedByID:                 currentUserID,
+			IsLatest:                    &isLatest,
+			RiskRegisterUpdatePlanID:    &planID,
 		}
 		evaluations = append(evaluations, riskEvaluation)
+		evaluationImpactAnalysisIndices[evalIdx] = []int{}
 
 		// Create impact analyses (will need evaluation ID after create)
 		for _, impactEval := range evaluationForm.RiskImpactAnalyses {
@@ -256,6 +249,7 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 				CreatedByID:          currentUserID,
 			}
 			impactAnalyses = append(impactAnalyses, riskImpactAnalysis)
+			evaluationImpactAnalysisIndices[evalIdx] = append(evaluationImpactAnalysisIndices[evalIdx], len(impactAnalyses)-1)
 		}
 	}
 
@@ -266,12 +260,9 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 	}
 
 	// Update impact analyses with evaluation IDs and create them
-	evaluationIndex := 0
-	for i := 0; i < len(impactAnalyses); i++ {
-		impactAnalyses[i].RiskEvaluationID = evaluations[evaluationIndex].ID
-		evaluationIndex++
-		if evaluationIndex >= len(evaluations) {
-			evaluationIndex = 0
+	for evalIdx, impactAnalysisIndices := range evaluationImpactAnalysisIndices {
+		for _, idx := range impactAnalysisIndices {
+			impactAnalyses[idx].RiskEvaluationID = evaluations[evalIdx].ID
 		}
 	}
 
@@ -306,14 +297,6 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 	if err := rrups.repo.CreateBulkRiskImpactAnalysisGuidelines(analysisGuidelines, tx); err != nil {
 		tx.Rollback()
 		return err
-	}
-
-	// Update risk register ratings
-	for _, evaluation := range evaluations {
-		if err := rrups.riskRegisterSvc.UpdateRiskRating(evaluation.RiskRegisterID, currentUserID, evaluation, tx, "inherent"); err != nil {
-			tx.Rollback()
-			return err
-		}
 	}
 
 	// Get timeline type and statuses for individual risk timeline updates

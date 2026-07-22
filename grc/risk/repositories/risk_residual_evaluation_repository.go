@@ -55,7 +55,12 @@ func (repo *RiskResidualEvaluationRepository) GetFullDetailsByID(riskID uint) (*
 		Preload("RiskImpactAnalyses.RiskImpactAnalysisGuidelines.RiskMatrixImpactGuideline").
 		Preload("RiskAppetiteAlignments.RiskAppetiteStatement").
 		Preload("RiskAppetiteAlignments.RiskAppetiteToleranceLevel").
-		Where("risk_register_id = ? AND type = ?", riskID, "residual").
+		Where(
+			"risk_register_id = ? AND type = ? AND is_latest = ? AND risk_register_update_plan_id IS NOT NULL",
+			riskID,
+			"residual",
+			true,
+		).
 		First(&riskResidualEvaluation)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

@@ -16,6 +16,7 @@ import (
 
 type RiskInherentEvaluationServiceInterface interface {
 	GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error)
+	GetLatestPlanDraftFullDetailsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskEvaluation, error)
 	Create(riskID uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) error
@@ -87,6 +88,27 @@ func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, tx ...
 	// Map the results to the DTO
 	err = mapstructure.Decode(riskInherentEvaluation, &riskInherentEvaluationDetailsDTO)
 	if err != nil {
+		return nil, err
+	}
+
+	return &riskInherentEvaluationDetailsDTO, nil
+}
+
+func (ries RiskInherentEvaluationService) GetLatestPlanDraftFullDetailsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error) {
+	if _, err := ries.riskRegisterSvc.GetByID(riskID, tx...); err != nil {
+		return nil, err
+	}
+
+	riskInherentEvaluation, err := ries.repo.GetLatestPlanDraftFullDetailsByRiskID(riskID, tx...)
+	if err != nil {
+		return nil, err
+	}
+	if riskInherentEvaluation == nil {
+		return nil, nil
+	}
+
+	var riskInherentEvaluationDetailsDTO riskDTOs.RiskInherentEvaluationDetailsDTO
+	if err := mapstructure.Decode(riskInherentEvaluation, &riskInherentEvaluationDetailsDTO); err != nil {
 		return nil, err
 	}
 
@@ -183,6 +205,7 @@ func (ries *RiskInherentEvaluationService) Create(
 	score := ries.riskMatrixRiskRatingValueSvc.EvaluateScore(impact, likelihood, calculationMethod)
 	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
 
+	isLatest := true
 	riskInherentEvaluation := &models.RiskEvaluation{
 		RiskRegisterID:              riskID,
 		Type:                        "inherent",
@@ -191,6 +214,7 @@ func (ries *RiskInherentEvaluationService) Create(
 		RiskMatrixRiskRatingID:      riskRating.RiskMatrixRiskRatingID,
 		RiskMatrixRiskRatingValueID: riskRating.RiskMatrixRiskRatingValueID,
 		CreatedByID:                 currentUserID,
+		IsLatest:                    &isLatest,
 	}
 
 	id, err := ries.repo.Create(riskInherentEvaluation, transaction)

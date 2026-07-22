@@ -238,6 +238,7 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 		impactID = residualEvaluationFormDTO.RiskMatrixImpactID
 	}
 
+	isLatest := true
 	riskResidualEvaluation := &models.RiskEvaluation{
 		RiskRegisterID:                   riskID,
 		Type:                             "residual",
@@ -247,6 +248,7 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 		RiskMatrixRiskRatingValueID:      riskRating.RiskMatrixRiskRatingValueID,
 		AverageControlEffectivenessScore: averageRiskReduction,
 		CreatedByID:                      currentUserID,
+		IsLatest:                         &isLatest,
 	}
 
 	id, err := ries.repo.Create(riskResidualEvaluation, transaction)
