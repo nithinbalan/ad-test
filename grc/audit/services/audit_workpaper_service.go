@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
@@ -31,10 +32,11 @@ type AuditWorkpaperServiceInterface interface {
 }
 
 type AuditWorkpaperService struct {
-	repo           repositories.AuditWorkpaperRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	auditSvc       AuditServiceInterface
-	sourceSvc      mastersServices.SourceServiceInterface
+	repo             repositories.AuditWorkpaperRepositoryInterface
+	activityLogSvc   logServices.ActivityLogServiceInterface
+	auditSvc         AuditServiceInterface
+	sourceSvc        mastersServices.SourceServiceInterface
+	auditTimelineSvc AuditTimelineServiceInterface
 }
 
 func NewAuditWorkpaperService(
@@ -42,12 +44,14 @@ func NewAuditWorkpaperService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditSvc AuditServiceInterface,
 	sourceSvc mastersServices.SourceServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditWorkpaperServiceInterface {
 	return &AuditWorkpaperService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		auditSvc:       auditSvc,
-		sourceSvc:      sourceSvc,
+		repo:             repo,
+		activityLogSvc:   activityLogSvc,
+		auditSvc:         auditSvc,
+		sourceSvc:        sourceSvc,
+		auditTimelineSvc: auditTimelineSvc,
 	}
 }
 
@@ -159,6 +163,42 @@ func (aws *AuditWorkpaperService) Create(auditID uint, currentUserID uint, formD
 			"workpaper": workpaper,
 		})
 
+	}
+
+	// Mark "workpapers" timeline as completed when first workpaper is created
+	workpapersType, err := aws.auditTimelineSvc.GetByType("workpapers")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	pendingStatus, err := aws.auditTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	completedStatus, err := aws.auditTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	timeline, err := aws.auditTimelineSvc.GetByID(auditID, workpapersType.ID)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	if timeline.TimelineStatusID == pendingStatus.ID {
+		now := time.Now()
+		timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+			AuditID:             auditID,
+			AuditTimelineTypeID: workpapersType.ID,
+			TimelineStatusID:    completedStatus.ID,
+			PerformedByID:       &currentUserID,
+			PerformedAt:         &now,
+		}
+		if err := aws.auditTimelineSvc.Update(auditID, timelineFormDTO, workpapersType.ID, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
 	tx.Commit()

@@ -35,6 +35,7 @@ type AuditDocumentRequestConversationService struct {
 	userSvc                       organizationServices.UserServiceInterface
 	notificationSvc               commonServices.NotificationServiceInterface
 	taskSvc                       taskServices.TaskServiceInterface
+	auditTimelineSvc 			  AuditTimelineServiceInterface
 }
 
 func NewAuditDocumentRequestConversationService(
@@ -46,6 +47,7 @@ func NewAuditDocumentRequestConversationService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditDocumentRequestConversationServiceInterface {
 	return &AuditDocumentRequestConversationService{
 		repo:                          repo,
@@ -56,6 +58,7 @@ func NewAuditDocumentRequestConversationService(
 		userSvc:                       userSvc,
 		notificationSvc:               notificationSvc,
 		taskSvc:                       taskSvc,
+		auditTimelineSvc:              auditTimelineSvc,
 	}
 }
 
@@ -164,6 +167,41 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 		if err != nil {
 			tx.Rollback()
 			return 0, err
+		}
+
+		// Mark "request-documents" timeline as completed when conversation is closed
+		requestDocumentsType, err := adrcs.auditTimelineSvc.GetByType("request-documents")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		pendingStatus, err := adrcs.auditTimelineSvc.GetByStatusType("pending")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		completedStatus, err := adrcs.auditTimelineSvc.GetByStatusType("completed")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		timeline, err := adrcs.auditTimelineSvc.GetByID(auditID, requestDocumentsType.ID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		if timeline.TimelineStatusID == pendingStatus.ID {
+			timelineFormDTO := &dtos.AuditTimelineFormDTO{
+				AuditID:             auditID,
+				AuditTimelineTypeID: requestDocumentsType.ID,
+				TimelineStatusID:    completedStatus.ID,
+				PerformedByID:       &currentUserID,
+				PerformedAt:         &now,
+			}
+			if err := adrcs.auditTimelineSvc.Update(auditID, timelineFormDTO, requestDocumentsType.ID, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
 		}
 	} else {
 		// Reopen the status when a new comment is added, if the status is closed
