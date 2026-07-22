@@ -371,12 +371,17 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 			subject := fmt.Sprintf("Audit Draft Report /%s: Findings Challenged Notification", auditDraftReport.Audit.AuditPlan.Title)
 			appURL := utility.GetAppURL()
 
+			findingDescription := ""
+			if existingAuditDraftFinding.Description != nil {
+				findingDescription = *existingAuditDraftFinding.Description
+			}
+
 			emailData := map[string]interface{}{
 				"FirstNameEn":             responsibleUser.FirstNameEn,
 				"LastNameEn":              responsibleUser.LastNameEn,
 				"AuditTitle":              auditDraftReport.Audit.AuditPlan.Title,
 				"FindingTitle":            existingAuditDraftFinding.Title,
-				"FindingDescription":      *existingAuditDraftFinding.Description,
+				"FindingDescription":      findingDescription,
 				"FindingCategoryTitle":    existingAuditDraftFinding.AuditFindingCategory.TitleEn,
 				"ChallengedByFirstNameEn": assignedBy.FirstNameEn,
 				"ChallengedByLastNameEn":  assignedBy.LastNameEn,
