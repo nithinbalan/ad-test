@@ -112,6 +112,18 @@ func (repo *AwarenessCampaignRepository) GetAll(params *awarenessDTOs.AwarenessC
 		}
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "completed":
+			query = query.Where("awareness_campaign_statuses.type = ?", "completed")
+		case "cancelled":
+			query = query.Where("awareness_campaign_statuses.type = ?", "cancelled")
+		case "not_started":
+			query = query.Where("awareness_campaign_statuses.type = ?", "not_started")
+		}
+	}
+
 	// Apply date filters
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("awareness_campaigns.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")

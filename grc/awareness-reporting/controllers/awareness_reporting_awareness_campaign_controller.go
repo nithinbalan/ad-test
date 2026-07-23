@@ -29,6 +29,7 @@ func (acc *AwarenessCampaignController) GetAllAwarenessCampaigns(c *gin.Context)
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "campaign_title")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	exportFromContext, exists := c.Get("export")
 	var export bool
@@ -99,15 +100,16 @@ func (acc *AwarenessCampaignController) GetAllAwarenessCampaigns(c *gin.Context)
 	}
 
 	queryParams := awarenessDTOs.AwarenessCampaignListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
-		Export:   export,
-		DateFrom: dateFrom,
-		DateTo:   dateTo,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
+		QuickFilter: quickFilter,
 	}
 
 	campaigns, err := acc.service.GetAll(&queryParams)

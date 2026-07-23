@@ -8,68 +8,69 @@ import (
 )
 
 type AwarenessCampaignListDTO struct {
-	ID                             uint       `json:"id"`
-	ReferenceNumber                string     `json:"reference_number"`
-	CampaignTitle                  string     `json:"campaign_title"`
-	Objective                      string     `json:"objective"`
-	TargetAudience                 string     `json:"target_audience"`
-	StartDate                      time.Time  `json:"start_date"`
-	EndDate                        *time.Time `json:"end_date"`
-	LinkedSecurityControl          *string    `json:"linked_security_control"`
-	AwarenessCampaignTypeID        uint       `json:"awareness_campaign_type_id"`
-	AwarenessCampaignTypeTitleEn   string     `json:"awareness_campaign_type_title_en"`
-	AwarenessCampaignTypeTitleAr   string     `json:"awareness_campaign_type_title_ar"`
-	AwarenessPriorityID            *uint      `json:"awareness_priority_id"`
-	AwarenessPriorityTitleEn       string     `json:"awareness_priority_title_en"`
-	AwarenessPriorityTitleAr       string     `json:"awareness_priority_title_ar"`
-	AwarenessCampaignStatusID      uint       `json:"awareness_campaign_status_id"`
-	AwarenessCampaignStatusTitleEn string     `json:"awareness_campaign_status_title_en"`
-	AwarenessCampaignStatusTitleAr string     `json:"awareness_campaign_status_title_ar"`
-	AwarenessCampaignStatusColorCode string   `json:"awareness_campaign_status_color_code"`
-	OrganizationUnitID             uint       `json:"organization_unit_id"`
-	OrganizationUnitTitleEn        string     `json:"organization_unit_title_en"`
-	OrganizationUnitTitleAr        string     `json:"organization_unit_title_ar"`
-	OwnerID                        uint       `json:"owner_id"`
-	OwnerFirstNameEn               string     `json:"owner_first_name_en"`
-	OwnerFirstNameAr               string     `json:"owner_first_name_ar"`
-	OwnerLastNameEn                string     `json:"owner_last_name_en"`
-	OwnerLastNameAr                string     `json:"owner_last_name_ar"`
-	OwnerInitial                   string     `json:"owner_initial"`
-	OwnerColor                     string     `json:"owner_color"`
-	OwnerEmail                     string     `json:"owner_email"`
-	OwnerProfileImagePath          string     `json:"owner_profile_image_path"`
-	CreatedAt                      string     `json:"created_at"`
-	UpdatedAt                      string     `json:"updated_at"`
-	CreatedUserID                  uint       `json:"created_user_id"`
-	CreatedUserFirstNameEn         string     `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr         string     `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn          string     `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr          string     `json:"created_user_last_name_ar"`
-	CreatedUserInitial             string     `json:"created_user_initial"`
-	CreatedUserColor               string     `json:"created_user_color"`
-	CreatedUserEmail               string     `json:"created_user_email"`
-	CreatedUserProfileImagePath    string     `json:"created_user_profile_image_path"`
-	UpdatedUserID                  *uint      `json:"updated_user_id"`
-	UpdatedUserFirstNameEn         string     `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr         string     `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn          string     `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr          string     `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial             string     `json:"updated_user_initial"`
-	UpdatedUserColor               string     `json:"updated_user_color"`
-	UpdatedUserEmail               string     `json:"updated_user_email"`
-	UpdatedUserProfileImagePath    string     `json:"updated_user_profile_image_path"`
+	ID                               uint       `json:"id"`
+	ReferenceNumber                  string     `json:"reference_number"`
+	CampaignTitle                    string     `json:"campaign_title"`
+	Objective                        string     `json:"objective"`
+	TargetAudience                   string     `json:"target_audience"`
+	StartDate                        time.Time  `json:"start_date"`
+	EndDate                          *time.Time `json:"end_date"`
+	LinkedSecurityControl            *string    `json:"linked_security_control"`
+	AwarenessCampaignTypeID          uint       `json:"awareness_campaign_type_id"`
+	AwarenessCampaignTypeTitleEn     string     `json:"awareness_campaign_type_title_en"`
+	AwarenessCampaignTypeTitleAr     string     `json:"awareness_campaign_type_title_ar"`
+	AwarenessPriorityID              *uint      `json:"awareness_priority_id"`
+	AwarenessPriorityTitleEn         string     `json:"awareness_priority_title_en"`
+	AwarenessPriorityTitleAr         string     `json:"awareness_priority_title_ar"`
+	AwarenessCampaignStatusID        uint       `json:"awareness_campaign_status_id"`
+	AwarenessCampaignStatusTitleEn   string     `json:"awareness_campaign_status_title_en"`
+	AwarenessCampaignStatusTitleAr   string     `json:"awareness_campaign_status_title_ar"`
+	AwarenessCampaignStatusColorCode string     `json:"awareness_campaign_status_color_code"`
+	OrganizationUnitID               uint       `json:"organization_unit_id"`
+	OrganizationUnitTitleEn          string     `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr          string     `json:"organization_unit_title_ar"`
+	OwnerID                          uint       `json:"owner_id"`
+	OwnerFirstNameEn                 string     `json:"owner_first_name_en"`
+	OwnerFirstNameAr                 string     `json:"owner_first_name_ar"`
+	OwnerLastNameEn                  string     `json:"owner_last_name_en"`
+	OwnerLastNameAr                  string     `json:"owner_last_name_ar"`
+	OwnerInitial                     string     `json:"owner_initial"`
+	OwnerColor                       string     `json:"owner_color"`
+	OwnerEmail                       string     `json:"owner_email"`
+	OwnerProfileImagePath            string     `json:"owner_profile_image_path"`
+	CreatedAt                        string     `json:"created_at"`
+	UpdatedAt                        string     `json:"updated_at"`
+	CreatedUserID                    uint       `json:"created_user_id"`
+	CreatedUserFirstNameEn           string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr           string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn            string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr            string     `json:"created_user_last_name_ar"`
+	CreatedUserInitial               string     `json:"created_user_initial"`
+	CreatedUserColor                 string     `json:"created_user_color"`
+	CreatedUserEmail                 string     `json:"created_user_email"`
+	CreatedUserProfileImagePath      string     `json:"created_user_profile_image_path"`
+	UpdatedUserID                    *uint      `json:"updated_user_id"`
+	UpdatedUserFirstNameEn           string     `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr           string     `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn            string     `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr            string     `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial               string     `json:"updated_user_initial"`
+	UpdatedUserColor                 string     `json:"updated_user_color"`
+	UpdatedUserEmail                 string     `json:"updated_user_email"`
+	UpdatedUserProfileImagePath      string     `json:"updated_user_profile_image_path"`
 }
 
 type AwarenessCampaignListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Filters  map[string][]string
-	Export   bool
-	DateFrom string
-	DateTo   string
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	Export      bool
+	DateFrom    string
+	DateTo      string
+	QuickFilter []string
 }
 
 type AwarenessCampaignListResponseDTO struct {
