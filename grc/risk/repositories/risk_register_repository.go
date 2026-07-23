@@ -453,6 +453,7 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("AuditableItems.ResponsibleUnit").
 		Preload("AuditableItems.AuditorRiskRating").
 		Preload("AuditableItems.CreatedByUser").
+		Where("is_cyber_risk", false).
 		First(&risk, id)
 
 	if result.Error != nil {
