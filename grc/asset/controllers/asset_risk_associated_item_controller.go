@@ -465,7 +465,7 @@ func (araic *AssetRiskAssociatedItemController) UpdateAssetRiskClauses(c *gin.Co
 		}
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against the risk updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Clauses against the risk updated successfully"})
 }
 
 func (araic *AssetRiskAssociatedItemController) CreateAssetRiskStrategicObjective(c *gin.Context) {
@@ -506,9 +506,18 @@ func (araic *AssetRiskAssociatedItemController) CreateAssetRiskStrategicObjectiv
 }
 
 func (araic *AssetRiskAssociatedItemController) DeleteAssetRiskStrategicObjective(c *gin.Context) {
-	riskID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	strategicObjectiveID, _ := strconv.ParseUint(c.Param("strategicObjectiveId"), 10, 64)
-	err := araic.service.DeletetRiskStrategicObjective(uint(riskID), uint(strategicObjectiveID))
+	riskID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	strategicObjectiveID, err := strconv.ParseUint(c.Param("strategicObjectiveId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = araic.service.DeletetRiskStrategicObjective(uint(riskID), uint(strategicObjectiveID))
 	if err != nil {
 		utility.SendInternalErrResp(araic.db, c, err.Error())
 		return
@@ -555,9 +564,19 @@ func (araic *AssetRiskAssociatedItemController) CreateAssetRiskKPI(c *gin.Contex
 }
 
 func (araic *AssetRiskAssociatedItemController) DeleteAssetRiskKPI(c *gin.Context) {
-	riskID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	kpiID, _ := strconv.ParseUint(c.Param("kpiId"), 10, 64)
-	err := araic.service.DeletetRiskKPI(uint(riskID), uint(kpiID))
+	riskID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	kpiID, err := strconv.ParseUint(c.Param("kpiId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = araic.service.DeletetRiskKPI(uint(riskID), uint(kpiID))
 	if err != nil {
 		utility.SendInternalErrResp(araic.db, c, err.Error())
 		return
@@ -604,9 +623,19 @@ func (araic *AssetRiskAssociatedItemController) CreateAssetRiskProcess(c *gin.Co
 }
 
 func (araic *AssetRiskAssociatedItemController) DeleteAssetRiskProcess(c *gin.Context) {
-	riskID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	processID, _ := strconv.ParseUint(c.Param("processId"), 10, 64)
-	err := araic.service.DeletetRiskProcess(uint(riskID), uint(processID))
+	riskID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	processID, err := strconv.ParseUint(c.Param("processId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = araic.service.DeletetRiskProcess(uint(riskID), uint(processID))
 	if err != nil {
 		utility.SendInternalErrResp(araic.db, c, err.Error())
 		return
@@ -653,9 +682,19 @@ func (araic *AssetRiskAssociatedItemController) CreateAssetRiskDocument(c *gin.C
 }
 
 func (araic *AssetRiskAssociatedItemController) DeleteAssetRiskDocument(c *gin.Context) {
-	riskID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	documentID, _ := strconv.ParseUint(c.Param("documentId"), 10, 64)
-	err := araic.service.DeletetRiskDocument(uint(riskID), uint(documentID))
+	riskID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentID, err := strconv.ParseUint(c.Param("documentId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = araic.service.DeletetRiskDocument(uint(riskID), uint(documentID))
 	if err != nil {
 		utility.SendInternalErrResp(araic.db, c, err.Error())
 		return
@@ -702,9 +741,19 @@ func (araic *AssetRiskAssociatedItemController) CreateAssetRiskIncident(c *gin.C
 }
 
 func (araic *AssetRiskAssociatedItemController) DeleteAssetRiskIncident(c *gin.Context) {
-	riskID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	incidentID, _ := strconv.ParseUint(c.Param("incidentId"), 10, 64)
-	err := araic.service.DeletetRiskIncident(uint(riskID), uint(incidentID))
+	riskID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(c.Param("incidentId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = araic.service.DeletetRiskIncident(uint(riskID), uint(incidentID))
 	if err != nil {
 		utility.SendInternalErrResp(araic.db, c, err.Error())
 		return
@@ -751,9 +800,19 @@ func (araic *AssetRiskAssociatedItemController) CreateAssetRiskControl(c *gin.Co
 }
 
 func (araic *AssetRiskAssociatedItemController) DeleteAssetRiskControl(c *gin.Context) {
-	riskID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
-	err := araic.service.DeletetRiskControl(uint(riskID), uint(controlID))
+	riskID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlID, err := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = araic.service.DeletetRiskControl(uint(riskID), uint(controlID))
 	if err != nil {
 		utility.SendInternalErrResp(araic.db, c, err.Error())
 		return
@@ -800,9 +859,19 @@ func (araic *AssetRiskAssociatedItemController) CreateAssetRiskAsset(c *gin.Cont
 }
 
 func (araic *AssetRiskAssociatedItemController) DeleteAssetRiskAsset(c *gin.Context) {
-	riskID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	assetID, _ := strconv.ParseUint(c.Param("assetId"), 10, 64)
-	err := araic.service.DeletetRiskAsset(uint(riskID), uint(assetID))
+	riskID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assetID, err := strconv.ParseUint(c.Param("assetId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = araic.service.DeletetRiskAsset(uint(riskID), uint(assetID))
 	if err != nil {
 		utility.SendInternalErrResp(araic.db, c, err.Error())
 		return

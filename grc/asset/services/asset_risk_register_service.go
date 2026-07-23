@@ -28,7 +28,17 @@ type AssetRiskRegisterServiceInterface interface {
 	Update(id uint, currentUserID uint, dto *assetRiskDTOs.AssetRiskRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
+	UpdateRiskRegister(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error
+
 	GetRiskStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.RiskStatus, error)
+	GetImpactByScore(score int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixImpact, error)
+	GetLikelihoodByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixLikelihood, error)
+	GetRiskRatingValueByValue(value int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixRiskRatingValue, error)
+
+	GetTimelineTypeByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.RiskTimelineType, error)
+	GetTimelineStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.TimelineStatus, error)
+	GetRiskTimelineByRiskAndType(riskID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.RiskTimeline, error)
+	UpdateRiskTimeline(riskTimeline *models.RiskTimeline, tx ...utility.DatabaseTransaction) error
 }
 
 type AssetRiskRegisterService struct {
@@ -820,6 +830,38 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 
 func (arrs *AssetRiskRegisterService) GetRiskStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.RiskStatus, error) {
 	return arrs.repo.GetRiskStatusByType(status, tx...)
+}
+
+func (arrs *AssetRiskRegisterService) UpdateRiskRegister(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error {
+	return arrs.repo.Update(riskRegister, tx...)
+}
+
+func (arrs *AssetRiskRegisterService) GetImpactByScore(score int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixImpact, error) {
+	return arrs.repo.GetImpactByScore(score, tx...)
+}
+
+func (arrs *AssetRiskRegisterService) GetLikelihoodByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixLikelihood, error) {
+	return arrs.repo.GetLikelihoodByID(id, tx...)
+}
+
+func (arrs *AssetRiskRegisterService) GetRiskRatingValueByValue(value int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixRiskRatingValue, error) {
+	return arrs.repo.GetRiskRatingValueByValue(value, tx...)
+}
+
+func (arrs *AssetRiskRegisterService) GetTimelineTypeByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.RiskTimelineType, error) {
+	return arrs.repo.GetTimelineTypeByType(timelineType, tx...)
+}
+
+func (arrs *AssetRiskRegisterService) GetTimelineStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.TimelineStatus, error) {
+	return arrs.repo.GetTimelineStatusByType(status, tx...)
+}
+
+func (arrs *AssetRiskRegisterService) GetRiskTimelineByRiskAndType(riskID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.RiskTimeline, error) {
+	return arrs.repo.GetRiskTimelineByRiskAndType(riskID, timelineTypeID, tx...)
+}
+
+func (arrs *AssetRiskRegisterService) UpdateRiskTimeline(riskTimeline *models.RiskTimeline, tx ...utility.DatabaseTransaction) error {
+	return arrs.repo.UpdateRiskTimeline(riskTimeline, tx...)
 }
 
 func (arrs *AssetRiskRegisterService) validateAssetRiskRegisterFormDTO(dto *assetRiskDTOs.AssetRiskRegisterFormDTO) error {

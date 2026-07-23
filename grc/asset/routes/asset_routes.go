@@ -71,6 +71,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityClosedReviewCommentController := app.AssetModule.VulnerabilityClosedReviewCommentController
 	assetRiskRootCauseAnalysisController := app.AssetModule.AssetRiskRootCauseAnalysisController
 	assetRiskAssociatedItemController := app.AssetModule.AssetRiskAssociatedItemController
+	assetRiskMatrixController := app.AssetModule.AssetRiskMatrixController
+	assetRiskInherentEvaluationController := app.AssetModule.AssetRiskInherentEvaluationController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -460,7 +462,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/asset-risk-register", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAllAssetRiskRegisters)
 	assetRoutes.GET("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAssetRiskRegisterDetails)
 	assetRoutes.POST("/asset-risk-register", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskRegisterController.CreateAssetRiskRegister)
-	assetRoutes.PUT("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.UpdateAssetRiskRegister)
+	assetRoutes.PUT("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskRegisterController.UpdateAssetRiskRegister)
 	assetRoutes.POST("/asset-risk-register/delete", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.DeleteAssetRiskRegisters)
 
 	// Risk Acceptance Workflow
@@ -495,41 +497,54 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/vulnerabilities/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityClosedReviewCommentController.ResolveComment)
 
 	// Risk Root Cause Analysis
-	assetRoutes.GET("asset-risk-register/:id/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRootCauseAnalysisController.GetAllAssetRiskRootCauseAnalyses)
-	assetRoutes.POST("asset-risk-register/:id/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRootCauseAnalysisController.CreateAssetRiskRootCauseAnalysis)
-	assetRoutes.POST("asset-risk-register/:id/root-cause-analyses", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRootCauseAnalysisController.CreateAssetRiskRootCauseAnalyses)
-	assetRoutes.PUT("asset-risk-register/:id/root-cause-analysis/:rcaId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRootCauseAnalysisController.UpdateAssetRiskRootCauseAnalysis)
-	assetRoutes.DELETE("asset-risk-register/:id/root-cause-analysis/:rcaId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRootCauseAnalysisController.DeleteAssetRiskRootCauseAnalysis)
+	assetRoutes.GET("/asset-risk-register/:id/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRootCauseAnalysisController.GetAllAssetRiskRootCauseAnalyses)
+	assetRoutes.POST("/asset-risk-register/:id/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRootCauseAnalysisController.CreateAssetRiskRootCauseAnalysis)
+	assetRoutes.POST("/asset-risk-register/:id/root-cause-analyses", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRootCauseAnalysisController.CreateAssetRiskRootCauseAnalyses)
+	assetRoutes.PUT("/asset-risk-register/:id/root-cause-analysis/:rcaId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRootCauseAnalysisController.UpdateAssetRiskRootCauseAnalysis)
+	assetRoutes.DELETE("/asset-risk-register/:id/root-cause-analysis/:rcaId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRootCauseAnalysisController.DeleteAssetRiskRootCauseAnalysis)
 
 	// Risk Associated Items
-	assetRoutes.GET("asset-risk-register/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskControls)
-	assetRoutes.POST("asset-risk-register/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskControl)
-	assetRoutes.DELETE("asset-risk-register/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskControl)
+	assetRoutes.GET("/asset-risk-register/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskControls)
+	assetRoutes.POST("/asset-risk-register/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskControl)
+	assetRoutes.DELETE("/asset-risk-register/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskControl)
 
-	assetRoutes.GET("asset-risk-register/:id/processes", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskProcesses)
-	assetRoutes.POST("asset-risk-register/:id/processes", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskProcess)
-	assetRoutes.DELETE("asset-risk-register/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskProcess)
+	assetRoutes.GET("/asset-risk-register/:id/processes", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskProcesses)
+	assetRoutes.POST("/asset-risk-register/:id/processes", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskProcess)
+	assetRoutes.DELETE("/asset-risk-register/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskProcess)
 
-	assetRoutes.GET("asset-risk-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskStrategicObjectives)
-	assetRoutes.POST("asset-risk-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskStrategicObjective)
-	assetRoutes.DELETE("asset-risk-register/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskStrategicObjective)
+	assetRoutes.GET("/asset-risk-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskStrategicObjectives)
+	assetRoutes.POST("/asset-risk-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskStrategicObjective)
+	assetRoutes.DELETE("/asset-risk-register/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskStrategicObjective)
 
-	assetRoutes.GET("asset-risk-register/:id/incidents", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskIncidents)
-	assetRoutes.POST("asset-risk-register/:id/incidents", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskIncident)
-	assetRoutes.DELETE("asset-risk-register/:id/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskIncident)
+	assetRoutes.GET("/asset-risk-register/:id/incidents", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskIncidents)
+	assetRoutes.POST("/asset-risk-register/:id/incidents", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskIncident)
+	assetRoutes.DELETE("/asset-risk-register/:id/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskIncident)
 
-	assetRoutes.GET("asset-risk-register/:id/documents", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskDocuments)
-	assetRoutes.POST("asset-risk-register/:id/documents", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskDocument)
-	assetRoutes.DELETE("asset-risk-register/:id/documents/:documentId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskDocument)
+	assetRoutes.GET("/asset-risk-register/:id/documents", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskDocuments)
+	assetRoutes.POST("/asset-risk-register/:id/documents", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskDocument)
+	assetRoutes.DELETE("/asset-risk-register/:id/documents/:documentId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskDocument)
 
-	assetRoutes.GET("asset-risk-register/:id/assets", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskAssets)
-	assetRoutes.POST("asset-risk-register/:id/assets", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskAsset)
-	assetRoutes.DELETE("asset-risk-register/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskAsset)
+	assetRoutes.GET("/asset-risk-register/:id/assets", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskAssets)
+	assetRoutes.POST("/asset-risk-register/:id/assets", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskAsset)
+	assetRoutes.DELETE("/asset-risk-register/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskAsset)
 
-	assetRoutes.GET("asset-risk-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskClauses)
-	assetRoutes.PUT("asset-risk-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.UpdateAssetRiskClauses)
+	assetRoutes.GET("/asset-risk-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskClauses)
+	assetRoutes.PUT("/asset-risk-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.UpdateAssetRiskClauses)
 
-	assetRoutes.GET("asset-risk-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskKPI)
-	assetRoutes.POST("asset-risk-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskKPI)
-	assetRoutes.DELETE("asset-risk-register/:id/kpis/:kpiId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskKPI)
+	assetRoutes.GET("/asset-risk-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskAssociatedItemController.GetAllAssetRiskKPI)
+	assetRoutes.POST("/asset-risk-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.CreateAssetRiskKPI)
+	assetRoutes.DELETE("/asset-risk-register/:id/kpis/:kpiId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskAssociatedItemController.DeleteAssetRiskKPI)
+
+	// Risk Matrix (ISMS)
+	assetRoutes.GET("/asset-risk-matrix/impacts", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskMatrixController.GetAllAssetRiskMatrixImpacts)
+	assetRoutes.GET("/asset-risk-matrix/likelihoods", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskMatrixController.GetAllAssetRiskMatrixLikelihoods)
+	assetRoutes.GET("/asset-risk-matrix/risk-ratings", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskMatrixController.GetAllAssetRiskMatrixRiskRatings)
+	assetRoutes.GET("/asset-risk-matrix/risk-rating-values", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskMatrixController.GetAllAssetRiskMatrixRiskRatingValues)
+	assetRoutes.GET("/asset-risk-matrix-configuration", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskMatrixController.GetAssetRiskMatrixConfiguration)
+
+	// Risk Inherent Evaluation
+	assetRoutes.GET("/asset-risk-register/:id/inherent-evaluation", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskInherentEvaluationController.GetAssetRiskInherentEvaluation)
+	assetRoutes.POST("/asset-risk-register/:id/inherent-evaluation", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskInherentEvaluationController.CreateAssetRiskInherentEvaluation)
+	assetRoutes.PUT("/asset-risk-register/:id/inherent-evaluation/:evaluationId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskInherentEvaluationController.UpdateAssetRiskInherentEvaluation)
+	assetRoutes.DELETE("/asset-risk-register/:id/inherent-evaluation/:evaluationId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskInherentEvaluationController.DeleteAssetRiskInherentEvaluation)
 }
