@@ -407,7 +407,16 @@ func NewAssetModule(db *gorm.DB,
 	vulnerabilityClosureSvc := services.NewVulnerabilityClosureService(vulnerabilityClosureRepo)
 
 	vulnerabilityClosedWorkflowRepo := repositories.NewVulnerabilityClosureWorkflowRepository(db)
-	vulnerabilityClosedWorkflowSvc := services.NewVulnerabilityClosureWorkflowService(vulnerabilityClosedWorkflowRepo, sharedModule.ActivityLogService, settingsModule.WorkflowSvc, masterModule.WorkflowStatusSvc, organizationModule.UserSvc, masterModule.WorkflowContextSvc)
+	vulnerabilityClosedWorkflowSvc := services.NewVulnerabilityClosureWorkflowService(
+		vulnerabilityClosedWorkflowRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+		organizationModule.OrganizationUnitsSvc,
+		settingsModule.OrganizationUnitSvc,
+	)
 	vulnerabilityClosedWorkflowSvc.SetVulnerabilityClosureService(vulnerabilityClosureSvc)
 	vulnerabilityClosedWorkflowController := controllers.NewVulnerabilityClosureWorkflowController(vulnerabilityClosedWorkflowSvc)
 	vulnerabilityClosedReviewRepo := repositories.NewVulnerabilityClosureReviewRepository(db)
