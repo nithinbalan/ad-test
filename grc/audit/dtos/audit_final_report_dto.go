@@ -110,8 +110,8 @@ type AuditFinalReportSectionDTO struct {
 	Type                      string                               `json:"type"` // One of: overview, finding-summary, findings, conclusion, custom
 	Order                     *float64                             `json:"order"`
 	SubSections               []*AuditFinalReportSectionDTO        `json:"sub_sections"` // Recursive structure for subsections
-	Findings                  []*AuditFinalReportFindingDTO        `json:"findings,omitempty"`
-	FindingCategorySummary    []*FindingCategorySummaryDTO         `json:"finding_category_summary,omitempty"`
+	Findings                  []*AuditFinalReportFindingDTO        `json:"findings"`
+	FindingCategorySummary    []*FindingCategorySummaryDTO         `json:"finding_category_summary"`
 	Appendices                []*AuditFinalReportAppendixDetailDTO `json:"appendices"`
 	CreatedByUser             organizationDTOs.UserMinimalDTO      `json:"created_by"`
 	UpdatedByUser             *organizationDTOs.UserMinimalDTO     `json:"updated_by"`

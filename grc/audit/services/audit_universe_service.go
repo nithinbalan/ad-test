@@ -126,8 +126,12 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					return fmt.Errorf("failed to get document: %w", err)
 				}
 				if document != nil {
-					orgUnitID = *document.ResponsibleUnitID
-					responsibleUserID = *document.ResponsibleUserID
+					if document.ResponsibleUnitID != nil {
+						orgUnitID = *document.ResponsibleUnitID
+					}
+					if document.ResponsibleUserID != nil {
+						responsibleUserID = *document.ResponsibleUserID
+					}
 				}
 
 			case "incident":
@@ -166,8 +170,12 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					return fmt.Errorf("failed to get risk: %w", err)
 				}
 				if risk != nil {
-					orgUnitID = *risk.ResponsibleUnitID
-					responsibleUserID = *risk.ResponsibleUserID
+					if risk.ResponsibleUnitID != nil {
+						orgUnitID = *risk.ResponsibleUnitID
+					}
+					if risk.ResponsibleUserID != nil {
+						responsibleUserID = *risk.ResponsibleUserID
+					}
 				}
 
 			case "user":
