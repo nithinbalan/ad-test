@@ -39,7 +39,7 @@ func (repo *AuditReportWorkflowRepository) GetWorkflowList(auditFinalReportID ui
 		Preload("AuditReportWorkflows").
 		Preload("AuditReportWorkflows.WorkflowStatus").
 		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants").
-		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants.User").
+		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants.User", "organization_unit_1_id IS NOT NULL").
 		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants.Role").
 		Preload("AuditReportWorkflows.AuditReportReviews", "workflow_status_id IN (?)", repo.db.Model(&models.WorkflowStatus{}).Select("id").Where("type = ?", "approve")).
 		Preload("AuditReportWorkflows.AuditReportReviews.CreatedByUser").
