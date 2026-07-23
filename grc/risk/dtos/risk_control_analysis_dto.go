@@ -65,6 +65,8 @@ type RiskControlAnalysisListDTO struct {
 	ControlTestScore                     *uint                                           `json:"control_test_score"`
 	ControlTestEffectivenessScore        *float64                                        `json:"control_test_effectiveness_score"`
 	ControlTestRiskReduction             *float64                                        `json:"control_test_risk_reduction"`
+	ControlTestTestedSource              *string                                         `json:"control_test_tested_source"`
+	ControlTestRiskRegisterUpdatePlanID  *uint                                           `json:"control_test_risk_register_update_plan_id"`
 	ControlTestTestedAt                  *string                                         `json:"control_test_tested_at"`
 	ControlTestTestedByFirstNameEn       *string                                         `json:"control_test_tested_by_first_name_en"`
 	ControlTestTestedByLastNameEn        *string                                         `json:"control_test_tested_by_last_name_en"`

@@ -44,6 +44,7 @@ func (ctc *ControlTestController) GetAllControlTests(c *gin.Context) {
 		"risk_register_ids",
 		"control_automation_ids",
 		"control_consistency_ids",
+		"risk_register_update_plan_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
