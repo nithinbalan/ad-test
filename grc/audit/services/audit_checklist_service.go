@@ -395,20 +395,16 @@ func (acs *AuditChecklistService) Delete(auditId uint, ids []uint, currentUserID
 }
 
 func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID uint, auditChecklistAnswerFormDTO *auditDTOs.AuditChecklistAnswerFormDTO) error {
-	tx := acs.repo.BeginTransaction()
-
 	if _, err := acs.auditSvc.GetByID(auditId); err != nil {
 		return err
 	}
 
 	existingAuditChecklist, err := acs.GetByID(auditId, id)
 	if err != nil {
-		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
 	if err := acs.validateAuditChecklistAnswerFormDTO(auditChecklistAnswerFormDTO); err != nil {
-		tx.Rollback()
 		return err
 	}
 	now := time.Now()
@@ -416,6 +412,9 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 	if err != nil {
 		return err
 	}
+
+	tx := acs.repo.BeginTransaction()
+
 	existingAuditChecklist.ConformanceID = &auditChecklistAnswerFormDTO.ConformanceID
 	existingAuditChecklist.Comment = auditChecklistAnswerFormDTO.Comment
 	existingAuditChecklist.AnsweredBYID = &currentUserID
@@ -463,6 +462,7 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 			if doc.ID != nil {
 				existingDocument, err := acs.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
+					tx.Rollback()
 					if errors.Is(err, gorm.ErrRecordNotFound) {
 						return utility.NewResourceNotFoundError(err, id)
 					}
@@ -489,24 +489,6 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 		}
 	}
 
-	for _, doc := range documents {
-		storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
-
-		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	
 	// Mark "checklist" timeline as completed when first checklist is answered
 	checklistType, err := acs.auditTimelineSvc.GetByType("checklist")
 	if err != nil {
@@ -542,7 +524,25 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 		}
 	}
 
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			return err
+		}
+	}
 
 	go func() {
 		err := acs.activityLogSvc.LogActivity(

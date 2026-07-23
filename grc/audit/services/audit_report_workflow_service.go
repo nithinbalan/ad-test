@@ -105,16 +105,20 @@ func (arws *AuditReportWorkflowService) GetAuditReportWorkflowList(auditID uint)
 
 		var lastApprovedAt time.Time
 		for _, review := range workflow.AuditReportReviews {
-			userDTO := arws.mapUserToDTO(review.CreatedByUser)
-			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
+			if review.CreatedByUser != nil {
+				userDTO := arws.mapUserToDTO(review.CreatedByUser)
+				workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
+			}
 			if review.CreatedAt.After(lastApprovedAt) {
 				lastApprovedAt = review.CreatedAt
 			}
 		}
 
 		for _, participant := range workflow.AuditReportWorkflowParticipants {
-			userDTO := arws.mapUserToDTO(participant.User)
-			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, userDTO)
+			if participant.User != nil {
+				userDTO := arws.mapUserToDTO(participant.User)
+				workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, userDTO)
+			}
 		}
 
 		workflowDTO.ApprovedAt = lastApprovedAt
@@ -183,9 +187,17 @@ func (arws *AuditReportWorkflowService) CreateAuditReportWorkflow(auditFinalRepo
 				}
 			} else if participant.User != nil {
 				userId := uint(participant.User.ID)
-				err = arws.createWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
+				
+				userObj, err := arws.userSvc.GetByID(userId)
 				if err != nil {
 					return err
+				}
+				
+				if userObj.OrganizationUnit1ID != 0 {
+					err = arws.createWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -298,7 +310,7 @@ func (arws *AuditReportWorkflowService) DeleteAuditReportWorkflows(workflowIds [
 
 func (arws *AuditReportWorkflowService) mapUserToDTO(user *models.User) *organizationDTOs.UserMinimalDTO {
 	if user == nil {
-		return &organizationDTOs.UserMinimalDTO{}
+		return nil
 	}
 	return &organizationDTOs.UserMinimalDTO{
 		ID:               int(user.ID),
