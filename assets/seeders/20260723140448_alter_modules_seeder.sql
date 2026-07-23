@@ -24,7 +24,7 @@ VALUES (
     @AssetModuleID,
     8,
     NULL,
-    '/asset/vulnerabilities/action-plans',
+    '/asset/vulnerabilities/action-plan-list',
     1
 );
 
