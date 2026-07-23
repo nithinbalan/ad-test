@@ -120,11 +120,20 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit(params *riskDTOs.
 	// Initialize map for responsible units
 	responsibleUnitMap := make(map[uint]*riskDTOs.RiskHeatmapResponseByItemDTO)
 	for _, register := range riskRegisters {
+		if register.ResponsibleUnitID == nil {
+			continue
+		}
 		if _, exists := responsibleUnitMap[*register.ResponsibleUnitID]; !exists {
+			unitTitleEn := ""
+			unitTitleAr := ""
+			if register.ResponsibleUnit != nil {
+				unitTitleEn = register.ResponsibleUnit.TitleEn
+				unitTitleAr = register.ResponsibleUnit.TitleAr
+			}
 			responsibleUnitMap[*register.ResponsibleUnitID] = &riskDTOs.RiskHeatmapResponseByItemDTO{
 				ItemID:       *register.ResponsibleUnitID,
-				ItemTitleEn:  register.ResponsibleUnit.TitleEn,
-				ItemTitleAr:  register.ResponsibleUnit.TitleAr,
+				ItemTitleEn:  unitTitleEn,
+				ItemTitleAr:  unitTitleAr,
 				HeatmapCells: []*riskDTOs.RiskHeatmapResponseByItemDetailsDTO{},
 			}
 
@@ -146,8 +155,14 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit(params *riskDTOs.
 
 	// Populate each responsible unit's heatmap cells
 	for _, register := range riskRegisters {
+		if register.ResponsibleUnitID == nil {
+			continue
+		}
 		if register.CurrentRiskRatingID != nil && register.CurrentRiskRatingValueID != nil {
-			unitResponse := responsibleUnitMap[*register.ResponsibleUnitID]
+			unitResponse, exists := responsibleUnitMap[*register.ResponsibleUnitID]
+			if !exists || unitResponse == nil {
+				continue
+			}
 			ratingID := *register.CurrentRiskRatingID
 			valueID := *register.CurrentRiskRatingValueID
 

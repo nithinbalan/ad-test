@@ -96,6 +96,8 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 			latest_control_test.control_effectiveness_score AS control_test_effectiveness_score,
 			latest_control_test.risk_reduction AS control_test_risk_reduction,
 			CONVERT(VARCHAR, latest_control_test.tested_at, 23) AS control_test_tested_at,
+			latest_control_test.tested_source AS control_test_tested_source,
+			latest_control_test.risk_register_update_plan_id AS control_test_risk_register_update_plan_id,
 			tested_by.first_name_en AS control_test_tested_by_first_name_en,
 			tested_by.last_name_en AS control_test_tested_by_last_name_en,
 			tested_by.initial AS control_test_tested_by_initial,
@@ -269,12 +271,44 @@ func (repo *RiskInherentControlAnalysisRepository) GetAllControlsByRiskID(riskID
 func (repo *RiskInherentControlAnalysisRepository) GetControlSummary(riskID uint) ([]models.ControlTest, error) {
 	var controlTests []models.ControlTest
 
+	// First, get the IDs of the tests to include using CTE with ROW_NUMBER
+	var testIDs []uint
+	idQuery := `
+		WITH ranked_tests AS (
+			SELECT ct.id,
+				   ROW_NUMBER() OVER (
+					   PARTITION BY ct.control_id 
+					   ORDER BY ct.tested_at DESC, ct.id DESC
+				   ) AS rn
+			FROM control_tests AS ct
+			WHERE (
+				ct.risk_register_id = ?
+				OR ct.risk_register_id IS NULL
+			)
+			  AND ct.tested_source IN ('risk', 'update_plan')
+			  AND EXISTS (
+				SELECT 1
+				FROM risk_controls AS rc
+				WHERE rc.risk_register_id = ? AND rc.control_id = ct.control_id
+			  )
+		)
+		SELECT id FROM ranked_tests WHERE rn = 1
+	`
+
+	if err := repo.db.Raw(idQuery, riskID, riskID).Scan(&testIDs).Error; err != nil {
+		return nil, err
+	}
+
+	if len(testIDs) == 0 {
+		return controlTests, nil
+	}
+
+	// Then fetch the full control tests with preloads
 	result := repo.db.
 		Preload("ControlEfficiencyStatus").
 		Preload("ControlImplementationStatus").
 		Preload("ControlEffectivenessRating").
-		Where("risk_register_id = ?", riskID).
-		Where("tested_source = ?", "risk").
+		Where("id IN ?", testIDs).
 		Find(&controlTests)
 	if result.Error != nil {
 		return nil, result.Error
