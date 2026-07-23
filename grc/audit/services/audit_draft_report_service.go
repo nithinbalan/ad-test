@@ -715,8 +715,8 @@ func (adrs *AuditDraftReportService) Create(auditID uint, currentUserID uint, au
 			id,
 			existingAuditDraftReport,
 			currentUserID,
-			"",
-			"",
+			"audit",
+			"audits",
 			"",
 			nil,
 		)
@@ -795,8 +795,8 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
+				"audit",
+				"audits",
 				"",
 				nil,
 			)
@@ -848,8 +848,8 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 			auditDraftReport.ID,
 			deletedAuditDraftReport,
 			currentUserID,
-			"",
-			"",
+			"audit",
+			"audits",
 			"",
 			nil,
 		)
@@ -989,8 +989,8 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 			id,
 			nil,
 			currentUserID,
-			"",
-			"",
+			"audit",
+			"audits",
 			"",
 			nil,
 		)
@@ -1085,30 +1085,38 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, id)
 	}
+	
 	tx := adrs.repo.BeginTransaction()
-
-	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-department-review")
-	if err != nil {
-		return err
-	}
-
-	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatus.ID {
-		tx.Rollback()
-		return utility.NewForbiddenError("The audit draft report has not been in department review.")
-	}
+	
 	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	// Check if all findings are finalized
-	for _, finding := range auditDraftFindings {
-		// Ensure the status of each finding is finalized
-		if finding.AuditDraftFindingStatus != nil && !finding.AuditDraftFindingStatus.IsFinalized {
+
+	// 1. If findings exist, we MUST have department review and all findings finalized
+	if len(auditDraftFindings) > 0 {
+		auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-department-review")
+		if err != nil {
 			tx.Rollback()
-			return utility.NewForbiddenError(fmt.Sprintf("Finding '%s' is not finalized.", finding.Title))
+			return err
+		}
+		
+		if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatus.ID {
+			tx.Rollback()
+			return utility.NewForbiddenError("The audit draft report has not been in department review.")
+		}
+
+		// Check if all findings are finalized
+		for _, finding := range auditDraftFindings {
+			// Ensure the status of each finding is finalized
+			if finding.AuditDraftFindingStatus != nil && !finding.AuditDraftFindingStatus.IsFinalized {
+				tx.Rollback()
+				return utility.NewForbiddenError(fmt.Sprintf("Finding '%s' is not finalized.", finding.Title))
+			}
 		}
 	}
+	// 2. If NO findings exist, we skip the department review checks and proceed directly to complete
 	auditDraftReportStatusCompleted, err := adrs.auditDraftReportStatusSvc.GetByType("completed")
 	if err != nil {
 		return err
@@ -1159,9 +1167,9 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 			id,
 			nil,
 			currentUserID,
-			"",
-			"",
-			"",
+			"audit",
+			"audits",
+			"audit_draft_report",
 			nil,
 		)
 		if err != nil {
