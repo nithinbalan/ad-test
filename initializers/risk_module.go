@@ -94,6 +94,8 @@ type RiskModule struct {
 	RiskReviewSvc             services.RiskReviewServiceInterface
 	RiskReviewCommentSvc      services.RiskReviewCommentServiceInterface
 	KRIRiskToleranceStatusSvc services.KRIRiskToleranceStatusServiceInterface
+	RiskRootCauseAnalysisSvc  services.RiskRootCauseAnalysisServiceInterface
+	RiskAssociatedItemSvc     services.RiskAssociatedItemServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -841,5 +843,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskReviewSvc:             riskReviewSvc,
 		RiskReviewCommentSvc:      riskReviewCommentSvc,
 		KRIRiskToleranceStatusSvc: kriRiskToleranceStatusSvc,
+		RiskRootCauseAnalysisSvc:  riskRootCauseAnalysisSvc,
+		RiskAssociatedItemSvc:     riskAssociatedItemSvc,
 	}
 }

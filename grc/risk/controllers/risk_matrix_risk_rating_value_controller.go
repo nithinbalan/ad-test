@@ -22,7 +22,9 @@ func NewRiskMatrixRiskRatingValueController(service services.RiskMatrixRiskRatin
 }
 
 func (rmrrvc *RiskMatrixRiskRatingValueController) GetAllRiskMatrixRiskRatingValue(c *gin.Context) {
-	riskRatingValues, err := rmrrvc.service.GetRiskAll()
+	matrixType := c.DefaultQuery("type", "erm")
+
+	riskRatingValues, err := rmrrvc.service.GetRiskAll(matrixType)
 
 	if err != nil {
 		switch e := err.(type) {

@@ -118,16 +118,20 @@ type AssetRiskRegisterDetailDTO struct {
 	CreatedAt            time.Time  `json:"created_at"`
 	UpdatedAt            *time.Time `json:"updated_at"`
 
-	RiskStatus             RiskStatusDTO                    `json:"risk_status"`
-	Section                settingsDTOs.OrganizationUnitDTO `json:"section"`
-	Division               settingsDTOs.OrganizationUnitDTO `json:"division"`
-	ResponsibleUser        organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	RiskCategory           RiskCategoryDTO                  `json:"risk_category"`
-	CurrentLikelihood      RiskMatrixLikelihoodDTO          `json:"current_likelihood"`
-	CurrentImpact          RiskMatrixImpactDTO              `json:"current_impact"`
-	CurrentRiskRating      RiskMatrixRiskRatingDTO          `json:"current_risk_rating"`
-	CurrentRiskRatingValue RiskMatrixRiskRatingValueDTO     `json:"current_risk_rating_value"`
-	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	RiskStatus              RiskStatusDTO                    `json:"risk_status"`
+	Section                 settingsDTOs.OrganizationUnitDTO `json:"section"`
+	Division                settingsDTOs.OrganizationUnitDTO `json:"division"`
+	ResponsibleUser         organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	RiskCategory            RiskCategoryDTO                  `json:"risk_category"`
+	CurrentLikelihood       RiskMatrixLikelihoodDTO          `json:"current_likelihood"`
+	CurrentImpact           RiskMatrixImpactDTO              `json:"current_impact"`
+	CurrentRiskRating       RiskMatrixRiskRatingDTO          `json:"current_risk_rating"`
+	CurrentRiskRatingValue  RiskMatrixRiskRatingValueDTO     `json:"current_risk_rating_value"`
+	InherentLikelihood      *RiskMatrixLikelihoodDTO         `json:"inherent_likelihood"`
+	InherentImpact          *RiskMatrixImpactDTO             `json:"inherent_impact"`
+	InherentRiskRating      *RiskMatrixRiskRatingDTO         `json:"inherent_risk_rating"`
+	InherentRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"inherent_risk_rating_value"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO  `json:"created_by"`
 
 	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	Vulnerabilities []*RiskVulnerabilityDTO          `json:"vulnerabilities"`

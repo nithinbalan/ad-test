@@ -27,6 +27,7 @@ func (rmrrc *RiskMatrixRiskRatingController) GetAllRiskMatrixRiskRatings(c *gin.
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	matrixType := c.DefaultQuery("type", "erm")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -41,6 +42,7 @@ func (rmrrc *RiskMatrixRiskRatingController) GetAllRiskMatrixRiskRatings(c *gin.
 		Keyword: keyword,
 		Status:  status,
 		Filters: filters,
+		Type:    matrixType,
 	}
 
 	riskRatings, err := rmrrc.service.GetAll(&queryParams)

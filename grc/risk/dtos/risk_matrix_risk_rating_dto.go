@@ -25,4 +25,5 @@ type RiskMatrixRiskRatingListQueryParamsDTO struct {
 	Keyword string
 	Status  string
 	Filters map[string][]string
+	Type    string
 }

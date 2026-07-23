@@ -9,7 +9,7 @@ import (
 )
 
 type RiskMatrixRiskRatingValueServiceInterface interface {
-	GetRiskAll() (*riskDTOs.RiskMatrixRiskRatingValueFormDTO, error)
+	GetRiskAll(matrixType string) (*riskDTOs.RiskMatrixRiskRatingValueFormDTO, error)
 	Create(riskMatrixRiskRatingValueFormDTO *riskDTOs.RiskMatrixRiskRatingValueFormDTO) error
 	GetRiskMatrix() ([][]*riskDTOs.RiskMatrixRiskRatingResponseDTO, error)
 	EvaluateScore(impact *models.RiskMatrixImpact, likelihood *models.RiskMatrixLikelihood, calculationMethod string) uint
@@ -39,8 +39,8 @@ func NewRiskMatrixRiskRatingValueService(
 	}
 }
 
-func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskAll() (*riskDTOs.RiskMatrixRiskRatingValueFormDTO, error) {
-	riskMatrixType, err := rmrrvs.riskMatrixSvc.GetByType("erm")
+func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskAll(matrixType string) (*riskDTOs.RiskMatrixRiskRatingValueFormDTO, error) {
+	riskMatrixType, err := rmrrvs.riskMatrixSvc.GetByType(matrixType)
 	if err != nil {
 		return nil, err
 	}

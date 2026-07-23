@@ -45,6 +45,8 @@ func (repo *RiskMatrixRiskRatingRepository) GetAll(params *riskDTOs.RiskMatrixRi
 		    LEFT JOIN risk_matrix ON risk_matrix.id = risk_matrix_risk_ratings.risk_matrix_id
 		`)
 
+	query = query.Where("risk_matrix.type = ?", params.Type)
+
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

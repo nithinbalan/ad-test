@@ -42,7 +42,10 @@ type AssetRiskRegisterRepositoryInterface interface {
 	GetRiskSourceByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskSource, error)
 	GetRiskCategoryByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskCategory, error)
 	GetAllTimelineTypes(tx ...utility.DatabaseTransaction) ([]models.RiskTimelineType, error)
+	GetTimelineTypeByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.RiskTimelineType, error)
 	GetTimelineStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.TimelineStatus, error)
+	GetRiskTimelineByRiskAndType(riskID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.RiskTimeline, error)
+	UpdateRiskTimeline(riskTimeline *models.RiskTimeline, tx ...utility.DatabaseTransaction) error
 	GetRiskStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.RiskStatus, error)
 	GetImpactByScore(score int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixImpact, error)
 	GetLikelihoodByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixLikelihood, error)
@@ -146,7 +149,7 @@ func (repo *AssetRiskRegisterRepository) GetAll(params *assetRiskDTOs.AssetRiskR
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 
-		query = query.Where(`
+		query = query.Where(`(
 			risk_register.risk_code LIKE ? OR
 			risk_register.title LIKE ? OR
 			risk_categories.title_en LIKE ? OR
@@ -154,7 +157,7 @@ func (repo *AssetRiskRegisterRepository) GetAll(params *assetRiskDTOs.AssetRiskR
 			division.title_en LIKE ? OR
 			division.title_ar LIKE ? OR
 			section.title_en LIKE ? OR
-			section.title_ar LIKE ?`,
+			section.title_ar LIKE ?)`,
 
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
@@ -249,6 +252,10 @@ func (repo *AssetRiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("CurrentImpact").
 		Preload("CurrentRiskRating").
 		Preload("CurrentRiskRatingValue").
+		Preload("InherentLikelihood").
+		Preload("InherentImpact").
+		Preload("InherentRiskRating").
+		Preload("InherentRiskRatingValue").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&riskRegister, id).Error
@@ -581,4 +588,46 @@ func (repo *AssetRiskRegisterRepository) GetRiskRatingByID(id uint, tx ...utilit
 	}
 
 	return riskRating, nil
+}
+
+func (repo *AssetRiskRegisterRepository) GetTimelineTypeByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.RiskTimelineType, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var riskTimelineType *models.RiskTimelineType
+	result := db.Where("type = ?", timelineType).First(&riskTimelineType)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, "Risk Timeline Type with type "+timelineType)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return riskTimelineType, nil
+}
+
+func (repo *AssetRiskRegisterRepository) GetRiskTimelineByRiskAndType(riskID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.RiskTimeline, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var riskTimeline models.RiskTimeline
+	result := db.Where("risk_register_id = ? AND risk_timeline_type_id = ?", riskID, timelineTypeID).First(&riskTimeline)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &riskTimeline, nil
+}
+
+func (repo *AssetRiskRegisterRepository) UpdateRiskTimeline(riskTimeline *models.RiskTimeline, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(riskTimeline).Error
 }
