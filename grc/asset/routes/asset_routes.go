@@ -200,8 +200,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/threats/export", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatController.GetThreatsExport)
 
 	// vulnerability action plan
-	assetRoutes.GET("/vulnerability-action-plans/export", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanExport)
-	assetRoutes.GET("/vulnerability-action-plans", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityActionPlanController.GetAllVulnerabilityActionPlans)
+	assetRoutes.POST("/vulnerability-action-plans/force-delete", middlewares.RolePermissionMiddleware(db, "vulnerability_action_plan", "view"), vulnerabilityActionPlanController.DeleteForceVulnerabilityActionPlans)
+	assetRoutes.GET("/vulnerability-action-plans/export", middlewares.RolePermissionMiddleware(db, "vulnerability_action_plan", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanExport)
+	assetRoutes.GET("/vulnerability-action-plans", middlewares.RolePermissionMiddleware(db, "vulnerability_action_plan", "view"), vulnerabilityActionPlanController.GetAllVulnerabilityActionPlans)
 	assetRoutes.GET("/vulnerabilities/:id/action-plans", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityActionPlanController.GetAllVulnerabilityActionPlans)
 	assetRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanDetails)
 	assetRoutes.POST("/vulnerabilities/:id/action-plans", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityActionPlanController.CreateVulnerabilityActionPlan)
