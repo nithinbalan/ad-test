@@ -55,6 +55,9 @@ type AssetRiskRegisterListDTO struct {
 	RegistrationDate            string  `json:"registration_date"`
 	Justification               *string `json:"justification"`
 	ExpectedCause               *string `json:"expected_cause"`
+	ConfidentialityScore        int     `json:"confidentiality_score"`
+	IntegrityScore              int     `json:"integrity_score"`
+	AvailabilityScore           int     `json:"availability_score"`
 	RiskCategoryTitleEn         string  `json:"risk_category_title_en"`
 	RiskCategoryTitleAr         string  `json:"risk_category_title_ar"`
 	DivisionTitleEn             string  `json:"division_title_en"`

@@ -65,6 +65,8 @@ type AssetModule struct {
 	AssetRiskAssociatedItemController             *controllers.AssetRiskAssociatedItemController
 	AssetRiskMatrixController                     *controllers.AssetRiskMatrixController
 	AssetRiskInherentEvaluationController         *controllers.AssetRiskInherentEvaluationController
+	AssetRiskKriController                        *controllers.AssetRiskKriController
+	AssetRiskClosureController                    *controllers.AssetRiskClosureController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -72,6 +74,8 @@ type AssetModule struct {
 func (am *AssetModule) SetRiskControllers(riskModule *RiskModule) {
 	am.AssetRiskRootCauseAnalysisController = controllers.NewAssetRiskRootCauseAnalysisController(riskModule.RiskRootCauseAnalysisSvc)
 	am.AssetRiskAssociatedItemController = controllers.NewAssetRiskAssociatedItemController(riskModule.RiskAssociatedItemSvc)
+	am.AssetRiskKriController = controllers.NewAssetRiskKriController(riskModule.RiskKriSvc)
+	am.AssetRiskClosureController = controllers.NewAssetRiskClosureController(riskModule.RiskClosureSvc)
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -366,7 +370,7 @@ func NewAssetModule(db *gorm.DB,
 	qualysVulnerabilityHistoryController := controllers.NewQualysVulnerabilityHistoryController(qualysVulnerabilityHistorySvc)
 
 	assetRiskRegisterRepo := repositories.NewAssetRiskRegisterRepository(db)
-	assetRiskRegisterSvc := services.NewAssetRiskRegisterService(assetRiskRegisterRepo, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc, assetRegisterSvc, vulnerabilitySvc, sharedModule.ActivityLogService, commonModule.NotificationService)
+	assetRiskRegisterSvc := services.NewAssetRiskRegisterService(assetRiskRegisterRepo, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, assetRegisterSvc, vulnerabilitySvc, sharedModule.ActivityLogService, commonModule.NotificationService)
 	assetRiskReigsterController := controllers.NewAssetRiskRegisterController(assetRiskRegisterSvc)
 
 	assetRiskWorkflowRepo := repositories.NewAssetRiskWorkflowRepository(db)

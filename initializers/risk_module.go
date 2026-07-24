@@ -96,6 +96,8 @@ type RiskModule struct {
 	KRIRiskToleranceStatusSvc services.KRIRiskToleranceStatusServiceInterface
 	RiskRootCauseAnalysisSvc  services.RiskRootCauseAnalysisServiceInterface
 	RiskAssociatedItemSvc     services.RiskAssociatedItemServiceInterface
+	RiskKriSvc                services.RiskKriServiceInterface
+	RiskClosureSvc            services.RiskClosureServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -845,5 +847,7 @@ func NewRiskModule(db *gorm.DB,
 		KRIRiskToleranceStatusSvc: kriRiskToleranceStatusSvc,
 		RiskRootCauseAnalysisSvc:  riskRootCauseAnalysisSvc,
 		RiskAssociatedItemSvc:     riskAssociatedItemSvc,
+		RiskKriSvc:                riskKriSvc,
+		RiskClosureSvc:            riskClosureSvc,
 	}
 }

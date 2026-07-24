@@ -83,6 +83,9 @@ func (repo *AssetRiskRegisterRepository) GetAll(params *assetRiskDTOs.AssetRiskR
 			CONVERT(VARCHAR, risk_register.registration_date, 23) AS registration_date,
 			risk_register.justification,
 			risk_register.expected_cause,
+			risk_register.confidentiality_score,
+			risk_register.integrity_score,
+			risk_register.availability_score,
 
 			risk_categories.title_en AS risk_category_title_en,
 			risk_categories.title_ar AS risk_category_title_ar,
