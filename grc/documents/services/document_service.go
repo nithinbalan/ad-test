@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"jethur/config"
+	assetRepositories "jethur/grc/asset/repositories"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
@@ -68,26 +69,27 @@ type DocumentServiceInterface interface {
 }
 
 type DocumentService struct {
-	repo                      repositories.DocumentRepositoryInterface
-	documentCategorySvc       DocumentCategoryServiceInterface
-	documentTypeSvc           DocumentTypeServiceInterface
-	documentTemplateSvc       DocumentTemplateServiceInterface
-	documentAccessTypeSvc     DocumentAccessTypeServiceInterface
-	documentStatusSvc         DocumentStatusServiceInterface
-	userSvc                   organizationSvc.UserServiceInterface
-	workflowSvc               settinsSvc.WorkflowServiceInterface
-	documentWorkflowSvc       DocumentWorkflowServiceInterface
-	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface
-	activityLogSvc            services.ActivityLogServiceInterface
-	documentAuditLogSvc       DocumentAuditLogServiceInterface
-	userSettingSvc            organizationSvc.UserSettingServiceInterface
-	documentAccessSvc         DocumentAccessServiceInterface
-	taskSvc                   taskServices.TaskServiceInterface
-	notificationSvc           commonServices.NotificationServiceInterface
-	orgLevelSvc               settinsSvc.OrganizationLevelServiceInterface
-	reviewFrequencySvc        masterSvc.ReviewFrequencyServiceInterface
-	systemPreferenceSvc       settinsSvc.SystemPreferenceServiceInterface
-	workflowContextSvc        masterSvc.WorkflowContextServiceInterface
+	repo                              repositories.DocumentRepositoryInterface
+	documentCategorySvc               DocumentCategoryServiceInterface
+	documentTypeSvc                   DocumentTypeServiceInterface
+	documentTemplateSvc               DocumentTemplateServiceInterface
+	documentAccessTypeSvc             DocumentAccessTypeServiceInterface
+	documentStatusSvc                 DocumentStatusServiceInterface
+	userSvc                           organizationSvc.UserServiceInterface
+	workflowSvc                       settinsSvc.WorkflowServiceInterface
+	documentWorkflowSvc               DocumentWorkflowServiceInterface
+	documentWorkflowStatusSvc         DocumentWorkflowStatusServiceInterface
+	activityLogSvc                    services.ActivityLogServiceInterface
+	documentAuditLogSvc               DocumentAuditLogServiceInterface
+	userSettingSvc                    organizationSvc.UserSettingServiceInterface
+	documentAccessSvc                 DocumentAccessServiceInterface
+	taskSvc                           taskServices.TaskServiceInterface
+	notificationSvc                   commonServices.NotificationServiceInterface
+	orgLevelSvc                       settinsSvc.OrganizationLevelServiceInterface
+	reviewFrequencySvc                masterSvc.ReviewFrequencyServiceInterface
+	systemPreferenceSvc               settinsSvc.SystemPreferenceServiceInterface
+	workflowContextSvc                masterSvc.WorkflowContextServiceInterface
+	confidentialityClassificationRepo assetRepositories.ConfidentialityClassificationRepositoryInterface
 }
 
 func NewDocumentService(
@@ -109,26 +111,28 @@ func NewDocumentService(
 	reviewFrequencySvc masterSvc.ReviewFrequencyServiceInterface,
 	systemPreferenceSvc settinsSvc.SystemPreferenceServiceInterface,
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
+	confidentialityClassificationRepo assetRepositories.ConfidentialityClassificationRepositoryInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
-		repo:                      repo,
-		documentCategorySvc:       documentCategorySvc,
-		documentTypeSvc:           documentTypeSvc,
-		documentTemplateSvc:       documentTemplateSvc,
-		documentAccessTypeSvc:     documentAccessTypeSvc,
-		documentStatusSvc:         documentStatusSvc,
-		userSvc:                   userSvc,
-		workflowSvc:               workflowSvc,
-		documentWorkflowStatusSvc: documentWorkflowStatusSvc,
-		activityLogSvc:            activityLogSvc,
-		documentAuditLogSvc:       documentAuditLogSvc,
-		userSettingSvc:            userSettingSvc,
-		taskSvc:                   taskSvc,
-		notificationSvc:           notificationSvc,
-		orgLevelSvc:               orgLevelSvc,
-		reviewFrequencySvc:        reviewFrequencySvc,
-		systemPreferenceSvc:       systemPreferenceSvc,
-		workflowContextSvc:        workflowContextSvc,
+		repo:                              repo,
+		documentCategorySvc:               documentCategorySvc,
+		documentTypeSvc:                   documentTypeSvc,
+		documentTemplateSvc:               documentTemplateSvc,
+		documentAccessTypeSvc:             documentAccessTypeSvc,
+		documentStatusSvc:                 documentStatusSvc,
+		userSvc:                           userSvc,
+		workflowSvc:                       workflowSvc,
+		documentWorkflowStatusSvc:         documentWorkflowStatusSvc,
+		activityLogSvc:                    activityLogSvc,
+		documentAuditLogSvc:               documentAuditLogSvc,
+		userSettingSvc:                    userSettingSvc,
+		taskSvc:                           taskSvc,
+		notificationSvc:                   notificationSvc,
+		orgLevelSvc:                       orgLevelSvc,
+		reviewFrequencySvc:                reviewFrequencySvc,
+		systemPreferenceSvc:               systemPreferenceSvc,
+		workflowContextSvc:                workflowContextSvc,
+		confidentialityClassificationRepo: confidentialityClassificationRepo,
 	}
 }
 
@@ -234,18 +238,19 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}
 
 	document := &models.Document{
-		DocumentTypeID:       documentFormDTO.DocumentTypeID,
-		TitleEn:              documentFormDTO.TitleEn,
-		TitleAr:              documentFormDTO.TitleAr,
-		DescriptionEn:        documentFormDTO.DescriptionEn,
-		DescriptionAr:        documentFormDTO.DescriptionAr,
-		DocumentCategoryID:   &documentFormDTO.DocumentCategoryID,
-		ResponsibleUserID:    &documentFormDTO.ResponsibleUserID,
-		ResponsibleUnitID:    &responsibleUnitID,
-		ReviewFrequencyID:    documentFormDTO.ReviewFrequencyID,
-		DocumentAccessTypeID: documentFormDTO.DocumentAccessTypeID,
-		DocumentStatusID:     &documentStatus.ID,
-		CreatedBYID:          currentUserID,
+		DocumentTypeID:                  documentFormDTO.DocumentTypeID,
+		TitleEn:                         documentFormDTO.TitleEn,
+		TitleAr:                         documentFormDTO.TitleAr,
+		DescriptionEn:                   documentFormDTO.DescriptionEn,
+		DescriptionAr:                   documentFormDTO.DescriptionAr,
+		DocumentCategoryID:              &documentFormDTO.DocumentCategoryID,
+		ResponsibleUserID:               &documentFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:               &responsibleUnitID,
+		ReviewFrequencyID:               documentFormDTO.ReviewFrequencyID,
+		DocumentAccessTypeID:            documentFormDTO.DocumentAccessTypeID,
+		DocumentStatusID:                &documentStatus.ID,
+		ConfidentialityClassificationID: documentFormDTO.ConfidentialityClassificationID,
+		CreatedBYID:                     currentUserID,
 	}
 
 	id, err := ds.repo.Create(document, tx)
@@ -586,6 +591,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	existingDocument.ResponsibleUnitID = &responsibleUnitID
 	existingDocument.ReviewFrequencyID = documentFormDTO.ReviewFrequencyID
 	existingDocument.DocumentAccessTypeID = documentFormDTO.DocumentAccessTypeID
+	existingDocument.ConfidentialityClassificationID = documentFormDTO.ConfidentialityClassificationID
 	existingDocument.UpdatedBYID = &currentUserID
 
 	if err := ds.repo.Update(existingDocument, tx); err != nil {
@@ -1357,6 +1363,10 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 
 	if _, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document access type does not exist"), "not_exist", "document access type")
+	}
+
+	if _, err := ds.confidentialityClassificationRepo.GetByID(documentFormDTO.ConfidentialityClassificationID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("confidentiality classification does not exist"), "not_exist", "confidentiality classification")
 	}
 
 	if documentFormDTO.DocumentTemplateID != nil {
