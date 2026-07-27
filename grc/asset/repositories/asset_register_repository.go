@@ -496,7 +496,6 @@ func (repo *AssetRegisterRepository) GetAssetLookupMap() (map[string]uint, error
 	err := repo.db.
 		Table("asset_register").
 		Select("id, title_en").
-		Where("status = ?", "active").
 		Find(&assets).Error
 	if err != nil {
 		return nil, err
