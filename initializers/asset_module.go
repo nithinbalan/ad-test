@@ -65,6 +65,8 @@ type AssetModule struct {
 	AssetRiskAssociatedItemController             *controllers.AssetRiskAssociatedItemController
 	AssetRiskMatrixController                     *controllers.AssetRiskMatrixController
 	AssetRiskInherentEvaluationController         *controllers.AssetRiskInherentEvaluationController
+	AssetRiskInherentControlAnalysisController    *controllers.AssetRiskInherentControlAnalysisController
+	AssetRiskResidualEvaluationController         *controllers.AssetRiskResidualEvaluationController
 	AssetRiskKriController                        *controllers.AssetRiskKriController
 	AssetRiskClosureController                    *controllers.AssetRiskClosureController
 
@@ -429,6 +431,14 @@ func NewAssetModule(db *gorm.DB,
 	assetRiskInherentEvaluationSvc := services.NewAssetRiskInherentEvaluationService(assetRiskInherentEvaluationRepo, assetRiskRegisterSvc, sharedModule.ActivityLogService)
 	assetRiskInherentEvaluationController := controllers.NewAssetRiskInherentEvaluationController(assetRiskInherentEvaluationSvc)
 
+	assetRiskInherentControlAnalysisRepo := repositories.NewAssetRiskInherentControlAnalysisRepository(db)
+	assetRiskInherentControlAnalysisSvc := services.NewAssetRiskInherentControlAnalysisService(assetRiskInherentControlAnalysisRepo, sharedModule.ActivityLogService, assetRiskRegisterSvc, organizationModule.ControlSvc, organizationModule.ControlTestSvc)
+	assetRiskInherentControlAnalysisController := controllers.NewAssetRiskInherentControlAnalysisController(assetRiskInherentControlAnalysisSvc)
+
+	assetRiskResidualEvaluationRepo := repositories.NewAssetRiskResidualEvaluationRepository(db)
+	assetRiskResidualEvaluationSvc := services.NewAssetRiskResidualEvaluationService(assetRiskResidualEvaluationRepo, assetRiskRegisterSvc, assetRiskInherentEvaluationSvc, sharedModule.ActivityLogService)
+	assetRiskResidualEvaluationController := controllers.NewAssetRiskResidualEvaluationController(assetRiskResidualEvaluationSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -484,6 +494,8 @@ func NewAssetModule(db *gorm.DB,
 		VulnerabilityClosedReviewCommentController:    vulnerabilityClosedReviewCommentController,
 		AssetRiskMatrixController:                     assetRiskMatrixController,
 		AssetRiskInherentEvaluationController:         assetRiskInherentEvaluationController,
+		AssetRiskInherentControlAnalysisController:    assetRiskInherentControlAnalysisController,
+		AssetRiskResidualEvaluationController:         assetRiskResidualEvaluationController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}

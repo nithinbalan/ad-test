@@ -73,6 +73,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRiskAssociatedItemController := app.AssetModule.AssetRiskAssociatedItemController
 	assetRiskMatrixController := app.AssetModule.AssetRiskMatrixController
 	assetRiskInherentEvaluationController := app.AssetModule.AssetRiskInherentEvaluationController
+	assetRiskInherentControlAnalysisController := app.AssetModule.AssetRiskInherentControlAnalysisController
+	assetRiskResidualEvaluationController := app.AssetModule.AssetRiskResidualEvaluationController
 	assetRiskKriController := app.AssetModule.AssetRiskKriController
 	assetRiskClosureController := app.AssetModule.AssetRiskClosureController
 
@@ -551,8 +553,23 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/asset-risk-register/:id/inherent-evaluation/:evaluationId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskInherentEvaluationController.UpdateAssetRiskInherentEvaluation)
 	assetRoutes.DELETE("/asset-risk-register/:id/inherent-evaluation/:evaluationId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskInherentEvaluationController.DeleteAssetRiskInherentEvaluation)
 
+	// Risk Inherent Control Analysis
+	assetRoutes.GET("/asset-risk-register/:id/inherent-control-analysis", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskInherentControlAnalysisController.GetAllAssetRiskControlAnalyses)
+	assetRoutes.GET("/asset-risk-register/:id/inherent-control-analysis/control-summary", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskInherentControlAnalysisController.GetAssetRiskControlSummary)
+	assetRoutes.GET("/asset-risk-register/:id/inherent-control-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskInherentControlAnalysisController.GetAssetRiskControlAnalysisDetails)
+	assetRoutes.POST("/asset-risk-register/:id/inherent-control-analysis", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskInherentControlAnalysisController.CreateAssetRiskControlAnalysis)
+	assetRoutes.PUT("/asset-risk-register/:id/inherent-control-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskInherentControlAnalysisController.UpdateAssetRiskControlAnalysis)
+	assetRoutes.POST("/asset-risk-register/:id/inherent-control-analysis/delete", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskInherentControlAnalysisController.DeleteAssetRiskControlAnalyses)
+
+	// Risk Residual Evaluation
+	assetRoutes.GET("/asset-risk-register/:id/residual-evaluation", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskResidualEvaluationController.GetAssetRiskResidualEvaluation)
+	assetRoutes.POST("/asset-risk-register/:id/residual-evaluation", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResidualEvaluationController.CreateAssetRiskResidualEvaluation)
+	assetRoutes.PUT("/asset-risk-register/:id/residual-evaluation/:evaluationId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResidualEvaluationController.UpdateAssetRiskResidualEvaluation)
+	assetRoutes.DELETE("/asset-risk-register/:id/residual-evaluation/:evaluationId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResidualEvaluationController.DeleteAssetRiskResidualEvaluation)
+
 	// Risk KRI
 	assetRoutes.GET("/asset-risk-register/:id/kris", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskKriController.GetAllAssetRiskKris)
+	assetRoutes.GET("/asset-risk-register/:id/kris/:kriId", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskKriController.GetAssetRiskKriDetails)
 	assetRoutes.POST("/asset-risk-register/:id/kris", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskKriController.CreateAssetRiskKri)
 	assetRoutes.POST("/asset-risk-register/:id/kris/delete", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskKriController.DeleteAssetRiskKris)
 

@@ -81,6 +81,36 @@ func (arkc *AssetRiskKriController) GetAllAssetRiskKris(c *gin.Context) {
 	c.JSON(http.StatusOK, riskKris)
 }
 
+func (arkc *AssetRiskKriController) GetAssetRiskKriDetails(c *gin.Context) {
+	riskIDStr := c.Param("id")
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("kriId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskKri, err := arkc.service.GetFullDetailsByID(uint(riskID), uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(arkc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, riskKri)
+}
+
 func (arkc *AssetRiskKriController) CreateAssetRiskKri(c *gin.Context) {
 	var riskKriFormDTO riskDTOs.RiskKriFormDTO
 

@@ -259,6 +259,10 @@ func (repo *AssetRiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("InherentImpact").
 		Preload("InherentRiskRating").
 		Preload("InherentRiskRatingValue").
+		Preload("ResidualLikelihood").
+		Preload("ResidualImpact").
+		Preload("ResidualRiskRating").
+		Preload("ResidualRiskRatingValue").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Where("is_cyber_risk", true).

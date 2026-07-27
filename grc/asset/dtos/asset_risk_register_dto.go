@@ -134,6 +134,10 @@ type AssetRiskRegisterDetailDTO struct {
 	InherentImpact          *RiskMatrixImpactDTO             `json:"inherent_impact"`
 	InherentRiskRating      *RiskMatrixRiskRatingDTO         `json:"inherent_risk_rating"`
 	InherentRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"inherent_risk_rating_value"`
+	ResidualLikelihood      *RiskMatrixLikelihoodDTO         `json:"residual_likelihood"`
+	ResidualImpact          *RiskMatrixImpactDTO             `json:"residual_impact"`
+	ResidualRiskRating      *RiskMatrixRiskRatingDTO         `json:"residual_risk_rating"`
+	ResidualRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"residual_risk_rating_value"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO  `json:"created_by"`
 
 	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by"`
