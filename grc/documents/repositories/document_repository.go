@@ -65,6 +65,8 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 	document_types.title_ar AS document_type_title_ar,
 	document_access_types.title_en AS document_access_type_title_en,
 	document_access_types.title_ar AS document_type_access_title_ar,
+	confidentiality_classifications.title_en AS confidentiality_classification_title_en,
+	confidentiality_classifications.title_ar AS confidentiality_classification_title_ar,
 	organization_units.title_en AS responsible_unit_title_en,
 	organization_units.title_ar AS responsible_unit_title_ar,
 	responsible_user.id AS responsible_user_id,
@@ -176,6 +178,7 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 			LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
 			LEFT JOIN document_types ON document_types.id = documents.document_type_id
 			LEFT JOIN document_access_types ON document_access_types.id = documents.document_access_type_id
+			LEFT JOIN confidentiality_classifications ON confidentiality_classifications.id = documents.confidentiality_classification_id
 			LEFT JOIN organization_units ON organization_units.id = documents.responsible_unit_id
 			LEFT JOIN users AS responsible_user ON responsible_user.id = documents.responsible_user_id
 			LEFT JOIN document_versions ON document_versions.document_id = documents.id AND document_versions.is_latest_version = 1
@@ -388,6 +391,7 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, currentUserID *uint,
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
 		Preload("DocumentAccessType").
+		Preload("ConfidentialityClassification").
 		Preload("DocumentStatus").
 		Preload("LatestDocumentVersion", "is_latest_version = ?", true).
 		Preload("LatestDocumentVersion.CreatedByUser").

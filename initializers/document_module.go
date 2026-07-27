@@ -1,6 +1,7 @@
 package initializers
 
 import (
+	assetRepositories "jethur/grc/asset/repositories"
 	"jethur/grc/documents/controllers"
 	"jethur/grc/documents/repositories"
 	"jethur/grc/documents/services"
@@ -88,6 +89,7 @@ func NewDocumentModule(db *gorm.DB,
 	documentAccessTypeController := controllers.NewDocumentAccessTypeController(documentAccessTypeSvc)
 
 	documentRepo := repositories.NewDocumentRepository(db)
+	confidentialityClassificationRepo := assetRepositories.NewConfidentialityClassificationRepository(db)
 
 	documentAuditLogRepo := repositories.NewDocumentAuditLogRepository(db)
 	documentAuditLogSvc := services.NewDocumentAuditLogService(documentAuditLogRepo, documentRepo)
@@ -118,7 +120,7 @@ func NewDocumentModule(db *gorm.DB,
 		commonModule.NotificationService,
 		settingsModule.OrganizationLevelSvc,
 		masterModule.ReviewFrequencySvc,
-		settingsModule.SystemPreferenceSvc, masterModule.WorkflowContextSvc)
+		settingsModule.SystemPreferenceSvc, masterModule.WorkflowContextSvc, confidentialityClassificationRepo)
 
 	documentSvc.SetDocumentWorkflowService(documentWorkflowSvc)
 
