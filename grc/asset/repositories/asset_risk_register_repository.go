@@ -246,6 +246,8 @@ func (repo *AssetRiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utili
 	err := db.
 		Preload("Vulnerabilities.Vulnerability").
 		Preload("Assets.AssetRegister").
+		Preload("Controls").
+		Preload("Controls.Control").
 		Preload("RiskCategory").
 		Preload("RiskStatus").
 		Preload("Section").

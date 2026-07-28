@@ -143,6 +143,14 @@ type AssetRiskRegisterDetailDTO struct {
 	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	Vulnerabilities []*RiskVulnerabilityDTO          `json:"vulnerabilities"`
 	Assets          []*RiskAssetDTO                  `json:"assets"`
+	Controls        []*RiskControlDTO                `json:"controls"`
+}
+
+type RiskControlDTO struct {
+	ID             *uint                             `json:"id"`
+	RiskRegisterID uint                              `json:"risk_register_id"`
+	ControlID      uint                              `json:"control_id"`
+	Control        organizationDTOs.ControlDetailDTO `json:"control"`
 }
 
 type RiskCategoryDTO struct {

@@ -77,6 +77,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRiskResidualEvaluationController := app.AssetModule.AssetRiskResidualEvaluationController
 	assetRiskKriController := app.AssetModule.AssetRiskKriController
 	assetRiskClosureController := app.AssetModule.AssetRiskClosureController
+	assetRiskResponseController := app.AssetModule.AssetRiskResponseController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -566,6 +567,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-risk-register/:id/residual-evaluation", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResidualEvaluationController.CreateAssetRiskResidualEvaluation)
 	assetRoutes.PUT("/asset-risk-register/:id/residual-evaluation/:evaluationId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResidualEvaluationController.UpdateAssetRiskResidualEvaluation)
 	assetRoutes.DELETE("/asset-risk-register/:id/residual-evaluation/:evaluationId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResidualEvaluationController.DeleteAssetRiskResidualEvaluation)
+
+	// Risk Response
+	assetRoutes.GET("/asset-risk-register/:id/response", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskResponseController.GetAssetRiskResponse)
+	assetRoutes.POST("/asset-risk-register/:id/response", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseController.CreateAssetRiskResponse)
+	assetRoutes.PUT("/asset-risk-register/:id/response/:responseId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseController.UpdateAssetRiskResponse)
+	assetRoutes.DELETE("/asset-risk-register/:id/response/:responseId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseController.DeleteAssetRiskResponse)
 
 	// Risk KRI
 	assetRoutes.GET("/asset-risk-register/:id/kris", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskKriController.GetAllAssetRiskKris)
