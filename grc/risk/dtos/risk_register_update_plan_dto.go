@@ -128,21 +128,21 @@ type RiskUpdatePlanTimelineDetailDTO struct {
 	CreatedBYID                  uint                           `json:"created_by_id"`
 	UpdatedBYID                  *uint                          `json:"updated_by_id"`
 	// Relationships
-	ErmDeptDocuments                []*RiskUpdatePlanErmDeptDocumentDTO                `json:"erm_dept_documents"`
-	IntroductoryMeetingDocuments    []*RiskUpdatePlanIntroductoryMeetingDocumentDTO    `json:"introductory_meeting_documents"`
-	BusinessContexts                []*RiskUpdatePlanBusinessContextDTO                `json:"business_contexts"`
-	Risks                           []*RiskUpdatePlanRiskDTO                           `json:"risks"`
-	Controls                        []*RiskUpdatePlanControlDTO                        `json:"controls"`
-	Processes                       []*RiskUpdatePlanProcessDTO                        `json:"processes"`
-	LeadershipAssessments           []*RiskUpdatePlanLeadershipAssessmentDTO           `json:"leadership_assessments"`
-	LeadershipDocuments             []*RiskUpdatePlanLeadershipDocumentDTO             `json:"leadership_documents"`
-	RiskAssessmentWorkshopDocuments []*RiskUpdatePlanRiskAssessmentWorkshopDocumentDTO `json:"risk_assessment_workshop_documents"`
-	RiskTeamAssessments             []*RiskUpdatePlanRiskTeamAssessmentDTO             `json:"risk_team_assessments"`
-	RiskTeamDocuments               []*RiskUpdatePlanRiskTeamDocumentDTO               `json:"risk_team_documents"`
-	RiskWorkshopAssessmentDocuments []*RiskUpdatePlanRiskWorkshopAssessmentDocumentDTO `json:"risk_workshop_assessment_documents"`
-	SelfAwarenessTrainings          []*RiskUpdatePlanSelfAwarenessTrainingDTO          `json:"self_awareness_trainings"`
-	CreatedByUser                   *organizationDTOs.UserMinimalDTO                   `json:"created_by"`
-	UpdatedByUser                   *organizationDTOs.UserMinimalDTO                   `json:"updated_by"`
+	ErmDeptDocuments                []*CommonDocumentDTO                     `json:"erm_dept_documents"`
+	IntroductoryMeetingDocuments    []*CommonDocumentDTO                     `json:"introductory_meeting_documents"`
+	BusinessContexts                []*RiskUpdatePlanBusinessContextDTO      `json:"business_contexts"`
+	Risks                           []*RiskUpdatePlanRiskDTO                 `json:"risks"`
+	Controls                        []*RiskUpdatePlanControlDTO              `json:"controls"`
+	Processes                       []*RiskUpdatePlanProcessDTO              `json:"processes"`
+	LeadershipAssessments           []*RiskUpdatePlanLeadershipAssessmentDTO `json:"leadership_assessments"`
+	LeadershipDocuments             []*CommonDocumentDTO                     `json:"leadership_documents"`
+	RiskAssessmentWorkshopDocuments []*CommonDocumentDTO                     `json:"risk_assessment_workshop_documents"`
+	RiskTeamAssessments             []*RiskUpdatePlanRiskTeamAssessmentDTO   `json:"risk_team_assessments"`
+	RiskTeamDocuments               []*CommonDocumentDTO                     `json:"risk_team_documents"`
+	RiskWorkshopAssessmentDocuments []*CommonDocumentDTO                     `json:"risk_workshop_assessment_documents"`
+	SelfAwarenessTrainings          []*CommonDocumentDTO                     `json:"self_awareness_trainings"`
+	CreatedByUser                   *organizationDTOs.UserMinimalDTO         `json:"created_by"`
+	UpdatedByUser                   *organizationDTOs.UserMinimalDTO         `json:"updated_by"`
 }
 
 type RiskRegisterUpdatePlanFormDTO struct {
@@ -1061,12 +1061,13 @@ type RiskUpdatePlanIntroductoryMeetingDocumentDTO struct {
 }
 
 type RiskUpdatePlanBusinessContextDTO struct {
-	ID                       uint       `json:"id"`
-	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id"`
-	Title                    string     `json:"title"`
-	Description              *string    `json:"description"`
-	CreatedAt                time.Time  `json:"created_at"`
-	UpdatedAt                *time.Time `json:"updated_at"`
+	ID                         uint      `json:"id"`
+	RiskUpdatePlanTimelineID   uint      `json:"risk_update_plan_timeline_id"`
+	InternalAuditNote          *string   `json:"internal_audit_note"`
+	ExternalContext            *string   `json:"external_context"`
+	AnnualObjectiveDescription *string   `json:"annual_objective_description"`
+	CreatedBYID                *uint     `json:"created_by_id"`
+	CreatedAt                  time.Time `json:"created_at"`
 }
 
 type RiskUpdatePlanRiskDTO struct {
