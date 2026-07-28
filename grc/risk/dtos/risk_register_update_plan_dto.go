@@ -1142,7 +1142,7 @@ type RiskUpdatePlanRiskTeamAssessmentDTO struct {
 	ID                       uint                             `json:"id"`
 	RiskUpdatePlanTimelineID uint                             `json:"risk_update_plan_timeline_id"`
 	RiskChampionID           uint                             `json:"risk_champion_id"`
-	RiskChampion             *organizationDTOs.UserMinimalDTO `json:"risk_champion"`
+	RiskChampion             *organizationDTOs.UserDetailsDTO `json:"risk_champion"`
 	CreatedBYID              *uint                            `json:"created_by_id"`
 	UpdatedBYID              *uint                            `json:"updated_by_id"`
 	CreatedAt                time.Time                        `json:"created_at"`
