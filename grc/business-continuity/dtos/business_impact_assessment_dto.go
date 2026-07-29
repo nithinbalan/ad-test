@@ -26,6 +26,7 @@ type BusinessImpactAssessmentListDTO struct {
 	Cost                        *uint   `json:"cost"`
 	Comments                    *string `json:"comments"`
 	IsApplicable                bool    `json:"is_applicable"`
+	IsSelected                  bool    `json:"is_selected"`
 	CreatedAt                   string  `json:"created_at"`
 	UpdatedAt                   string  `json:"updated_at"`
 	CreatedUserID               uint    `json:"created_user_id"`
@@ -200,13 +201,15 @@ type BusinessImpactAssessmentFormDTO struct {
 	ProcessID                 *uint                         `json:"process_id"`
 	BusinessImpactAssessments []BusinessImpactAssessmentDTO `json:"business_impact_assessments"`
 	// New fields
-	OverallImpactLevelID *uint   `json:"overall_impact_level_id"`
-	ImpactJustification  *string `json:"impact_justification"`
+	OverallImpactLevelID  *uint   `json:"overall_impact_level_id"`
+	OverallOutageBucketID *uint   `json:"overall_outage_bucket_id"`
+	ImpactJustification   *string `json:"impact_justification"`
 }
 
 type BusinessImpactAssessmentDTO struct {
 	ImpactCategoryID                 uint                                  `json:"impact_category_id"`
 	IsApplicable                     bool                                  `json:"is_applicable"`
+	IsSelected                       bool                                  `json:"is_selected"`
 	BusinessImpactAssessmentAnalysis []BusinessImpactAssessmentAnalysisDTO `json:"business_impact_assessment_analysis"`
 }
 
@@ -391,6 +394,7 @@ type IncidentMinimalDTO struct {
 type BusinessImpactAssessmentDetailDTO struct {
 	ImpactCategory                   *masterDTOs.ImpactCategoryDTO               `json:"impact_category"`
 	IsApplicable                     bool                                        `json:"is_applicable"`
+	IsSelected                       bool                                        `json:"is_selected"`
 	BusinessImpactAssessmentAnalysis []BusinessImpactAssessmentAnalysisDetailDTO `json:"business_impact_assessment_analysis"`
 }
 

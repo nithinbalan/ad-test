@@ -16,6 +16,7 @@ type BCMBIAImpactLevelServiceInterface interface {
 	GetByID(id uint) (*models.BCMBIAImpactLevel, error)
 	GetFullDetailsByID(id uint) (*bcmDTOs.BCMBIAImpactLevelDetailDTO, error)
 	GetByImpactAnalysisLevelID(impactAnalysisLevelID uint) (*models.BCMBIAImpactLevel, error)
+	GetByImpactAnalysisLevelIDAndOutageBucketID(impactAnalysisLevelID uint, outageBucketID uint) (*models.BCMBIAImpactLevel, error)
 }
 
 // Service and implementations
@@ -66,6 +67,16 @@ func (bbils *BCMBIAImpactLevelService) GetFullDetailsByID(id uint) (*bcmDTOs.BCM
 
 func (bbils *BCMBIAImpactLevelService) GetByImpactAnalysisLevelID(impactAnalysisLevelID uint) (*models.BCMBIAImpactLevel, error) {
 	bcmBiaImpactLevel, err := bbils.repo.GetByImpactAnalysisLevelID(impactAnalysisLevelID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bcmBiaImpactLevel, nil
+}
+
+func (bbils *BCMBIAImpactLevelService) GetByImpactAnalysisLevelIDAndOutageBucketID(impactAnalysisLevelID uint, outageBucketID uint) (*models.BCMBIAImpactLevel, error) {
+	bcmBiaImpactLevel, err := bbils.repo.GetByImpactAnalysisLevelIDAndOutageBucketID(impactAnalysisLevelID, outageBucketID)
 
 	if err != nil {
 		return nil, err

@@ -160,6 +160,7 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 			ImpactCategoryID: impactCategory.ID,
 			// New fields
 			IsApplicable: false,
+			IsSelected:   false,
 			CreatedByID:  currentUserID,
 		}
 		err := bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
@@ -215,6 +216,7 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				"process_id":         impactAssessment.ProcessID,
 				"impact_category_id": impactAssessment.ImpactCategoryID,
 				"is_applicable":      impactAssessment.IsApplicable,
+				"is_selected":        impactAssessment.IsSelected,
 			})
 		}
 
@@ -237,10 +239,17 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 		}
 
 		for _, impactAssessment := range businessImpactAssessmentFormDTO.BusinessImpactAssessments {
+			// Only the categories the user explicitly selected in this update are persisted with details;
+			// the rest are sent by the frontend for display purposes only and are skipped here.
+			if !impactAssessment.IsSelected {
+				continue
+			}
+
 			businessImpactAssessment := &models.BusinessImpactAssessment{
 				ProcessID:        businessImpactAssessmentFormDTO.ProcessID,
 				ImpactCategoryID: impactAssessment.ImpactCategoryID,
 				IsApplicable:     impactAssessment.IsApplicable,
+				IsSelected:       impactAssessment.IsSelected,
 				CreatedByID:      currentUserID,
 			}
 			err = bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
@@ -274,8 +283,14 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 		// Create BusinessImpactAssessmentRating if ImpactAnalysisLevelID and OutageBucketID are provided
 		// This is process-level, not category-level, so it should be outside the loop
 		if businessImpactAssessmentFormDTO.OverallImpactLevelID != nil && businessImpactAssessmentFormDTO.ProcessID != nil {
-			// Find BCMBIAImpactLevel using ImpactAnalysisLevelID
-			bcmBiaImpactLevel, err := bias.bcmBiaImpactLevelSvc.GetByImpactAnalysisLevelID(*businessImpactAssessmentFormDTO.OverallImpactLevelID)
+			// Find BCMBIAImpactLevel using ImpactAnalysisLevelID, and OutageBucketID when provided
+			var bcmBiaImpactLevel *models.BCMBIAImpactLevel
+			var err error
+			if businessImpactAssessmentFormDTO.OverallOutageBucketID != nil {
+				bcmBiaImpactLevel, err = bias.bcmBiaImpactLevelSvc.GetByImpactAnalysisLevelIDAndOutageBucketID(*businessImpactAssessmentFormDTO.OverallImpactLevelID, *businessImpactAssessmentFormDTO.OverallOutageBucketID)
+			} else {
+				bcmBiaImpactLevel, err = bias.bcmBiaImpactLevelSvc.GetByImpactAnalysisLevelID(*businessImpactAssessmentFormDTO.OverallImpactLevelID)
+			}
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -294,27 +309,28 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 
 			// Create rating record with data copied from BCMBIAImpactLevel
 			rating := &models.BusinessImpactAssessmentRating{
-				ProcessID:            *businessImpactAssessmentFormDTO.ProcessID,
-				OverallImpactLevelID: *businessImpactAssessmentFormDTO.OverallImpactLevelID,
-				BCMBIAImpactLevelID:  bcmBiaImpactLevel.ID,
-				IsEdited:             false,
-				RtoFromValue:         bcmBiaImpactLevel.RtoFromValue,
-				RtoToValue:           bcmBiaImpactLevel.RtoToValue,
-				RtoCondition:         bcmBiaImpactLevel.RtoCondition,
-				RtoUnitID:            bcmBiaImpactLevel.RtoUnitID,
-				MtpdFromValue:        bcmBiaImpactLevel.MtpdFromValue,
-				MtpdToValue:          bcmBiaImpactLevel.MtpdToValue,
-				MtpdCondition:        bcmBiaImpactLevel.MtpdCondition,
-				MtpdUnitID:           bcmBiaImpactLevel.MtpdUnitID,
-				RpoFromValue:         bcmBiaImpactLevel.RpoFromValue,
-				RpoToValue:           bcmBiaImpactLevel.RpoToValue,
-				RpoCondition:         bcmBiaImpactLevel.RpoCondition,
-				RpoUnitID:            bcmBiaImpactLevel.RpoUnitID,
-				RspFromValue:         bcmBiaImpactLevel.RspFromValue,
-				RspToValue:           bcmBiaImpactLevel.RspToValue,
-				RspCondition:         bcmBiaImpactLevel.RspCondition,
-				RspUnitID:            bcmBiaImpactLevel.RspUnitID,
-				CreatedBYID:          &currentUserID,
+				ProcessID:             *businessImpactAssessmentFormDTO.ProcessID,
+				OverallImpactLevelID:  *businessImpactAssessmentFormDTO.OverallImpactLevelID,
+				OverallOutageBucketID: businessImpactAssessmentFormDTO.OverallOutageBucketID,
+				BCMBIAImpactLevelID:   bcmBiaImpactLevel.ID,
+				IsEdited:              false,
+				RtoFromValue:          bcmBiaImpactLevel.RtoFromValue,
+				RtoToValue:            bcmBiaImpactLevel.RtoToValue,
+				RtoCondition:          bcmBiaImpactLevel.RtoCondition,
+				RtoUnitID:             bcmBiaImpactLevel.RtoUnitID,
+				MtpdFromValue:         bcmBiaImpactLevel.MtpdFromValue,
+				MtpdToValue:           bcmBiaImpactLevel.MtpdToValue,
+				MtpdCondition:         bcmBiaImpactLevel.MtpdCondition,
+				MtpdUnitID:            bcmBiaImpactLevel.MtpdUnitID,
+				RpoFromValue:          bcmBiaImpactLevel.RpoFromValue,
+				RpoToValue:            bcmBiaImpactLevel.RpoToValue,
+				RpoCondition:          bcmBiaImpactLevel.RpoCondition,
+				RpoUnitID:             bcmBiaImpactLevel.RpoUnitID,
+				RspFromValue:          bcmBiaImpactLevel.RspFromValue,
+				RspToValue:            bcmBiaImpactLevel.RspToValue,
+				RspCondition:          bcmBiaImpactLevel.RspCondition,
+				RspUnitID:             bcmBiaImpactLevel.RspUnitID,
+				CreatedBYID:           &currentUserID,
 			}
 			err = bias.repo.CreateBusinessImpactAssessmentRating(rating, tx)
 			if err != nil {
