@@ -79,7 +79,7 @@ func (svc *AssetRiskInherentControlAnalysisService) GetAll(riskID uint, params *
 	return controlAnalyses, nil
 }
 
-func (svc AssetRiskInherentControlAnalysisService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error) {
+func (svc *AssetRiskInherentControlAnalysisService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error) {
 	var riskControlAnalysisDTO riskDTOs.RiskControlAnalysisDetailDTO
 
 	if _, err := svc.assetRiskRegisterSvc.GetByID(riskID); err != nil {
@@ -140,14 +140,14 @@ func (svc *AssetRiskInherentControlAnalysisService) Create(riskID uint, currentU
 		return err
 	}
 
-	riskControls, err := svc.repo.GetAllControlsByRiskID(riskID)
+	riskControls, err := svc.repo.GetAllControlsByRiskID(riskID, tx)
 	if err != nil {
 		return err
 	}
 	var controlAnalysis []*models.RiskControlAnalysis
 	var ids []uint
 	for _, riskControl := range riskControls {
-		control, err := svc.controlSvc.GetByID(riskControl.ControlID)
+		control, err := svc.controlSvc.GetByID(riskControl.ControlID, tx)
 		if err != nil {
 			return err
 		}
@@ -162,7 +162,7 @@ func (svc *AssetRiskInherentControlAnalysisService) Create(riskID uint, currentU
 			CreatedAt:                     time.Now(),
 		}
 
-		_, err = svc.repo.Create(riskControlAnalysis)
+		_, err = svc.repo.Create(riskControlAnalysis, tx)
 		if err != nil {
 			return err
 		}

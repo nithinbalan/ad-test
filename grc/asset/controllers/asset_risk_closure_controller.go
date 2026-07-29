@@ -26,7 +26,7 @@ func NewAssetRiskClosureController(service riskServices.RiskClosureServiceInterf
 
 func (arcc *AssetRiskClosureController) GetAllAssetRiskClosures(c *gin.Context) {
 	riskIDStr := c.Param("id")
-	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -215,7 +215,7 @@ func (arcc *AssetRiskClosureController) GetAssetRiskClosureDocumentPreview(c *gi
 	}
 
 	idStr := c.Param("closureId")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -249,7 +249,7 @@ func (arcc *AssetRiskClosureController) DownloadAssetRiskClosureDocument(c *gin.
 	}
 
 	idStr := c.Param("closureId")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

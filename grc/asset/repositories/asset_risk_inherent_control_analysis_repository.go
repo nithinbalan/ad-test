@@ -14,10 +14,10 @@ type AssetRiskInherentControlAnalysisRepositoryInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error)
 	GetFullDetailsByID(id uint) (*models.RiskControlAnalysis, error)
 	GetByID(id uint) (*models.RiskControlAnalysis, error)
-	Create(riskControlAnalysis *models.RiskControlAnalysis) (uint, error)
+	Create(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
-	GetAllControlsByRiskID(riskID uint) ([]*models.RiskControl, error)
+	GetAllControlsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]*models.RiskControl, error)
 	GetControlSummary(riskID uint) ([]models.ControlTest, error)
 }
 
@@ -111,7 +111,7 @@ func (repo *AssetRiskInherentControlAnalysisRepository) GetAll(riskID uint, para
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,
 			created_user.initial AS created_user_initial,
-            created_user.color AS created_userr_color,
+            created_user.color AS created_user_color,
             created_user.email AS created_user_email,
             created_user.profile_image_path AS created_user_profile_image_path,
 			CONVERT(VARCHAR, risk_control_analyses.created_at, 23) AS created_at
@@ -221,8 +221,13 @@ func (repo *AssetRiskInherentControlAnalysisRepository) GetFullDetailsByID(id ui
 	return riskControlAnalysis, nil
 }
 
-func (repo *AssetRiskInherentControlAnalysisRepository) Create(riskControlAnalysis *models.RiskControlAnalysis) (uint, error) {
-	if err := repo.db.Create(riskControlAnalysis).Error; err != nil {
+func (repo *AssetRiskInherentControlAnalysisRepository) Create(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(riskControlAnalysis).Error; err != nil {
 		return 0, err
 	}
 
@@ -254,10 +259,15 @@ func (repo *AssetRiskInherentControlAnalysisRepository) Delete(id uint, tx ...ut
 	return nil
 }
 
-func (repo *AssetRiskInherentControlAnalysisRepository) GetAllControlsByRiskID(riskID uint) ([]*models.RiskControl, error) {
+func (repo *AssetRiskInherentControlAnalysisRepository) GetAllControlsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]*models.RiskControl, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var riskControls []*models.RiskControl
 
-	err := repo.db.Where("risk_register_id = ?", riskID).Find(&riskControls).Error
+	err := db.Where("risk_register_id = ?", riskID).Find(&riskControls).Error
 
 	if err != nil {
 		return nil, err

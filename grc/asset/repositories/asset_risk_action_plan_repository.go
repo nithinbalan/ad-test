@@ -15,8 +15,8 @@ import (
 type AssetRiskActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(riskID uint, params *assetDTOs.AssetRiskActionPlanListQueryParamsDTO) (*assetDTOs.AssetRiskActionPlanListResponseDTO, error)
-	GetByID(id uint) (*models.RiskActionPlan, error)
-	GetFullDetailsByID(id uint) (*models.RiskActionPlan, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskActionPlan, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskActionPlan, error)
 	Create(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -209,9 +209,14 @@ func (repo *AssetRiskActionPlanRepository) GetAll(riskID uint, params *assetDTOs
 	return response, nil
 }
 
-func (repo *AssetRiskActionPlanRepository) GetByID(id uint) (*models.RiskActionPlan, error) {
+func (repo *AssetRiskActionPlanRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskActionPlan, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var riskActionPlan *models.RiskActionPlan
-	result := repo.db.First(&riskActionPlan, id)
+	result := db.First(&riskActionPlan, id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -220,10 +225,15 @@ func (repo *AssetRiskActionPlanRepository) GetByID(id uint) (*models.RiskActionP
 	return riskActionPlan, nil
 }
 
-func (repo *AssetRiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskActionPlan, error) {
+func (repo *AssetRiskActionPlanRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskActionPlan, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var riskActionPlan *models.RiskActionPlan
 
-	result := repo.db.
+	result := db.
 		Preload("RiskRegister").
 		Preload("RiskRegister.Controls").
 		Preload("SeverityLevel").

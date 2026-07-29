@@ -797,7 +797,7 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 			return
 		}
 
-		tx.Commit()
+		err = tx.Commit()
 	}()
 
 	var successfulIds []uint
@@ -814,7 +814,7 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 
 	for _, id := range ids {
 
-		riskActionPlan, err := araps.repo.GetFullDetailsByID(id)
+		riskActionPlan, err := araps.repo.GetFullDetailsByID(id, tx)
 		if err != nil {
 			continue
 		}
@@ -822,6 +822,18 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 		description := "-"
 		if riskActionPlan.Description != nil && *riskActionPlan.Description != "" {
 			description = *riskActionPlan.Description
+		}
+
+		referenceNumber := "-"
+		riskTitle := "-"
+
+		if riskActionPlan.RiskRegister != nil {
+			if riskActionPlan.RiskRegister.ReferenceNumber != nil &&
+				*riskActionPlan.RiskRegister.ReferenceNumber != "" {
+				referenceNumber = *riskActionPlan.RiskRegister.ReferenceNumber
+			}
+
+			riskTitle = riskActionPlan.RiskRegister.Title
 		}
 
 		// Prepare notification data before deletion
@@ -834,10 +846,10 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 			RiskTitle       string
 		}{
 			OwnerID:         &riskActionPlan.ResponsibleUserID,
-			TitleEn:         riskActionPlan.Title,
-			TitleAr:         riskActionPlan.Title,
+			TitleEn:         riskTitle,
+			TitleAr:         riskTitle,
 			Description:     &description,
-			ReferenceNumber: *riskActionPlan.RiskRegister.ReferenceNumber,
+			ReferenceNumber: referenceNumber,
 			RiskTitle:       riskActionPlan.RiskRegister.Title,
 		})
 
@@ -846,7 +858,7 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 			"title": riskActionPlan.Title,
 		})
 
-		existingTask, err := araps.taskSvc.GetByFieldID("risk_action_plan_id", id)
+		existingTask, err := araps.taskSvc.GetByFieldID("risk_action_plan_id", id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -874,7 +886,7 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 			for _, control := range existingRiskActionPlan.Controls {
 				deleteControlIds = append(deleteControlIds, control.ID)
 			}
-			if err := araps.repo.DeleteRiskActionPlanControl(deleteControlIds); err != nil {
+			if err := araps.repo.DeleteRiskActionPlanControl(deleteControlIds, tx); err != nil {
 				failedIds = append(failedIds, id)
 				continue
 			}
@@ -887,7 +899,7 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 					deleteRiskControlIds = append(deleteRiskControlIds, control.ID)
 				}
 			}
-			if err := araps.repo.DeleteRiskControls(deleteRiskControlIds); err != nil {
+			if err := araps.repo.DeleteRiskControls(deleteRiskControlIds, tx); err != nil {
 				failedIds = append(failedIds, id)
 				continue
 			}
@@ -898,13 +910,13 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 			for _, update := range riskActionPlan.ActionPlanStatusUpdates {
 				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
 			}
-			if err := araps.repo.DeleteRiskActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+			if err := araps.repo.DeleteRiskActionPlanStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
 				failedIds = append(failedIds, id)
 				continue
 			}
 		}
 
-		err = araps.repo.Delete(id)
+		err = araps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
