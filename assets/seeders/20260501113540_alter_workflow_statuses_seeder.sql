@@ -31,7 +31,8 @@ CHECK (
         'publish',
         'pending',
         'comment',
-        'reopen'
+        'reopen',
+        'resubmit'
     )
 );
 
