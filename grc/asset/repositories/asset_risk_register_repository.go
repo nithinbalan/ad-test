@@ -83,6 +83,9 @@ func (repo *AssetRiskRegisterRepository) GetAll(params *assetRiskDTOs.AssetRiskR
 			CONVERT(VARCHAR, risk_register.registration_date, 23) AS registration_date,
 			risk_register.justification,
 			risk_register.expected_cause,
+			risk_register.confidentiality_score,
+			risk_register.integrity_score,
+			risk_register.availability_score,
 
 			risk_categories.title_en AS risk_category_title_en,
 			risk_categories.title_ar AS risk_category_title_ar,
@@ -243,6 +246,8 @@ func (repo *AssetRiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utili
 	err := db.
 		Preload("Vulnerabilities.Vulnerability").
 		Preload("Assets.AssetRegister").
+		Preload("Controls").
+		Preload("Controls.Control").
 		Preload("RiskCategory").
 		Preload("RiskStatus").
 		Preload("Section").
@@ -256,8 +261,13 @@ func (repo *AssetRiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("InherentImpact").
 		Preload("InherentRiskRating").
 		Preload("InherentRiskRatingValue").
+		Preload("ResidualLikelihood").
+		Preload("ResidualImpact").
+		Preload("ResidualRiskRating").
+		Preload("ResidualRiskRatingValue").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Where("is_cyber_risk", true).
 		First(&riskRegister, id).Error
 
 	if err != nil {

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	assetRiskDTOs "jethur/grc/asset/dtos"
@@ -27,6 +28,7 @@ type AssetRiskRegisterServiceInterface interface {
 	Create(currentUserID uint, dto *assetRiskDTOs.AssetRiskRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, dto *assetRiskDTOs.AssetRiskRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ExportRiskRegister(data []*assetRiskDTOs.AssetRiskRegisterListDTO, currentUserID uint) (*os.File, error)
 
 	UpdateRiskRegister(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error
 
@@ -45,6 +47,7 @@ type AssetRiskRegisterService struct {
 	repo             repositories.AssetRiskRegisterRepositoryInterface
 	organizationSvc  settingsServices.OrganizationUnitServiceInterface
 	userSvc          organizationServices.UserServiceInterface
+	userSettingSvc   organizationServices.UserSettingServiceInterface
 	assetRegisterSvc AssetRegisterServiceInterface
 	vulnerabilitySvc VulnerabilityServiceInterface
 	activityLogSvc   logServices.ActivityLogServiceInterface
@@ -55,6 +58,7 @@ func NewAssetRiskRegisterService(
 	repo repositories.AssetRiskRegisterRepositoryInterface,
 	organizationSvc settingsServices.OrganizationUnitServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 	assetRegisterSvc AssetRegisterServiceInterface,
 	vulnerabilitySvc VulnerabilityServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
@@ -64,6 +68,7 @@ func NewAssetRiskRegisterService(
 		repo:             repo,
 		organizationSvc:  organizationSvc,
 		userSvc:          userSvc,
+		userSettingSvc:   userSettingSvc,
 		assetRegisterSvc: assetRegisterSvc,
 		vulnerabilitySvc: vulnerabilitySvc,
 		activityLogSvc:   activityLogSvc,
@@ -826,6 +831,165 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 	}
 
 	return failedIDs, err
+}
+
+func (arrs *AssetRiskRegisterService) ExportRiskRegister(data []*assetRiskDTOs.AssetRiskRegisterListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := arrs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Risk Title",
+			"Risk Code",
+			"Risk Category",
+			"Division",
+			"Department",
+			"Risk Level",
+			"Source",
+			"Confidentiality Score",
+			"Integrity Score",
+			"Availability Score",
+			"Likelihood",
+			"Impact",
+			"Risk Rating",
+			"Registration Date",
+			"Created By",
+			"Created At",
+			"Updated By",
+			"Updated At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Risk Title",
+			"Risk Code",
+			"Risk Category",
+			"Division",
+			"Department",
+			"Risk Level",
+			"Source",
+			"Confidentiality Score",
+			"Integrity Score",
+			"Availability Score",
+			"Likelihood",
+			"Impact",
+			"Risk Rating",
+			"Registration Date",
+			"Created By",
+			"Created At",
+			"Updated By",
+			"Updated At",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, risk := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				risk.ReferenceNumber,
+				risk.Title,
+				risk.RiskCode,
+				risk.RiskCategoryTitleAr,
+				risk.DivisionTitleAr,
+				risk.SectionTitleAr,
+				assetRiskLevel(risk.IsStrategic, risk.IsOperational, userSetting.Language),
+				assetRiskSource(risk.IsInternal, risk.IsExternal, userSetting.Language),
+				risk.ConfidentialityScore,
+				risk.IntegrityScore,
+				risk.AvailabilityScore,
+				risk.CurrentLikelihoodTitleAr,
+				risk.CurrentImpactTitleAr,
+				risk.CurrentRiskRatingTitleAr,
+				risk.RegistrationDate,
+				fmt.Sprintf("%s %s", risk.CreatedUserFirstNameAr, risk.CreatedUserLastNameAr),
+				risk.CreatedAt,
+				func() interface{} {
+					if risk.UpdatedUserFirstNameAr != nil && risk.UpdatedUserLastNameAr != nil {
+						return fmt.Sprintf("%s %s", *risk.UpdatedUserFirstNameAr, *risk.UpdatedUserLastNameAr)
+					}
+					return nil
+				}(),
+				utility.GetStringValue(risk.UpdatedAt),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				risk.ReferenceNumber,
+				risk.Title,
+				risk.RiskCode,
+				risk.RiskCategoryTitleEn,
+				risk.DivisionTitleEn,
+				risk.SectionTitleEn,
+				assetRiskLevel(risk.IsStrategic, risk.IsOperational, userSetting.Language),
+				assetRiskSource(risk.IsInternal, risk.IsExternal, userSetting.Language),
+				risk.ConfidentialityScore,
+				risk.IntegrityScore,
+				risk.AvailabilityScore,
+				risk.CurrentLikelihoodTitleEn,
+				risk.CurrentImpactTitleEn,
+				risk.CurrentRiskRatingTitleEn,
+				risk.RegistrationDate,
+				fmt.Sprintf("%s %s", risk.CreatedUserFirstNameEn, risk.CreatedUserLastNameEn),
+				risk.CreatedAt,
+				func() interface{} {
+					if risk.UpdatedUserFirstNameEn != nil && risk.UpdatedUserLastNameEn != nil {
+						return fmt.Sprintf("%s %s", *risk.UpdatedUserFirstNameEn, *risk.UpdatedUserLastNameEn)
+					}
+					return nil
+				}(),
+				utility.GetStringValue(risk.UpdatedAt),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+func assetRiskSource(isInternal bool, isExternal bool, language string) string {
+	if language == "ar" {
+		if isInternal {
+			return "داخلي"
+		}
+		if isExternal {
+			return "خارجي"
+		}
+		return ""
+	}
+
+	if isInternal {
+		return "Internal"
+	}
+	if isExternal {
+		return "External"
+	}
+	return ""
+}
+
+func assetRiskLevel(isStrategic bool, isOperational bool, language string) string {
+	if language == "ar" {
+		if isStrategic {
+			return "استراتيجي"
+		}
+		if isOperational {
+			return "تشغيلي"
+		}
+		return ""
+	}
+
+	if isStrategic {
+		return "Strategic"
+	}
+	if isOperational {
+		return "Operational"
+	}
+	return ""
 }
 
 func (arrs *AssetRiskRegisterService) GetRiskStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.RiskStatus, error) {
