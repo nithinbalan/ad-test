@@ -20,6 +20,8 @@ type RiskRegisterRepositoryInterface interface {
 	Create(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskEvaluationsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskUpdatePlanRisksByRiskID(riskID uint, tx ...utility.DatabaseTransaction) error
 	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 
@@ -492,8 +494,57 @@ func (repo *RiskRegisterRepository) Delete(id uint, tx ...utility.DatabaseTransa
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
+
 	// Delete the Risk register
 	if err := db.Delete(&models.RiskRegister{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteRiskEvaluationsByRiskID(riskID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	queries := []string{
+		`DELETE risk_residual_evaluation_histories
+		 FROM risk_residual_evaluation_histories
+		 WHERE risk_register_id = ?`,
+		`DELETE risk_impact_analysis_guidelines
+		 FROM risk_impact_analysis_guidelines
+		 JOIN risk_impact_analyses ON risk_impact_analyses.id = risk_impact_analysis_guidelines.risk_impact_analysis_id
+		 JOIN risk_evaluations ON risk_evaluations.id = risk_impact_analyses.risk_evaluation_id
+		 WHERE risk_evaluations.risk_register_id = ?`,
+		`DELETE risk_impact_analyses
+		 FROM risk_impact_analyses
+		 JOIN risk_evaluations ON risk_evaluations.id = risk_impact_analyses.risk_evaluation_id
+		 WHERE risk_evaluations.risk_register_id = ?`,
+		`DELETE risk_appetite_alignments
+		 FROM risk_appetite_alignments
+		 JOIN risk_evaluations ON risk_evaluations.id = risk_appetite_alignments.risk_evaluation_id
+		 WHERE risk_evaluations.risk_register_id = ?`,
+		`DELETE FROM risk_evaluations WHERE risk_register_id = ?`,
+	}
+
+	for _, query := range queries {
+		if err := db.Exec(query, riskID).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteRiskUpdatePlanRisksByRiskID(riskID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("risk_register_id = ?", riskID).Delete(&models.RiskUpdatePlanRisk{}).Error; err != nil {
 		return err
 	}
 
@@ -1607,6 +1658,9 @@ func (repo *RiskRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseT
 
 		// Safety cleanup: delete any risk_update_plan_risks directly referencing this risk register
 		`DELETE FROM risk_update_plan_risks WHERE risk_register_id = ?`,
+
+		`DELETE FROM risks_strategic_intiatives
+		WHERE risks_strategic_intiatives.risk_register_id = ?`,
 	}
 	// Delete the Risk register
 

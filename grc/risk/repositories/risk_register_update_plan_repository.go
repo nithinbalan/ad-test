@@ -211,6 +211,22 @@ func (repo *RiskRegisterUpdatePlanRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("Timelines.RiskAssessmentWorkshopDocuments").
 		Preload("Timelines.RiskTeamAssessments").
 		Preload("Timelines.RiskTeamAssessments.RiskChampion").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.OrganizationUnit1").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.OrganizationUnit2").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.OrganizationUnit3").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.OrganizationUnit4").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.OrganizationUnit5").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.UserStatus").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.Designation").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.UserRoles").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.UserSetting").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.UserSetting.Timezone").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.UserRoles.Role").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.UserRoles.Role.LicenseType").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.ReportingUser").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.LicenseType").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion.DelegationUser").
 		Preload("Timelines.RiskTeamDocuments").
 		Preload("Timelines.RiskWorkshopAssessmentDocuments").
 		Preload("Timelines.SelfAwarenessTrainings").
