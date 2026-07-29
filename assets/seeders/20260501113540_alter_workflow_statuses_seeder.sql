@@ -1,10 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
 
--- Drop constraint first (to avoid check constraint issue)
-ALTER TABLE workflow_statuses
-DROP CONSTRAINT CHK_workflow_statuses_type;
-
 -- Update existing record if already seeded
 UPDATE workflow_statuses
 SET type = 'reopen',
@@ -19,49 +15,14 @@ BEGIN
     VALUES ('ReOpened', N'إعادة فتح', '#FF9F45', 'reopen', 'active');
 END
 
--- Recreate constraint with re_open
-ALTER TABLE workflow_statuses
-ADD CONSTRAINT CHK_workflow_statuses_type
-CHECK (
-    type IN (
-        'submit',
-        'revert',
-        'reject',
-        'approve',
-        'publish',
-        'pending',
-        'comment',
-        'reopen',
-        'resubmit'
-    )
-);
-
 -- +goose StatementEnd
 
 
 -- +goose Down
 -- +goose StatementBegin
 
-ALTER TABLE workflow_statuses
-DROP CONSTRAINT CHK_workflow_statuses_type;
-
 -- Delete re_open record
 DELETE FROM workflow_statuses
 WHERE type = 'reopen';
-
--- Restore constraint with 
-ALTER TABLE workflow_statuses
-ADD CONSTRAINT CHK_workflow_statuses_type
-CHECK (
-    type IN (
-        'submit',
-        'revert',
-        'reject',
-        'approve',
-        'publish',
-        'pending',
-        'comment'
-    )
-);
 
 -- +goose StatementEnd
