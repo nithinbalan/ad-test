@@ -422,6 +422,7 @@ type BusinessImpactAssessmentRatingDTO struct {
 	ProcessID            uint                               `json:"process_id"`
 	OverallImpactLevelID uint                               `json:"overall_impact_level_id"`
 	OverallImpactLevel   *BCMImpactAnalysisLevelDTO         `json:"overall_impact_level"`
+	OverallOutageBucket  *BCMBIAOutageBucketDTO             `json:"overall_outage_bucket"`
 	BCMBIAImpactLevelID  uint                               `json:"bcm_bia_impact_level_id"`
 	BCMBIAImpactLevel    *BCMBIAImpactLevelDetailDTO        `json:"bcm_bia_impact_level"`
 	IsEdited             bool                               `json:"is_edited"`
