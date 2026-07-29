@@ -413,8 +413,8 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate time.Time, endDa
 		Joins("LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id").
 		Joins("LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id").
-		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
-		Order("risk_register.reported_at DESC")
+		Where("risk_register.registration_date BETWEEN ? AND ?", startDate, endDate).
+		Order("risk_register.registration_date DESC")
 
 	if len(organizationUnitIDs) > 0 {
 		query = query.Where("risk_register.responsible_unit_id IN ?", organizationUnitIDs)
