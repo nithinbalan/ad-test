@@ -5,7 +5,6 @@ import "time"
 type DocumentReportDocument struct {
 	ID                                   uint       `json:"id" gorm:"primaryKey;autoIncrement"`
 	DocumentReportID                     uint       `json:"document_report_id" gorm:"not null;index"`
-	SourceDocumentID                     uint       `json:"source_document_id" gorm:"not null"`
 	ReferenceNumber                      string     `json:"reference_number" gorm:"type:varchar(45);not null"`
 	TitleEn                              string     `json:"title_en" gorm:"type:nvarchar(255);not null"`
 	TitleAr                              string     `json:"title_ar" gorm:"type:nvarchar(255);not null"`
@@ -40,13 +39,11 @@ type DocumentReportDocument struct {
 	NextReviewDate                       *time.Time `json:"next_review_date" gorm:"type:date"`
 	PublishedAt                          *time.Time `json:"published_at" gorm:"type:datetime"`
 	ClausesJSON                          string     `json:"-" gorm:"column:clauses_json;type:nvarchar(max);not null"`
-	ControlsJSON                         string     `json:"-" gorm:"column:controls_json;type:nvarchar(max);not null"`
-	AssociatedItemsJSON                  string     `json:"-" gorm:"column:associated_items_json;type:nvarchar(max);not null"`
-	CreatedByID                          uint       `json:"created_by_id" gorm:"not null"`
+	CreatedBYID                          uint       `json:"created_by_id" gorm:"not null"`
 	CreatedAt                            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 
 	DocumentReport *DocumentReport `gorm:"foreignKey:DocumentReportID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser  *User           `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser  *User           `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (DocumentReportDocument) TableName() string {

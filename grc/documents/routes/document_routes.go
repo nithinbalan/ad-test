@@ -100,6 +100,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/document-reports", middlewares.RolePermissionMiddleware(db, "document_report", "view"), documentReportController.GetAllDocumentReports)
 	documentRoutes.GET("/document-reports/:documentReportId", middlewares.RolePermissionMiddleware(db, "document_report", "view"), documentReportController.GetDocumentReportDetails)
+	documentRoutes.GET("/document-reports/:documentReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "document_report", "view"), documentReportController.GetDocumentReportExportZip)
 	documentRoutes.POST("/document-reports", middlewares.RolePermissionMiddleware(db, "document_report", "view"), documentReportController.CreateDocumentReport)
 	documentRoutes.DELETE("/document-reports/:documentReportId", middlewares.RolePermissionMiddleware(db, "document_report", "view"), documentReportController.DeleteDocumentReport)
 

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <style>
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont300}}') format('woff');
+      font-weight: 300;
+    }
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont500}}') format('woff');
+      font-weight: 500;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Lexend Deca', sans-serif;
+      background: #fff;
+      color: #000;
+      font-size: 10px;
+      line-height: 1.4;
+      margin: 0;
+      word-break: break-word;
+    }
+    .page {
+      width: 1000px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 0 53px 20px;
+    }
+    .section { margin-bottom: 30px; }
+    .section-title {
+      color: #050505;
+      font-size: 19px;
+      font-weight: 500;
+      margin: 0 0 10px;
+    }
+    .table-wrap { width: 100%; overflow: hidden; }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .table th {
+      background: #00c4b3;
+      color: #07201d;
+      border: 1px solid #a7ebe5;
+      font-size: 8px;
+      font-weight: 500;
+      padding: 7px 4px;
+      text-align: left;
+      overflow-wrap: break-word;
+    }
+    .table td {
+      border: 1px solid #eaedf2;
+      font-size: 8px;
+      font-weight: 300;
+      padding: 7px 4px;
+      vertical-align: middle;
+      overflow-wrap: break-word;
+    }
+    .table tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .empty-row { color: #666; font-style: italic; }
+    .status-badge {
+      display: inline-block;
+      padding: 2px 4px;
+      border: 1px solid;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="section">
+      <h2 class="section-title">Documents</h2>
+      <div class="table-wrap">
+        <table class="table">
+          <colgroup>
+            <col style="width: 3%">
+            <col style="width: 10%">
+            <col style="width: 13%">
+            <col style="width: 10%">
+            <col style="width: 8%">
+            <col style="width: 8%">
+            <col style="width: 8%">
+            <col style="width: 10%">
+            <col style="width: 10%">
+            <col style="width: 6%">
+            <col style="width: 9%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Reference Number</th>
+              <th>Title</th>
+              <th>Document Category</th>
+              <th>Document Type</th>
+              <th>Status</th>
+              <th>Access</th>
+              <th>Responsible Unit</th>
+              <th>Responsible User</th>
+              <th>Version</th>
+              <th>Published At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{if gt (len .Data.Documents) 0}}
+            {{range $index, $document := .Data.Documents}}
+            <tr>
+              <td>{{add $index 1}}</td>
+              <td>{{$document.ReferenceNumber}}</td>
+              <td>{{$document.TitleEn}}</td>
+              <td>{{$document.DocumentCategoryTitleEn}}</td>
+              <td>{{$document.DocumentTypeTitleEn}}</td>
+              <td>
+                <span class="status-badge" style="color: {{$document.DocumentStatusColorCode}}; border-color: {{$document.DocumentStatusColorCode}};">
+                  {{$document.DocumentStatusTitleEn}}
+                </span>
+              </td>
+              <td>{{$document.DocumentAccessTypeTitleEn}}</td>
+              <td>{{if $document.ResponsibleUnitTitleEn}}{{$document.ResponsibleUnitTitleEn}}{{end}}</td>
+              <td>{{if $document.ResponsibleUserNameEn}}{{$document.ResponsibleUserNameEn}}{{end}}</td>
+              <td>{{if $document.Version}}{{$document.Version}}{{end}}</td>
+              <td>{{if $document.PublishedAt}}{{$document.PublishedAt}}{{end}}</td>
+            </tr>
+            {{end}}
+            {{else}}
+            <tr><td colspan="11" class="empty-row">No documents available.</td></tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Clauses and Controls</h2>
+      <div class="table-wrap">
+        <table class="table">
+          <colgroup>
+            <col style="width: 4%">
+            <col style="width: 18%">
+            <col style="width: 13%">
+            <col style="width: 20%">
+            <col style="width: 25%">
+            <col style="width: 20%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Document</th>
+              <th>Clause Number</th>
+              <th>Title</th>
+              <th>Description</th>
+              <th>Controls</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{$row := 0}}
+            {{range $document := .Data.Documents}}
+              {{range $clause := $document.Clauses}}
+              {{$row = add $row 1}}
+              <tr>
+                <td>{{$row}}</td>
+                <td>{{$document.TitleEn}}</td>
+                <td>{{if $clause.ClauseNumber}}{{$clause.ClauseNumber}}{{end}}</td>
+                <td>{{$clause.ClauseTitleEn}}</td>
+                <td>{{if $clause.Description}}{{$clause.Description}}{{end}}</td>
+                <td>
+                  {{range $controlIndex, $control := $clause.Controls}}{{if $controlIndex}}, {{end}}{{$control.ReferenceNumber}} - {{$control.TitleEn}}{{end}}
+                </td>
+              </tr>
+              {{end}}
+            {{end}}
+            {{if eq $row 0}}
+            <tr><td colspan="6" class="empty-row">No clauses or controls available.</td></tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

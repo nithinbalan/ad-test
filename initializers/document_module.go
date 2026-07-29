@@ -255,7 +255,11 @@ func NewDocumentModule(db *gorm.DB,
 	documentRequirementController := controllers.NewDocumentRequirementController(documentRequirementSvc)
 
 	documentReportRepo := repositories.NewDocumentReportRepository(db)
-	documentReportSvc := services.NewDocumentReportService(documentReportRepo, sharedModule.ActivityLogService)
+	documentReportSvc := services.NewDocumentReportService(
+		documentReportRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.ReportTemplateSettingSvc,
+	)
 	documentReportController := controllers.NewDocumentReportController(documentReportSvc)
 
 	// Initialize PolicyController

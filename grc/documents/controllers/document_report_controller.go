@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"jethur/grc/documents/dtos"
@@ -19,24 +21,28 @@ type DocumentReportController struct {
 }
 
 func NewDocumentReportController(service services.DocumentReportServiceInterface) *DocumentReportController {
-	return &DocumentReportController{service: service}
+	return &DocumentReportController{
+		service: service,
+	}
 }
 
-func (controller *DocumentReportController) GetAllDocumentReports(c *gin.Context) {
-	sortOrder := c.DefaultQuery("sort_order", "desc")
-	if sortOrder != "asc" && sortOrder != "desc" {
+func (drc *DocumentReportController) GetAllDocumentReports(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
+	keyword := c.Query("keyword")
+
+	if sort != "asc" && sort != "desc" {
 		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_order' parameter"))
 		return
 	}
+
 	validSortFields := map[string]string{
-		"title": "document_reports.title", "created_at": "document_reports.created_at",
-		"document_category": "document_categories.title_en", "document_type": "document_types.title_en",
+		"title":             "document_reports.title",
+		"created_at":        "document_reports.created_at",
+		"document_category": "document_categories.title_en",
+		"document_type":     "document_types.title_en",
 	}
-	sortBy, ok := validSortFields[c.DefaultQuery("sort_by", "created_at")]
-	if !ok {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_by' parameter"))
-		return
-	}
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -47,78 +53,147 @@ func (controller *DocumentReportController) GetAllDocumentReports(c *gin.Context
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
-	result, err := controller.service.GetAll(&dtos.DocumentReportListQueryParamsDTO{
-		Sort: sortOrder, SortBy: sortBy, Keyword: c.Query("keyword"), Page: page, PageSize: pageSize,
-	})
-	if err != nil {
-		utility.SendInternalErrResp(controller.db, c, err.Error())
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_by' parameter"))
 		return
 	}
-	c.JSON(http.StatusOK, result)
+
+	queryParams := dtos.DocumentReportListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   dbField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	reports, err := drc.service.GetAll(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(drc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, reports)
 }
 
-func (controller *DocumentReportController) GetDocumentReportDetails(c *gin.Context) {
-	reportID, err := strconv.ParseUint(c.Param("documentReportId"), 10, 32)
+func (drc *DocumentReportController) GetDocumentReportDetails(c *gin.Context) {
+	reportID, err := strconv.Atoi(c.Param("documentReportId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	result, err := controller.service.GetDocumentReportDetails(uint(reportID))
+
+	details, err := drc.service.GetDocumentReportDetails(uint(reportID))
 	if err != nil {
-		if _, ok := err.(*utility.ResourceNotFoundError); ok {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		default:
+			utility.SendInternalErrResp(drc.db, c, e.Error())
+			return
 		}
-		utility.SendInternalErrResp(controller.db, c, err.Error())
-		return
 	}
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, details)
 }
 
-func (controller *DocumentReportController) CreateDocumentReport(c *gin.Context) {
-	var form dtos.DocumentReportFormDTO
-	if err := c.ShouldBindJSON(&form); err != nil {
+func (drc *DocumentReportController) CreateDocumentReport(c *gin.Context) {
+	var request dtos.DocumentReportFormDTO
+
+	if err := c.ShouldBindJSON(&request); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(controller.db, c, err.Error())
+		utility.SendInternalErrResp(drc.db, c, err.Error())
 		return
 	}
-	reportID, err := controller.service.CreateDocumentReport(currentUserID, &form)
+
+	reportID, err := drc.service.Create(currentUserID, &request)
 	if err != nil {
-		switch typedErr := err.(type) {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, typedErr)
+			utility.SendInvalidErrResp(c, e)
+			return
 		default:
-			utility.SendInternalErrResp(controller.db, c, err.Error())
+			utility.SendInternalErrResp(drc.db, c, e.Error())
+			return
 		}
-		return
 	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Document report generated successfully", "document_report_id": reportID,
 	})
 }
 
-func (controller *DocumentReportController) DeleteDocumentReport(c *gin.Context) {
-	reportID, err := strconv.ParseUint(c.Param("documentReportId"), 10, 32)
+func (drc *DocumentReportController) DeleteDocumentReport(c *gin.Context) {
+	reportID, err := strconv.Atoi(c.Param("documentReportId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(drc.db, c, err.Error())
+		return
+	}
+
+	err = drc.service.DeleteDocumentReport(uint(reportID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(drc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (drc *DocumentReportController) GetDocumentReportExportZip(c *gin.Context) {
+	reportIDString := c.Param("documentReportId")
+	reportID, err := strconv.ParseUint(reportIDString, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(controller.db, c, err.Error())
+		utility.SendInternalErrResp(drc.db, c, err.Error())
 		return
 	}
-	if err := controller.service.DeleteDocumentReport(uint(reportID), currentUserID); err != nil {
-		if _, ok := err.(*utility.ResourceNotFoundError); ok {
+
+	zipFilePath, err := drc.service.GetDocumentReportExportZip(uint(reportID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(drc.db, c, fmt.Sprintf("failed to export ZIP: %v", err))
+			return
 		}
-		utility.SendInternalErrResp(controller.db, c, err.Error())
-		return
 	}
-	c.Status(http.StatusOK)
+
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=document_report_%d.zip", reportID))
+	c.File(zipFilePath)
+
+	defer os.Remove(zipFilePath)
 }
