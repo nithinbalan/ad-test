@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
 	"net/http"
@@ -21,8 +22,12 @@ func NewWorkflowCustomRoleController(service services.WorkflowCustomRoleServiceI
 }
 
 func (wcrc *WorkflowCustomRoleController) GetAllWorkflowCustomRoles(c *gin.Context) {
+	quickFilter := c.QueryArray("quick_filter")
+	queryParams := dtos.WorkflowCustomRoleListQueryParamsDTO{
+		QuickFilter: quickFilter,
+	}
 
-	workflowCustomRoles, err := wcrc.service.GetAll()
+	workflowCustomRoles, err := wcrc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(wcrc.db, c, err.Error())

@@ -136,3 +136,7 @@ type WorkflowCustomRoleDTO struct {
 	Type             string `json:"type"`
 	ModuleIdentifier string `json:"module_identifier"`
 }
+
+type WorkflowCustomRoleListQueryParamsDTO struct {
+	QuickFilter []string
+}

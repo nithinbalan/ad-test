@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <style>
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont400}}') format('woff');
+      font-weight: 400;
+    }
+    body {
+      font-family: 'Lexend Deca', sans-serif;
+      margin: 0;
+      color: #111;
+      font-size: 12px;
+    }
+    .footer-wrap {
+      border-top: 1px solid #dedede;
+      margin: 0 53px;
+      padding: 12px 0;
+      overflow: hidden;
+    }
+    .left { float: left; margin-top: 10px; }
+    .right { float: right; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="footer-wrap">
+    <div class="left">www&#8203;.adf&#8203;.com</div>
+    <div class="right">Page No <span class="page"></span> of <span class="topage"></span></div>
+  </div>
+  <script>
+    (function () {
+      var vars = {};
+      var query = document.location.search.substring(1).split('&');
+      for (var i = 0; i < query.length; i++) {
+        var pair = query[i].split('=', 2);
+        if (pair.length === 2) vars[pair[0]] = decodeURIComponent(pair[1]);
+      }
+      document.querySelector('.page').textContent = vars.page || '';
+      document.querySelector('.topage').textContent = vars.topage || '';
+    })();
+  </script>
+</body>
+</html>
