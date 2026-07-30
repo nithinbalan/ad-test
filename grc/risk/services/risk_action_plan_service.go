@@ -126,6 +126,10 @@ func (raps RiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*ris
 		return nil, err
 	}
 
+	if riskActionPlan.RiskRegister == nil || riskActionPlan.RiskRegister.IsCyberRisk {
+		return nil, utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, id)
+	}
+
 	err = mapstructure.Decode(riskActionPlan, &riskActionPlanDTO)
 	if err != nil {
 		return nil, err

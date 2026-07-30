@@ -278,6 +278,10 @@
 {
   "id": "workflow_not_rejected",
   "translation": "The {{.Field}} can only be resubmitted if it has been rejected."
+},
+{
+  "id": "subsequent_stage_completed",
+  "translation": "This action cannot be performed because {{.Field}} has already been completed."
 }
 
 

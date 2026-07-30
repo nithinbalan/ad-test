@@ -98,6 +98,10 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Create(riskID uint, riskAc
 	if err != nil {
 		return 0, err
 	}
+	if riskID == 0 {
+		riskID = riskActionPlan.RiskRegisterID
+	}
+
 	actionPlanStatus, err := arasus.actionPlanStatusSvc.GetByType("completed")
 	if err != nil {
 		return 0, err
@@ -222,8 +226,12 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Create(riskID uint, riskAc
 }
 
 func (arasus *AssetRiskActionPlanStatusUpdateService) Update(riskID uint, riskActionPlanID uint, id uint, currentUserID uint, formDTO *assetDTOs.AssetRiskActionPlanStatusUpdateFormDTO) (err error) {
-	if _, err := arasus.assetRiskActionPlanSvc.GetByID(riskID, riskActionPlanID); err != nil {
+	riskActionPlan, err := arasus.assetRiskActionPlanSvc.GetByID(riskID, riskActionPlanID)
+	if err != nil {
 		return err
+	}
+	if riskID == 0 {
+		riskID = riskActionPlan.RiskRegisterID
 	}
 
 	existingRiskActionPlanStatusUpdate, err := arasus.GetByID(riskID, riskActionPlanID, id)
@@ -430,6 +438,9 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Approve(riskID uint, riskA
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, riskActionPlanID)
 	}
+	if riskID == 0 {
+		riskID = existingRiskActionPlan.RiskRegisterID
+	}
 
 	if existingRiskActionPlan.ReviewUserID == nil || currentUserID != *existingRiskActionPlan.ReviewUserID {
 		return utility.NewForbiddenError("Permission denied.")
@@ -597,6 +608,9 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Revert(riskID uint, riskAc
 	existingRiskActionPlan, err := arasus.assetRiskActionPlanSvc.GetByID(riskID, riskActionPlanID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, riskActionPlanID)
+	}
+	if riskID == 0 {
+		riskID = existingRiskActionPlan.RiskRegisterID
 	}
 
 	if existingRiskActionPlan.ReviewUserID == nil || currentUserID != *existingRiskActionPlan.ReviewUserID {

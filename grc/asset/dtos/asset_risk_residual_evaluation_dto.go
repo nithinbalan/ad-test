@@ -2,9 +2,7 @@ package dtos
 
 type AssetRiskResidualEvaluationFormDTO struct {
 	RiskMatrixLikelihoodID uint `json:"risk_matrix_likelihood_id" binding:"required"`
-	ConfidentialityScore   int  `json:"confidentiality_score" binding:"required,min=1,max=5"`
-	IntegrityScore         int  `json:"integrity_score" binding:"required,min=1,max=5"`
-	AvailabilityScore      int  `json:"availability_score" binding:"required,min=1,max=5"`
+	RiskMatrixImpactID     uint `json:"risk_matrix_impact_id" binding:"required"`
 }
 
 type AssetRiskResidualEvaluationDTO struct {

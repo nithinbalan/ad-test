@@ -24,9 +24,9 @@ import (
 )
 
 type AssetRiskActionPlanServiceInterface interface {
-	GetAll(riskID uint, params *assetDTOs.AssetRiskActionPlanListQueryParamsDTO) (*assetDTOs.AssetRiskActionPlanListResponseDTO, error)
+	GetAll(riskID uint, currentUserID uint, params *assetDTOs.AssetRiskActionPlanListQueryParamsDTO) (*assetDTOs.AssetRiskActionPlanListResponseDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskActionPlan, error)
-	GetFullDetailsByID(riskID uint, id uint) (*assetDTOs.AssetRiskActionPlanDetailDTO, error)
+	GetFullDetailsByID(riskID uint, id uint, currentUserID uint, isPassiveUser bool) (*assetDTOs.AssetRiskActionPlanDetailDTO, error)
 	Create(riskID uint, currentUserID uint, formDTO *assetDTOs.AssetRiskActionPlanFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, formDTO *assetDTOs.AssetRiskActionPlanFormDTO) error
 	Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -84,18 +84,35 @@ func NewAssetRiskActionPlanService(
 	}
 }
 
-func (araps *AssetRiskActionPlanService) GetAll(riskID uint, params *assetDTOs.AssetRiskActionPlanListQueryParamsDTO) (*assetDTOs.AssetRiskActionPlanListResponseDTO, error) {
+func (araps *AssetRiskActionPlanService) GetAll(riskID uint, currentUserID uint, params *assetDTOs.AssetRiskActionPlanListQueryParamsDTO) (*assetDTOs.AssetRiskActionPlanListResponseDTO, error) {
 	if riskID != 0 {
 		if _, err := araps.assetRiskRegisterSvc.GetByID(riskID); err != nil {
 			return nil, err
 		}
 	}
+
+	if currentUserID != 0 && riskID == 0 {
+		params.IsAllAccess = false
+		params.AccessUserID = currentUserID
+
+		isSuperAdmin, err := araps.userSvc.IsSuperAdmin(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+
+		if isSuperAdmin {
+			params.IsAllAccess = true
+		}
+	}
+
 	return araps.repo.GetAll(riskID, params)
 }
 
 func (araps AssetRiskActionPlanService) GetByID(riskID uint, id uint) (*models.RiskActionPlan, error) {
-	if _, err := araps.assetRiskRegisterSvc.GetByID(riskID); err != nil {
-		return nil, err
+	if riskID != 0 {
+		if _, err := araps.assetRiskRegisterSvc.GetByID(riskID); err != nil {
+			return nil, err
+		}
 	}
 
 	riskActionPlan, err := araps.repo.GetByID(id)
@@ -108,7 +125,7 @@ func (araps AssetRiskActionPlanService) GetByID(riskID uint, id uint) (*models.R
 	return riskActionPlan, nil
 }
 
-func (araps AssetRiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*assetDTOs.AssetRiskActionPlanDetailDTO, error) {
+func (araps AssetRiskActionPlanService) GetFullDetailsByID(riskID uint, id uint, currentUserID uint, isPassiveUser bool) (*assetDTOs.AssetRiskActionPlanDetailDTO, error) {
 	var riskActionPlanDTO assetDTOs.AssetRiskActionPlanDetailDTO
 
 	if riskID != 0 {
@@ -127,6 +144,16 @@ func (araps AssetRiskActionPlanService) GetFullDetailsByID(riskID uint, id uint)
 
 	if riskActionPlan.RiskRegister == nil || !riskActionPlan.RiskRegister.IsCyberRisk {
 		return nil, utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, id)
+	}
+
+	if isPassiveUser {
+		if riskActionPlan.ResponsibleUserID != currentUserID {
+			return nil, utility.NewForbiddenError("Permission denied.")
+		}
+
+		if riskActionPlan.DelegateeUserID != nil && *riskActionPlan.DelegateeUserID != currentUserID {
+			return nil, utility.NewForbiddenError("Permission denied.")
+		}
 	}
 
 	err = mapstructure.Decode(riskActionPlan, &riskActionPlanDTO)
@@ -296,7 +323,7 @@ func (araps *AssetRiskActionPlanService) Create(riskID uint, currentUserID uint,
 	}
 
 	go func() {
-		existingRiskActionPlan, err := araps.GetFullDetailsByID(riskActionPlan.RiskRegisterID, riskActionPlan.ID)
+		existingRiskActionPlan, err := araps.GetFullDetailsByID(riskActionPlan.RiskRegisterID, riskActionPlan.ID, 0, false)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -403,7 +430,7 @@ func (araps *AssetRiskActionPlanService) Create(riskID uint, currentUserID uint,
 
 func (araps *AssetRiskActionPlanService) Update(riskID uint, id uint, currentUserID uint, formDTO *assetDTOs.AssetRiskActionPlanFormDTO) (err error) {
 
-	oldRiskActionPlan, err := araps.GetFullDetailsByID(riskID, id)
+	oldRiskActionPlan, err := araps.GetFullDetailsByID(riskID, id, 0, false)
 	if err != nil {
 		return err
 	}
@@ -582,7 +609,7 @@ func (araps *AssetRiskActionPlanService) Update(riskID uint, id uint, currentUse
 	}
 
 	go func() {
-		existingActionPlan, err := araps.GetFullDetailsByID(riskID, id)
+		existingActionPlan, err := araps.GetFullDetailsByID(riskID, id, 0, false)
 		if err != nil {
 			return
 		}
@@ -869,7 +896,7 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 			failedIds = append(failedIds, taskID)
 		}
 
-		existingRiskActionPlan, err := araps.GetFullDetailsByID(riskID, id)
+		existingRiskActionPlan, err := araps.GetFullDetailsByID(riskID, id, 0, false)
 		if err != nil {
 			continue
 		}

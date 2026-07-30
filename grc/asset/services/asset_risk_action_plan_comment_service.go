@@ -104,11 +104,15 @@ func (s *AssetRiskActionPlanCommentService) GetFullDetailsByID(riskID uint, acti
 }
 
 func (rapcs *AssetRiskActionPlanCommentService) Create(riskID uint, actionPlanID uint, currentUserID uint, dto *assetDTOs.AssetRiskActionPlanCommentFormDTO) (id uint, err error) {
-	if _, err := rapcs.assetRiskActionPlanSvc.GetByID(riskID, actionPlanID); err != nil {
+	existingActionPlan, err := rapcs.assetRiskActionPlanSvc.GetByID(riskID, actionPlanID)
+	if err != nil {
 		return 0, err
 	}
+	if riskID == 0 {
+		riskID = existingActionPlan.RiskRegisterID
+	}
 
-	riskActionPlan, err := rapcs.assetRiskActionPlanSvc.GetFullDetailsByID(riskID, actionPlanID)
+	riskActionPlan, err := rapcs.assetRiskActionPlanSvc.GetFullDetailsByID(riskID, actionPlanID, 0, false)
 	if err != nil {
 		return 0, err
 	}
@@ -314,8 +318,12 @@ func (rapcs *AssetRiskActionPlanCommentService) notifyActionPlanComment(riskID u
 }
 
 func (rapcs *AssetRiskActionPlanCommentService) Update(riskID uint, actionPlanID uint, id uint, currentUserID uint, formDTO *assetDTOs.AssetRiskActionPlanCommentFormDTO) (err error) {
-	if _, err := rapcs.assetRiskActionPlanSvc.GetByID(riskID, actionPlanID); err != nil {
+	existingActionPlan, err := rapcs.assetRiskActionPlanSvc.GetByID(riskID, actionPlanID)
+	if err != nil {
 		return err
+	}
+	if riskID == 0 {
+		riskID = existingActionPlan.RiskRegisterID
 	}
 
 	existingComment, err := rapcs.GetByID(riskID, actionPlanID, id)
