@@ -12,7 +12,7 @@ import (
 
 // Interfaces
 type ComplianceFolderRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceDTOs.ComplianceFolderListDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isCyberUser bool) ([]*complianceDTOs.ComplianceFolderListDTO, error)
 	GetByID(id uint) (*models.ComplianceFolder, error)
 	Create(folder *models.ComplianceFolder) (*models.ComplianceFolder, error)
 	Update(id uint, folder *models.ComplianceFolder) (*models.ComplianceFolder, error)
@@ -34,7 +34,7 @@ func NewComplianceFolderRepository(db *gorm.DB) *ComplianceFolderRepository {
 	}
 }
 
-func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceDTOs.ComplianceFolderListDTO, error) {
+func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keyword string, status string, isCyberUser bool) ([]*complianceDTOs.ComplianceFolderListDTO, error) {
 	var folders []*complianceDTOs.ComplianceFolderListDTO
 
 	query := `
@@ -42,7 +42,8 @@ func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keywo
 			cf.id, 
 			cf.title_en, 
 			cf.title_ar, 
-			cf.status, 
+			cf.status,
+			cf.is_cyber,
 			COALESCE(cf.created_at, '1900-01-01 00:00:00') AS created_at, 
 			COUNT(cr.id) AS compliance_register_count
 		FROM compliance_folders cf
@@ -63,13 +64,17 @@ func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keywo
 		args = append(args, status)
 	}
 
+	if isCyberUser {
+		whereClauses = append(whereClauses, "cf.is_cyber = 1")
+	}
+
 	// Construct WHERE clause
 	if len(whereClauses) > 0 {
 		query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
 
 	// Add created_at to GROUP BY to resolve the error
-	query += " GROUP BY cf.id, cf.title_en, cf.title_ar, cf.status, cf.created_at"
+	query += " GROUP BY cf.id, cf.title_en, cf.title_ar, cf.status, cf.is_cyber, cf.created_at"
 
 	// Apply sorting
 	if sortBy == "" {

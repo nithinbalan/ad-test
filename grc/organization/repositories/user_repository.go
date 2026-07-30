@@ -65,6 +65,7 @@ type UserRepositoryInterface interface {
 	GetUsersByOrganizationUnit(primaryOrgUnitField string, departmentUnitID uint) ([]*models.User, error)
 	IsSuperAdmin(userID uint) (bool, error)
 	GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models.User, error)
+	IsCyberUser(userID uint) (bool, error)
 }
 
 type UserRepository struct {
@@ -1117,4 +1118,13 @@ func (repo *UserRepository) GetSuperAdmin(tx ...utility.DatabaseTransaction) (*m
 	}
 
 	return &user, nil
+}
+
+func (repo *UserRepository) IsCyberUser(userID uint) (bool, error) {
+	var count int64
+	err := repo.db.Table("user_roles").
+		Joins("JOIN roles ON user_roles.role_id = roles.id").
+		Where("user_roles.user_id = ? AND roles.is_cyber = ?", userID, true).
+		Count(&count).Error
+	return count > 0, err
 }

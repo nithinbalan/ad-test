@@ -12,7 +12,7 @@ import (
 
 type ComplianceAssessmentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *complianceDTOs.ComplianceAssessmentListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceAssessmentListQueryParamsDTO, isCyberUser bool) (*complianceDTOs.ComplianceAssessmentListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceAssessment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error)
 	GetMinimalDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error)
@@ -58,7 +58,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 	DeleteComplianceAssessmentControls(ids []*uint, tx ...utility.DatabaseTransaction) error
 	HasControlForRegister(registerID uint) (bool, error)
 
-	GetRegisterIDsWithResponsibleUnitID(responsibleUnitID uint) ([]uint, error)
+	GetRegisterIDsWithResponsibleUnitID(responsibleUnitID uint, isCyberUser bool) ([]uint, error)
 	CreateComplianceAssessmentCompliances(compliances []*models.ComplianceAssessmentCompliance, tx ...utility.DatabaseTransaction) error
 
 	UpdateControlComplianceStatus(dto complianceDTOs.ControlSyncUpdateDTO, tx ...utility.DatabaseTransaction) error
@@ -98,7 +98,7 @@ func (repo *ComplianceAssessmentRepository) BeginTransaction() utility.DatabaseT
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.ComplianceAssessmentListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentListResponseDTO, error) {
+func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.ComplianceAssessmentListQueryParamsDTO, isCyberUser bool) (*complianceDTOs.ComplianceAssessmentListResponseDTO, error) {
 
 	var complianceAssessments []*complianceDTOs.ComplianceAssessmentListDTO
 	var totalCount int64
@@ -169,6 +169,19 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_assessments.updated_by_id
 			LEFT JOIN organization_units ON organization_units.id = compliance_assessments.responsible_unit_id
 		`)
+
+	// Cyber users should only see assessments linked to cyber compliance registers
+	if isCyberUser {
+		query = query.Where(`
+			NOT EXISTS (
+				SELECT 1
+				FROM compliance_assessment_compliances cac
+				JOIN compliance_register cr ON cr.id = cac.compliance_register_id
+				WHERE cac.compliance_assessment_id = compliance_assessments.id
+				AND cr.is_cyber = 0
+			)
+		`)
+	}
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -1941,17 +1954,22 @@ func (repo *ComplianceAssessmentRepository) GetComplianceAssessmentRatings() ([]
 	return ratings, nil
 }
 
-func (repo *ComplianceAssessmentRepository) GetRegisterIDsWithResponsibleUnitID(responsibleUnitID uint) ([]uint, error) {
+func (repo *ComplianceAssessmentRepository) GetRegisterIDsWithResponsibleUnitID(responsibleUnitID uint, isCyberUser bool) ([]uint, error) {
 	var registerIDs []uint
 
-	result := repo.db.Table("compliance_requirement_responsible_units").
+	query := repo.db.Table("compliance_requirement_responsible_units").
 		Select("DISTINCT compliance_clauses.compliance_register_id").
 		Joins("JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_responsible_units.compliance_requirement_id").
 		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
 		Joins("JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
 		Where("compliance_requirement_responsible_units.responsible_unit_id = ?", responsibleUnitID).
-		Where("compliance_register.approved_by_id IS NOT NULL").
-		Pluck("compliance_clauses.compliance_register_id", &registerIDs)
+		Where("compliance_register.approved_by_id IS NOT NULL")
+
+	if isCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
+
+	result := query.Pluck("compliance_clauses.compliance_register_id", &registerIDs)
 
 	if result.Error != nil {
 		return nil, result.Error
