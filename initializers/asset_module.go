@@ -451,7 +451,7 @@ func NewAssetModule(db *gorm.DB,
 	assetRiskInherentControlAnalysisController := controllers.NewAssetRiskInherentControlAnalysisController(assetRiskInherentControlAnalysisSvc)
 
 	assetRiskResidualEvaluationRepo := repositories.NewAssetRiskResidualEvaluationRepository(db)
-	assetRiskResidualEvaluationSvc := services.NewAssetRiskResidualEvaluationService(assetRiskResidualEvaluationRepo, assetRiskRegisterSvc, assetRiskInherentEvaluationSvc, sharedModule.ActivityLogService)
+	assetRiskResidualEvaluationSvc := services.NewAssetRiskResidualEvaluationService(assetRiskResidualEvaluationRepo, assetRiskRegisterSvc, assetRiskInherentEvaluationSvc, sharedModule.ActivityLogService, organizationModule.UserSvc, settingsModule.RoleSvc, commonModule.NotificationService)
 	assetRiskResidualEvaluationController := controllers.NewAssetRiskResidualEvaluationController(assetRiskResidualEvaluationSvc)
 
 	assetRiskResponseRepo := repositories.NewAssetRiskResponseRepository(db)

@@ -39,6 +39,9 @@ func (arapc *AssetRiskActionPlanController) GetAllAssetRiskActionPlans(c *gin.Co
 	} else {
 		riskID = 0
 	}
+
+	isPassiveUser := utility.IsPassiveAccess(c)
+
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
@@ -107,6 +110,12 @@ func (arapc *AssetRiskActionPlanController) GetAllAssetRiskActionPlans(c *gin.Co
 		return
 	}
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(arapc.db, c, err.Error())
+		return
+	}
+
 	queryParams := assetDTOs.AssetRiskActionPlanListQueryParamsDTO{
 		Sort:           sort,
 		SortBy:         dbField,
@@ -121,8 +130,9 @@ func (arapc *AssetRiskActionPlanController) GetAllAssetRiskActionPlans(c *gin.Co
 		Export:         export,
 		DateFrom:       dateFrom,
 		DateTo:         dateTo,
+		IsPassiveUser:  isPassiveUser,
 	}
-	riskActionPlans, err := arapc.service.GetAll(uint(riskID), &queryParams)
+	riskActionPlans, err := arapc.service.GetAll(uint(riskID), currentUserID, &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -136,12 +146,6 @@ func (arapc *AssetRiskActionPlanController) GetAllAssetRiskActionPlans(c *gin.Co
 	}
 
 	if export {
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(arapc.db, c, err.Error())
-			return
-		}
-
 		excelFile, err := arapc.service.ExportAssetRiskActionPlan(riskActionPlans.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(arapc.db, c, err.Error())
@@ -183,11 +187,22 @@ func (arapc *AssetRiskActionPlanController) GetAssetRiskActionPlanDetails(c *gin
 		return
 	}
 
-	riskActionPlan, err := arapc.service.GetFullDetailsByID(uint(riskID), uint(id))
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(arapc.db, c, err.Error())
+		return
+	}
+
+	isPassiveUser := utility.IsPassiveAccess(c)
+
+	riskActionPlan, err := arapc.service.GetFullDetailsByID(uint(riskID), uint(id), currentUserID, isPassiveUser)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(arapc.db, c, e.Error())

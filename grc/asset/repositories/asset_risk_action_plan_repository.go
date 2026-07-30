@@ -173,6 +173,27 @@ func (repo *AssetRiskActionPlanRepository) GetAll(riskID uint, params *assetDTOs
 		query = query.Where("risk_action_plans.risk_register_id = ?", riskID)
 	}
 
+	// access control
+	if riskID == 0 {
+		if params.IsPassiveUser {
+			query = query.Where(`
+			(
+			risk_action_plans.responsible_user_id = ?
+			OR risk_action_plans.delegatee_user_id = ?
+			)
+			`, params.AccessUserID, params.AccessUserID)
+		} else if !params.IsAllAccess {
+			query = query.Where(`
+			(
+			risk_action_plans.responsible_user_id = ?
+			OR risk_action_plans.delegatee_user_id = ?
+			OR risk_action_plans.created_by_id = ?
+			OR risk_action_plans.review_user_id = ?
+			)
+			`, params.AccessUserID, params.AccessUserID, params.AccessUserID, params.AccessUserID)
+		}
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Calculate total count for pagination

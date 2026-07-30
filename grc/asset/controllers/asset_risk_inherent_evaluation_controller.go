@@ -149,6 +149,9 @@ func (aric *AssetRiskInherentEvaluationController) DeleteAssetRiskInherentEvalua
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
 		default:
 			utility.SendInternalErrResp(aric.db, c, e.Error())
 			return

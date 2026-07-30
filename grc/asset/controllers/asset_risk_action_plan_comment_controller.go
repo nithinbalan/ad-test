@@ -26,10 +26,19 @@ func NewAssetRiskActionPlanCommentController(service services.AssetRiskActionPla
 }
 
 func (arapcc *AssetRiskActionPlanCommentController) GetAllAssetRiskActionPlanComments(c *gin.Context) {
-	riskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID uint64
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.ParseUint(riskIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 	actionPlanID, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
 	if err != nil {
@@ -53,10 +62,19 @@ func (arapcc *AssetRiskActionPlanCommentController) GetAllAssetRiskActionPlanCom
 }
 
 func (arapcc *AssetRiskActionPlanCommentController) GetAssetRiskActionPlanCommentDetails(c *gin.Context) {
-	riskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID uint64
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.ParseUint(riskIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 	actionPlanID, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
 	if err != nil {
@@ -86,10 +104,19 @@ func (arapcc *AssetRiskActionPlanCommentController) GetAssetRiskActionPlanCommen
 }
 
 func (arapcc *AssetRiskActionPlanCommentController) CreateAssetRiskActionPlanComment(c *gin.Context) {
-	riskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID uint64
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.ParseUint(riskIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 	actionPlanID, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
 	if err != nil {
@@ -125,10 +152,19 @@ func (arapcc *AssetRiskActionPlanCommentController) CreateAssetRiskActionPlanCom
 }
 
 func (arapcc *AssetRiskActionPlanCommentController) UpdateAssetRiskActionPlanComment(c *gin.Context) {
-	riskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID uint64
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.ParseUint(riskIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 	actionPlanID, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
 	if err != nil {
@@ -170,10 +206,19 @@ func (arapcc *AssetRiskActionPlanCommentController) UpdateAssetRiskActionPlanCom
 }
 
 func (arapcc *AssetRiskActionPlanCommentController) DeleteAssetRiskActionPlanComments(c *gin.Context) {
-	riskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID uint64
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.ParseUint(riskIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 	actionPlanID, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
 	if err != nil {

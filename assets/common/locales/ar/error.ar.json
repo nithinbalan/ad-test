@@ -272,6 +272,10 @@
 {
   "id": "workflow_not_rejected",
   "translation": "لا يمكن إعادة تقديم ال{{.Field}} إلا إذا تم رفضه."
+},
+{
+  "id": "subsequent_stage_completed",
+  "translation": "لا يمكن تنفيذ هذا الإجراء لأن {{.Field}} قد تم إكماله بالفعل."
 }
 
 

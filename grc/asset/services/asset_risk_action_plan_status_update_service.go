@@ -98,6 +98,10 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Create(riskID uint, riskAc
 	if err != nil {
 		return 0, err
 	}
+	if riskID == 0 {
+		riskID = riskActionPlan.RiskRegisterID
+	}
+
 	actionPlanStatus, err := arasus.actionPlanStatusSvc.GetByType("completed")
 	if err != nil {
 		return 0, err
@@ -222,8 +226,12 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Create(riskID uint, riskAc
 }
 
 func (arasus *AssetRiskActionPlanStatusUpdateService) Update(riskID uint, riskActionPlanID uint, id uint, currentUserID uint, formDTO *assetDTOs.AssetRiskActionPlanStatusUpdateFormDTO) (err error) {
-	if _, err := arasus.assetRiskActionPlanSvc.GetByID(riskID, riskActionPlanID); err != nil {
+	riskActionPlan, err := arasus.assetRiskActionPlanSvc.GetByID(riskID, riskActionPlanID)
+	if err != nil {
 		return err
+	}
+	if riskID == 0 {
+		riskID = riskActionPlan.RiskRegisterID
 	}
 
 	existingRiskActionPlanStatusUpdate, err := arasus.GetByID(riskID, riskActionPlanID, id)
@@ -430,6 +438,9 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Approve(riskID uint, riskA
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, riskActionPlanID)
 	}
+	if riskID == 0 {
+		riskID = existingRiskActionPlan.RiskRegisterID
+	}
 
 	if existingRiskActionPlan.ReviewUserID == nil || currentUserID != *existingRiskActionPlan.ReviewUserID {
 		return utility.NewForbiddenError("Permission denied.")
@@ -509,8 +520,8 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Approve(riskID uint, riskA
 			UserIDs:              []uint{existingRiskActionPlan.ResponsibleUserID},
 			ModuleIdentifier:     "asset_risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Action Plan Status Update",
-			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+			HeadingEn:            "ISMS Risk Action Plan Status Update",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل امتثال مخاطر ISMS",
 			TitleEn:              existingRiskActionPlan.Title,
 			TitleAr:              existingRiskActionPlan.Title,
 			Entity:               &entity,
@@ -542,7 +553,7 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Approve(riskID uint, riskA
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Asset Risk Action Plan: %s - Closed", existingRiskActionPlan.Title)
+		subject := fmt.Sprintf("ISMS Risk Action Plan: %s - Closed", existingRiskActionPlan.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
@@ -597,6 +608,9 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Revert(riskID uint, riskAc
 	existingRiskActionPlan, err := arasus.assetRiskActionPlanSvc.GetByID(riskID, riskActionPlanID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, riskActionPlanID)
+	}
+	if riskID == 0 {
+		riskID = existingRiskActionPlan.RiskRegisterID
 	}
 
 	if existingRiskActionPlan.ReviewUserID == nil || currentUserID != *existingRiskActionPlan.ReviewUserID {
@@ -676,8 +690,8 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Revert(riskID uint, riskAc
 			UserIDs:              []uint{existingRiskActionPlan.ResponsibleUserID},
 			ModuleIdentifier:     "asset_risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Action Plan Status Update",
-			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+			HeadingEn:            "ISMS Risk Action Plan Status Update",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل امتثال مخاطر ISMS",
 			TitleEn:              existingRiskActionPlan.Title,
 			TitleAr:              existingRiskActionPlan.Title,
 			Entity:               &entity,
@@ -709,7 +723,7 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Revert(riskID uint, riskAc
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Asset Risk Action Plan: %s - Reopened", existingRiskActionPlan.Title)
+		subject := fmt.Sprintf("ISMS Risk Action Plan: %s - Reopened", existingRiskActionPlan.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,

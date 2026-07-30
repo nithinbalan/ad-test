@@ -1,14 +1,21 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	assetDTOs "jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type AssetRiskResidualEvaluationServiceInterface interface {
@@ -24,6 +31,9 @@ type AssetRiskResidualEvaluationService struct {
 	assetRiskRegisterSvc     AssetRiskRegisterServiceInterface
 	assetRiskInherentEvalSvc AssetRiskInherentEvaluationServiceInterface
 	activityLogSvc           logServices.ActivityLogServiceInterface
+	userSvc                  organizationServices.UserServiceInterface
+	roleSvc                  settingsServices.RoleServiceInterface
+	notificationSvc          commonServices.NotificationServiceInterface
 }
 
 func NewAssetRiskResidualEvaluationService(
@@ -31,12 +41,18 @@ func NewAssetRiskResidualEvaluationService(
 	assetRiskRegisterSvc AssetRiskRegisterServiceInterface,
 	assetRiskInherentEvalSvc AssetRiskInherentEvaluationServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	roleSvc settingsServices.RoleServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AssetRiskResidualEvaluationServiceInterface {
 	return &AssetRiskResidualEvaluationService{
 		repo:                     repo,
 		assetRiskRegisterSvc:     assetRiskRegisterSvc,
 		assetRiskInherentEvalSvc: assetRiskInherentEvalSvc,
 		activityLogSvc:           activityLogSvc,
+		userSvc:                  userSvc,
+		roleSvc:                  roleSvc,
+		notificationSvc:          notificationSvc,
 	}
 }
 
@@ -48,10 +64,10 @@ func (ares *AssetRiskResidualEvaluationService) GetFullDetailsByID(riskID uint) 
 
 	riskEvaluation, err := ares.repo.GetFullDetailsByRiskID(riskID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, riskID)
+		}
 		return nil, err
-	}
-	if riskEvaluation == nil {
-		return nil, nil
 	}
 
 	return toAssetRiskResidualEvaluationDTO(riskEvaluation, riskRegister), nil
@@ -92,6 +108,10 @@ func (ares *AssetRiskResidualEvaluationService) Create(riskID uint, currentUserI
 		return 0, err
 	}
 
+	if riskRegister.ResidualRiskRatingID != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("residual evaluation already exists for this risk"), "unique", "residual evaluation")
+	}
+
 	inherentEvaluation, err := ares.assetRiskInherentEvalSvc.GetFullDetailsByID(riskID)
 	if err != nil {
 		return 0, err
@@ -105,9 +125,7 @@ func (ares *AssetRiskResidualEvaluationService) Create(riskID uint, currentUserI
 		return 0, err
 	}
 
-	impactScore := max(formDTO.ConfidentialityScore, formDTO.IntegrityScore, formDTO.AvailabilityScore)
-
-	overallImpact, err := ares.assetRiskRegisterSvc.GetImpactByScore(impactScore, tx)
+	overallImpact, err := ares.assetRiskRegisterSvc.GetImpactByID(formDTO.RiskMatrixImpactID, tx)
 	if err != nil {
 		return 0, err
 	}
@@ -115,6 +133,11 @@ func (ares *AssetRiskResidualEvaluationService) Create(riskID uint, currentUserI
 	riskValue := int(overallImpact.Score * likelihood.Score)
 
 	riskRatingValue, err := ares.assetRiskRegisterSvc.GetRiskRatingValueByValue(riskValue, tx)
+	if err != nil {
+		return 0, err
+	}
+
+	riskRating, err := ares.assetRiskRegisterSvc.GetRiskRatingByID(riskRatingValue.RiskMatrixRiskRatingID, tx)
 	if err != nil {
 		return 0, err
 	}
@@ -139,9 +162,6 @@ func (ares *AssetRiskResidualEvaluationService) Create(riskID uint, currentUserI
 	riskRegister.ResidualImpactID = &overallImpact.ID
 	riskRegister.ResidualRiskRatingID = &riskRatingValue.RiskMatrixRiskRatingID
 	riskRegister.ResidualRiskRatingValueID = &riskRatingValue.ID
-	riskRegister.ConfidentialityScore = &formDTO.ConfidentialityScore
-	riskRegister.IntegrityScore = &formDTO.IntegrityScore
-	riskRegister.AvailabilityScore = &formDTO.AvailabilityScore
 	riskRegister.UpdatedBYID = &currentUserID
 	riskRegister.UpdatedAt = &now
 
@@ -199,6 +219,8 @@ func (ares *AssetRiskResidualEvaluationService) Create(riskID uint, currentUserI
 		}
 	}()
 
+	go ares.notifyResidualRiskEscalation(riskRegister, riskValue, riskRating, currentUserID)
+
 	return id, nil
 }
 
@@ -247,9 +269,7 @@ func (ares *AssetRiskResidualEvaluationService) Update(riskID uint, id uint, cur
 		return err
 	}
 
-	impactScore := max(formDTO.ConfidentialityScore, formDTO.IntegrityScore, formDTO.AvailabilityScore)
-
-	overallImpact, err := ares.assetRiskRegisterSvc.GetImpactByScore(impactScore, tx)
+	overallImpact, err := ares.assetRiskRegisterSvc.GetImpactByID(formDTO.RiskMatrixImpactID, tx)
 	if err != nil {
 		return err
 	}
@@ -257,6 +277,11 @@ func (ares *AssetRiskResidualEvaluationService) Update(riskID uint, id uint, cur
 	riskValue := int(overallImpact.Score * likelihood.Score)
 
 	riskRatingValue, err := ares.assetRiskRegisterSvc.GetRiskRatingValueByValue(riskValue, tx)
+	if err != nil {
+		return err
+	}
+
+	riskRating, err := ares.assetRiskRegisterSvc.GetRiskRatingByID(riskRatingValue.RiskMatrixRiskRatingID, tx)
 	if err != nil {
 		return err
 	}
@@ -276,9 +301,6 @@ func (ares *AssetRiskResidualEvaluationService) Update(riskID uint, id uint, cur
 	riskRegister.ResidualImpactID = &overallImpact.ID
 	riskRegister.ResidualRiskRatingID = &riskRatingValue.RiskMatrixRiskRatingID
 	riskRegister.ResidualRiskRatingValueID = &riskRatingValue.ID
-	riskRegister.ConfidentialityScore = &formDTO.ConfidentialityScore
-	riskRegister.IntegrityScore = &formDTO.IntegrityScore
-	riskRegister.AvailabilityScore = &formDTO.AvailabilityScore
 	riskRegister.UpdatedBYID = &currentUserID
 	riskRegister.UpdatedAt = &now
 
@@ -334,6 +356,8 @@ func (ares *AssetRiskResidualEvaluationService) Update(riskID uint, id uint, cur
 			})
 		}
 	}()
+
+	go ares.notifyResidualRiskEscalation(riskRegister, riskValue, riskRating, currentUserID)
 
 	return nil
 }
@@ -490,4 +514,99 @@ func toAssetRiskResidualEvaluationDTO(riskEvaluation *models.RiskEvaluation, ris
 	}
 
 	return result
+}
+
+func (ares *AssetRiskResidualEvaluationService) notifyResidualRiskEscalation(riskRegister *models.RiskRegister, riskValue int, riskRating *models.RiskMatrixRiskRating, currentUserID uint) {
+	residualRiskEscalationThreshold := 15
+	if riskValue <= residualRiskEscalationThreshold {
+		return
+	}
+
+	role, err := ares.roleSvc.GetByType("cybersecurity-supervisory-committee")
+	if err != nil {
+		utility.LogError("Failed to fetch cybersecurity supervisory committee role for residual risk escalation", map[string]interface{}{
+			"risk_register_id": riskRegister.ID,
+			"error":            err.Error(),
+		})
+		return
+	}
+
+	userIDs, err := ares.userSvc.GetUserIdsByRole(role.ID)
+	if err != nil {
+		utility.LogError("Failed to fetch cybersecurity supervisory committee users for residual risk escalation", map[string]interface{}{
+			"risk_register_id": riskRegister.ID,
+			"error":            err.Error(),
+		})
+		return
+	}
+	if len(userIDs) == 0 {
+		return
+	}
+
+	referenceNumber := "-"
+	if riskRegister.ReferenceNumber != nil && *riskRegister.ReferenceNumber != "" {
+		referenceNumber = *riskRegister.ReferenceNumber
+	}
+
+	riskRatingTitle := "-"
+	if riskRating != nil {
+		riskRatingTitle = riskRating.TitleEn
+	}
+
+	appURL := utility.GetAppURL()
+	urlParam := fmt.Sprintf(`{"risk_register_id":%d}`, riskRegister.ID)
+	entity := "asset-risk-register"
+	action := "residual-risk-escalation"
+
+	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+		UserIDs:              userIDs,
+		ModuleIdentifier:     "asset_risk",
+		NotificationType:     string(commonDTOs.EscalationType),
+		ReferenceNumber:      referenceNumber,
+		HeadingEn:            "ISMS Residual Risk Escalation",
+		HeadingAr:            "تصعيد مخاطر ISMS المتبقية",
+		TitleEn:              riskRegister.Title,
+		TitleAr:              riskRegister.Title,
+		Entity:               &entity,
+		Action:               &action,
+		URLParam:             urlParam,
+		IsSystemNotification: false,
+		CreatedByID:          &currentUserID,
+	}
+
+	emails := make([]string, 0, len(userIDs))
+	for _, userID := range userIDs {
+		user, err := ares.userSvc.GetByID(userID)
+		if err != nil {
+			utility.LogError("Failed to fetch cybersecurity supervisory committee user for residual risk escalation email", map[string]interface{}{
+				"user_id": userID,
+				"error":   err.Error(),
+			})
+			continue
+		}
+		emails = append(emails, user.Email)
+	}
+
+	var emailNotificationDTO *commonDTOs.EmailNotificationDTO
+	if len(emails) > 0 {
+		emailNotificationDTO = &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emails,
+			Subject:              fmt.Sprintf("ISMS Risk Register: %s - Residual Risk Escalation", riskRegister.Title),
+			TemplateRelativePath: "asset/templates/email/residual_risk_escalation_mail.html",
+			EmailData: map[string]interface{}{
+				"ReferenceNumber": referenceNumber,
+				"RiskTitle":       riskRegister.Title,
+				"RiskRating":      riskRatingTitle,
+				"ResidualScore":   riskValue,
+				"RedirectURL":     fmt.Sprintf("%s/asset/risks/%d/risk-analysis", appURL, riskRegister.ID),
+			},
+		}
+	}
+
+	if err := ares.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "asset_risk"); err != nil {
+		utility.LogError("Failed to send residual risk escalation notification", map[string]interface{}{
+			"risk_register_id": riskRegister.ID,
+			"error":            err.Error(),
+		})
+	}
 }
