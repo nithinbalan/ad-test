@@ -36,6 +36,7 @@ type DocumentModule struct {
 	DocumentPeriodicReviewController              *controllers.DocumentPeriodicReviewController
 	DocumentRequirementGroupController            *controllers.DocumentRequirementGroupController
 	DocumentRequirementController                 *controllers.DocumentRequirementController
+	DocumentReportController                      *controllers.DocumentReportController
 	PolicyController                              *controllers.PolicyController
 	PolicyAcknowledgeUserController               *controllers.PolicyAcknowledgeUserController
 	// DocumentRequirementController                 *controllers.DocumentRequirementController
@@ -253,6 +254,14 @@ func NewDocumentModule(db *gorm.DB,
 	documentRequirementSvc := services.NewDocumentRequirementService(documentRequirementRepo, sharedModule.ActivityLogService, documentRequirementGroupSvc, documentSvc)
 	documentRequirementController := controllers.NewDocumentRequirementController(documentRequirementSvc)
 
+	documentReportRepo := repositories.NewDocumentReportRepository(db)
+	documentReportSvc := services.NewDocumentReportService(
+		documentReportRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.ReportTemplateSettingSvc,
+	)
+	documentReportController := controllers.NewDocumentReportController(documentReportSvc)
+
 	// Initialize PolicyController
 	policyController := controllers.NewPolicyController(documentSvc)
 	policyAcknowledgeUserController := controllers.NewPolicyAcknowledgeUserController(documentAcknowledgeUserSvc)
@@ -284,6 +293,7 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentPeriodicReviewController:              documentPeriodicReviewController,
 		DocumentRequirementGroupController:            documentRequirementGroupController,
 		DocumentRequirementController:                 documentRequirementController,
+		DocumentReportController:                      documentReportController,
 		PolicyController:                              policyController,
 		PolicyAcknowledgeUserController:               policyAcknowledgeUserController,
 
