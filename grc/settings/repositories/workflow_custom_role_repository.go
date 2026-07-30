@@ -2,12 +2,13 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 
 	"gorm.io/gorm"
 )
 
 type WorkflowCustomRoleRepositoryInterface interface {
-	GetAll() ([]*models.WorkflowCustomRole, error)
+	GetAll(params *dtos.WorkflowCustomRoleListQueryParamsDTO) ([]*models.WorkflowCustomRole, error)
 	GetByType(roleType string) (*models.WorkflowCustomRole, error)
 }
 
@@ -21,7 +22,7 @@ func NewWorkflowCustomRoleRepository(db *gorm.DB) WorkflowCustomRoleRepositoryIn
 	}
 }
 
-func (repo *WorkflowCustomRoleRepository) GetAll() ([]*models.WorkflowCustomRole, error) {
+func (repo *WorkflowCustomRoleRepository) GetAll(params *dtos.WorkflowCustomRoleListQueryParamsDTO) ([]*models.WorkflowCustomRole, error) {
 	var roles []*models.WorkflowCustomRole
 
 	query := repo.db.Table("workflow_custom_roles").
@@ -32,6 +33,10 @@ func (repo *WorkflowCustomRoleRepository) GetAll() ([]*models.WorkflowCustomRole
 			workflow_custom_roles.type,
 			workflow_custom_roles.module_identifier
 		`)
+
+	if len(params.QuickFilter) > 0 {
+		query = query.Where("workflow_custom_roles.type IN ?", params.QuickFilter)
+	}
 
 	result := query.Find(&roles)
 	return roles, result.Error
