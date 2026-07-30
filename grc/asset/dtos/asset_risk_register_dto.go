@@ -55,6 +55,9 @@ type AssetRiskRegisterListDTO struct {
 	RegistrationDate            string  `json:"registration_date"`
 	Justification               *string `json:"justification"`
 	ExpectedCause               *string `json:"expected_cause"`
+	ConfidentialityScore        int     `json:"confidentiality_score"`
+	IntegrityScore              int     `json:"integrity_score"`
+	AvailabilityScore           int     `json:"availability_score"`
 	RiskCategoryTitleEn         string  `json:"risk_category_title_en"`
 	RiskCategoryTitleAr         string  `json:"risk_category_title_ar"`
 	DivisionTitleEn             string  `json:"division_title_en"`
@@ -131,11 +134,23 @@ type AssetRiskRegisterDetailDTO struct {
 	InherentImpact          *RiskMatrixImpactDTO             `json:"inherent_impact"`
 	InherentRiskRating      *RiskMatrixRiskRatingDTO         `json:"inherent_risk_rating"`
 	InherentRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"inherent_risk_rating_value"`
+	ResidualLikelihood      *RiskMatrixLikelihoodDTO         `json:"residual_likelihood"`
+	ResidualImpact          *RiskMatrixImpactDTO             `json:"residual_impact"`
+	ResidualRiskRating      *RiskMatrixRiskRatingDTO         `json:"residual_risk_rating"`
+	ResidualRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"residual_risk_rating_value"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO  `json:"created_by"`
 
 	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	Vulnerabilities []*RiskVulnerabilityDTO          `json:"vulnerabilities"`
 	Assets          []*RiskAssetDTO                  `json:"assets"`
+	Controls        []*RiskControlDTO                `json:"controls"`
+}
+
+type RiskControlDTO struct {
+	ID             *uint                             `json:"id"`
+	RiskRegisterID uint                              `json:"risk_register_id"`
+	ControlID      uint                              `json:"control_id"`
+	Control        organizationDTOs.ControlDetailDTO `json:"control"`
 }
 
 type RiskCategoryDTO struct {

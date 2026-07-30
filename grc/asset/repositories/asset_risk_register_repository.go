@@ -48,6 +48,7 @@ type AssetRiskRegisterRepositoryInterface interface {
 	UpdateRiskTimeline(riskTimeline *models.RiskTimeline, tx ...utility.DatabaseTransaction) error
 	GetRiskStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.RiskStatus, error)
 	GetImpactByScore(score int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixImpact, error)
+	GetImpactByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixImpact, error)
 	GetLikelihoodByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixLikelihood, error)
 	GetRiskRatingValueByValue(value int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixRiskRatingValue, error)
 	GetRiskRatingByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixRiskRating, error)
@@ -83,6 +84,9 @@ func (repo *AssetRiskRegisterRepository) GetAll(params *assetRiskDTOs.AssetRiskR
 			CONVERT(VARCHAR, risk_register.registration_date, 23) AS registration_date,
 			risk_register.justification,
 			risk_register.expected_cause,
+			risk_register.confidentiality_score,
+			risk_register.integrity_score,
+			risk_register.availability_score,
 
 			risk_categories.title_en AS risk_category_title_en,
 			risk_categories.title_ar AS risk_category_title_ar,
@@ -243,6 +247,8 @@ func (repo *AssetRiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utili
 	err := db.
 		Preload("Vulnerabilities.Vulnerability").
 		Preload("Assets.AssetRegister").
+		Preload("Controls").
+		Preload("Controls.Control").
 		Preload("RiskCategory").
 		Preload("RiskStatus").
 		Preload("Section").
@@ -256,8 +262,13 @@ func (repo *AssetRiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("InherentImpact").
 		Preload("InherentRiskRating").
 		Preload("InherentRiskRatingValue").
+		Preload("ResidualLikelihood").
+		Preload("ResidualImpact").
+		Preload("ResidualRiskRating").
+		Preload("ResidualRiskRatingValue").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Where("is_cyber_risk", true).
 		First(&riskRegister, id).Error
 
 	if err != nil {
@@ -513,6 +524,29 @@ func (repo *AssetRiskRegisterRepository) GetImpactByScore(score int, tx ...utili
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, fmt.Sprintf("Risk Matrix Impact with score %d", score))
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return impact, nil
+}
+
+func (repo *AssetRiskRegisterRepository) GetImpactByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixImpact, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var impact *models.RiskMatrixImpact
+
+	riskMatrixType := "isms"
+	result := db.
+		Joins("JOIN risk_matrix ON risk_matrix.id = risk_matrix_impacts.risk_matrix_id").
+		Where("risk_matrix.type = ? AND risk_matrix_impacts.id = ?", riskMatrixType, id).
+		First(&impact)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, fmt.Sprintf("Risk Matrix Impact with ID %d", id))
 	} else if result.Error != nil {
 		return nil, result.Error
 	}

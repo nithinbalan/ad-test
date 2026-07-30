@@ -61,10 +61,20 @@ type AssetModule struct {
 	VulnerabilityClosedWorkflowController         *controllers.VulnerabilityClosureWorkflowController
 	VulnerabilityClosedReviewController           *controllers.VulnerabilityClosureReviewController
 	VulnerabilityClosedReviewCommentController    *controllers.VulnerabilityClosureReviewCommentController
-	AssetRiskRootCauseAnalysisController          *controllers.AssetRiskRootCauseAnalysisController
-	AssetRiskAssociatedItemController             *controllers.AssetRiskAssociatedItemController
 	AssetRiskMatrixController                     *controllers.AssetRiskMatrixController
 	AssetRiskInherentEvaluationController         *controllers.AssetRiskInherentEvaluationController
+	AssetRiskInherentControlAnalysisController    *controllers.AssetRiskInherentControlAnalysisController
+	AssetRiskResidualEvaluationController         *controllers.AssetRiskResidualEvaluationController
+	AssetRiskResponseController                   *controllers.AssetRiskResponseController
+	AssetRiskActionPlanController                 *controllers.AssetRiskActionPlanController
+	AssetRiskActionPlanStatusUpdateController     *controllers.AssetRiskActionPlanStatusUpdateController
+	AssetRiskActionPlanCommentController          *controllers.AssetRiskActionPlanCommentController
+
+	// controllers which use service of risk module
+	AssetRiskRootCauseAnalysisController *controllers.AssetRiskRootCauseAnalysisController
+	AssetRiskAssociatedItemController    *controllers.AssetRiskAssociatedItemController
+	AssetRiskKriController               *controllers.AssetRiskKriController
+	AssetRiskClosureController           *controllers.AssetRiskClosureController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -72,6 +82,8 @@ type AssetModule struct {
 func (am *AssetModule) SetRiskControllers(riskModule *RiskModule) {
 	am.AssetRiskRootCauseAnalysisController = controllers.NewAssetRiskRootCauseAnalysisController(riskModule.RiskRootCauseAnalysisSvc)
 	am.AssetRiskAssociatedItemController = controllers.NewAssetRiskAssociatedItemController(riskModule.RiskAssociatedItemSvc)
+	am.AssetRiskKriController = controllers.NewAssetRiskKriController(riskModule.RiskKriSvc)
+	am.AssetRiskClosureController = controllers.NewAssetRiskClosureController(riskModule.RiskClosureSvc)
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -366,7 +378,7 @@ func NewAssetModule(db *gorm.DB,
 	qualysVulnerabilityHistoryController := controllers.NewQualysVulnerabilityHistoryController(qualysVulnerabilityHistorySvc)
 
 	assetRiskRegisterRepo := repositories.NewAssetRiskRegisterRepository(db)
-	assetRiskRegisterSvc := services.NewAssetRiskRegisterService(assetRiskRegisterRepo, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc, assetRegisterSvc, vulnerabilitySvc, sharedModule.ActivityLogService, commonModule.NotificationService)
+	assetRiskRegisterSvc := services.NewAssetRiskRegisterService(assetRiskRegisterRepo, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, assetRegisterSvc, vulnerabilitySvc, sharedModule.ActivityLogService, commonModule.NotificationService)
 	assetRiskReigsterController := controllers.NewAssetRiskRegisterController(assetRiskRegisterSvc)
 
 	assetRiskWorkflowRepo := repositories.NewAssetRiskWorkflowRepository(db)
@@ -434,6 +446,60 @@ func NewAssetModule(db *gorm.DB,
 	assetRiskInherentEvaluationSvc := services.NewAssetRiskInherentEvaluationService(assetRiskInherentEvaluationRepo, assetRiskRegisterSvc, sharedModule.ActivityLogService)
 	assetRiskInherentEvaluationController := controllers.NewAssetRiskInherentEvaluationController(assetRiskInherentEvaluationSvc)
 
+	assetRiskInherentControlAnalysisRepo := repositories.NewAssetRiskInherentControlAnalysisRepository(db)
+	assetRiskInherentControlAnalysisSvc := services.NewAssetRiskInherentControlAnalysisService(assetRiskInherentControlAnalysisRepo, sharedModule.ActivityLogService, assetRiskRegisterSvc, organizationModule.ControlSvc, organizationModule.ControlTestSvc)
+	assetRiskInherentControlAnalysisController := controllers.NewAssetRiskInherentControlAnalysisController(assetRiskInherentControlAnalysisSvc)
+
+	assetRiskResidualEvaluationRepo := repositories.NewAssetRiskResidualEvaluationRepository(db)
+	assetRiskResidualEvaluationSvc := services.NewAssetRiskResidualEvaluationService(assetRiskResidualEvaluationRepo, assetRiskRegisterSvc, assetRiskInherentEvaluationSvc, sharedModule.ActivityLogService, organizationModule.UserSvc, settingsModule.RoleSvc, commonModule.NotificationService)
+	assetRiskResidualEvaluationController := controllers.NewAssetRiskResidualEvaluationController(assetRiskResidualEvaluationSvc)
+
+	assetRiskResponseRepo := repositories.NewAssetRiskResponseRepository(db)
+	assetRiskResponseSvc := services.NewAssetRiskResponseService(assetRiskResponseRepo, assetRiskRegisterSvc, sharedModule.ActivityLogService)
+	assetRiskResponseController := controllers.NewAssetRiskResponseController(assetRiskResponseSvc)
+
+	assetRiskActionPlanRepo := repositories.NewAssetRiskActionPlanRepository(db)
+	assetRiskActionPlanSvc := services.NewAssetRiskActionPlanService(
+		assetRiskActionPlanRepo,
+		sharedModule.ActivityLogService,
+		assetRiskRegisterSvc,
+		masterModule.ActionPlanStatusSvc,
+		masterModule.SeverityLevelSvc,
+		organizationModule.UserSettingSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService,
+		organizationModule.ControlSvc,
+		organizationModule.ControlImplementationStatusSvc,
+		organizationModule.ControlEfficiencyStatusSvc,
+		commonModule.DelegateeUserService,
+	)
+	assetRiskActionPlanController := controllers.NewAssetRiskActionPlanController(assetRiskActionPlanSvc)
+
+	assetRiskActionPlanStatusUpdateRepo := repositories.NewAssetRiskActionPlanStatusUpdateRepository(db)
+	assetRiskActionPlanStatusUpdateSvc := services.NewAssetRiskActionPlanStatusUpdateService(
+		assetRiskActionPlanStatusUpdateRepo,
+		sharedModule.ActivityLogService,
+		assetRiskRegisterSvc,
+		assetRiskActionPlanSvc,
+		masterModule.ActionPlanStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService,
+		taskModule.TaskStatusService,
+	)
+	assetRiskActionPlanStatusUpdateController := controllers.NewAssetRiskActionPlanStatusUpdateController(assetRiskActionPlanStatusUpdateSvc)
+
+	assetRiskActionPlanCommentRepo := repositories.NewAssetRiskActionPlanCommentRepository(db)
+	assetRiskActionPlanCommentSvc := services.NewAssetRiskActionPlanCommentService(
+		assetRiskActionPlanCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		assetRiskActionPlanSvc,
+		commonModule.NotificationService,
+	)
+	assetRiskActionPlanCommentController := controllers.NewAssetRiskActionPlanCommentController(assetRiskActionPlanCommentSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -489,6 +555,12 @@ func NewAssetModule(db *gorm.DB,
 		VulnerabilityClosedReviewCommentController:    vulnerabilityClosedReviewCommentController,
 		AssetRiskMatrixController:                     assetRiskMatrixController,
 		AssetRiskInherentEvaluationController:         assetRiskInherentEvaluationController,
+		AssetRiskInherentControlAnalysisController:    assetRiskInherentControlAnalysisController,
+		AssetRiskResidualEvaluationController:         assetRiskResidualEvaluationController,
+		AssetRiskResponseController:                   assetRiskResponseController,
+		AssetRiskActionPlanController:                 assetRiskActionPlanController,
+		AssetRiskActionPlanStatusUpdateController:     assetRiskActionPlanStatusUpdateController,
+		AssetRiskActionPlanCommentController:          assetRiskActionPlanCommentController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}

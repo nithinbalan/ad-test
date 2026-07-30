@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	assetRiskDTOs "jethur/grc/asset/dtos"
@@ -27,13 +28,16 @@ type AssetRiskRegisterServiceInterface interface {
 	Create(currentUserID uint, dto *assetRiskDTOs.AssetRiskRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, dto *assetRiskDTOs.AssetRiskRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ExportRiskRegister(data []*assetRiskDTOs.AssetRiskRegisterListDTO, currentUserID uint) (*os.File, error)
 
 	UpdateRiskRegister(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error
 
 	GetRiskStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.RiskStatus, error)
 	GetImpactByScore(score int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixImpact, error)
+	GetImpactByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixImpact, error)
 	GetLikelihoodByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixLikelihood, error)
 	GetRiskRatingValueByValue(value int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixRiskRatingValue, error)
+	GetRiskRatingByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixRiskRating, error)
 
 	GetTimelineTypeByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.RiskTimelineType, error)
 	GetTimelineStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.TimelineStatus, error)
@@ -45,6 +49,7 @@ type AssetRiskRegisterService struct {
 	repo             repositories.AssetRiskRegisterRepositoryInterface
 	organizationSvc  settingsServices.OrganizationUnitServiceInterface
 	userSvc          organizationServices.UserServiceInterface
+	userSettingSvc   organizationServices.UserSettingServiceInterface
 	assetRegisterSvc AssetRegisterServiceInterface
 	vulnerabilitySvc VulnerabilityServiceInterface
 	activityLogSvc   logServices.ActivityLogServiceInterface
@@ -55,6 +60,7 @@ func NewAssetRiskRegisterService(
 	repo repositories.AssetRiskRegisterRepositoryInterface,
 	organizationSvc settingsServices.OrganizationUnitServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 	assetRegisterSvc AssetRegisterServiceInterface,
 	vulnerabilitySvc VulnerabilityServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
@@ -64,6 +70,7 @@ func NewAssetRiskRegisterService(
 		repo:             repo,
 		organizationSvc:  organizationSvc,
 		userSvc:          userSvc,
+		userSettingSvc:   userSettingSvc,
 		assetRegisterSvc: assetRegisterSvc,
 		vulnerabilitySvc: vulnerabilitySvc,
 		activityLogSvc:   activityLogSvc,
@@ -573,8 +580,8 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			UserIDs:              []uint{oldResponsibleUserID},
 			ModuleIdentifier:     "asset_risk",
 			NotificationType:     string(commonDTOs.InformationType),
-			HeadingEn:            "Risk Register Responsibility Removed",
-			HeadingAr:            "تمت إزالة مسؤولية تسجيل المخاطر",
+			HeadingEn:            "ISMS Risk Register Responsibility Removed",
+			HeadingAr:            "تمت إزالة مسؤولية تسجيل مخاطر ISMS",
 			ReferenceNumber:      newRisk.ReferenceNumber,
 			TitleEn:              newRisk.Title,
 			TitleAr:              newRisk.Title,
@@ -590,8 +597,8 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			UserIDs:              []uint{newResponsibleUserID},
 			ModuleIdentifier:     "asset_risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Register Responsibility Assigned",
-			HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
+			HeadingEn:            "ISMS Risk Register Responsibility Assigned",
+			HeadingAr:            "مسؤولية تسجيل مخاطر ISMS المعينة",
 			ReferenceNumber:      newRisk.ReferenceNumber,
 			TitleEn:              newRisk.Title,
 			TitleAr:              newRisk.Title,
@@ -642,7 +649,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 
 		oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{oldResponsibleUser.Email},
-			Subject:              fmt.Sprintf("Asset Risk Register: %s - Responsibility Removed", newRisk.Title),
+			Subject:              fmt.Sprintf("ISMS Risk Register: %s - Responsibility Removed", newRisk.Title),
 			TemplateRelativePath: "asset/templates/email/asset_risk_register_remove_responsible_user_mail.html",
 			EmailData:            oldResponsibleUserEmailData,
 		}
@@ -661,7 +668,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 
 		newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{newResponsibleUser.Email},
-			Subject:              fmt.Sprintf("Asset Risk Register: %s - Responsibility Assigned", newRisk.Title),
+			Subject:              fmt.Sprintf("ISMS Risk Register: %s - Responsibility Assigned", newRisk.Title),
 			TemplateRelativePath: "asset/templates/email/asset_risk_register_change_responsible_user_mail.html",
 			EmailData:            newResponsibleUserEmailData,
 		}
@@ -782,8 +789,8 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 					UserIDs:              []uint{notification.ResponsibleUserID},
 					ModuleIdentifier:     "asset_risk",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Risk Register Deleted",
-					HeadingAr:            "تم حذف سجل المخاطر",
+					HeadingEn:            "ISMS Risk Register Deleted",
+					HeadingAr:            "تم حذف سجل مخاطر ISMS",
 					ReferenceNumber:      notification.ReferenceNumber,
 					TitleEn:              notification.Title,
 					TitleAr:              notification.Title,
@@ -811,7 +818,7 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              []string{responsibleUser.Email},
-					Subject:              fmt.Sprintf("Asset Risk Register: %s - Deleted", notification.Title),
+					Subject:              fmt.Sprintf("ISMS Risk Register: %s - Deleted", notification.Title),
 					TemplateRelativePath: "asset/templates/email/asset_risk_register_delete_mail.html",
 					EmailData:            emailData,
 				}
@@ -828,6 +835,165 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 	return failedIDs, err
 }
 
+func (arrs *AssetRiskRegisterService) ExportRiskRegister(data []*assetRiskDTOs.AssetRiskRegisterListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := arrs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Risk Title",
+			"Risk Code",
+			"Risk Category",
+			"Division",
+			"Department",
+			"Risk Level",
+			"Source",
+			"Confidentiality Score",
+			"Integrity Score",
+			"Availability Score",
+			"Likelihood",
+			"Impact",
+			"Risk Rating",
+			"Registration Date",
+			"Created By",
+			"Created At",
+			"Updated By",
+			"Updated At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Risk Title",
+			"Risk Code",
+			"Risk Category",
+			"Division",
+			"Department",
+			"Risk Level",
+			"Source",
+			"Confidentiality Score",
+			"Integrity Score",
+			"Availability Score",
+			"Likelihood",
+			"Impact",
+			"Risk Rating",
+			"Registration Date",
+			"Created By",
+			"Created At",
+			"Updated By",
+			"Updated At",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, risk := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				risk.ReferenceNumber,
+				risk.Title,
+				risk.RiskCode,
+				risk.RiskCategoryTitleAr,
+				risk.DivisionTitleAr,
+				risk.SectionTitleAr,
+				assetRiskLevel(risk.IsStrategic, risk.IsOperational, userSetting.Language),
+				assetRiskSource(risk.IsInternal, risk.IsExternal, userSetting.Language),
+				risk.ConfidentialityScore,
+				risk.IntegrityScore,
+				risk.AvailabilityScore,
+				risk.CurrentLikelihoodTitleAr,
+				risk.CurrentImpactTitleAr,
+				risk.CurrentRiskRatingTitleAr,
+				risk.RegistrationDate,
+				fmt.Sprintf("%s %s", risk.CreatedUserFirstNameAr, risk.CreatedUserLastNameAr),
+				risk.CreatedAt,
+				func() interface{} {
+					if risk.UpdatedUserFirstNameAr != nil && risk.UpdatedUserLastNameAr != nil {
+						return fmt.Sprintf("%s %s", *risk.UpdatedUserFirstNameAr, *risk.UpdatedUserLastNameAr)
+					}
+					return nil
+				}(),
+				utility.GetStringValue(risk.UpdatedAt),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				risk.ReferenceNumber,
+				risk.Title,
+				risk.RiskCode,
+				risk.RiskCategoryTitleEn,
+				risk.DivisionTitleEn,
+				risk.SectionTitleEn,
+				assetRiskLevel(risk.IsStrategic, risk.IsOperational, userSetting.Language),
+				assetRiskSource(risk.IsInternal, risk.IsExternal, userSetting.Language),
+				risk.ConfidentialityScore,
+				risk.IntegrityScore,
+				risk.AvailabilityScore,
+				risk.CurrentLikelihoodTitleEn,
+				risk.CurrentImpactTitleEn,
+				risk.CurrentRiskRatingTitleEn,
+				risk.RegistrationDate,
+				fmt.Sprintf("%s %s", risk.CreatedUserFirstNameEn, risk.CreatedUserLastNameEn),
+				risk.CreatedAt,
+				func() interface{} {
+					if risk.UpdatedUserFirstNameEn != nil && risk.UpdatedUserLastNameEn != nil {
+						return fmt.Sprintf("%s %s", *risk.UpdatedUserFirstNameEn, *risk.UpdatedUserLastNameEn)
+					}
+					return nil
+				}(),
+				utility.GetStringValue(risk.UpdatedAt),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+func assetRiskSource(isInternal bool, isExternal bool, language string) string {
+	if language == "ar" {
+		if isInternal {
+			return "داخلي"
+		}
+		if isExternal {
+			return "خارجي"
+		}
+		return ""
+	}
+
+	if isInternal {
+		return "Internal"
+	}
+	if isExternal {
+		return "External"
+	}
+	return ""
+}
+
+func assetRiskLevel(isStrategic bool, isOperational bool, language string) string {
+	if language == "ar" {
+		if isStrategic {
+			return "استراتيجي"
+		}
+		if isOperational {
+			return "تشغيلي"
+		}
+		return ""
+	}
+
+	if isStrategic {
+		return "Strategic"
+	}
+	if isOperational {
+		return "Operational"
+	}
+	return ""
+}
+
 func (arrs *AssetRiskRegisterService) GetRiskStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.RiskStatus, error) {
 	return arrs.repo.GetRiskStatusByType(status, tx...)
 }
@@ -840,12 +1006,20 @@ func (arrs *AssetRiskRegisterService) GetImpactByScore(score int, tx ...utility.
 	return arrs.repo.GetImpactByScore(score, tx...)
 }
 
+func (arrs *AssetRiskRegisterService) GetImpactByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixImpact, error) {
+	return arrs.repo.GetImpactByID(id, tx...)
+}
+
 func (arrs *AssetRiskRegisterService) GetLikelihoodByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixLikelihood, error) {
 	return arrs.repo.GetLikelihoodByID(id, tx...)
 }
 
 func (arrs *AssetRiskRegisterService) GetRiskRatingValueByValue(value int, tx ...utility.DatabaseTransaction) (*models.RiskMatrixRiskRatingValue, error) {
 	return arrs.repo.GetRiskRatingValueByValue(value, tx...)
+}
+
+func (arrs *AssetRiskRegisterService) GetRiskRatingByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskMatrixRiskRating, error) {
+	return arrs.repo.GetRiskRatingByID(id, tx...)
 }
 
 func (arrs *AssetRiskRegisterService) GetTimelineTypeByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.RiskTimelineType, error) {

@@ -56,19 +56,19 @@ func (arrc *AssetRiskRegisterController) GetAllAssetRiskRegisters(c *gin.Context
 	}
 
 	validSortFields := map[string]string{
-		"risk_code":           "risk_register.risk_code",
-		"title":               "risk_register.title",
-		"registration_date":   "risk_register.registration_date",
-		"risk_category_en":    "risk_categories.title_en",
-		"risk_category_ar":    "risk_categories.title_ar",
-		"division_en":         "division.title_en",
-		"division_ar":         "division.title_ar",
-		"section_en":          "section.title_en",
-		"section_ar":          "section.title_ar",
-		"risk_rating_en":      "current_risk_rating.title_en",
-		"risk_rating_ar":      "current_risk_rating.title_ar",
-		"created_at":          "risk_register.created_at",
-		"updated_at":          "risk_register.updated_at",
+		"risk_code":         "risk_register.risk_code",
+		"title":             "risk_register.title",
+		"registration_date": "risk_register.registration_date",
+		"risk_category_en":  "risk_categories.title_en",
+		"risk_category_ar":  "risk_categories.title_ar",
+		"division_en":       "division.title_en",
+		"division_ar":       "division.title_ar",
+		"section_en":        "section.title_en",
+		"section_ar":        "section.title_ar",
+		"risk_rating_en":    "current_risk_rating.title_en",
+		"risk_rating_ar":    "current_risk_rating.title_ar",
+		"created_at":        "risk_register.created_at",
+		"updated_at":        "risk_register.updated_at",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -109,28 +109,33 @@ func (arrc *AssetRiskRegisterController) GetAllAssetRiskRegisters(c *gin.Context
 	}
 
 	if export {
-		// currentUserID, err := utility.GetCurrentUserID(c)
-		// if err != nil {
-		// 	utility.SendInternalErrResp(arrc.db, c, err.Error())
-		// 	return
-		// }
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(arrc.db, c, err.Error())
+			return
+		}
 
-		// excelFile, err := arrc.service.ExportRiskRegister(risks.Items, currentUserID)
-		// if err != nil {
-		// 	utility.SendInternalErrResp(arrc.db, c, err.Error())
-		// 	return
-		// }
-		// defer excelFile.Close()
+		excelFile, err := arrc.service.ExportRiskRegister(risks.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(arrc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
 
-		// c.Header("Content-Description", "File Transfer")
-		// c.Header("Content-Disposition", `attachment; filename="Asset Risk Register.xlsx"`)
-		// c.Header("Content-Type", "application/octet-stream")
-		// c.File(excelFile.Name())
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Asset Risk Register.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
 
-		// return
+		return
 	}
 
 	c.JSON(http.StatusOK, risks)
+}
+
+func (arrc *AssetRiskRegisterController) GetAssetRiskRegisterExport(c *gin.Context) {
+	c.Set("export", true)
+	arrc.GetAllAssetRiskRegisters(c)
 }
 
 func (arrc *AssetRiskRegisterController) GetAssetRiskRegisterDetails(c *gin.Context) {

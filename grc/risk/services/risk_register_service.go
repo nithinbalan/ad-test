@@ -1337,6 +1337,17 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			failedIds = append(failedIds, id)
 			continue
 		}
+
+		if err := rrs.repo.DeleteRiskUpdatePlanRisksByRiskID(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		if err := rrs.repo.DeleteRiskEvaluationsByRiskID(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
 		// Delete the risk
 		if err := rrs.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)

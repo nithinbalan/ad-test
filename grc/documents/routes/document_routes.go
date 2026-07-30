@@ -48,6 +48,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentPeriodicReviewController := app.DocumentModule.DocumentPeriodicReviewController
 	documentRequirementGroupController := app.DocumentModule.DocumentRequirementGroupController
 	documentRequirementController := app.DocumentModule.DocumentRequirementController
+	documentReportController := app.DocumentModule.DocumentReportController
 	policyController := app.DocumentModule.PolicyController
 	policyAcknowledgeUserController := app.DocumentModule.PolicyAcknowledgeUserController
 
@@ -96,6 +97,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/check-out-revert", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentController.RevertDocumentCheckout)
 	documentRoutes.POST("/documents/:id/submit", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentController.SubmitDocument)
 	documentRoutes.POST("/documents/:id/publish", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentController.PublishDocument)
+
+	documentRoutes.GET("/document-reports", middlewares.RolePermissionMiddleware(db, "document_report", "view"), documentReportController.GetAllDocumentReports)
+	documentRoutes.GET("/document-reports/:documentReportId", middlewares.RolePermissionMiddleware(db, "document_report", "view"), documentReportController.GetDocumentReportDetails)
+	documentRoutes.GET("/document-reports/:documentReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "document_report", "view"), documentReportController.GetDocumentReportExportZip)
+	documentRoutes.POST("/document-reports", middlewares.RolePermissionMiddleware(db, "document_report", "modify"), documentReportController.CreateDocumentReport)
+	documentRoutes.DELETE("/document-reports/:documentReportId", middlewares.RolePermissionMiddleware(db, "document_report", "modify"), documentReportController.DeleteDocumentReport)
 
 	documentRoutes.GET("/documents/:id/shared-users", middlewares.RolePermissionMiddleware(db, "document_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), documentAccessController.GetSharedUsers)
 	documentRoutes.POST("/documents/:id/shared-users", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentAccessController.CreateSharedUsers)

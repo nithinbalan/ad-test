@@ -112,7 +112,8 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
 		LEFT JOIN users AS review_user ON review_user.id = risk_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = risk_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = risk_action_plans.updated_by_id
-    `)
+    `).
+		Where("risk_register.is_cyber_risk = ?", false)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
