@@ -8,11 +8,12 @@ import (
 	"jethur/grc/compliance/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 )
 
 type ComplianceFolderServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceDTOs.ComplianceFolderListDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, currentUserID uint) ([]*complianceDTOs.ComplianceFolderListDTO, error)
 	GetByID(id uint) (*models.ComplianceFolder, error)
 	Create(currentUserID uint, folder *models.ComplianceFolder) (*models.ComplianceFolder, error)
 	Update(id uint, currentUserID uint, folder *models.ComplianceFolder) (*models.ComplianceFolder, error)
@@ -25,17 +26,23 @@ type ComplianceFolderServiceInterface interface {
 type ComplianceFolderService struct {
 	repo           repositories.ComplianceFolderRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
+	userSvc        organizationServices.UserServiceInterface
 }
 
-func NewComplianceFolderService(repo repositories.ComplianceFolderRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) ComplianceFolderServiceInterface {
+func NewComplianceFolderService(repo repositories.ComplianceFolderRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, userSvc organizationServices.UserServiceInterface) ComplianceFolderServiceInterface {
 	return &ComplianceFolderService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
+		userSvc:        userSvc,
 	}
 }
 
-func (cfs *ComplianceFolderService) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceDTOs.ComplianceFolderListDTO, error) {
-	return cfs.repo.GetAll(sort, sortBy, keyword, status)
+func (cfs *ComplianceFolderService) GetAll(sort string, sortBy string, keyword string, status string, currentUserID uint) ([]*complianceDTOs.ComplianceFolderListDTO, error) {
+	isCyberUser, err := cfs.userSvc.IsCyberUser(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return cfs.repo.GetAll(sort, sortBy, keyword, status, isCyberUser)
 }
 
 func (cfs ComplianceFolderService) GetByID(id uint) (*models.ComplianceFolder, error) {
@@ -49,8 +56,14 @@ func (cfs *ComplianceFolderService) Create(currentUserID uint, folder *models.Co
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	// Set the CreatedByID field
+	isCyberUser, err := cfs.userSvc.IsCyberUser(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the CreatedByID and IsCyber fields
 	folder.CreatedBYID = currentUserID
+	folder.IsCyber = isCyberUser
 
 	createdFolder, err := cfs.repo.Create(folder)
 	if err != nil {

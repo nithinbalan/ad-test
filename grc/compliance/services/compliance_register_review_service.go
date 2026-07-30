@@ -88,7 +88,12 @@ func (crrs *ComplianceRegisterReviewService) Submit(complianceRegisterID uint, c
 		}
 	}
 
-	err = crrs.complianceRegisterWorkflowSvc.ValidateWorkflowBeforeCreate("compliance_register")
+	workflowContextType := "compliance_register"
+	if complianceRegister.IsCyber {
+		workflowContextType = "cyber_compliance_register"
+	}
+
+	err = crrs.complianceRegisterWorkflowSvc.ValidateWorkflowBeforeCreate(workflowContextType)
 	if err != nil {
 		return err
 	}
@@ -109,7 +114,7 @@ func (crrs *ComplianceRegisterReviewService) Submit(complianceRegisterID uint, c
 		return err
 	}
 
-	err = crrs.complianceRegisterWorkflowSvc.CreateComplianceRegisterWorkflow(complianceRegisterID, "compliance_register", currentUserID, tx)
+	err = crrs.complianceRegisterWorkflowSvc.CreateComplianceRegisterWorkflow(complianceRegisterID, workflowContextType, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -514,7 +519,12 @@ func (crrs *ComplianceRegisterReviewService) Reopen(complianceRegisterID uint, c
 		}
 	}
 
-	if err := crrs.complianceRegisterWorkflowSvc.ValidateWorkflowBeforeCreate("compliance_register"); err != nil {
+	workflowContextType := "compliance_register"
+	if complianceRegister.IsCyber {
+		workflowContextType = "cyber_compliance_register"
+	}
+
+	if err := crrs.complianceRegisterWorkflowSvc.ValidateWorkflowBeforeCreate(workflowContextType); err != nil {
 		return err
 	}
 

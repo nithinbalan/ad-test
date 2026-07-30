@@ -102,7 +102,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceReviewStatusController := controllers.NewComplianceReviewStatusController(complianceReviewStatusSvc)
 
 	complianceFolderRepo := repositories.NewComplianceFolderRepository(db)
-	complianceFolderSvc := services.NewComplianceFolderService(complianceFolderRepo, sharedModule.ActivityLogService)
+	complianceFolderSvc := services.NewComplianceFolderService(complianceFolderRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
 	complianceFolderController := controllers.NewComplianceFolderController(complianceFolderSvc)
 
 	complianceAssessmentFrameworkTypeRepo := repositories.NewComplianceAssessmentFrameworkTypeRepository(db)

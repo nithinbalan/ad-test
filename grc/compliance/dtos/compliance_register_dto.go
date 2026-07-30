@@ -23,6 +23,7 @@ type ComplianceRegisterListDTO struct {
 	IsRiskBasedAssessment              bool     `json:"is_risk_based_assessment"`
 	IsPublic                           bool     `json:"is_public"`
 	IsShared                           bool     `json:"is_shared"`
+	IsCyber                            bool     `json:"is_cyber"`
 	ResponsibleUnitTitleEn             string   `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr             string   `json:"responsible_unit_title_ar"`
 	ResponsibleUserID                  uint     `json:"responsible_user_id"`

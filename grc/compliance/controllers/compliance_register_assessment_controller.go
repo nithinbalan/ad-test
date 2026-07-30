@@ -70,6 +70,12 @@ func (crac *ComplianceRegisterAssessmentController) GetAllComplianceRegisterAsse
 		return
 	}
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crac.db, c, err.Error())
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceAssessmentListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortField,
@@ -82,7 +88,7 @@ func (crac *ComplianceRegisterAssessmentController) GetAllComplianceRegisterAsse
 		Export:      false,
 	}
 
-	assessments, err := crac.service.GetAll(&queryParams)
+	assessments, err := crac.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crac.db, c, err.Error())
 		return

@@ -14,7 +14,7 @@ import (
 
 type ComplianceRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO, currentUserID uint, primaryUnitID uint, isSuperAdmin bool) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO, currentUserID uint, primaryUnitID uint, isSuperAdmin bool, isCyberUser bool) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRegister, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegister, error)
 	Create(complianceRegister *models.ComplianceRegister, tx ...utility.DatabaseTransaction) (uint, error)
@@ -85,7 +85,7 @@ func (repo *ComplianceRegisterRepository) BeginTransaction() utility.DatabaseTra
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO, currentUserID uint, primaryUnitID uint, isSuperAdmin bool) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO, currentUserID uint, primaryUnitID uint, isSuperAdmin bool, isCyberUser bool) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
 
 	var complianceRegisters []*complianceDTOs.ComplianceRegisterListDTO
 	var totalCount int64
@@ -101,6 +101,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
             compliance_register.is_risk_based_assessment,
             compliance_register.is_public,
             compliance_register.is_shared,
+			compliance_register.is_cyber,
         	-- CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
         	-- CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
        		-- CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
@@ -201,7 +202,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 		`)
 
 	if !isSuperAdmin {
-		query = query.Where(`
+		query = query.Where(`(
 			compliance_register.is_public = ?
 			OR compliance_register.created_by_id = ?
 			OR compliance_register.responsible_user_id = ?
@@ -213,7 +214,12 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 					WHERE compliance_register_shared_units.compliance_register_id = compliance_register.id
 						AND compliance_register_shared_units.department_id = ?
 				)
-			)`, true, currentUserID, currentUserID, true, primaryUnitID)
+			)
+		)`, true, currentUserID, currentUserID, true, primaryUnitID)
+	}
+
+	if isCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
 	}
 
 	// Apply dynamic filters to the query

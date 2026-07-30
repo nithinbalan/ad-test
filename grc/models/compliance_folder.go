@@ -8,6 +8,7 @@ type ComplianceFolder struct {
 	TitleAr     string     `json:"title_ar" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
 	Status      string     `json:"status" binding:"required,oneof=active inactive" gorm:"type:varchar(10);not null"`
 	CreatedAt   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	IsCyber     bool       `json:"is_cyber" gorm:"type:bit;default:0"`
 	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID *uint      `json:"updated_by_id" gorm:"default:null"`

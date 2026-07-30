@@ -88,6 +88,12 @@ func (cac *ComplianceAssessmentController) GetAllComplianceAssessments(c *gin.Co
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceAssessmentListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortField,
@@ -100,19 +106,13 @@ func (cac *ComplianceAssessmentController) GetAllComplianceAssessments(c *gin.Co
 		Export:      export,
 	}
 
-	complianceAssessments, err := cac.service.GetAll(&queryParams)
+	complianceAssessments, err := cac.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, err.Error())
 		return
 	}
 
 	if export {
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(cac.db, c, err.Error())
-			return
-		}
-
 		excelFile, err := cac.service.ExportComplianceAssessments(complianceAssessments.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(cac.db, c, err.Error())
