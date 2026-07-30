@@ -13,6 +13,7 @@ type BusinessImpactAssessment struct {
 	Cost             *uint      `json:"cost"`
 	Comments         *string    `json:"comments" gorm:"type:nvarchar(max)"`
 	IsApplicable     bool       `json:"is_applicable"`
+	IsSelected       bool       `json:"is_selected" gorm:"not null;default:false"`
 	CreatedByID      uint       `json:"created_by_id" binding:"required"`
 	UpdatedByID      *uint      `json:"updated_by_id"`
 	CreatedAt        time.Time  `json:"created_at" gorm:"type:datetime;not null"`

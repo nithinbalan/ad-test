@@ -3,6 +3,7 @@ package models
 type BCMBIAImpactLevel struct {
 	ID                    uint    `json:"id" gorm:"primaryKey;autoIncrement"`
 	ImpactAnalysisLevelID uint    `json:"impact_analysis_level_id" binding:"required" gorm:"not null"`
+	OutageBucketID        *uint   `json:"outage_bucket_id" gorm:"null"`
 	ClassificationEn      string  `json:"classification_en" binding:"required" gorm:"type:varchar(50);not null"`
 	ClassificationAr      string  `json:"classification_ar" binding:"required" gorm:"type:varchar(50);not null"`
 	IsCritical            bool    `json:"is_critical" gorm:"type:bit;not null;default:0"`
@@ -27,6 +28,7 @@ type BCMBIAImpactLevel struct {
 
 	// Relationships
 	ImpactAnalysisLevel *BCMImpactAnalysisLevel         `gorm:"foreignKey:ImpactAnalysisLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OutageBucket        *BCMBIAOutageBucket             `gorm:"foreignKey:OutageBucketID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RtoUnit             *BusinessContinuityDurationUnit `gorm:"foreignKey:RtoUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	MtpdUnit            *BusinessContinuityDurationUnit `gorm:"foreignKey:MtpdUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RpoUnit             *BusinessContinuityDurationUnit `gorm:"foreignKey:RpoUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
