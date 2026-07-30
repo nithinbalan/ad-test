@@ -287,7 +287,7 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			var bcmBiaImpactLevel *models.BCMBIAImpactLevel
 			var err error
 			if businessImpactAssessmentFormDTO.OverallOutageBucketID != nil {
-				bcmBiaImpactLevel, err = bias.bcmBiaImpactLevelSvc.GetByImpactAnalysisLevelIDAndOutageBucketID(*businessImpactAssessmentFormDTO.OverallImpactLevelID, *businessImpactAssessmentFormDTO.OverallOutageBucketID)
+				bcmBiaImpactLevel, err = bias.bcmBiaImpactLevelSvc.GetByOutageBucketID(*businessImpactAssessmentFormDTO.OverallOutageBucketID)
 			} else {
 				bcmBiaImpactLevel, err = bias.bcmBiaImpactLevelSvc.GetByImpactAnalysisLevelID(*businessImpactAssessmentFormDTO.OverallImpactLevelID)
 			}
@@ -297,6 +297,9 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			}
 			if bcmBiaImpactLevel == nil {
 				tx.Rollback()
+				if businessImpactAssessmentFormDTO.OverallOutageBucketID != nil {
+					return fmt.Errorf("bcm bia impact level not found for outage bucket ID: %d", *businessImpactAssessmentFormDTO.OverallOutageBucketID)
+				}
 				return fmt.Errorf("bcm bia impact level not found for impact analysis level ID: %d", *businessImpactAssessmentFormDTO.OverallImpactLevelID)
 			}
 
@@ -371,7 +374,9 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 
 	}
 
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 
 	// Create BiaProcess record if not exists
 	if businessImpactAssessmentFormDTO.ProcessID != nil {

@@ -35,9 +35,9 @@ type BusinessImpactAssessmentRating struct {
 
 	// Relationships
 	Process             *Process                        `gorm:"foreignKey:ProcessID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	OverallImpactLevel  *BCMImpactAnalysisLevel         `gorm:"foreignKey:OverallImpactLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	OverallOutageBucket *BCMBIAOutageBucket             `gorm:"foreignKey:OverallOutageBucketID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	BCMBIAImpactLevel   *BCMBIAImpactLevel              `gorm:"foreignKey:BCMBIAImpactLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	OverallImpactLevel  *BCMImpactAnalysisLevel         `gorm:"foreignKey:OverallImpactLevelID;constraint:OnUpdate:NO ACTION,OnDelete:RESTRICT"`
+	OverallOutageBucket *BCMBIAOutageBucket             `gorm:"foreignKey:OverallOutageBucketID;constraint:OnUpdate:NO ACTION,OnDelete:RESTRICT"`
+	BCMBIAImpactLevel   *BCMBIAImpactLevel              `gorm:"foreignKey:BCMBIAImpactLevelID;constraint:OnUpdate:NO ACTION,OnDelete:RESTRICT"`
 	RtoUnit             *BusinessContinuityDurationUnit `gorm:"foreignKey:RtoUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	MtpdUnit            *BusinessContinuityDurationUnit `gorm:"foreignKey:MtpdUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RpoUnit             *BusinessContinuityDurationUnit `gorm:"foreignKey:RpoUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

@@ -13,7 +13,7 @@ type BCMBIAImpactLevelRepositoryInterface interface {
 	GetByID(id uint) (*models.BCMBIAImpactLevel, error)
 	GetFullDetailsByID(id uint) (*models.BCMBIAImpactLevel, error)
 	GetByImpactAnalysisLevelID(impactAnalysisLevelID uint) (*models.BCMBIAImpactLevel, error)
-	GetByImpactAnalysisLevelIDAndOutageBucketID(impactAnalysisLevelID uint, outageBucketID uint) (*models.BCMBIAImpactLevel, error)
+	GetByOutageBucketID(outageBucketID uint) (*models.BCMBIAImpactLevel, error)
 }
 
 // implementation
@@ -147,11 +147,10 @@ func (repo *BCMBIAImpactLevelRepository) GetByImpactAnalysisLevelID(impactAnalys
 	return bcmBiaImpactLevel, nil
 }
 
-func (repo *BCMBIAImpactLevelRepository) GetByImpactAnalysisLevelIDAndOutageBucketID(impactAnalysisLevelID uint, outageBucketID uint) (*models.BCMBIAImpactLevel, error) {
+func (repo *BCMBIAImpactLevelRepository) GetByOutageBucketID(outageBucketID uint) (*models.BCMBIAImpactLevel, error) {
 	var bcmBiaImpactLevel *models.BCMBIAImpactLevel
 
-	result := repo.db.Where("impact_analysis_level_id = ? AND outage_bucket_id = ?", impactAnalysisLevelID, outageBucketID).First(&bcmBiaImpactLevel)
-
+	result := repo.db.Where("outage_bucket_id = ?", outageBucketID).First(&bcmBiaImpactLevel)
 	if result.Error != nil {
 		return nil, result.Error
 	}
