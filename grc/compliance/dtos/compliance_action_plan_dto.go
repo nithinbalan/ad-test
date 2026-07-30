@@ -83,6 +83,7 @@ type ComplianceActionPlanListQueryParamsDTO struct {
 	IsAllAccess    bool
 	AccessUserID   uint
 	IsPassiveUser  bool
+	IsCyberUser    bool
 }
 
 type ComplianceActionPlanListResponseDTO struct {

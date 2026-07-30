@@ -25,11 +25,17 @@ func (cdc *ComplianceDashboardController) GetComplianceOverview(c *gin.Context) 
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	overview, err := cdc.service.GetComplianceOverview(&queryParams)
+	overview, err := cdc.service.GetComplianceOverview(&queryParams, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -48,12 +54,18 @@ func (cdc *ComplianceDashboardController) GetLeadershipAttentionSummary(c *gin.C
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetLeadershipAttentionSummary(&queryParams)
+	summary, err := cdc.service.GetLeadershipAttentionSummary(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -71,12 +83,18 @@ func (cdc *ComplianceDashboardController) GetComplianceBreakdown(c *gin.Context)
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	breakdown, err := cdc.service.GetComplianceBreakdown(&queryParams)
+	breakdown, err := cdc.service.GetComplianceBreakdown(&queryParams, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -95,12 +113,18 @@ func (cdc *ComplianceDashboardController) GetHighPerformanceCompliances(c *gin.C
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetHighPerformanceCompliances(&queryParams)
+	summary, err := cdc.service.GetHighPerformanceCompliances(&queryParams, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -119,12 +143,18 @@ func (cdc *ComplianceDashboardController) GetLeastPerformanceCompliances(c *gin.
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetLeastPerformanceCompliances(&queryParams)
+	summary, err := cdc.service.GetLeastPerformanceCompliances(&queryParams, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -143,12 +173,18 @@ func (cdc *ComplianceDashboardController) GetHighPerformanceComplianceClauses(c 
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetHighPerformanceComplianceClauses(&queryParams)
+	summary, err := cdc.service.GetHighPerformanceComplianceClauses(&queryParams, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -191,12 +227,18 @@ func (cdc *ComplianceDashboardController) GetLeastPerformanceComplianceClauses(c
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetLeastPerformanceComplianceClauses(&queryParams)
+	summary, err := cdc.service.GetLeastPerformanceComplianceClauses(&queryParams, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -286,12 +328,18 @@ func (cdc *ComplianceDashboardController) GetComplianceEfficiencySummary(c *gin.
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetComplianceEfficiencySummary(&queryParams)
+	summary, err := cdc.service.GetComplianceEfficiencySummary(&queryParams, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -334,12 +382,18 @@ func (cdc *ComplianceDashboardController) GetOrganizationUnitWiseAssessmentCover
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	overview, err := cdc.service.GetOrganizationUnitWiseAssessmentCoverage(&queryParams)
+	overview, err := cdc.service.GetOrganizationUnitWiseAssessmentCoverage(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -357,12 +411,18 @@ func (cdc *ComplianceDashboardController) GetActionPlanOverview(c *gin.Context) 
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	overview, err := cdc.service.GetActionPlanOverview(&queryParams)
+	overview, err := cdc.service.GetActionPlanOverview(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -380,12 +440,18 @@ func (cdc *ComplianceDashboardController) GetActionPlanStatusSummary(c *gin.Cont
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetActionPlanStatusSummary(&queryParams)
+	summary, err := cdc.service.GetActionPlanStatusSummary(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -403,12 +469,18 @@ func (cdc *ComplianceDashboardController) GetActionPlansByOrganizationUnit(c *gi
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetActionPlansByOrganizationUnit(&queryParams)
+	summary, err := cdc.service.GetActionPlansByOrganizationUnit(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -426,12 +498,18 @@ func (edc *ComplianceDashboardController) GetTopCompliances(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(edc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := edc.service.GetTopCompliances(&queryParams)
+	summary, err := edc.service.GetTopCompliances(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -450,12 +528,18 @@ func (cdc *ComplianceDashboardController) GetComplianceCountByRating(c *gin.Cont
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
 	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetComplianceRatingDistribution(&queryParams)
+	summary, err := cdc.service.GetComplianceRatingDistribution(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -470,19 +554,25 @@ func (cdc *ComplianceDashboardController) GetComplianceCountByRating(c *gin.Cont
 }
 
 func (cdc *ComplianceDashboardController) GetComplianceRegisterClassificationSummary(c *gin.Context) {
-    dateFrom := c.Query("date_from")
-    dateTo := c.Query("date_to")
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 
-    params := kpiDTOs.ComplianceDashboardQueryParamsDTO{
-        DateFrom: dateFrom,
-        DateTo:   dateTo,
-    }
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
 
-    result, err := cdc.service.GetComplianceRegisterClassificationSummary(&params)
-    if err != nil {
-        utility.SendInternalErrResp(cdc.db, c, err.Error())
-        return
-    }
+	params := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
 
-    c.JSON(http.StatusOK, result)
+	result, err := cdc.service.GetComplianceRegisterClassificationSummary(&params, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(cdc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

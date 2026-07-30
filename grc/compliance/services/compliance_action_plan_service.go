@@ -106,6 +106,15 @@ func (caps *ComplianceActionPlanService) GetAll(complianceID uint, currentUserID
 			params.IsAllAccess = true
 		}
 	}
+
+	if currentUserID != 0 {
+		isCyberUser, err := caps.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+		params.IsCyberUser = isCyberUser
+	}
+
 	return caps.repo.GetAll(complianceID, params, uint(0), nil)
 }
 

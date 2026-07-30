@@ -125,7 +125,13 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 		queryParams.IsRiskBasedAssessment = &val
 	}
 
-	complianceRequirements, err := crc.service.GetAll(uint(complianceID), &queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	complianceRequirements, err := crc.service.GetAll(uint(complianceID), &queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

@@ -116,10 +116,14 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
+			LEFT JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id
 		`)
 
 	if complianceID != 0 {
 		query = query.Where("compliance_clauses.compliance_register_id = ?", complianceID)
+	}
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
 	}
 	if params.IsRegulationNotificationAssessment != nil {
 		query = query.Where(

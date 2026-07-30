@@ -30,7 +30,7 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *Organ
 	ermDashboardController := controllers.NewERMDashboardController(ermDashboardSvc, riskModule.RiskHeatMapSvc)
 
 	complianceDashboardRepo := repositories.NewComplianceDashboardRepository(db)
-	complianceDashboardSvc := services.NewComplianceDashboardService(complianceDashboardRepo)
+	complianceDashboardSvc := services.NewComplianceDashboardService(complianceDashboardRepo, organizationModule.UserSvc)
 	complianceDashboardController := controllers.NewComplianceDashboardController(complianceDashboardSvc)
 
 	kriDashboardRepo := repositories.NewKRIDashboardRepository(db)
