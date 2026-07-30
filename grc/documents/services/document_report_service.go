@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"time"
 
 	"jethur/grc/documents/dtos"
@@ -212,13 +213,22 @@ func (drs *DocumentReportService) DeleteDocumentReport(reportID uint, currentUse
 	}
 	if drs.activityLogSvc != nil {
 		go func() {
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					utility.LogError("Panic recovered in document report activity log goroutine", map[string]interface{}{
+						"recover": recovered,
+						"stack":   string(debug.Stack()),
+					})
+				}
+			}()
+
 			if err := drs.activityLogSvc.LogActivity(
 				models.DeleteAction,
 				models.DocumentReport{}.TableName(),
 				reportID,
 				existingReport,
 				currentUserID,
-				"", "", "", nil,
+				"document", "document_report", "", nil,
 			); err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
 			}
