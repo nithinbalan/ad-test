@@ -2,6 +2,7 @@ package services
 
 import (
 	"jethur/grc/models"
+	settingDTOs "jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
 )
 
@@ -23,7 +24,7 @@ func NewWorkflowCustomRoleService(
 }
 
 func (s *WorkflowCustomRoleService) GetAll() ([]*models.WorkflowCustomRole, error) {
-	return s.repo.GetAll()
+	return s.repo.GetAll(&settingDTOs.WorkflowCustomRoleListQueryParamsDTO{})
 }
 
 func (s *WorkflowCustomRoleService) GetByType(roleType string) (*models.WorkflowCustomRole, error) {
