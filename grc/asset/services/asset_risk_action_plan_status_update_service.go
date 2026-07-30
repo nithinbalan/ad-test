@@ -520,8 +520,8 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Approve(riskID uint, riskA
 			UserIDs:              []uint{existingRiskActionPlan.ResponsibleUserID},
 			ModuleIdentifier:     "asset_risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Action Plan Status Update",
-			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+			HeadingEn:            "ISMS Risk Action Plan Status Update",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل امتثال مخاطر ISMS",
 			TitleEn:              existingRiskActionPlan.Title,
 			TitleAr:              existingRiskActionPlan.Title,
 			Entity:               &entity,
@@ -553,7 +553,7 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Approve(riskID uint, riskA
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Asset Risk Action Plan: %s - Closed", existingRiskActionPlan.Title)
+		subject := fmt.Sprintf("ISMS Risk Action Plan: %s - Closed", existingRiskActionPlan.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
@@ -690,8 +690,8 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Revert(riskID uint, riskAc
 			UserIDs:              []uint{existingRiskActionPlan.ResponsibleUserID},
 			ModuleIdentifier:     "asset_risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Action Plan Status Update",
-			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+			HeadingEn:            "ISMS Risk Action Plan Status Update",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل امتثال مخاطر ISMS",
 			TitleEn:              existingRiskActionPlan.Title,
 			TitleAr:              existingRiskActionPlan.Title,
 			Entity:               &entity,
@@ -723,7 +723,7 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Revert(riskID uint, riskAc
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Asset Risk Action Plan: %s - Reopened", existingRiskActionPlan.Title)
+		subject := fmt.Sprintf("ISMS Risk Action Plan: %s - Reopened", existingRiskActionPlan.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,

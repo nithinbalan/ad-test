@@ -311,6 +311,7 @@ func (arasuc *AssetRiskActionPlanStatusUpdateController) ApproveAssetRiskActionP
 			return
 		case *utility.ForbiddenError:
 			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(arasuc.db, c, e.Error())
 			return
@@ -366,6 +367,7 @@ func (arasuc *AssetRiskActionPlanStatusUpdateController) RevertAssetRiskActionPl
 			return
 		case *utility.ForbiddenError:
 			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(arasuc.db, c, e.Error())
 			return

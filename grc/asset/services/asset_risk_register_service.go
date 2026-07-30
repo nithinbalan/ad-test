@@ -580,8 +580,8 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			UserIDs:              []uint{oldResponsibleUserID},
 			ModuleIdentifier:     "asset_risk",
 			NotificationType:     string(commonDTOs.InformationType),
-			HeadingEn:            "Risk Register Responsibility Removed",
-			HeadingAr:            "تمت إزالة مسؤولية تسجيل المخاطر",
+			HeadingEn:            "ISMS Risk Register Responsibility Removed",
+			HeadingAr:            "تمت إزالة مسؤولية تسجيل مخاطر ISMS",
 			ReferenceNumber:      newRisk.ReferenceNumber,
 			TitleEn:              newRisk.Title,
 			TitleAr:              newRisk.Title,
@@ -597,8 +597,8 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			UserIDs:              []uint{newResponsibleUserID},
 			ModuleIdentifier:     "asset_risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Register Responsibility Assigned",
-			HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
+			HeadingEn:            "ISMS Risk Register Responsibility Assigned",
+			HeadingAr:            "مسؤولية تسجيل مخاطر ISMS المعينة",
 			ReferenceNumber:      newRisk.ReferenceNumber,
 			TitleEn:              newRisk.Title,
 			TitleAr:              newRisk.Title,
@@ -649,7 +649,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 
 		oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{oldResponsibleUser.Email},
-			Subject:              fmt.Sprintf("Asset Risk Register: %s - Responsibility Removed", newRisk.Title),
+			Subject:              fmt.Sprintf("ISMS Risk Register: %s - Responsibility Removed", newRisk.Title),
 			TemplateRelativePath: "asset/templates/email/asset_risk_register_remove_responsible_user_mail.html",
 			EmailData:            oldResponsibleUserEmailData,
 		}
@@ -668,7 +668,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 
 		newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{newResponsibleUser.Email},
-			Subject:              fmt.Sprintf("Asset Risk Register: %s - Responsibility Assigned", newRisk.Title),
+			Subject:              fmt.Sprintf("ISMS Risk Register: %s - Responsibility Assigned", newRisk.Title),
 			TemplateRelativePath: "asset/templates/email/asset_risk_register_change_responsible_user_mail.html",
 			EmailData:            newResponsibleUserEmailData,
 		}
@@ -789,8 +789,8 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 					UserIDs:              []uint{notification.ResponsibleUserID},
 					ModuleIdentifier:     "asset_risk",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Risk Register Deleted",
-					HeadingAr:            "تم حذف سجل المخاطر",
+					HeadingEn:            "ISMS Risk Register Deleted",
+					HeadingAr:            "تم حذف سجل مخاطر ISMS",
 					ReferenceNumber:      notification.ReferenceNumber,
 					TitleEn:              notification.Title,
 					TitleAr:              notification.Title,
@@ -818,7 +818,7 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              []string{responsibleUser.Email},
-					Subject:              fmt.Sprintf("Asset Risk Register: %s - Deleted", notification.Title),
+					Subject:              fmt.Sprintf("ISMS Risk Register: %s - Deleted", notification.Title),
 					TemplateRelativePath: "asset/templates/email/asset_risk_register_delete_mail.html",
 					EmailData:            emailData,
 				}

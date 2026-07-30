@@ -147,11 +147,10 @@ func (araps AssetRiskActionPlanService) GetFullDetailsByID(riskID uint, id uint,
 	}
 
 	if isPassiveUser {
-		if riskActionPlan.ResponsibleUserID != currentUserID {
-			return nil, utility.NewForbiddenError("Permission denied.")
-		}
+		isResponsibleUser := riskActionPlan.ResponsibleUserID == currentUserID
+		isDelegateeUser := riskActionPlan.DelegateeUserID != nil && *riskActionPlan.DelegateeUserID == currentUserID
 
-		if riskActionPlan.DelegateeUserID != nil && *riskActionPlan.DelegateeUserID != currentUserID {
+		if !isResponsibleUser && !isDelegateeUser {
 			return nil, utility.NewForbiddenError("Permission denied.")
 		}
 	}
@@ -360,8 +359,8 @@ func (araps *AssetRiskActionPlanService) Create(riskID uint, currentUserID uint,
 			UserIDs:              []uint{formDTO.ResponsibleUserID},
 			ModuleIdentifier:     "asset_risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Action Plan Responsibility Assigned",
-			HeadingAr:            "المسؤولية المعينة لخطة عمل المخاطر",
+			HeadingEn:            "ISMS Risk Action Plan Responsibility Assigned",
+			HeadingAr:            "المسؤولية المعينة لخطة عمل مخاطر ISMS",
 			TitleEn:              formDTO.Title,
 			TitleAr:              formDTO.Title,
 			Entity:               &entity,
@@ -393,7 +392,7 @@ func (araps *AssetRiskActionPlanService) Create(riskID uint, currentUserID uint,
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Asset Risk Action Plan: %s - Responsibility Assigned", formDTO.Title)
+		subject := fmt.Sprintf("ISMS Risk Action Plan: %s - Responsibility Assigned", formDTO.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
@@ -678,8 +677,8 @@ func (araps *AssetRiskActionPlanService) Update(riskID uint, id uint, currentUse
 				UserIDs:              []uint{oldResponsibleUserID},
 				ModuleIdentifier:     "asset_risk",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Risk Action Plan Responsibility Removed",
-				HeadingAr:            "تمت إزالة مسؤولية خطة عمل المخاطر",
+				HeadingEn:            "ISMS Risk Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل مخاطر ISMS",
 				TitleEn:              existingRiskActionPlan.Title,
 				TitleAr:              existingRiskActionPlan.Title,
 				Entity:               &entity,
@@ -695,8 +694,8 @@ func (araps *AssetRiskActionPlanService) Update(riskID uint, id uint, currentUse
 				UserIDs:              []uint{formDTO.ResponsibleUserID},
 				ModuleIdentifier:     "asset_risk",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Risk Action Plan Responsibility Assigned",
-				HeadingAr:            "المسؤولية المعينة لخطة عمل المخاطر",
+				HeadingEn:            "ISMS Risk Action Plan Responsibility Assigned",
+				HeadingAr:            "المسؤولية المعينة لخطة عمل مخاطر ISMS",
 				TitleEn:              existingRiskActionPlan.Title,
 				TitleAr:              existingRiskActionPlan.Title,
 				Entity:               &entity,
@@ -739,7 +738,7 @@ func (araps *AssetRiskActionPlanService) Update(riskID uint, id uint, currentUse
 			}
 
 			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
-			oldResponsibleUserSubject := fmt.Sprintf("Asset Risk Action Plan: %s - Responsibility Removed", existingRiskActionPlan.Title)
+			oldResponsibleUserSubject := fmt.Sprintf("ISMS Risk Action Plan: %s - Responsibility Removed", existingRiskActionPlan.Title)
 			oldResponsibleUserTemplateRelativePath := "risk/templates/email/risk_action_plan_remove_responsible_user_mail.html"
 			oldResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
@@ -759,7 +758,7 @@ func (araps *AssetRiskActionPlanService) Update(riskID uint, id uint, currentUse
 			}
 
 			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
-			newResponsibleUserSubject := fmt.Sprintf("Asset Risk Action Plan: %s - Responsibility Assigned", existingRiskActionPlan.Title)
+			newResponsibleUserSubject := fmt.Sprintf("ISMS Risk Action Plan: %s - Responsibility Assigned", existingRiskActionPlan.Title)
 			newResponsibleUserTemplateRelativePath := "risk/templates/email/risk_action_plan_change_responsible_user_mail.html"
 			newResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           newResponsibleUser.FirstNameEn,
@@ -974,8 +973,8 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "asset_risk",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Risk Action Plan Deleted",
-					HeadingAr:            "تم حذف خطة عمل المخاطر",
+					HeadingEn:            "ISMS Risk Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل مخاطر ISMS",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,
@@ -994,7 +993,7 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 				}
 
 				ownerEmailTo := []string{ownerUser.Email}
-				subject := fmt.Sprintf("Asset Risk Action Plan: %s - Deleted", notification.TitleEn)
+				subject := fmt.Sprintf("ISMS Risk Action Plan: %s - Deleted", notification.TitleEn)
 				templateRelativePath := "risk/templates/email/risk_action_plan_delete_mail.html"
 
 				emailData := map[string]interface{}{

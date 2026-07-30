@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type AssetRiskResidualEvaluationServiceInterface interface {
@@ -61,10 +64,10 @@ func (ares *AssetRiskResidualEvaluationService) GetFullDetailsByID(riskID uint) 
 
 	riskEvaluation, err := ares.repo.GetFullDetailsByRiskID(riskID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, riskID)
+		}
 		return nil, err
-	}
-	if riskEvaluation == nil {
-		return nil, nil
 	}
 
 	return toAssetRiskResidualEvaluationDTO(riskEvaluation, riskRegister), nil
@@ -560,8 +563,8 @@ func (ares *AssetRiskResidualEvaluationService) notifyResidualRiskEscalation(ris
 		ModuleIdentifier:     "asset_risk",
 		NotificationType:     string(commonDTOs.EscalationType),
 		ReferenceNumber:      referenceNumber,
-		HeadingEn:            "Residual Risk Escalation",
-		HeadingAr:            "تصعيد المخاطر المتبقية",
+		HeadingEn:            "ISMS Residual Risk Escalation",
+		HeadingAr:            "تصعيد مخاطر ISMS المتبقية",
 		TitleEn:              riskRegister.Title,
 		TitleAr:              riskRegister.Title,
 		Entity:               &entity,
@@ -588,7 +591,7 @@ func (ares *AssetRiskResidualEvaluationService) notifyResidualRiskEscalation(ris
 	if len(emails) > 0 {
 		emailNotificationDTO = &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emails,
-			Subject:              fmt.Sprintf("Asset Risk Register: %s - Residual Risk Escalation", riskRegister.Title),
+			Subject:              fmt.Sprintf("ISMS Risk Register: %s - Residual Risk Escalation", riskRegister.Title),
 			TemplateRelativePath: "asset/templates/email/residual_risk_escalation_mail.html",
 			EmailData: map[string]interface{}{
 				"ReferenceNumber": referenceNumber,

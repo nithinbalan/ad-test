@@ -255,8 +255,8 @@ func (rapcs *AssetRiskActionPlanCommentService) notifyActionPlanComment(riskID u
 		UserIDs:              []uint{recipientUserID},
 		ModuleIdentifier:     "asset_risk",
 		NotificationType:     string(commonDTOs.AssignmentType),
-		HeadingEn:            "Comment Added For Risk Action Plan",
-		HeadingAr:            "تمت إضافة تعليق لخطة العمل الخاصة بالمخاطر",
+		HeadingEn:            "Comment Added For ISMS Risk Action Plan",
+		HeadingAr:            "تمت إضافة تعليق لخطة عمل مخاطر ISMS",
 		TitleEn:              riskActionPlan.Title,
 		TitleAr:              riskActionPlan.Title,
 		Entity:               &entity,
@@ -288,7 +288,7 @@ func (rapcs *AssetRiskActionPlanCommentService) notifyActionPlanComment(riskID u
 	}
 
 	emailTo := []string{recipientUser.Email}
-	subject := fmt.Sprintf("Asset Risk Action Plan: %s - Comment Added", riskActionPlan.Title)
+	subject := fmt.Sprintf("ISMS Risk Action Plan: %s - Comment Added", riskActionPlan.Title)
 	appURL := utility.GetAppURL()
 	emailData := map[string]interface{}{
 		"FirstNameEn":            recipientUser.FirstNameEn,
