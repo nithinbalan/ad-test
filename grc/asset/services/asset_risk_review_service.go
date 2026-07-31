@@ -1247,7 +1247,7 @@ func (arrs *AssetRiskReviewService) createReviewWithHistory(workflowID uint, ris
 		return err
 	}
 
-	historyReview := &models.AssetRiskWorkflowHistory{
+	historyReview := &models.RiskWorkflowHistory{
 		RiskRegisterID:   riskID,
 		Level:            level,
 		WorkflowStatusID: statusID,

@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type AssetRiskWorkflowHistory struct {
+type RiskWorkflowHistory struct {
 	ID               uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	RiskRegisterID   uint       `json:"risk_register_id" binding:"required" gorm:"not null;index"`
 	Level            int        `json:"level" binding:"required" gorm:"not null"`
@@ -21,6 +21,6 @@ type AssetRiskWorkflowHistory struct {
 	UpdatedByUser  *User           `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
-func (AssetRiskWorkflowHistory) TableName() string {
-	return "asset_risk_workflow_histories"
+func (RiskWorkflowHistory) TableName() string {
+	return "risk_workflow_histories"
 }

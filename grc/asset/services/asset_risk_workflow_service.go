@@ -469,7 +469,7 @@ func (arws *AssetRiskWorkflowService) mapOverallWorkflowStatus(riskRegister *mod
 	return &status, nil
 }
 
-func (arws *AssetRiskWorkflowService) buildWorkflowHistory(histories []*models.AssetRiskWorkflowHistory) []*assetRiskDTOs.AssetRiskWorkflowHistoryDTO {
+func (arws *AssetRiskWorkflowService) buildWorkflowHistory(histories []*models.RiskWorkflowHistory) []*assetRiskDTOs.AssetRiskWorkflowHistoryDTO {
 	var historyDTOs []*assetRiskDTOs.AssetRiskWorkflowHistoryDTO
 
 	for _, history := range histories {
