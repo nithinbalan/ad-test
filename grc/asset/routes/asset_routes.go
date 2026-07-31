@@ -78,6 +78,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRiskKriController := app.AssetModule.AssetRiskKriController
 	assetRiskClosureController := app.AssetModule.AssetRiskClosureController
 	assetRiskResponseController := app.AssetModule.AssetRiskResponseController
+	assetRiskResponseWorkflowController := app.AssetModule.AssetRiskResponseWorkflowController
+	assetRiskResponseReviewController := app.AssetModule.AssetRiskResponseReviewController
+	assetRiskResponseReviewCommentController := app.AssetModule.AssetRiskResponseReviewCommentController
 	assetRiskActionPlanController := app.AssetModule.AssetRiskActionPlanController
 	assetRiskActionPlanStatusUpdateController := app.AssetModule.AssetRiskActionPlanStatusUpdateController
 	assetRiskActionPlanCommentController := app.AssetModule.AssetRiskActionPlanCommentController
@@ -577,6 +580,23 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-risk-register/:id/response", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseController.CreateAssetRiskResponse)
 	assetRoutes.PUT("/asset-risk-register/:id/response/:responseId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseController.UpdateAssetRiskResponse)
 	assetRoutes.DELETE("/asset-risk-register/:id/response/:responseId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseController.DeleteAssetRiskResponse)
+
+	// Risk Response Workflow
+	assetRoutes.POST("/asset-risk-register/:id/response/submit", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseReviewController.SubmitAssetRiskResponse)
+	assetRoutes.POST("/asset-risk-register/:id/response/approve", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseReviewController.ApproveAssetRiskResponse)
+	assetRoutes.POST("/asset-risk-register/:id/response/revert", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseReviewController.RevertAssetRiskResponse)
+	assetRoutes.GET("/asset-risk-register/:id/response/workflow-list", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskResponseWorkflowController.GetWorkflowList)
+
+	// Risk Response Review Comments
+	unauthenticatedRoutes.GET("/asset-risk-register/:id/response/review-comments/:commentId/document-preview", assetRiskResponseReviewCommentController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/asset-risk-register/:id/response/review-comments/:commentId/document-download", assetRiskResponseReviewCommentController.DownloadDocument)
+
+	assetRoutes.GET("/asset-risk-register/:id/response/review-comments", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskResponseReviewCommentController.GetAllComments)
+	assetRoutes.GET("/asset-risk-register/:id/response/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskResponseReviewCommentController.GetCommentDetails)
+	assetRoutes.POST("/asset-risk-register/:id/response/review-comments", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseReviewCommentController.CreateComment)
+	assetRoutes.PUT("/asset-risk-register/:id/response/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseReviewCommentController.UpdateComment)
+	assetRoutes.POST("/asset-risk-register/:id/response/review-comments/delete", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseReviewCommentController.DeleteComments)
+	assetRoutes.PUT("/asset-risk-register/:id/response/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskResponseReviewCommentController.ResolveComment)
 
 	// Risk Action Plan
 	assetRoutes.GET("/asset-risk-register/:id/action-plans", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskActionPlanController.GetAllAssetRiskActionPlans)
