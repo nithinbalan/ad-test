@@ -220,6 +220,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 
 	if isCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	// Apply dynamic filters to the query
