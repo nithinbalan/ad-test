@@ -16,6 +16,7 @@ type AssetRiskWorkflowListDTO struct {
 	NextReviewLevel *int                             `json:"next_review_level"`
 	CurrentStatus   *masterDTOs.WorkflowStatusDTO    `json:"workflow_status"`
 	RiskWorkflows   []*WorkflowListDTO               `json:"workflows"`
+	History         []*AssetRiskWorkflowHistoryDTO   `json:"history"`
 }
 
 type WorkflowListDTO struct {
@@ -27,4 +28,12 @@ type WorkflowListDTO struct {
 	RejectedUser  *organizationDTOs.UserMinimalDTO   `json:"rejected_user"`
 	RejectedAt    *time.Time                         `json:"rejected_at"`
 	CurrentStatus masterDTOs.WorkflowStatusDTO       `json:"current_status"`
+}
+
+type AssetRiskWorkflowHistoryDTO struct {
+	ID             uint                             `json:"id"`
+	Level          int                              `json:"level"`
+	WorkflowStatus masterDTOs.WorkflowStatusDTO     `json:"workflow_status"`
+	CreatedByUser  *organizationDTOs.UserMinimalDTO `json:"created_by"`
+	CreatedAt      time.Time                        `json:"created_at"`
 }

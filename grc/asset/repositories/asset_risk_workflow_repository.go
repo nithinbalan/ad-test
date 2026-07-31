@@ -10,6 +10,7 @@ import (
 
 type AssetRiskWorkflowRepositoryInterface interface {
 	GetWorkflowList(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
+	GetWorkflowHistories(riskID uint, tx ...utility.DatabaseTransaction) ([]*models.AssetRiskWorkflowHistory, error)
 	CreateRiskWorkflow(riskWorkflow *models.RiskWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateRiskWorkflow(riskWorkflow *models.RiskWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateRiskWorkflowParticipant(riskWorkflowParticipant *models.RiskWorkflowParticipant, tx ...utility.DatabaseTransaction) error
@@ -65,6 +66,27 @@ func (repo *AssetRiskWorkflowRepository) GetWorkflowList(riskID uint, tx ...util
 	}
 
 	return &risk, nil
+}
+
+func (repo *AssetRiskWorkflowRepository) GetWorkflowHistories(riskID uint, tx ...utility.DatabaseTransaction) ([]*models.AssetRiskWorkflowHistory, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var histories []*models.AssetRiskWorkflowHistory
+	result := db.
+		Preload("WorkflowStatus").
+		Preload("CreatedByUser").
+		Where("risk_register_id = ?", riskID).
+		Order("created_at DESC").
+		Find(&histories)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return histories, nil
 }
 
 func (repo *AssetRiskWorkflowRepository) CreateRiskWorkflow(riskWorkflow *models.RiskWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
