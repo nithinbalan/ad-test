@@ -66,6 +66,8 @@ func (repo *ComplianceFolderRepository) GetAll(sort string, sortBy string, keywo
 
 	if isCyberUser {
 		whereClauses = append(whereClauses, "cf.is_cyber = 1")
+	} else {
+		whereClauses = append(whereClauses, "cf.is_cyber = 0")
 	}
 
 	// Construct WHERE clause
