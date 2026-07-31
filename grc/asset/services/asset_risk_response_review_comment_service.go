@@ -159,7 +159,7 @@ func (arrcs *AssetRiskResponseReviewCommentService) Create(riskID uint, currentU
 		err = tx.Commit()
 	}()
 
-	riskResponse, err := arrcs.riskResponseSvc.GetByRiskRegisterID(riskID)
+	riskResponse, err := arrcs.riskResponseSvc.GetByRiskRegisterID(riskID, tx)
 	if err != nil {
 		return 0, err
 	}

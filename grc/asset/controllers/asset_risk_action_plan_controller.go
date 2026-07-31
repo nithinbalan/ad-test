@@ -83,6 +83,7 @@ func (arapc *AssetRiskActionPlanController) GetAllAssetRiskActionPlans(c *gin.Co
 		"percentage":          "risk_action_plans.percentage",
 		"status_en":           "action_plan_statuses.title_en",
 		"status_ar":           "action_plan_statuses.title_ar",
+		"created_at":          "risk_action_plans.created_at",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
