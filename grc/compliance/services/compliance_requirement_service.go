@@ -26,7 +26,7 @@ import (
 )
 
 type ComplianceRequirementServiceInterface interface {
-	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
+	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO, currentUserID uint) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
 	GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error)
@@ -99,11 +99,18 @@ func NewComplianceRequirementService(
 	}
 }
 
-func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
+func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO, currentUserID uint) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
 	if complianceID != 0 {
 		if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 			return nil, err
 		}
+	}
+	if currentUserID != 0 {
+		isCyberUser, err := crs.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+		params.IsCyberUser = isCyberUser
 	}
 	return crs.repo.GetAll(complianceID, params)
 }

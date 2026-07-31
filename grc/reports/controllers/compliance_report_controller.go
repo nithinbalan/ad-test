@@ -203,7 +203,14 @@ func (crc *ComplianceReportController) GetComplianceByComplianceCategory(c *gin.
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	complianceReport, err := crc.service.GetComplianceByComplianceCategory(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	complianceReport, err := crc.service.GetComplianceByComplianceCategory(&queryParams, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -226,7 +233,14 @@ func (crc *ComplianceReportController) GetComplianceBySeverityLevel(c *gin.Conte
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	result, err := crc.service.GetComplianceBySeverityLevel(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	result, err := crc.service.GetComplianceBySeverityLevel(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
@@ -242,7 +256,14 @@ func (crc *ComplianceReportController) GetComplianceByComplianceStatus(c *gin.Co
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	result, err := crc.service.GetComplianceByComplianceStatus(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	result, err := crc.service.GetComplianceByComplianceStatus(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
@@ -258,7 +279,14 @@ func (crc *ComplianceReportController) GetComplianceByResponsibleUnit(c *gin.Con
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	result, err := crc.service.GetComplianceByResponsibleUnit(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	result, err := crc.service.GetComplianceByResponsibleUnit(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
@@ -274,7 +302,14 @@ func (crc *ComplianceReportController) GetComplianceByResponsibleUser(c *gin.Con
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	result, err := crc.service.GetComplianceByResponsibleUser(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	result, err := crc.service.GetComplianceByResponsibleUser(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
@@ -353,7 +388,13 @@ func (crc *ComplianceReportController) GetAllComplianceRequirements(c *gin.Conte
 	//complianceID is given as 0 to reuse GetAll function
 	complianceID := 0
 
-	complianceRequirements, err := crc.complianceRequirementSvc.GetAll(uint(complianceID), &queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	complianceRequirements, err := crc.complianceRequirementSvc.GetAll(uint(complianceID), &queryParams, currentUserID)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -406,7 +447,14 @@ func (crc *ComplianceReportController) GetComplianceRequirementByComplianceStatu
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	results, err := crc.service.GetComplianceRequirementByComplianceStatus(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	results, err := crc.service.GetComplianceRequirementByComplianceStatus(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -428,7 +476,14 @@ func (crc *ComplianceReportController) GetComplianceRequirementBySeverityLevel(c
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	results, err := crc.service.GetComplianceRequirementBySeverity(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	results, err := crc.service.GetComplianceRequirementBySeverity(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -450,7 +505,14 @@ func (crc *ComplianceReportController) GetComplianceRequirementByCategory(c *gin
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	results, err := crc.service.GetComplianceRequirementByCategory(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	results, err := crc.service.GetComplianceRequirementByCategory(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -545,7 +607,14 @@ func (crc *ComplianceReportController) GetAllComplianceActionPlans(c *gin.Contex
 		DateTo:         dateTo,
 		Export:         export,
 	}
-	complianceActionPlans, err := crc.complianceActionPlanSvc.GetAll(uint(complianceID), 0, &queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	complianceActionPlans, err := crc.complianceActionPlanSvc.GetAll(uint(complianceID), currentUserID, &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -597,7 +666,14 @@ func (crc *ComplianceReportController) GetComplianceRequirementByResponsibleUnit
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	results, err := crc.service.GetComplianceRequirementByResponsibleUnit(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	results, err := crc.service.GetComplianceRequirementByResponsibleUnit(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -619,7 +695,14 @@ func (crc *ComplianceReportController) GetComplianceRequirementByResponsibleUser
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	results, err := crc.service.GetComplianceRequirementByResponsibleUser(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	results, err := crc.service.GetComplianceRequirementByResponsibleUser(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -641,7 +724,14 @@ func (crc *ComplianceReportController) GetComplianceActionPlanByStatus(c *gin.Co
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	results, err := crc.service.GetComplianceActionPlanByStatus(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	results, err := crc.service.GetComplianceActionPlanByStatus(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -663,7 +753,14 @@ func (crc *ComplianceReportController) GetComplianceActionPlanByResponsibleUser(
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	results, err := crc.service.GetComplianceActionPlanByResponsibleUser(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	results, err := crc.service.GetComplianceActionPlanByResponsibleUser(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
