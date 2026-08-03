@@ -181,6 +181,17 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 				AND cr.is_cyber = 0
 			)
 		`)
+	} else {
+		// Non-cyber users should never see assessments linked to cyber compliance registers
+		query = query.Where(`
+			NOT EXISTS (
+				SELECT 1
+				FROM compliance_assessment_compliances cac
+				JOIN compliance_register cr ON cr.id = cac.compliance_register_id
+				WHERE cac.compliance_assessment_id = compliance_assessments.id
+				AND cr.is_cyber = 1
+			)
+		`)
 	}
 
 	// Apply dynamic filters to the query

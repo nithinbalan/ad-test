@@ -312,19 +312,19 @@ func (orc *OrganizationReportController) GetAllProcesses(c *gin.Context) {
 		DateTo:      dateTo,
 	}
 
-	processes, err := orc.processSvc.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	processes, err := orc.processSvc.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(orc.db, c, err.Error())
 		return
 	}
 
 	if export {
-
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(orc.db, c, err.Error())
-			return
-		}
 
 		excelFile, err := orc.processSvc.ExportProcesses(processes.Items, currentUserID)
 		if err != nil {

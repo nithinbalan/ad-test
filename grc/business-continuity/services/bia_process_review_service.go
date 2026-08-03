@@ -70,7 +70,12 @@ func (svc *BiaProcessReviewService) Submit(biaProcessID uint, currentUserID uint
 		}
 	}
 
-	if err := svc.biaProcessWorkflowSvc.ValidateWorkflowBeforeCreate("bia"); err != nil {
+	workflowContextType := "bia"
+	if biaProcess.IsCyber {
+		workflowContextType = "cyber_bia"
+	}
+
+	if err := svc.biaProcessWorkflowSvc.ValidateWorkflowBeforeCreate(workflowContextType); err != nil {
 		return err
 	}
 
@@ -89,7 +94,7 @@ func (svc *BiaProcessReviewService) Submit(biaProcessID uint, currentUserID uint
 		return err
 	}
 
-	if err := svc.biaProcessWorkflowSvc.CreateBiaProcessWorkflow(biaProcessID, "bia", currentUserID, tx); err != nil {
+	if err := svc.biaProcessWorkflowSvc.CreateBiaProcessWorkflow(biaProcessID, workflowContextType, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -425,7 +430,12 @@ func (svc *BiaProcessReviewService) Reopen(biaProcessID uint, currentUserID uint
 		}
 	}
 
-	if err := svc.biaProcessWorkflowSvc.ValidateWorkflowBeforeCreate("bia"); err != nil {
+	workflowContextType := "bia"
+	if biaProcess.IsCyber {
+		workflowContextType = "cyber_bia"
+	}
+
+	if err := svc.biaProcessWorkflowSvc.ValidateWorkflowBeforeCreate(workflowContextType); err != nil {
 		return err
 	}
 

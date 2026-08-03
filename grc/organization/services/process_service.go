@@ -24,7 +24,7 @@ import (
 )
 
 type ProcessServiceInterface interface {
-	GetAll(params *organizationDTOs.ProcessListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error)
+	GetAll(params *organizationDTOs.ProcessListQueryParamsDTO, currentUserID uint) (*organizationDTOs.ProcessListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ProcessDetailDTO, error)
 	Create(currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) (uint, error)
@@ -91,7 +91,12 @@ func NewProcessService(
 	}
 }
 
-func (ps *ProcessService) GetAll(params *organizationDTOs.ProcessListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error) {
+func (ps *ProcessService) GetAll(params *organizationDTOs.ProcessListQueryParamsDTO, currentUserID uint) (*organizationDTOs.ProcessListResponseDTO, error) {
+	isCyberUser, err := ps.userSvc.IsCyberUser(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	params.IsCyberUser = isCyberUser
 	return ps.repo.GetAll(params)
 }
 

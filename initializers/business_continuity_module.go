@@ -95,7 +95,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcmStaffAllocationController := controllers.NewBCMStaffAllocationController(bcmStaffAllocationSvc)
 
 	biaProcessRepo := repositories.NewBiaProcessRepository(db)
-	biaProcessSvc := services.NewBiaProcessService(biaProcessRepo)
+	biaProcessSvc := services.NewBiaProcessService(biaProcessRepo, organizationModule.UserSvc)
 
 	biaProcessReviewRepo := repositories.NewBiaProcessReviewRepository(db)
 	biaProcessWorkflowRepo := repositories.NewBiaProcessWorkflowRepository(db)

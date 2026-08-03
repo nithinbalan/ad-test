@@ -11,6 +11,7 @@ type BiaProcessDetailDTO struct {
 	ProcessID       uint                             `json:"process_id"`
 	WorkflowStatus  *masterDTOs.WorkflowStatusDTO    `json:"workflow_status"`
 	NextReviewLevel *int                             `json:"next_review_level"`
+	IsCyber         bool                             `json:"is_cyber"`
 	SubmittedAt     *time.Time                       `json:"submitted_at"`
 	SubmittedBy     *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
 	ApprovedAt      *time.Time                       `json:"approved_at"`

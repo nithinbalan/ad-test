@@ -23,7 +23,7 @@ import (
 )
 
 type BusinessContinuityPlanServiceInterface interface {
-	GetAll(params *businessContinuityDTOs.BusinessContinuityPlanListQueryParamsDTO) (*businessContinuityDTOs.BusinessContinuityPlanListResponseDTO, error)
+	GetAll(params *businessContinuityDTOs.BusinessContinuityPlanListQueryParamsDTO, currentUserID uint) (*businessContinuityDTOs.BusinessContinuityPlanListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BusinessContinuityPlanDetailDTO, error)
 	GetByID(id uint) (*models.BusinessContinuityPlan, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessContinuityPlanFormDTO) (uint, error)
@@ -70,7 +70,14 @@ func NewBusinessContinuityPlanService(
 	}
 }
 
-func (bcps *BusinessContinuityPlanService) GetAll(params *businessContinuityDTOs.BusinessContinuityPlanListQueryParamsDTO) (*businessContinuityDTOs.BusinessContinuityPlanListResponseDTO, error) {
+func (bcps *BusinessContinuityPlanService) GetAll(params *businessContinuityDTOs.BusinessContinuityPlanListQueryParamsDTO, currentUserID uint) (*businessContinuityDTOs.BusinessContinuityPlanListResponseDTO, error) {
+	if currentUserID != 0 {
+		isCyberUser, err := bcps.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+		params.IsCyberUser = isCyberUser
+	}
 	return bcps.repo.GetAll(params)
 }
 
@@ -149,6 +156,14 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
 	}
 
+	isCyberUser := false
+	if currentUserID != 0 {
+		isCyberUser, err = bcps.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	businessContinuityPlan := &models.BusinessContinuityPlan{
 		ReferenceNumber:    referenceNumber,
 		BusinessFunctionID: businessContinuityPlanFormDTO.BusinessFunctionID,
@@ -161,6 +176,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		ResponsibleUserID:  *businessContinuityPlanFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:  &responsibleUnitID,
 		CreatedBYID:        currentUserID,
+		IsCyber:            isCyberUser,
 	}
 	id, err := bcps.repo.Create(businessContinuityPlan, tx)
 	if err != nil {

@@ -148,9 +148,10 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 			query = query.Where("(bcp_proc.impact_analysis_level_id IS NULL OR bcm_impact_analysis_levels.type = ?)", "non_applicable")
 		}
 	}
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
+	if params.IsCyberUser {
+		query = query.Where("business_continuity_plans.is_cyber = ?", true)
+	} else {
+		query = query.Where("business_continuity_plans.is_cyber = ?", false)
 	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {

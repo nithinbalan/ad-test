@@ -7,6 +7,7 @@ type BiaProcess struct {
 	ProcessID        uint       `json:"process_id" binding:"required" gorm:"not null"`
 	WorkflowStatusID *uint      `json:"workflow_status_id" gorm:"default:null"`
 	NextReviewLevel  *int       `json:"next_review_level" gorm:"default:null"`
+	IsCyber          bool       `json:"is_cyber" gorm:"not null;default:false"`
 	SubmittedByID    *uint      `json:"submitted_by_id" gorm:"default:null"`
 	SubmittedAt      *time.Time `json:"submitted_at" gorm:"type:datetime;default:null"`
 	ApprovedByID     *uint      `json:"approved_by_id" gorm:"default:null"`

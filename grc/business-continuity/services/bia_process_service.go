@@ -7,6 +7,7 @@ import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessContinuityRepositories "jethur/grc/business-continuity/repositories"
 	"jethur/grc/models"
+	organizationSvc "jethur/grc/organization/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -24,12 +25,14 @@ type BiaProcessServiceInterface interface {
 }
 
 type BiaProcessService struct {
-	repo businessContinuityRepositories.BiaProcessRepositoryInterface
+	repo    businessContinuityRepositories.BiaProcessRepositoryInterface
+	userSvc organizationSvc.UserServiceInterface
 }
 
-func NewBiaProcessService(repo businessContinuityRepositories.BiaProcessRepositoryInterface) BiaProcessServiceInterface {
+func NewBiaProcessService(repo businessContinuityRepositories.BiaProcessRepositoryInterface, userSvc organizationSvc.UserServiceInterface) BiaProcessServiceInterface {
 	return &BiaProcessService{
-		repo: repo,
+		repo:    repo,
+		userSvc: userSvc,
 	}
 }
 
@@ -90,7 +93,16 @@ func (svc *BiaProcessService) GetByProcessID(processID uint, tx ...utility.Datab
 }
 
 func (svc *BiaProcessService) CreateIfNotExists(processID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
-	_, err := svc.repo.GetByProcessID(processID, tx...)
+	isCyberUser := false
+	if currentUserID != 0 {
+		var err error
+		isCyberUser, err = svc.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return err
+		}
+	}
+
+	existingBiaProcess, err := svc.repo.GetByProcessID(processID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			now := time.Now()
@@ -98,12 +110,18 @@ func (svc *BiaProcessService) CreateIfNotExists(processID uint, currentUserID ui
 				ProcessID:   processID,
 				CreatedBYID: &currentUserID,
 				CreatedAt:   now,
+				IsCyber:     isCyberUser,
 			}
 			return svc.repo.Create(newBiaProcess, tx...)
 		}
 		return err
 	}
-	// BiaProcess already exists, do nothing
+
+	// BiaProcess already exists - keep is_cyber in sync with the latest contributor's cyber status
+	if existingBiaProcess.IsCyber != isCyberUser {
+		existingBiaProcess.IsCyber = isCyberUser
+		return svc.repo.Update(existingBiaProcess, tx...)
+	}
 	return nil
 }
 

@@ -811,11 +811,6 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 		return err
 	}
 
-	complianceAssessmentRevertedStatus, err := cras.complianceAssessmentStatusSvc.GetByType("reverted")
-	if err != nil {
-		return err
-	}
-
 	tx := cras.repo.BeginTransaction()
 
 	existingComplianceAssessment, err := cras.repo.GetFullDetailsByIDOptimized(id, tx)
@@ -831,7 +826,7 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 	}
 
 	if *existingComplianceAssessment.Type == "framework" {
-		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID || existingComplianceAssessment.ComplianceAssessmentStatusID == complianceAssessmentRevertedStatus.ID {
+		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID {
 			tx.Rollback()
 			return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
 		}
@@ -1027,7 +1022,7 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 		}
 
 	} else {
-		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID || existingComplianceAssessment.ComplianceAssessmentStatusID == complianceAssessmentRevertedStatus.ID {
+		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID {
 			tx.Rollback()
 			return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
 		}
