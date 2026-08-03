@@ -21,6 +21,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kriDashboardController := app.KPIModule.KRIDashboardController
 	awarenessDashboardController := app.KPIModule.AwarenessDashboardController
 	vulnerabilityDashboardController := app.KPIModule.VulnerabilityDashboardController
+	documentDashboardController := app.KPIModule.DocumentDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -133,4 +134,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/vulnerability/trend", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetVulnerabilityTrend)
 	kpiRoutes.GET("/kpis/vulnerability/by-asset-category", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetVulnerabilitiesByAssetCategory)
 	kpiRoutes.GET("/kpis/vulnerability/top-assets", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetTopVulnerableAssets)
+
+	// Document Dashboard
+	kpiRoutes.GET("/kpis/document/summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentSummary)
+	kpiRoutes.GET("/kpis/document/status-by-type", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentStatusByType)
+	kpiRoutes.GET("/kpis/document/on-time-review-trend", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentOnTimeReviewTrend)
 }
