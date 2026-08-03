@@ -471,27 +471,6 @@ func NewAssetModule(db *gorm.DB,
 	)
 	assetRiskResponseWorkflowController := controllers.NewAssetRiskResponseWorkflowController(assetRiskResponseWorkflowSvc)
 
-	assetRiskResponseReviewRepo := repositories.NewAssetRiskResponseReviewRepository(db)
-	assetRiskResponseReviewSvc := services.NewAssetRiskResponseReviewService(
-		assetRiskResponseReviewRepo,
-		assetRiskRegisterSvc,
-		assetRiskResponseSvc,
-		assetRiskResponseWorkflowSvc,
-		masterModule.WorkflowStatusSvc,
-		organizationModule.UserSvc,
-		commonModule.NotificationService,
-	)
-	assetRiskResponseReviewController := controllers.NewAssetRiskResponseReviewController(assetRiskResponseReviewSvc)
-
-	assetRiskResponseReviewCommentRepo := repositories.NewAssetRiskResponseReviewCommentRepository(db)
-	assetRiskResponseReviewCommentSvc := services.NewAssetRiskResponseReviewCommentService(
-		assetRiskResponseReviewCommentRepo,
-		sharedModule.ActivityLogService,
-		assetRiskResponseSvc,
-		masterModule.CommentStatusSvc,
-	)
-	assetRiskResponseReviewCommentController := controllers.NewAssetRiskResponseReviewCommentController(assetRiskResponseReviewCommentSvc)
-
 	assetRiskActionPlanRepo := repositories.NewAssetRiskActionPlanRepository(db)
 	assetRiskActionPlanSvc := services.NewAssetRiskActionPlanService(
 		assetRiskActionPlanRepo,
@@ -509,6 +488,28 @@ func NewAssetModule(db *gorm.DB,
 		commonModule.DelegateeUserService,
 	)
 	assetRiskActionPlanController := controllers.NewAssetRiskActionPlanController(assetRiskActionPlanSvc)
+
+	assetRiskResponseReviewRepo := repositories.NewAssetRiskResponseReviewRepository(db)
+	assetRiskResponseReviewSvc := services.NewAssetRiskResponseReviewService(
+		assetRiskResponseReviewRepo,
+		assetRiskRegisterSvc,
+		assetRiskResponseSvc,
+		assetRiskResponseWorkflowSvc,
+		assetRiskActionPlanSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+	)
+	assetRiskResponseReviewController := controllers.NewAssetRiskResponseReviewController(assetRiskResponseReviewSvc)
+
+	assetRiskResponseReviewCommentRepo := repositories.NewAssetRiskResponseReviewCommentRepository(db)
+	assetRiskResponseReviewCommentSvc := services.NewAssetRiskResponseReviewCommentService(
+		assetRiskResponseReviewCommentRepo,
+		sharedModule.ActivityLogService,
+		assetRiskResponseSvc,
+		masterModule.CommentStatusSvc,
+	)
+	assetRiskResponseReviewCommentController := controllers.NewAssetRiskResponseReviewCommentController(assetRiskResponseReviewCommentSvc)
 
 	assetRiskActionPlanStatusUpdateRepo := repositories.NewAssetRiskActionPlanStatusUpdateRepository(db)
 	assetRiskActionPlanStatusUpdateSvc := services.NewAssetRiskActionPlanStatusUpdateService(
