@@ -18,6 +18,7 @@ import (
 type AssetRiskResponseServiceInterface interface {
 	GetFullDetailsByID(riskID uint) (*assetDTOs.AssetRiskResponseDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskResponse, error)
+	GetByRiskRegisterID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskResponse, error)
 	Create(riskID uint, currentUserID uint, formDTO *assetDTOs.AssetRiskResponseFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, formDTO *assetDTOs.AssetRiskResponseFormDTO) error
 	Delete(riskID uint, id uint, currentUserID uint) (uint, error)
@@ -48,6 +49,15 @@ func (arrs *AssetRiskResponseService) GetFullDetailsByID(riskID uint) (*assetDTO
 	}
 
 	return toAssetRiskResponseDTO(riskResponse)
+}
+
+func (arrs *AssetRiskResponseService) GetByRiskRegisterID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskResponse, error) {
+	riskResponse, err := arrs.repo.GetByRiskRegisterID(riskID, tx...)
+	if err != nil {
+		return nil, utility.NewResourceNotFoundError(err, riskID)
+	}
+
+	return riskResponse, nil
 }
 
 func (arrs *AssetRiskResponseService) GetByID(riskID uint, id uint) (*models.RiskResponse, error) {

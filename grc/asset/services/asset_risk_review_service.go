@@ -157,13 +157,14 @@ func (arrs *AssetRiskReviewService) Submit(riskID uint, currentUserID uint) (err
 		return err
 	}
 
-	riskReview := &models.RiskWorkflowReview{
-		RiskWorkflowID:   riskWorkflowLevel.ID,
-		WorkflowStatusID: workflowStatus.ID,
-		CreatedBYID:      currentUserID,
-	}
-
-	if err := arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+	if err := arrs.createReviewWithHistory(
+		riskWorkflowLevel.ID,
+		riskRegister.ID,
+		level,
+		workflowStatus.ID,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
@@ -230,12 +231,14 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
-		riskReview := &models.RiskWorkflowReview{
-			RiskWorkflowID:   currentRiskWorkflow.ID,
-			WorkflowStatusID: workflowStatus.ID,
-			CreatedBYID:      currentUserID,
-		}
-		if err = arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+		if err = arrs.createReviewWithHistory(
+			currentRiskWorkflow.ID,
+			riskRegister.ID,
+			currentApprovalLevel,
+			workflowStatus.ID,
+			currentUserID,
+			tx,
+		); err != nil {
 			return err
 		}
 
@@ -317,12 +320,14 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
-		riskReview := &models.RiskWorkflowReview{
-			RiskWorkflowID:   currentRiskWorkflow.ID,
-			WorkflowStatusID: workflowStatus.ID,
-			CreatedBYID:      currentUserID,
-		}
-		if err = arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+		if err = arrs.createReviewWithHistory(
+			currentRiskWorkflow.ID,
+			riskRegister.ID,
+			currentApprovalLevel,
+			workflowStatus.ID,
+			currentUserID,
+			tx,
+		); err != nil {
 			return err
 		}
 
@@ -464,13 +469,14 @@ func (arrs *AssetRiskReviewService) Reject(riskID uint, currentUserID uint) (err
 		return err
 	}
 
-	riskWorkflowReview := &models.RiskWorkflowReview{
-		RiskWorkflowID:   currentRiskWorkflow.ID,
-		WorkflowStatusID: workflowStatus.ID,
-		CreatedBYID:      currentUserID,
-	}
-
-	if err := arrs.repo.CreateRiskReview(riskWorkflowReview, tx); err != nil {
+	if err := arrs.createReviewWithHistory(
+		currentRiskWorkflow.ID,
+		riskRegister.ID,
+		*riskRegister.NextReviewLevel,
+		workflowStatus.ID,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
@@ -619,13 +625,14 @@ func (arrs *AssetRiskReviewService) Resubmit(riskID uint, currentUserID uint) (e
 		return err
 	}
 
-	riskReview := &models.RiskWorkflowReview{
-		RiskWorkflowID:   riskWorkflowLevel.ID,
-		WorkflowStatusID: workflowStatus.ID,
-		CreatedBYID:      currentUserID,
-	}
-
-	if err := arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+	if err := arrs.createReviewWithHistory(
+		riskWorkflowLevel.ID,
+		riskRegister.ID,
+		level,
+		workflowStatus.ID,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
@@ -699,12 +706,14 @@ func (arrs *AssetRiskReviewService) Revert(riskID uint, currentUserID uint) (err
 		return err
 	}
 
-	riskReview := &models.RiskWorkflowReview{
-		RiskWorkflowID:   currentRiskWorkflow.ID,
-		WorkflowStatusID: revertStatus.ID,
-		CreatedBYID:      currentUserID,
-	}
-	if err := arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+	if err := arrs.createReviewWithHistory(
+		currentRiskWorkflow.ID,
+		riskRegister.ID,
+		currentLevel,
+		revertStatus.ID,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
@@ -1226,4 +1235,28 @@ func (arrs *AssetRiskReviewService) sendRevertNotification(currentUserID uint, s
 			"error": err.Error(),
 		})
 	}
+}
+
+func (arrs *AssetRiskReviewService) createReviewWithHistory(workflowID uint, riskID uint, level int, statusID uint, userID uint, tx utility.DatabaseTransaction) error {
+	riskReview := &models.RiskWorkflowReview{
+		RiskWorkflowID:   workflowID,
+		WorkflowStatusID: statusID,
+		CreatedBYID:      userID,
+	}
+	if err := arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+		return err
+	}
+
+	historyReview := &models.RiskWorkflowHistory{
+		RiskRegisterID:   riskID,
+		Level:            level,
+		WorkflowStatusID: statusID,
+		CreatedBYID:      userID,
+		CreatedAt:        time.Now(),
+	}
+	if err := arrs.repo.CreateRiskWorkflowHistory(historyReview, tx); err != nil {
+		return err
+	}
+
+	return nil
 }

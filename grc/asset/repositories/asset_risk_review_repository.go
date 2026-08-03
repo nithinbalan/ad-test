@@ -10,6 +10,7 @@ import (
 type AssetRiskReviewRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	CreateRiskReview(riskReview *models.RiskWorkflowReview, tx ...utility.DatabaseTransaction) error
+	CreateRiskWorkflowHistory(history *models.RiskWorkflowHistory, tx ...utility.DatabaseTransaction) error
 	UpdateRisk(risk *models.RiskRegister, tx ...utility.DatabaseTransaction) error
 	UpdateVulnerabilityStatusByID(vulnerabilityID uint, vulnerabilityStatusID uint, tx ...utility.DatabaseTransaction) error
 }
@@ -32,6 +33,17 @@ func (repo *AssetRiskReviewRepository) CreateRiskReview(riskReview *models.RiskW
 		db = tx[0].DB()
 	}
 	if err := db.Create(riskReview).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetRiskReviewRepository) CreateRiskWorkflowHistory(history *models.RiskWorkflowHistory, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(history).Error; err != nil {
 		return err
 	}
 	return nil

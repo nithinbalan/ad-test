@@ -194,6 +194,10 @@ func (repo *AssetRiskActionPlanRepository) GetAll(riskID uint, params *assetDTOs
 		}
 	}
 
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Calculate total count for pagination
