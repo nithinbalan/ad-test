@@ -593,6 +593,26 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "workflow_submission_required":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "workflow_submission_required",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+
+		case "workflow_submission_requires_one":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "workflow_submission_requires_one",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+
 		case "subsequent_stage_completed":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{

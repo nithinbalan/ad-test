@@ -26,6 +26,7 @@ import (
 type AssetRiskActionPlanServiceInterface interface {
 	GetAll(riskID uint, currentUserID uint, params *assetDTOs.AssetRiskActionPlanListQueryParamsDTO) (*assetDTOs.AssetRiskActionPlanListResponseDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskActionPlan, error)
+	HasActionPlans(riskID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	GetFullDetailsByID(riskID uint, id uint, currentUserID uint, isPassiveUser bool) (*assetDTOs.AssetRiskActionPlanDetailDTO, error)
 	Create(riskID uint, currentUserID uint, formDTO *assetDTOs.AssetRiskActionPlanFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, formDTO *assetDTOs.AssetRiskActionPlanFormDTO) error
@@ -123,6 +124,10 @@ func (araps AssetRiskActionPlanService) GetByID(riskID uint, id uint) (*models.R
 		return nil, err
 	}
 	return riskActionPlan, nil
+}
+
+func (araps AssetRiskActionPlanService) HasActionPlans(riskID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	return araps.repo.HasActionPlans(riskID, tx...)
 }
 
 func (araps AssetRiskActionPlanService) GetFullDetailsByID(riskID uint, id uint, currentUserID uint, isPassiveUser bool) (*assetDTOs.AssetRiskActionPlanDetailDTO, error) {

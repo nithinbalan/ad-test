@@ -24,6 +24,7 @@ type AssetRiskResponseReviewService struct {
 	riskSvc                 AssetRiskRegisterServiceInterface
 	riskResponseSvc         AssetRiskResponseServiceInterface
 	riskResponseWorkflowSvc AssetRiskResponseWorkflowServiceInterface
+	actionPlanSvc           AssetRiskActionPlanServiceInterface
 	workflowStatusSvc       masterServices.WorkflowStatusServiceInterface
 	userSvc                 organizationSvc.UserServiceInterface
 	notificationSvc         commonServices.NotificationServiceInterface
@@ -34,6 +35,7 @@ func NewAssetRiskResponseReviewService(
 	riskSvc AssetRiskRegisterServiceInterface,
 	riskResponseSvc AssetRiskResponseServiceInterface,
 	riskResponseWorkflowSvc AssetRiskResponseWorkflowServiceInterface,
+	actionPlanSvc AssetRiskActionPlanServiceInterface,
 	workflowStatusSvc masterServices.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
@@ -43,6 +45,7 @@ func NewAssetRiskResponseReviewService(
 		riskSvc:                 riskSvc,
 		riskResponseSvc:         riskResponseSvc,
 		riskResponseWorkflowSvc: riskResponseWorkflowSvc,
+		actionPlanSvc:           actionPlanSvc,
 		workflowStatusSvc:       workflowStatusSvc,
 		userSvc:                 userSvc,
 		notificationSvc:         notificationSvc,
@@ -74,12 +77,11 @@ func (arrs *AssetRiskResponseReviewService) Submit(riskID uint, currentUserID ui
 		}
 	}()
 
-	if err := arrs.riskResponseWorkflowSvc.ValidateWorkflowBeforeCreate("asset_risk_response", tx); err != nil {
-		return err
-	}
-
 	riskResponse, err := arrs.riskResponseSvc.GetByRiskRegisterID(riskID, tx)
 	if err != nil {
+		if _, ok := err.(*utility.ResourceNotFoundError); ok {
+			return utility.NewValidationError(fmt.Errorf("risk response has not been created for this risk"), "workflow_submission_required", "risk response")
+		}
 		return err
 	}
 
@@ -89,6 +91,18 @@ func (arrs *AssetRiskResponseReviewService) Submit(riskID uint, currentUserID ui
 
 	if riskResponse.ApprovedByID != nil {
 		return utility.NewValidationError(fmt.Errorf("risk response workflow has already been completed"), "workflow_already_completed", "risk_response")
+	}
+
+	hasActionPlans, err := arrs.actionPlanSvc.HasActionPlans(riskID, tx)
+	if err != nil {
+		return err
+	}
+	if !hasActionPlans {
+		return utility.NewValidationError(fmt.Errorf("at least one action plan is required to submit the risk response for review"), "workflow_submission_requires_one", "action plan")
+	}
+
+	if err := arrs.riskResponseWorkflowSvc.ValidateWorkflowBeforeCreate("asset_risk_response", tx); err != nil {
+		return err
 	}
 
 	if err := arrs.riskResponseWorkflowSvc.DeleteAllWorkflowsForRiskResponse(riskID, tx); err != nil {
