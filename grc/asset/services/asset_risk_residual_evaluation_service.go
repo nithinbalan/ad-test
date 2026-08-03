@@ -554,8 +554,8 @@ func (ares *AssetRiskResidualEvaluationService) notifyResidualRiskEscalation(ris
 	}
 
 	appURL := utility.GetAppURL()
-	urlParam := fmt.Sprintf(`{"risk_register_id":%d}`, riskRegister.ID)
-	entity := "asset-risk-register"
+	urlParam := fmt.Sprintf(`{"id":%d}`, riskRegister.ID)
+	entity := "asset-risk-residual-evaluation"
 	action := "residual-risk-escalation"
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
