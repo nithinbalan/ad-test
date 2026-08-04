@@ -10,9 +10,9 @@ import (
 )
 
 type DocumentDashboardRepositoryInterface interface {
-	GetDocumentSummary() (*kpiDTOs.DocumentDashboardSummaryDTO, error)
-	GetDocumentStatusByType() ([]kpiDTOs.DocumentStatusByTypeDTO, error)
-	GetDocumentOnTimeReviewTrend() ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error)
+	GetDocumentSummary(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentDashboardSummaryDTO, error)
+	GetDocumentStatusByType(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentStatusByTypeDTO, error)
+	GetDocumentOnTimeReviewTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error)
 }
 
 type DocumentDashboardRepository struct {
@@ -47,24 +47,28 @@ func NewDocumentDashboardRepository(db *gorm.DB) DocumentDashboardRepositoryInte
 	return &DocumentDashboardRepository{db: db}
 }
 
-func (repo *DocumentDashboardRepository) GetDocumentSummary() (*kpiDTOs.DocumentDashboardSummaryDTO, error) {
+func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentDashboardSummaryDTO, error) {
 	result := &kpiDTOs.DocumentDashboardSummaryDTO{}
+	documentCategoryIDs := params.Filters["document_category_id"]
 
-	err := repo.db.Table("documents d").
+	documentCountsQuery := repo.db.Table("documents d").
 		Select(`
 			COUNT(d.id) AS total_documents,
 			COALESCE(SUM(CASE WHEN ds.type = 'approved' THEN 1 ELSE 0 END), 0) AS approved_documents,
 			COALESCE(SUM(CASE WHEN ds.type = 'published' THEN 1 ELSE 0 END), 0) AS published_documents
 		`).
 		Joins("LEFT JOIN document_statuses ds ON ds.id = d.document_status_id").
-		Where("d.is_internal = ? AND d.is_folder = ?", false, false).
-		Scan(result).Error
+		Where("d.is_internal = ? AND d.is_folder = ?", false, false)
+	if len(documentCategoryIDs) > 0 {
+		documentCountsQuery = documentCountsQuery.Where("d.document_category_id IN ?", documentCategoryIDs)
+	}
+	err := documentCountsQuery.Scan(result).Error
 	if err != nil {
 		return nil, err
 	}
 
 	reviewCounts := &documentReviewTimelinessCounts{}
-	err = repo.db.Table("document_reviews dr").
+	reviewCountsQuery := repo.db.Table("document_reviews dr").
 		Select(`
 			COALESCE(SUM(CASE
 				WHEN dr.review_date >= DATEADD(month, -12, CAST(GETDATE() AS date))
@@ -79,8 +83,11 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary() (*kpiDTOs.Document
 				THEN 1 ELSE 0 END), 0) AS current_period_on_time_reviews
 		`).
 		Joins("INNER JOIN documents d ON d.id = dr.document_id").
-		Where("d.is_internal = ? AND d.is_folder = ?", false, false).
-		Scan(reviewCounts).Error
+		Where("d.is_internal = ? AND d.is_folder = ?", false, false)
+	if len(documentCategoryIDs) > 0 {
+		reviewCountsQuery = reviewCountsQuery.Where("d.document_category_id IN ?", documentCategoryIDs)
+	}
+	err = reviewCountsQuery.Scan(reviewCounts).Error
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +99,7 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary() (*kpiDTOs.Document
 	}
 
 	approvalTime := &documentApprovalTimeResult{}
-	err = repo.db.Table("document_versions dv").
+	approvalTimeQuery := repo.db.Table("document_versions dv").
 		Select(`
 			COALESCE(
 				AVG(CAST(DATEDIFF(second, dv.submitted_at, final_approval.final_approved_at) AS FLOAT) / 86400.0),
@@ -123,8 +130,11 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary() (*kpiDTOs.Document
 		Where("dv.is_latest_version = ?", true).
 		Where("dv.submitted_at IS NOT NULL").
 		Where("final_approval.final_approved_at >= dv.submitted_at").
-		Where("d.is_internal = ? AND d.is_folder = ?", false, false).
-		Scan(approvalTime).Error
+		Where("d.is_internal = ? AND d.is_folder = ?", false, false)
+	if len(documentCategoryIDs) > 0 {
+		approvalTimeQuery = approvalTimeQuery.Where("d.document_category_id IN ?", documentCategoryIDs)
+	}
+	err = approvalTimeQuery.Scan(approvalTime).Error
 	if err != nil {
 		return nil, err
 	}
@@ -149,11 +159,15 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary() (*kpiDTOs.Document
 
 	if len(eccComplianceRegisterIDs) > 0 && result.TotalDocuments > 0 {
 		var mappedDocumentCount int64
-		err = repo.db.Table("document_compliance_requirements dcr").
+		mappedDocumentsQuery := repo.db.Table("document_compliance_requirements dcr").
 			Joins("INNER JOIN documents d ON d.id = dcr.document_id").
 			Where("dcr.compliance_register_id IN ?", eccComplianceRegisterIDs).
 			Where("dcr.compliance_clause_id IS NOT NULL").
-			Where("d.is_internal = ? AND d.is_folder = ?", false, false).
+			Where("d.is_internal = ? AND d.is_folder = ?", false, false)
+		if len(documentCategoryIDs) > 0 {
+			mappedDocumentsQuery = mappedDocumentsQuery.Where("d.document_category_id IN ?", documentCategoryIDs)
+		}
+		err = mappedDocumentsQuery.
 			Distinct("dcr.document_id").
 			Count(&mappedDocumentCount).Error
 		if err != nil {
@@ -172,10 +186,11 @@ func roundToOneDecimal(value float64) float64 {
 	return math.Round(value*10) / 10
 }
 
-func (repo *DocumentDashboardRepository) GetDocumentStatusByType() ([]kpiDTOs.DocumentStatusByTypeDTO, error) {
+func (repo *DocumentDashboardRepository) GetDocumentStatusByType(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentStatusByTypeDTO, error) {
 	result := []kpiDTOs.DocumentStatusByTypeDTO{}
+	documentCategoryIDs := params.Filters["document_category_id"]
 
-	err := repo.db.Table("document_types dt").
+	query := repo.db.Table("document_types dt").
 		Select(`
 			dt.id AS document_type_id,
 			dt.type,
@@ -201,11 +216,18 @@ func (repo *DocumentDashboardRepository) GetDocumentStatusByType() ([]kpiDTOs.Do
 			COALESCE(SUM(CASE
 				WHEN ds.type IN ('approved', 'published', 'in-review', 'draft', 'rejected', 'reverted')
 				THEN 1 ELSE 0 END), 0) AS total
-		`).
-		Joins(`LEFT JOIN documents d
-			ON d.document_type_id = dt.id
-			AND d.is_internal = 0
-			AND d.is_folder = 0`).
+		`)
+	documentJoin := `LEFT JOIN documents d
+		ON d.document_type_id = dt.id
+		AND d.is_internal = 0
+		AND d.is_folder = 0`
+	if len(documentCategoryIDs) > 0 {
+		documentJoin += " AND d.document_category_id IN ?"
+		query = query.Joins(documentJoin, documentCategoryIDs)
+	} else {
+		query = query.Joins(documentJoin)
+	}
+	err := query.
 		Joins("LEFT JOIN document_statuses ds ON ds.id = d.document_status_id").
 		Where("dt.status = ?", "active").
 		Group("dt.id, dt.type, dt.title_en, dt.title_ar").
@@ -218,14 +240,15 @@ func (repo *DocumentDashboardRepository) GetDocumentStatusByType() ([]kpiDTOs.Do
 	return result, nil
 }
 
-func (repo *DocumentDashboardRepository) GetDocumentOnTimeReviewTrend() ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error) {
+func (repo *DocumentDashboardRepository) GetDocumentOnTimeReviewTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error) {
+	documentCategoryIDs := params.Filters["document_category_id"]
 	now := time.Now().UTC()
 	currentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	startMonth := currentMonth.AddDate(0, -11, 0)
 	nextMonth := currentMonth.AddDate(0, 1, 0)
 
 	monthlyCounts := []documentMonthlyReviewCounts{}
-	err := repo.db.Table("document_reviews dr").
+	query := repo.db.Table("document_reviews dr").
 		Select(`
 			DATEFROMPARTS(YEAR(dr.review_date), MONTH(dr.review_date), 1) AS month,
 			COUNT(dr.id) AS total_reviews,
@@ -237,7 +260,11 @@ func (repo *DocumentDashboardRepository) GetDocumentOnTimeReviewTrend() ([]kpiDT
 		Where("dr.review_date >= ? AND dr.review_date < ?", startMonth, nextMonth).
 		Where("dr.review_date <= CAST(GETDATE() AS date)").
 		Where("d.next_review_date IS NOT NULL").
-		Where("d.is_internal = ? AND d.is_folder = ?", false, false).
+		Where("d.is_internal = ? AND d.is_folder = ?", false, false)
+	if len(documentCategoryIDs) > 0 {
+		query = query.Where("d.document_category_id IN ?", documentCategoryIDs)
+	}
+	err := query.
 		Group("YEAR(dr.review_date), MONTH(dr.review_date)").
 		Scan(&monthlyCounts).Error
 	if err != nil {

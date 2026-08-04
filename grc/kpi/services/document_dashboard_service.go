@@ -6,9 +6,9 @@ import (
 )
 
 type DocumentDashboardServiceInterface interface {
-	GetDocumentSummary() (*kpiDTOs.DocumentDashboardSummaryDTO, error)
-	GetDocumentStatusByType() ([]kpiDTOs.DocumentStatusByTypeDTO, error)
-	GetDocumentOnTimeReviewTrend() ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error)
+	GetDocumentSummary(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentDashboardSummaryDTO, error)
+	GetDocumentStatusByType(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentStatusByTypeDTO, error)
+	GetDocumentOnTimeReviewTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error)
 }
 
 type DocumentDashboardService struct {
@@ -19,14 +19,14 @@ func NewDocumentDashboardService(repo repositories.DocumentDashboardRepositoryIn
 	return &DocumentDashboardService{repo: repo}
 }
 
-func (service *DocumentDashboardService) GetDocumentSummary() (*kpiDTOs.DocumentDashboardSummaryDTO, error) {
-	return service.repo.GetDocumentSummary()
+func (service *DocumentDashboardService) GetDocumentSummary(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentDashboardSummaryDTO, error) {
+	return service.repo.GetDocumentSummary(params)
 }
 
-func (service *DocumentDashboardService) GetDocumentStatusByType() ([]kpiDTOs.DocumentStatusByTypeDTO, error) {
-	return service.repo.GetDocumentStatusByType()
+func (service *DocumentDashboardService) GetDocumentStatusByType(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentStatusByTypeDTO, error) {
+	return service.repo.GetDocumentStatusByType(params)
 }
 
-func (service *DocumentDashboardService) GetDocumentOnTimeReviewTrend() ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error) {
-	return service.repo.GetDocumentOnTimeReviewTrend()
+func (service *DocumentDashboardService) GetDocumentOnTimeReviewTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error) {
+	return service.repo.GetDocumentOnTimeReviewTrend(params)
 }

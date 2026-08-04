@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/kpi/services"
 	"jethur/utility"
 	"net/http"
@@ -19,7 +20,13 @@ func NewDocumentDashboardController(service services.DocumentDashboardServiceInt
 }
 
 func (controller *DocumentDashboardController) GetDocumentSummary(c *gin.Context) {
-	response, err := controller.service.GetDocumentSummary()
+	allowedParams := []string{
+		"document_category_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+	queryParams := &kpiDTOs.DocumentDashboardQueryParamsDTO{Filters: filters}
+
+	response, err := controller.service.GetDocumentSummary(queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(controller.db, c, err.Error())
 		return
@@ -29,7 +36,13 @@ func (controller *DocumentDashboardController) GetDocumentSummary(c *gin.Context
 }
 
 func (controller *DocumentDashboardController) GetDocumentStatusByType(c *gin.Context) {
-	response, err := controller.service.GetDocumentStatusByType()
+	allowedParams := []string{
+		"document_category_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+	queryParams := &kpiDTOs.DocumentDashboardQueryParamsDTO{Filters: filters}
+
+	response, err := controller.service.GetDocumentStatusByType(queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(controller.db, c, err.Error())
 		return
@@ -39,7 +52,13 @@ func (controller *DocumentDashboardController) GetDocumentStatusByType(c *gin.Co
 }
 
 func (controller *DocumentDashboardController) GetDocumentOnTimeReviewTrend(c *gin.Context) {
-	response, err := controller.service.GetDocumentOnTimeReviewTrend()
+	allowedParams := []string{
+		"document_category_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+	queryParams := &kpiDTOs.DocumentDashboardQueryParamsDTO{Filters: filters}
+
+	response, err := controller.service.GetDocumentOnTimeReviewTrend(queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(controller.db, c, err.Error())
 		return

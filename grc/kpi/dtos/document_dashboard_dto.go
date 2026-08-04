@@ -1,5 +1,9 @@
 package dtos
 
+type DocumentDashboardQueryParamsDTO struct {
+	Filters map[string][]string
+}
+
 type DocumentDashboardSummaryDTO struct {
 	TotalDocuments                  int64   `json:"total_documents"`
 	ApprovedDocuments               int64   `json:"approved_documents"`
