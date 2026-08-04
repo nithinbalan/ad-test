@@ -746,17 +746,21 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 
 	for _, kri := range kriRecords {
 		reportKRI := &models.GRCReportRiskKRI{
-			GRCReportID:              grcReportID,
-			RiskRegisterTitle:        kri.RiskRegisterTitle,
-			KRIRegisterTitle:         kri.KRIRegisterTitle,
-			KRIRegisterDescription:   kri.KRIRegisterDescription,
-			LowThreshold:             kri.LowThreshold,
-			MediumThreshold:          kri.MediumThreshold,
-			CurrentValue:             kri.CurrentValue,
-			RiskStatusTitleEn:        kri.RiskStatusTitleEn,
-			RiskStatusTitleAr:        kri.RiskStatusTitleAr,
-			RiskStatusTitleColorCode: kri.RiskStatusTitleColorCode,
-			CreatedBYID:              currentUserID,
+			GRCReportID:                  grcReportID,
+			RiskRegisterTitle:            kri.RiskRegisterTitle,
+			KRIRegisterTitle:             kri.KRIRegisterTitle,
+			KRIRegisterDescription:       kri.KRIRegisterDescription,
+			AnnualTarget:                 kri.AnnualTarget,
+			MinimumSusceptibilityPercent: kri.MinimumSusceptibilityPercent,
+			MaximumSusceptibilityPercent: kri.MaximumSusceptibilityPercent,
+			MaximumTolerablePercent:      kri.MaximumTolerablePercent,
+			IsLowerBetter:                kri.IsLowerBetter,
+			IsHigherBetter:               kri.IsHigherBetter,
+			CurrentValue:                 kri.CurrentValue,
+			RiskStatusTitleEn:            kri.RiskStatusTitleEn,
+			RiskStatusTitleAr:            kri.RiskStatusTitleAr,
+			RiskStatusTitleColorCode:     kri.RiskStatusTitleColorCode,
+			CreatedBYID:                  currentUserID,
 		}
 
 		if err := grs.repo.CreateGRCReportRiskKRI(reportKRI, tx); err != nil {
