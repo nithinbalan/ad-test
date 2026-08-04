@@ -65,6 +65,7 @@ type MasterModule struct {
 	ApplicabilitySvc          services.ApplicabilityStatusServiceInterface
 	RequiredDocumentTitleSvc  services.RequiredDocumentTitleServiceInterface
 	CountrySvc                services.CountryServiceInterface
+	CalculationTypeSvc        services.CalculationTypeServiceInterface
 	ProjectMilestoneStatusSvc services.ProjectMilestoneStatusServiceInterface
 	LicenseTypeSvc            services.LicenseTypeServiceInterface
 	WorkflowContextSvc        services.WorkflowContextServiceInterface
@@ -279,6 +280,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ApplicabilitySvc:          applicabilityStatusSvc,
 		RequiredDocumentTitleSvc:  requiredDocumentTitleSvc,
 		CountrySvc:                countrySvc,
+		CalculationTypeSvc:        calculationTypeSvc,
 		ProjectMilestoneStatusSvc: projectMilestoneStatusSvc,
 		LicenseTypeSvc:            licenseTypeSvc,
 		WorkflowContextSvc:        workflowContextSvc,

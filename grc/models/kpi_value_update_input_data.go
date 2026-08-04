@@ -3,11 +3,11 @@ package models
 import "time"
 
 type KPIValueUpdateDataInput struct {
-	ID               uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	KPIValueUpdateID uint   `json:"kpi_value_update_id"`
-	Variable         string `json:"variable"`
-	Input            string `json:"input"`
-	Value            int    `json:"value"`
+	ID               uint     `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	KPIValueUpdateID uint     `json:"kpi_value_update_id"`
+	Variable         string   `json:"variable"`
+	Input            string   `json:"input"`
+	Value            *float64 `json:"value" gorm:"type:decimal(18,2)"`
 
 	CreatedAt   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
