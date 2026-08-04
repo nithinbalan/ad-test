@@ -1,22 +1,18 @@
 -- +goose Up
 -- +goose StatementBegin
- 
 DECLARE @documentModuleID INT;
 DECLARE @documentDashboardModuleID INT;
 DECLARE @superAdminRoleID INT;
 DECLARE @viewPermissionTypeID INT, @modifyPermissionTypeID INT, @managePermissionTypeID INT;
- 
--- Get parent module ID
+
 SELECT @documentModuleID = id
 FROM modules
 WHERE identifier = 'document';
  
--- Shift all existing Document submodules down by one
 UPDATE modules
 SET [order] = [order] + 1
 WHERE module_id = @documentModuleID;
  
--- Insert new Dashboard submodule
 INSERT INTO modules (
     identifier,
     title_en,
@@ -36,29 +32,12 @@ VALUES (
     '/document/dashboard'
 );
  
--- Get role and permission type IDs
-SELECT @superAdminRoleID = id
-FROM roles
-WHERE is_super_admin = 1;
+SELECT @superAdminRoleID = id FROM roles WHERE is_super_admin = 1;
+SELECT @viewPermissionTypeID = id FROM role_permission_types WHERE type = 'view'; 
+SELECT @modifyPermissionTypeID = id FROM role_permission_types WHERE type = 'modify';
+SELECT @managePermissionTypeID = id FROM role_permission_types WHERE type = 'manage';
+SELECT @documentDashboardModuleID = id FROM modules WHERE identifier = 'document_dashboard';
  
-SELECT @viewPermissionTypeID = id
-FROM role_permission_types
-WHERE type = 'view';
- 
-SELECT @modifyPermissionTypeID = id
-FROM role_permission_types
-WHERE type = 'modify';
- 
-SELECT @managePermissionTypeID = id
-FROM role_permission_types
-WHERE type = 'manage';
- 
--- Get Dashboard module ID
-SELECT @documentDashboardModuleID = id
-FROM modules
-WHERE identifier = 'document_dashboard';
- 
--- Assign View permission
 IF NOT EXISTS (
     SELECT 1
     FROM role_permissions
@@ -85,7 +64,6 @@ BEGIN
     );
 END
  
--- Assign Modify permission
 IF NOT EXISTS (
     SELECT 1
     FROM role_permissions
@@ -112,7 +90,6 @@ BEGIN
     );
 END
  
--- Assign Manage permission
 IF NOT EXISTS (
     SELECT 1
     FROM role_permissions
@@ -138,19 +115,16 @@ BEGIN
         GETDATE()
     );
 END
- 
 -- +goose StatementEnd
  
 -- +goose Down
 -- +goose StatementBegin
- 
 DECLARE @documentModuleID INT;
  
 SELECT @documentModuleID = id
 FROM modules
 WHERE identifier = 'document';
  
--- Remove Dashboard permissions
 DELETE FROM role_permissions
 WHERE module_id IN (
     SELECT id
@@ -158,13 +132,10 @@ WHERE module_id IN (
     WHERE identifier = 'document_dashboard'
 );
  
--- Remove Dashboard module
 DELETE FROM modules
 WHERE identifier = 'document_dashboard';
  
--- Restore original ordering
 UPDATE modules
 SET [order] = [order] - 1
 WHERE module_id = @documentModuleID;
- 
 -- +goose StatementEnd
