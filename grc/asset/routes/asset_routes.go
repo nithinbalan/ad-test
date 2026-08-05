@@ -170,6 +170,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/vulnerability-statuses", vulnerabilityStatusController.GetAllVulnerabilityStatuses)
 	assetRoutes.GET("/vulnerability-statuses/:id", vulnerabilityStatusController.GetVulnerabilityStatusDetails)
 
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/document-preview", vulnerabilityController.GetVulnerabilityDocumentPreview)
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/document-download", vulnerabilityController.DownloadVulnerabilityDocument)
+
 	assetRoutes.GET("/vulnerabilities", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetAllVulnerabilities)
 	assetRoutes.GET("/vulnerabilities/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilityDetails)
 	assetRoutes.POST("/vulnerabilities/:id/qualys-sync", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.SyncVulnerabilityFromQualys)

@@ -169,7 +169,7 @@ func (arrws *AssetRiskResponseWorkflowService) CreateRiskResponseWorkflow(riskRe
 
 		for _, participant := range level.Participants {
 			if participant.Role != nil {
-				userIds, err := arrws.userSvc.GetUserIdsByRole(participant.Role.ID, tx...)
+				userIds, err := arrws.userSvc.GetUserIdsByRoleExcludingSystemUsers(participant.Role.ID, tx...)
 				if err != nil {
 					return err
 				}

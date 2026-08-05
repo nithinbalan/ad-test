@@ -42,6 +42,7 @@ type UserRepositoryInterface interface {
 	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
 	GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error)
 	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	GetUserIdsByRoleExcludingSystemUsers(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 
 	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
 	GetUserNewNotificationCount(userID uint) (int64, error)
@@ -687,6 +688,27 @@ func (repo *UserRepository) GetUserIdsByRole(roleID uint, tx ...utility.Database
 		Model(&models.User{}).
 		Joins("JOIN user_roles on user_roles.user_id = users.id").
 		Where("user_roles.role_id = ?", roleID).
+		Pluck("users.id", &userIDs).Error
+	if err != nil {
+		return nil, err
+	}
+	return userIDs, nil
+}
+
+func (repo *UserRepository) GetUserIdsByRoleExcludingSystemUsers(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	excludedEmails := []string{"no-reply@jethur.com", "globaladmin@jethur.com"}
+
+	var userIDs []uint
+	err := db.
+		Model(&models.User{}).
+		Joins("JOIN user_roles on user_roles.user_id = users.id").
+		Where("user_roles.role_id = ?", roleID).
+		Where("users.email NOT IN ?", excludedEmails).
 		Pluck("users.id", &userIDs).Error
 	if err != nil {
 		return nil, err
