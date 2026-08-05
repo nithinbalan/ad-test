@@ -60,7 +60,7 @@ type IdentityReviewCampaignFormDTO struct {
 	ReviewerID         uint                          `json:"reviewer_id" binding:"required"`
 	ApproverID         uint                          `json:"approver_id" binding:"required"`
 	ReminderDaysOffset *int                          `json:"reminder_days_offset"`
-	SystemRegisterIDs  []uint                        `json:"system_register_ids"`
+	AssetIDs           []uint                        `json:"asset_ids"`
 	Documents          []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 

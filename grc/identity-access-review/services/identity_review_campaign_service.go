@@ -104,11 +104,11 @@ func (ircs *IdentityReviewCampaignService) GetFullDetailsByID(id uint, tx ...uti
 }
 
 func (ircs *IdentityReviewCampaignService) Create(currentUserID uint, formDTO *dtos.IdentityReviewCampaignFormDTO) (uint, error) {
-	if len(formDTO.SystemRegisterIDs) == 0 {
+	if len(formDTO.AssetIDs) == 0 {
 		return 0, utility.NewValidationError(
-			fmt.Errorf("at least one system register is required"),
+			fmt.Errorf("at least one asset is required"),
 			"required",
-			"system_register_ids",
+			"asset_ids",
 		)
 	}
 
@@ -158,10 +158,11 @@ func (ircs *IdentityReviewCampaignService) Create(currentUserID uint, formDTO *d
 	}
 
 	var systems []*models.IdentityReviewCampaignSystem
-	for _, systemRegisterID := range formDTO.SystemRegisterIDs {
+	for _, assetID := range formDTO.AssetIDs {
+		assetID := assetID
 		systems = append(systems, &models.IdentityReviewCampaignSystem{
 			IdentityReviewCampaignID: id,
-			SystemRegisterID:         systemRegisterID,
+			AssetRegisterID:          &assetID,
 			CreatedByID:              currentUserID,
 		})
 	}
@@ -297,10 +298,11 @@ func (ircs *IdentityReviewCampaignService) Update(id uint, currentUserID uint, f
 	}
 
 	var systems []*models.IdentityReviewCampaignSystem
-	for _, systemRegisterID := range formDTO.SystemRegisterIDs {
+	for _, assetID := range formDTO.AssetIDs {
+		assetID := assetID
 		systems = append(systems, &models.IdentityReviewCampaignSystem{
 			IdentityReviewCampaignID: id,
-			SystemRegisterID:         systemRegisterID,
+			AssetRegisterID:          &assetID,
 			CreatedByID:              currentUserID,
 		})
 	}

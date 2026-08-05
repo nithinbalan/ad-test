@@ -5,7 +5,7 @@ import "time"
 type IdentityReviewCampaignSystem struct {
 	ID                       uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IdentityReviewCampaignID uint      `json:"identity_review_campaign_id" gorm:"not null"`
-	SystemRegisterID         uint      `json:"system_register_id" gorm:"not null"`
+	SystemRegisterID         *uint     `json:"system_register_id,omitempty" gorm:"default:null"`
 	AssetRegisterID          *uint     `json:"asset_register_id"`
 	CreatedAt                time.Time `json:"created_at" gorm:"type:datetime;not null"`
 	CreatedByID              uint      `json:"created_by_id" gorm:"not null"`
