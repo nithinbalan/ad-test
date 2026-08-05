@@ -910,8 +910,20 @@ func (rc *RiskAssociatedItemController) DeletetRiskControl(c *gin.Context) {
 	controlID, _ := strconv.ParseUint(c.Param("controlId"), 10, 64)
 	err := rc.service.DeletetRiskControl(uint(riskID), uint(controlID))
 	if err != nil {
-		utility.SendInternalErrResp(rc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from risk successfully"})

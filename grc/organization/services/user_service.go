@@ -50,6 +50,7 @@ type UserServiceInterface interface {
 	SetUserSettingService(svc UserSettingServiceInterface)
 	GetUserPrimaryUnitID(userID uint) (uint, error)
 	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	GetUserIdsByRoleExcludingSystemUsers(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 
 	GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error)
 	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
@@ -985,6 +986,15 @@ func (us *UserService) GetUserPrimaryUnitID(userID uint) (uint, error) {
 
 func (us *UserService) GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
 	userIds, err := us.repo.GetUserIdsByRole(roleID, tx...)
+	if err != nil {
+		return nil, err
+	}
+
+	return userIds, nil
+}
+
+func (us *UserService) GetUserIdsByRoleExcludingSystemUsers(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	userIds, err := us.repo.GetUserIdsByRoleExcludingSystemUsers(roleID, tx...)
 	if err != nil {
 		return nil, err
 	}

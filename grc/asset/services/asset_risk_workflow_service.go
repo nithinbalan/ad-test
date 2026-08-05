@@ -206,7 +206,7 @@ func (arws *AssetRiskWorkflowService) CreateRiskWorkflow(riskRegisterID uint, co
 
 		for _, participant := range level.Participants {
 			if participant.Role != nil {
-				userIds, err := arws.userSvc.GetUserIdsByRole(participant.Role.ID, tx...)
+				userIds, err := arws.userSvc.GetUserIdsByRoleExcludingSystemUsers(participant.Role.ID, tx...)
 				if err != nil {
 					return err
 				}
