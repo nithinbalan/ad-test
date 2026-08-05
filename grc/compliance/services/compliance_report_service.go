@@ -30,7 +30,7 @@ type ComplianceReportService struct {
 }
 
 type ComplianceReportServiceInterface interface {
-	GetAll(queryParams *dtos.ComplianceReportListQueryParamsDTO) (*dtos.ComplianceReportListResponseDTO, error)
+	GetAll(currentUserID uint, queryParams *dtos.ComplianceReportListQueryParamsDTO) (*dtos.ComplianceReportListResponseDTO, error)
 	Create(currentUserID uint, request *dtos.ComplianceReportFormDTO) (uint, error)
 	GetComplianceReportDetails(complianceReportID uint) (*dtos.ComplianceReportDetailsDTO, error)
 	GetComplianceReportSectionDetails(complianceReportID uint, sectionID uint) (*dtos.ComplianceReportSection, error)
@@ -53,7 +53,14 @@ func NewComplianceReportService(
 	}
 }
 
-func (crs *ComplianceReportService) GetAll(queryParams *dtos.ComplianceReportListQueryParamsDTO) (*dtos.ComplianceReportListResponseDTO, error) {
+func (crs *ComplianceReportService) GetAll(currentUserID uint, queryParams *dtos.ComplianceReportListQueryParamsDTO) (*dtos.ComplianceReportListResponseDTO, error) {
+	if currentUserID != 0 {
+		isCyberUser, err := crs.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+		queryParams.IsCyber = isCyberUser
+	}
 	reports, err := crs.repo.GetAll(queryParams)
 	if err != nil {
 		return nil, err
@@ -81,10 +88,26 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 		AssessmentType: request.AssessmentType,
 	}
 
+	var isCyberUser bool
+	if request.AssessmentType == "department" {
+		isCyberUser, err = crs.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	if request.AssessmentType == "framework" {
 		complianceReport.ComplianceRegisterID = request.ComplianceRegisterID
+		register, err := crs.repo.GetComplianceRegisterByID(*request.ComplianceRegisterID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		complianceReport.IsCyber = register.IsCyber
 	} else {
 		complianceReport.ResponsibleUnitID = request.ResponsibleUnitID
+		complianceReport.IsCyber = isCyberUser
 	}
 
 	complianceReportID, err := crs.repo.Create(complianceReport, tx)
@@ -118,7 +141,6 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 	}
 
 	var complianceAssessments []models.ComplianceAssessment
-	var isCyberUser bool
 	if request.AssessmentType == "framework" {
 		complianceAssessments, err = crs.repo.GetComplianceAssessmentByComplianceRegisterID(*request.ComplianceRegisterID, *parsedDates.StartDate, *parsedDates.EndDate, tx)
 		if err != nil {
@@ -126,11 +148,6 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 			return 0, err
 		}
 	} else {
-		isCyberUser, err = crs.userSvc.IsCyberUser(currentUserID)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
 		complianceAssessments, err = crs.repo.GetComplianceAssessmentByResponsibleUnitID(*request.ResponsibleUnitID, isCyberUser, *parsedDates.StartDate, *parsedDates.EndDate, tx)
 		if err != nil {
 			tx.Rollback()

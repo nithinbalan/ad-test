@@ -13,6 +13,7 @@ import (
 type ComplianceReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *dtos.ComplianceReportListQueryParamsDTO) (*dtos.ComplianceReportListResponseDTO, error)
+	GetComplianceRegisterByID(id uint) (*models.ComplianceRegister, error)
 	Create(complianceReport *models.ComplianceReport, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateSection(section *models.ComplianceReportSection, tx ...utility.DatabaseTransaction) (uint, error)
 	GetComplianceAssessmentByComplianceRegisterID(complianceRegisterID uint, startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]models.ComplianceAssessment, error)
@@ -61,6 +62,7 @@ func (repo *ComplianceReportRepository) GetAll(params *dtos.ComplianceReportList
 			CONVERT(VARCHAR, compliance_reports.start_date, 23) AS start_date,
 			CONVERT(VARCHAR, compliance_reports.end_date, 23) AS end_date,
 			compliance_reports.created_at,
+			compliance_reports.is_cyber,
 			compliance_register.title_en AS compliance_register_title_en,
 			compliance_register.title_ar AS compliance_register_title_ar,
 			created_user.id AS created_user_id,
@@ -75,6 +77,12 @@ func (repo *ComplianceReportRepository) GetAll(params *dtos.ComplianceReportList
 		`).
 		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_reports.compliance_register_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = compliance_reports.created_by_id")
+
+	if params.IsCyber {
+		query = query.Where("compliance_reports.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_reports.is_cyber = ?", false)
+	}
 
 	if params.Keyword != "" {
 		query = query.Where(`
@@ -470,4 +478,12 @@ func (repo *ComplianceReportRepository) GetAllComplianceStatuses() ([]*models.Co
 		return nil, err
 	}
 	return statuses, nil
+}
+
+func (repo *ComplianceReportRepository) GetComplianceRegisterByID(id uint) (*models.ComplianceRegister, error) {
+	var register models.ComplianceRegister
+	if err := repo.db.First(&register, id).Error; err != nil {
+		return nil, err
+	}
+	return &register, nil
 }

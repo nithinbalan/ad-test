@@ -16,6 +16,7 @@ type ComplianceReportListDTO struct {
 	StartDate                   string `json:"start_date"`
 	EndDate                     string `json:"end_date"`
 	CreatedAt                   string `json:"created_at"`
+	IsCyber                     bool   `json:"is_cyber"`
 	ComplianceRegisterTitleEn   string `json:"compliance_register_title_en"`
 	ComplianceRegisterTitleAr   string `json:"compliance_register_title_ar"`
 	CreatedUserID               uint   `json:"created_user_id"`
@@ -162,6 +163,7 @@ type ComplianceReportListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
+	IsCyber  bool
 }
 
 type ComplianceReportSectionFormDTO struct {

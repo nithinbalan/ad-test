@@ -10,6 +10,7 @@ type ComplianceReport struct {
 	AssessmentType       string    `json:"assessment_type" gorm:"type:nvarchar(20);not null;" binding:"required"`
 	ComplianceRegisterID *uint     `json:"compliance_register_id" gorm:"default:null"`
 	ResponsibleUnitID    *uint     `json:"responsible_unit_id"`
+	IsCyber              bool      `json:"is_cyber" gorm:"type:bit;not null;default:0"`
 	StartDate            time.Time `json:"start_date" gorm:"type:date;not null" binding:"required"`
 	EndDate              time.Time `json:"end_date" gorm:"type:date;not null" binding:"required"`
 	CreatedBYID          uint      `json:"created_by_id" gorm:"not null" binding:"required"`

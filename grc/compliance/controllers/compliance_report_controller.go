@@ -59,6 +59,12 @@ func (crc *ComplianceReportController) GetAllComplianceReports(c *gin.Context) {
 		return
 	}
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
 	queryParams := dtos.ComplianceReportListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   dbField,
@@ -68,7 +74,7 @@ func (crc *ComplianceReportController) GetAllComplianceReports(c *gin.Context) {
 		Filters:  filters,
 	}
 
-	reports, err := crc.service.GetAll(&queryParams)
+	reports, err := crc.service.GetAll(currentUserID, &queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
