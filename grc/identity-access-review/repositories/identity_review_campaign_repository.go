@@ -69,19 +69,16 @@ func (repo *IdentityReviewCampaignRepository) GetAll(params *dtos.IdentityReview
 			reviewer.last_name_en AS reviewer_last_name_en,
 			reviewer.last_name_ar AS reviewer_last_name_ar,
 			reviewer.initial AS reviewer_initial,
-			approver.id AS approver_id,
-			approver.first_name_en AS approver_first_name_en,
-			approver.first_name_ar AS approver_first_name_ar,
-			approver.last_name_en AS approver_last_name_en,
-			approver.last_name_ar AS approver_last_name_ar,
-			approver.initial AS approver_initial,
+			workflows.id AS workflow_id,
+			workflows.title_en AS workflow_title_en,
+			workflows.title_ar AS workflow_title_ar,
 			identity_review_campaigns.created_at,
 			identity_review_campaigns.updated_at
 		`).
 		Joins("LEFT JOIN review_types ON review_types.id = identity_review_campaigns.review_type_id").
 		Joins("LEFT JOIN review_campaign_statuses ON review_campaign_statuses.id = identity_review_campaigns.campaign_status_id").
 		Joins("LEFT JOIN users AS reviewer ON reviewer.id = identity_review_campaigns.reviewer_id").
-		Joins("LEFT JOIN users AS approver ON approver.id = identity_review_campaigns.approver_id")
+		Joins("LEFT JOIN workflows ON workflows.id = identity_review_campaigns.workflow_id")
 
 	for column, values := range params.Filters {
 		if len(values) == 0 {
@@ -95,8 +92,6 @@ func (repo *IdentityReviewCampaignRepository) GetAll(params *dtos.IdentityReview
 			query = query.Where("identity_review_campaigns.campaign_status_id IN (?)", values)
 		case "reviewer_id":
 			query = query.Where("identity_review_campaigns.reviewer_id IN (?)", values)
-		case "approver_id":
-			query = query.Where("identity_review_campaigns.approver_id IN (?)", values)
 		case "system_register_id":
 			query = query.Where(`
 				EXISTS (
@@ -122,13 +117,11 @@ func (repo *IdentityReviewCampaignRepository) GetAll(params *dtos.IdentityReview
 			reviewer.first_name_ar LIKE ? OR
 			reviewer.last_name_en LIKE ? OR
 			reviewer.last_name_ar LIKE ? OR
-			approver.first_name_en LIKE ? OR
-			approver.first_name_ar LIKE ? OR
-			approver.last_name_en LIKE ? OR
-			approver.last_name_ar LIKE ?`,
+			workflows.title_en LIKE ? OR
+			workflows.title_ar LIKE ?`,
 			keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword,
 		)
 	}
 
@@ -183,7 +176,7 @@ func (repo *IdentityReviewCampaignRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("ReviewType").
 		Preload("CampaignStatus").
 		Preload("Reviewer").
-		Preload("Approver").
+		Preload("Workflow").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Systems").

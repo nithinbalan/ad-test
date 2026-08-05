@@ -145,7 +145,7 @@ func (ircs *IdentityReviewCampaignService) Create(currentUserID uint, formDTO *d
 		StartDate:          *dates.StartDate,
 		DueDate:            *dates.DueDate,
 		ReviewerID:         formDTO.ReviewerID,
-		ApproverID:         formDTO.ApproverID,
+		WorkflowID:         formDTO.WorkflowID,
 		CampaignStatusID:   plannedStatus.ID,
 		ReminderDaysOffset: formDTO.ReminderDaysOffset,
 		CreatedByID:        currentUserID,
@@ -283,7 +283,7 @@ func (ircs *IdentityReviewCampaignService) Update(id uint, currentUserID uint, f
 	campaign.StartDate = *dates.StartDate
 	campaign.DueDate = *dates.DueDate
 	campaign.ReviewerID = formDTO.ReviewerID
-	campaign.ApproverID = formDTO.ApproverID
+	campaign.WorkflowID = formDTO.WorkflowID
 	campaign.ReminderDaysOffset = formDTO.ReminderDaysOffset
 	campaign.UpdatedByID = &currentUserID
 
@@ -520,14 +520,6 @@ func (ircs *IdentityReviewCampaignService) validateIdentityReviewCampaignFormDTO
 			fmt.Errorf("reviewer does not exist"),
 			"not_exist",
 			"reviewer_id",
-		)
-	}
-
-	if _, err := ircs.userSvc.GetByID(formDTO.ApproverID); err != nil {
-		return utility.NewValidationError(
-			fmt.Errorf("approver does not exist"),
-			"not_exist",
-			"approver_id",
 		)
 	}
 

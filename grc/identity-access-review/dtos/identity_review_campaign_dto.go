@@ -27,12 +27,9 @@ type IdentityReviewCampaignListDTO struct {
 	ReviewerLastNameEn      string     `json:"reviewer_last_name_en"`
 	ReviewerLastNameAr      string     `json:"reviewer_last_name_ar"`
 	ReviewerInitial         string     `json:"reviewer_initial"`
-	ApproverID              uint       `json:"approver_id"`
-	ApproverFirstNameEn     string     `json:"approver_first_name_en"`
-	ApproverFirstNameAr     string     `json:"approver_first_name_ar"`
-	ApproverLastNameEn      string     `json:"approver_last_name_en"`
-	ApproverLastNameAr      string     `json:"approver_last_name_ar"`
-	ApproverInitial         string     `json:"approver_initial"`
+	WorkflowID              uint       `json:"workflow_id"`
+	WorkflowTitleEn         *string    `json:"workflow_title_en"`
+	WorkflowTitleAr         *string    `json:"workflow_title_ar"`
 	CreatedAt               time.Time  `json:"created_at"`
 	UpdatedAt               *time.Time `json:"updated_at"`
 }
@@ -58,7 +55,7 @@ type IdentityReviewCampaignFormDTO struct {
 	StartDate          string                        `json:"start_date" binding:"required,datetime=2006-01-02"`
 	DueDate            string                        `json:"due_date" binding:"required,datetime=2006-01-02"`
 	ReviewerID         uint                          `json:"reviewer_id" binding:"required"`
-	ApproverID         uint                          `json:"approver_id" binding:"required"`
+	WorkflowID         uint                          `json:"workflow_id" binding:"required"`
 	ReminderDaysOffset *int                          `json:"reminder_days_offset"`
 	AssetIDs           []uint                        `json:"asset_ids"`
 	Documents          []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
@@ -98,6 +95,14 @@ type IdentityReviewCampaignDocumentDTO struct {
 	Type         string `json:"type"`
 }
 
+type IdentityReviewCampaignWorkflowDTO struct {
+	ID      uint    `json:"id"`
+	Type    string  `json:"type"`
+	TitleEn *string `json:"title_en"`
+	TitleAr *string `json:"title_ar"`
+	Status  string  `json:"status"`
+}
+
 type IdentityReviewCampaignDetailDTO struct {
 	ID                   uint                                 `json:"id"`
 	ReferenceNumber      string                               `json:"reference_number"`
@@ -110,7 +115,7 @@ type IdentityReviewCampaignDetailDTO struct {
 	ReviewType           ReviewTypeDTO                        `json:"review_type"`
 	CampaignStatus       ReviewCampaignStatusDTO              `json:"campaign_status"`
 	Reviewer             IdentityReviewCampaignUserDTO        `json:"reviewer"`
-	Approver             IdentityReviewCampaignUserDTO        `json:"approver"`
+	Workflow             IdentityReviewCampaignWorkflowDTO    `json:"workflow"`
 	Systems              []*IdentityReviewCampaignSystemDTO   `json:"systems"`
 	Documents            []*IdentityReviewCampaignDocumentDTO `json:"documents"`
 	CreatedBy            IdentityReviewCampaignUserDTO        `json:"created_by"`

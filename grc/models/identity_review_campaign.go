@@ -11,7 +11,7 @@ type IdentityReviewCampaign struct {
 	StartDate            time.Time  `json:"start_date" gorm:"type:date;not null"`
 	DueDate              time.Time  `json:"due_date" gorm:"type:date;not null"`
 	ReviewerID           uint       `json:"reviewer_id" gorm:"not null"`
-	ApproverID           uint       `json:"approver_id" gorm:"not null"`
+	WorkflowID           uint       `json:"workflow_id" gorm:"not null"`
 	CampaignStatusID     uint       `json:"campaign_status_id" gorm:"not null"`
 	ReminderDaysOffset   *int       `json:"reminder_days_offset"`
 	CompletionPercentage int        `json:"completion_percentage" gorm:"not null;default:0"`
@@ -23,7 +23,7 @@ type IdentityReviewCampaign struct {
 	ReviewType     *ReviewType                       `json:"review_type" gorm:"foreignKey:ReviewTypeID"`
 	CampaignStatus *ReviewCampaignStatus             `json:"campaign_status" gorm:"foreignKey:CampaignStatusID"`
 	Reviewer       *User                             `json:"reviewer" gorm:"foreignKey:ReviewerID"`
-	Approver       *User                             `json:"approver" gorm:"foreignKey:ApproverID"`
+	Workflow       *Workflow                         `json:"workflow" gorm:"foreignKey:WorkflowID"`
 	CreatedByUser  *User                             `json:"created_by" gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser  *User                             `json:"updated_by" gorm:"foreignKey:UpdatedByID"`
 	Systems        []*IdentityReviewCampaignSystem   `json:"systems" gorm:"foreignKey:IdentityReviewCampaignID"`

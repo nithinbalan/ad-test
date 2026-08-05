@@ -36,7 +36,6 @@ func (ircc *IdentityReviewCampaignController) GetAllIdentityReviewCampaigns(c *g
 		"review_type_ids",
 		"campaign_status_ids",
 		"reviewer_ids",
-		"approver_ids",
 	}
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
@@ -66,8 +65,6 @@ func (ircc *IdentityReviewCampaignController) GetAllIdentityReviewCampaigns(c *g
 		"campaign_status_title_ar": "review_campaign_statuses.title_ar",
 		"reviewer_first_name_en":   "reviewer.first_name_en",
 		"reviewer_first_name_ar":   "reviewer.first_name_ar",
-		"approver_first_name_en":   "approver.first_name_en",
-		"approver_first_name_ar":   "approver.first_name_ar",
 	}
 
 	sortField, valid := validSortFields[sortBy]
