@@ -8,6 +8,11 @@ ADD assessment_type NVARCHAR(20) NULL,
 responsible_unit_id INT NULL;
 
 ALTER TABLE compliance_reports
+ADD
+    is_cyber BIT NOT NULL
+        CONSTRAINT DF_compliance_reports_is_cyber DEFAULT (0);
+
+ALTER TABLE compliance_reports
 ADD CONSTRAINT FK_compliance_reports_organization_units FOREIGN KEY (responsible_unit_id)
 REFERENCES organization_units (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 -- +goose StatementEnd
@@ -22,4 +27,10 @@ DROP CONSTRAINT FK_compliance_reports_organization_units;
 
 ALTER TABLE compliance_reports
 DROP COLUMN assessment_type, responsible_unit_id;
+
+ALTER TABLE compliance_reports
+DROP CONSTRAINT DF_compliance_reports_is_cyber;
+
+ALTER TABLE compliance_reports
+DROP COLUMN is_cyber;
 -- +goose StatementEnd
