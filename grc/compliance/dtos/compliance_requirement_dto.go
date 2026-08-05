@@ -65,6 +65,7 @@ type ComplianceRequirementListQueryParamsDTO struct {
 	Export                             bool
 	IsRegulationNotificationAssessment *bool
 	IsRiskBasedAssessment              *bool
+	IsCyberUser                        bool
 }
 
 type ComplianceRequirementListResponseDTO struct {

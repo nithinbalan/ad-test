@@ -57,22 +57,34 @@ func (repo *ComplianceDashboardRepository) GetComplianceOverview(params *kpiDTOs
 	if params.DateFrom != "" && params.DateTo != "" {
 		registerQuery = registerQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsCyberUser {
+		registerQuery = registerQuery.Where("is_cyber = ?", true)
+	}
 
 	if err := registerQuery.Scan(&overview).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch compliance registers: %v", err)
 	}
 
-	requirementQuery := repo.db.Model(&models.ComplianceRequirement{})
+	requirementQuery := repo.db.Model(&models.ComplianceRequirement{}).
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id")
 	if params.DateFrom != "" && params.DateTo != "" {
-		requirementQuery = requirementQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		requirementQuery = requirementQuery.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		requirementQuery = requirementQuery.Where("compliance_register.is_cyber = ?", true)
 	}
 	if err := requirementQuery.Count(&overview.TotalRequirements).Error; err != nil {
 		return nil, err
 	}
 
-	assessmentQuery := repo.db.Model(&models.ComplianceAssessment{})
+	assessmentQuery := repo.db.Model(&models.ComplianceAssessment{}).
+		Joins("JOIN compliance_register ON compliance_register.id = compliance_assessments.compliance_register_id")
 	if params.DateFrom != "" && params.DateTo != "" {
-		assessmentQuery = assessmentQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		assessmentQuery = assessmentQuery.Where("compliance_assessments.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		assessmentQuery = assessmentQuery.Where("compliance_register.is_cyber = ?", true)
 	}
 	if err := assessmentQuery.Count(&overview.TotalAssessments).Error; err != nil {
 		return nil, err
@@ -88,11 +100,16 @@ func (repo *ComplianceDashboardRepository) GetLeadershipAttentionSummary(params 
 	openQuery := repo.db.Table("compliance_requirements crq").
 		Joins("LEFT JOIN severity_levels sl ON sl.id = crq.severity_level_id").
 		Joins("LEFT JOIN compliance_statuses cs ON cs.id = crq.compliance_status_id").
+		Joins("JOIN compliance_clauses cc ON cc.id = crq.compliance_clause_id").
+		Joins("JOIN compliance_register cr ON cr.id = cc.compliance_register_id").
 		Where("sl.type = ?", "high").
 		Where("(cs.id IS NULL OR cs.status <> ?)", "closed")
 
 	if params != nil && params.DateFrom != "" && params.DateTo != "" {
 		openQuery = openQuery.Where("crq.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		openQuery = openQuery.Where("cr.is_cyber = ?", true)
 	}
 
 	if err := openQuery.Count(&out.OpenCriticalRequirements).Error; err != nil {
@@ -102,12 +119,17 @@ func (repo *ComplianceDashboardRepository) GetLeadershipAttentionSummary(params 
 	// Overdue Compliance Requirements (deadline passed and not closed)
 	overdueQuery := repo.db.Table("compliance_requirements crq").
 		Joins("LEFT JOIN compliance_statuses cs ON cs.id = crq.compliance_status_id").
+		Joins("JOIN compliance_clauses cc ON cc.id = crq.compliance_clause_id").
+		Joins("JOIN compliance_register cr ON cr.id = cc.compliance_register_id").
 		Where("crq.deadline IS NOT NULL").
 		Where("crq.deadline < CAST(GETDATE() AS date)").
 		Where("(cs.id IS NULL OR cs.status <> ?)", "closed")
 
 	if params != nil && params.DateFrom != "" && params.DateTo != "" {
 		overdueQuery = overdueQuery.Where("crq.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		overdueQuery = overdueQuery.Where("cr.is_cyber = ?", true)
 	}
 
 	if err := overdueQuery.Count(&out.OverdueComplianceRequirements).Error; err != nil {
@@ -116,6 +138,8 @@ func (repo *ComplianceDashboardRepository) GetLeadershipAttentionSummary(params 
 
 	// Unassigned Compliance Items
 	unassignedQuery := repo.db.Table("compliance_requirements crq").
+		Joins("JOIN compliance_clauses cc ON cc.id = crq.compliance_clause_id").
+		Joins("JOIN compliance_register cr ON cr.id = cc.compliance_register_id").
 		Where(`
 		NOT EXISTS (
 		SELECT 1 FROM compliance_requirement_responsible_units crru WHERE crru.compliance_requirement_id = crq.id
@@ -125,6 +149,9 @@ func (repo *ComplianceDashboardRepository) GetLeadershipAttentionSummary(params 
 	if params != nil && params.DateFrom != "" && params.DateTo != "" {
 		unassignedQuery = unassignedQuery.Where("crq.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsCyberUser {
+		unassignedQuery = unassignedQuery.Where("cr.is_cyber = ?", true)
+	}
 
 	if err := unassignedQuery.Count(&out.UnassignedComplianceItems).Error; err != nil {
 		return nil, err
@@ -133,11 +160,15 @@ func (repo *ComplianceDashboardRepository) GetLeadershipAttentionSummary(params 
 	// Past Due Actions (open action plans with target_date in the past)
 	pastDueQuery := repo.db.Table("compliance_action_plans cap").
 		Joins("JOIN action_plan_statuses aps ON aps.id = cap.action_plan_status_id").
+		Joins("JOIN compliance_register cr ON cr.id = cap.compliance_register_id").
 		Where("aps.is_closed = ?", false).
 		Where("cap.target_date IS NOT NULL AND cap.target_date < CAST(GETDATE() AS date)")
 
 	if params != nil && params.DateFrom != "" && params.DateTo != "" {
 		pastDueQuery = pastDueQuery.Where("cap.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		pastDueQuery = pastDueQuery.Where("cr.is_cyber = ?", true)
 	}
 
 	if err := pastDueQuery.Count(&out.PastDueActions).Error; err != nil {
@@ -173,12 +204,22 @@ func (repo *ComplianceDashboardRepository) GetComplianceBreakdown(params *kpiDTO
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if err := query.Scan(&complianceStatuses).Error; err != nil {
 		return nil, err
 	}
 
-	if err := repo.db.Model(&models.ComplianceRegister{}).Count(&total).Error; err != nil {
+	totalQuery := repo.db.Model(&models.ComplianceRegister{})
+	if params.DateFrom != "" && params.DateTo != "" {
+		totalQuery = totalQuery.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		totalQuery = totalQuery.Where("compliance_register.is_cyber = ?", true)
+	}
+	if err := totalQuery.Count(&total).Error; err != nil {
 		return nil, err
 	}
 
@@ -218,6 +259,9 @@ func (repo *ComplianceDashboardRepository) GetHighPerformanceCompliances(params 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
@@ -245,6 +289,9 @@ func (repo *ComplianceDashboardRepository) GetLeastPerformanceCompliances(params
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
@@ -264,6 +311,7 @@ func (repo *ComplianceDashboardRepository) GetHighPerformanceComplianceClauses(p
 			c.title_ar AS compliance_clause_title_ar,
 			c.score AS score
 		`).
+		Joins("JOIN compliance_register cr ON cr.id = c.compliance_register_id").
 		Where("c.score IS NOT NULL").
 		Where(`
 			c.compliance_clause_id IS NULL
@@ -276,6 +324,9 @@ func (repo *ComplianceDashboardRepository) GetHighPerformanceComplianceClauses(p
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("c.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		query = query.Where("cr.is_cyber = ?", true)
 	}
 
 	err := query.Scan(&results).Error
@@ -297,6 +348,7 @@ func (repo *ComplianceDashboardRepository) GetLeastPerformanceComplianceClauses(
 			c.title_ar AS compliance_clause_title_ar,
 			c.score AS score
 		`).
+		Joins("JOIN compliance_register cr ON cr.id = c.compliance_register_id").
 		Where("c.score IS NOT NULL").
 		Where(`
 			c.compliance_clause_id IS NULL
@@ -309,6 +361,9 @@ func (repo *ComplianceDashboardRepository) GetLeastPerformanceComplianceClauses(
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("c.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		query = query.Where("cr.is_cyber = ?", true)
 	}
 
 	err := query.Scan(&results).Error
@@ -684,6 +739,9 @@ func (repo *ComplianceDashboardRepository) GetComplianceEfficiencySummary(params
 			params.DateTo+" 23:59:59",
 		)
 	}
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	query = query.Group(`
         compliance_register.standard_code,
@@ -913,6 +971,9 @@ func (repo *ComplianceDashboardRepository) GetOrganizationUnitWiseAssessmentCove
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("cac.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsCyberUser {
+		query = query.Where("cr.is_cyber = ?", true)
+	}
 
 	err := query.
 		Group("ou.title_en, ou.title_ar, ou.color_code").
@@ -931,6 +992,7 @@ func (repo *ComplianceDashboardRepository) GetActionPlanOverview(params *kpiDTOs
 	query := repo.db.Model(&models.ComplianceActionPlan{}).
 		Joins("LEFT JOIN action_plan_statuses aps ON aps.id = compliance_action_plans.action_plan_status_id").
 		Joins("LEFT JOIN severity_levels sl ON sl.id = compliance_action_plans.severity_level_id").
+		Joins("JOIN compliance_register cr ON cr.id = compliance_action_plans.compliance_register_id").
 		Select(`
 			COUNT(*) AS total_action_plans,
 			SUM(CASE WHEN aps.type = 'completed' OR aps.is_closed = 1 THEN 1 ELSE 0 END) AS completed_plans,
@@ -951,6 +1013,9 @@ func (repo *ComplianceDashboardRepository) GetActionPlanOverview(params *kpiDTOs
 	if params != nil && params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsCyberUser {
+		query = query.Where("cr.is_cyber = ?", true)
+	}
 
 	if err := query.Scan(result).Error; err != nil {
 		return nil, err
@@ -969,9 +1034,13 @@ func (repo *ComplianceDashboardRepository) GetActionPlanStatusSummary(params *kp
 	summary := &kpiDTOs.ComplianceActionPlanStatusSummaryDTO{}
 	actionPlanStatuses := []kpiDTOs.ComplianceSummaryItemDTO{}
 
-	TotalActionPlansQuery := repo.db.Model(&models.ComplianceActionPlan{})
+	TotalActionPlansQuery := repo.db.Model(&models.ComplianceActionPlan{}).
+		Joins("JOIN compliance_register cr ON cr.id = compliance_action_plans.compliance_register_id")
 	if params != nil && params.DateFrom != "" && params.DateTo != "" {
 		TotalActionPlansQuery = TotalActionPlansQuery.Where("compliance_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		TotalActionPlansQuery = TotalActionPlansQuery.Where("cr.is_cyber = ?", true)
 	}
 	if err := TotalActionPlansQuery.Count(&summary.TotalActionPlans).Error; err != nil {
 		return nil, err
@@ -986,11 +1055,15 @@ func (repo *ComplianceDashboardRepository) GetActionPlanStatusSummary(params *kp
 			COUNT(*) AS count
 		`).
 		Joins("JOIN action_plan_statuses aps ON aps.id = cap.action_plan_status_id").
+		Joins("JOIN compliance_register cr ON cr.id = cap.compliance_register_id").
 		Group("aps.title_en, aps.title_ar, aps.color_code, aps.type").
 		Order("aps.title_en ASC")
 
 	if params != nil && params.DateFrom != "" && params.DateTo != "" {
 		statusQuery = statusQuery.Where("cap.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		statusQuery = statusQuery.Where("cr.is_cyber = ?", true)
 	}
 
 	if err := statusQuery.Scan(&actionPlanStatuses).Error; err != nil {
@@ -1019,6 +1092,7 @@ func (repo *ComplianceDashboardRepository) GetActionPlansByOrganizationUnit(para
 			ou.color_code AS organization_unit_color_code,
 			COUNT(DISTINCT cap.id) AS total_action_plans
 		`).
+		Joins("JOIN compliance_register cr ON cr.id = cap.compliance_register_id").
 		Joins(`
 			JOIN users u ON u.id = cap.responsible_user_id
 			OUTER APPLY (
@@ -1040,6 +1114,9 @@ func (repo *ComplianceDashboardRepository) GetActionPlansByOrganizationUnit(para
 
 	if params != nil && params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("cap.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		query = query.Where("cr.is_cyber = ?", true)
 	}
 
 	if err := query.Scan(&results).Error; err != nil {
@@ -1143,6 +1220,9 @@ func (repo *ComplianceDashboardRepository) GetTopCompliances(params *kpiDTOs.Com
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	query = query.Limit(20)
 	if err := query.Find(&compliances).Error; err != nil {
@@ -1186,6 +1266,9 @@ func (repo *ComplianceDashboardRepository) GetComplianceRegisterRatingDistributi
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("cr.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsCyberUser {
+		query = query.Where("cr.is_cyber = ?", true)
+	}
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
@@ -1211,6 +1294,7 @@ func (repo *ComplianceDashboardRepository) GetComplianceAssessmentRatingDistribu
         LEFT JOIN compliance_assessment_ratings AS car 
         ON car.id = ca.average_residual_risk_rating_id
     `).
+		Joins("JOIN compliance_register cr ON cr.id = ca.compliance_register_id").
 		Group(`
         car.id,
         car.title_en,
@@ -1225,6 +1309,9 @@ func (repo *ComplianceDashboardRepository) GetComplianceAssessmentRatingDistribu
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("ca.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if params.IsCyberUser {
+		query = query.Where("cr.is_cyber = ?", true)
 	}
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
@@ -1252,8 +1339,13 @@ func (repo *ComplianceDashboardRepository) GetComplianceRegisterClassificationSu
 			params.DateTo+" 23:59:59",
 		)
 	}
+	if params.IsCyberUser {
+		query = query.Where("is_cyber = ?", true)
+	}
 
 	requirementQuery := repo.db.Table("compliance_requirements cr").
+		Joins("JOIN compliance_clauses ccl ON ccl.id = cr.compliance_clause_id").
+		Joins("JOIN compliance_register crg ON crg.id = ccl.compliance_register_id").
 		Joins(`
             LEFT JOIN compliance_controls cc 
             ON cc.compliance_requirement_id = cr.id
@@ -1261,14 +1353,14 @@ func (repo *ComplianceDashboardRepository) GetComplianceRegisterClassificationSu
 		Where("cc.id IS NULL")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		requirementQuery = requirementQuery.Joins(`
-            INNER JOIN compliance_register crg 
-            ON crg.id = cr.compliance_clause_id
-        `).Where(
+		requirementQuery = requirementQuery.Where(
 			"crg.created_at BETWEEN ? AND ?",
 			params.DateFrom+" 00:00:00",
 			params.DateTo+" 23:59:59",
 		)
+	}
+	if params.IsCyberUser {
+		requirementQuery = requirementQuery.Where("crg.is_cyber = ?", true)
 	}
 
 	if err := requirementQuery.

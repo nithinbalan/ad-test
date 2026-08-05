@@ -66,6 +66,9 @@ type AssetModule struct {
 	AssetRiskInherentControlAnalysisController    *controllers.AssetRiskInherentControlAnalysisController
 	AssetRiskResidualEvaluationController         *controllers.AssetRiskResidualEvaluationController
 	AssetRiskResponseController                   *controllers.AssetRiskResponseController
+	AssetRiskResponseWorkflowController           *controllers.AssetRiskResponseWorkflowController
+	AssetRiskResponseReviewController             *controllers.AssetRiskResponseReviewController
+	AssetRiskResponseReviewCommentController      *controllers.AssetRiskResponseReviewCommentController
 	AssetRiskActionPlanController                 *controllers.AssetRiskActionPlanController
 	AssetRiskActionPlanStatusUpdateController     *controllers.AssetRiskActionPlanStatusUpdateController
 	AssetRiskActionPlanCommentController          *controllers.AssetRiskActionPlanCommentController
@@ -451,12 +454,22 @@ func NewAssetModule(db *gorm.DB,
 	assetRiskInherentControlAnalysisController := controllers.NewAssetRiskInherentControlAnalysisController(assetRiskInherentControlAnalysisSvc)
 
 	assetRiskResidualEvaluationRepo := repositories.NewAssetRiskResidualEvaluationRepository(db)
-	assetRiskResidualEvaluationSvc := services.NewAssetRiskResidualEvaluationService(assetRiskResidualEvaluationRepo, assetRiskRegisterSvc, assetRiskInherentEvaluationSvc, sharedModule.ActivityLogService)
+	assetRiskResidualEvaluationSvc := services.NewAssetRiskResidualEvaluationService(assetRiskResidualEvaluationRepo, assetRiskRegisterSvc, assetRiskInherentEvaluationSvc, sharedModule.ActivityLogService, organizationModule.UserSvc, settingsModule.RoleSvc, commonModule.NotificationService)
 	assetRiskResidualEvaluationController := controllers.NewAssetRiskResidualEvaluationController(assetRiskResidualEvaluationSvc)
 
 	assetRiskResponseRepo := repositories.NewAssetRiskResponseRepository(db)
 	assetRiskResponseSvc := services.NewAssetRiskResponseService(assetRiskResponseRepo, assetRiskRegisterSvc, sharedModule.ActivityLogService)
 	assetRiskResponseController := controllers.NewAssetRiskResponseController(assetRiskResponseSvc)
+
+	assetRiskResponseWorkflowRepo := repositories.NewAssetRiskResponseWorkflowRepository(db)
+	assetRiskResponseWorkflowSvc := services.NewAssetRiskResponseWorkflowService(
+		assetRiskResponseWorkflowRepo,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+	)
+	assetRiskResponseWorkflowController := controllers.NewAssetRiskResponseWorkflowController(assetRiskResponseWorkflowSvc)
 
 	assetRiskActionPlanRepo := repositories.NewAssetRiskActionPlanRepository(db)
 	assetRiskActionPlanSvc := services.NewAssetRiskActionPlanService(
@@ -475,6 +488,28 @@ func NewAssetModule(db *gorm.DB,
 		commonModule.DelegateeUserService,
 	)
 	assetRiskActionPlanController := controllers.NewAssetRiskActionPlanController(assetRiskActionPlanSvc)
+
+	assetRiskResponseReviewRepo := repositories.NewAssetRiskResponseReviewRepository(db)
+	assetRiskResponseReviewSvc := services.NewAssetRiskResponseReviewService(
+		assetRiskResponseReviewRepo,
+		assetRiskRegisterSvc,
+		assetRiskResponseSvc,
+		assetRiskResponseWorkflowSvc,
+		assetRiskActionPlanSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+	)
+	assetRiskResponseReviewController := controllers.NewAssetRiskResponseReviewController(assetRiskResponseReviewSvc)
+
+	assetRiskResponseReviewCommentRepo := repositories.NewAssetRiskResponseReviewCommentRepository(db)
+	assetRiskResponseReviewCommentSvc := services.NewAssetRiskResponseReviewCommentService(
+		assetRiskResponseReviewCommentRepo,
+		sharedModule.ActivityLogService,
+		assetRiskResponseSvc,
+		masterModule.CommentStatusSvc,
+	)
+	assetRiskResponseReviewCommentController := controllers.NewAssetRiskResponseReviewCommentController(assetRiskResponseReviewCommentSvc)
 
 	assetRiskActionPlanStatusUpdateRepo := repositories.NewAssetRiskActionPlanStatusUpdateRepository(db)
 	assetRiskActionPlanStatusUpdateSvc := services.NewAssetRiskActionPlanStatusUpdateService(
@@ -558,6 +593,9 @@ func NewAssetModule(db *gorm.DB,
 		AssetRiskInherentControlAnalysisController:    assetRiskInherentControlAnalysisController,
 		AssetRiskResidualEvaluationController:         assetRiskResidualEvaluationController,
 		AssetRiskResponseController:                   assetRiskResponseController,
+		AssetRiskResponseWorkflowController:           assetRiskResponseWorkflowController,
+		AssetRiskResponseReviewController:             assetRiskResponseReviewController,
+		AssetRiskResponseReviewCommentController:      assetRiskResponseReviewCommentController,
 		AssetRiskActionPlanController:                 assetRiskActionPlanController,
 		AssetRiskActionPlanStatusUpdateController:     assetRiskActionPlanStatusUpdateController,
 		AssetRiskActionPlanCommentController:          assetRiskActionPlanCommentController,

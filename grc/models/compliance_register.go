@@ -59,6 +59,7 @@ type ComplianceRegister struct {
 	IsShared         bool       `json:"is_shared default:false"`
 	Note             *string    `json:"note" gorm:"type:varchar(max)"`
 	WorkflowStatusID *uint      `json:"workflow_status_id" gorm:"default:null"`
+	IsCyber          bool       `json:"is_cyber" gorm:"type:bit;not null;default:0"`
 	NextReviewLevel  *int       `json:"next_review_level" gorm:"default:null"`
 	SubmittedBYID    *uint      `json:"submitted_by_id" gorm:"default:null"`
 	SubmittedAt      *time.Time `json:"submitted_at" gorm:"type:datetime;default:null"`

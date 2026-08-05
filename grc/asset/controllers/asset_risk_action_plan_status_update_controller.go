@@ -26,10 +26,19 @@ func NewAssetRiskActionPlanStatusUpdateController(service services.AssetRiskActi
 }
 
 func (arasuc *AssetRiskActionPlanStatusUpdateController) GetAllAssetRiskActionPlanStatusUpdates(c *gin.Context) {
-	riskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID uint64
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.ParseUint(riskIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 
 	actionPlanID, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
@@ -59,10 +68,19 @@ func (arasuc *AssetRiskActionPlanStatusUpdateController) GetAllAssetRiskActionPl
 func (arasuc *AssetRiskActionPlanStatusUpdateController) CreateAssetRiskActionPlanStatusUpdate(c *gin.Context) {
 	var formDTO assetDTOs.AssetRiskActionPlanStatusUpdateFormDTO
 
-	riskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID uint64
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.ParseUint(riskIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 
 	actionPlanID, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
@@ -103,10 +121,19 @@ func (arasuc *AssetRiskActionPlanStatusUpdateController) CreateAssetRiskActionPl
 func (arasuc *AssetRiskActionPlanStatusUpdateController) UpdateAssetRiskActionPlanStatusUpdate(c *gin.Context) {
 	var formDTO assetDTOs.AssetRiskActionPlanStatusUpdateFormDTO
 
-	riskID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID uint64
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.ParseUint(riskIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 
 	actionPlanID, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
@@ -151,10 +178,19 @@ func (arasuc *AssetRiskActionPlanStatusUpdateController) UpdateAssetRiskActionPl
 }
 
 func (arasuc *AssetRiskActionPlanStatusUpdateController) GetLatestAssetRiskActionPlanStatusUpdate(c *gin.Context) {
-	riskID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID uint64
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.ParseUint(riskIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 
 	actionPlanID, err := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
@@ -232,10 +268,19 @@ func (arasuc *AssetRiskActionPlanStatusUpdateController) DownloadAssetRiskAction
 func (arasuc *AssetRiskActionPlanStatusUpdateController) ApproveAssetRiskActionPlan(c *gin.Context) {
 	var formDTO assetDTOs.AssetRiskActionPlanReviewUserStatusUpdateFormDTO
 
-	riskID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID int
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.Atoi(riskIDStr)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 
 	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
@@ -266,6 +311,7 @@ func (arasuc *AssetRiskActionPlanStatusUpdateController) ApproveAssetRiskActionP
 			return
 		case *utility.ForbiddenError:
 			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(arasuc.db, c, e.Error())
 			return
@@ -278,10 +324,19 @@ func (arasuc *AssetRiskActionPlanStatusUpdateController) ApproveAssetRiskActionP
 func (arasuc *AssetRiskActionPlanStatusUpdateController) RevertAssetRiskActionPlan(c *gin.Context) {
 	var formDTO assetDTOs.AssetRiskActionPlanReviewUserStatusUpdateFormDTO
 
-	riskID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	riskIDStr := c.Param("id")
+
+	var riskID int
+	var err error
+
+	if riskIDStr != "" {
+		riskID, err = strconv.Atoi(riskIDStr)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		riskID = 0
 	}
 
 	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
@@ -312,6 +367,7 @@ func (arasuc *AssetRiskActionPlanStatusUpdateController) RevertAssetRiskActionPl
 			return
 		case *utility.ForbiddenError:
 			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(arasuc.db, c, e.Error())
 			return

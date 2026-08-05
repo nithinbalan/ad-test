@@ -270,8 +270,20 @@
   "translation": "لا يمكن إضافة تعليقات المراجعة إلا عندما يكون سير عمل {{.Field}} نشطًا."
 },
 {
+  "id": "workflow_submission_required",
+  "translation": "{{.Field}} مطلوب قبل تقديم سير العمل."
+},
+{
+  "id": "workflow_submission_requires_one",
+  "translation": "{{.Field}} واحد على الأقل مطلوب قبل تقديم سير العمل."
+},
+{
   "id": "workflow_not_rejected",
   "translation": "لا يمكن إعادة تقديم ال{{.Field}} إلا إذا تم رفضه."
+},
+{
+  "id": "subsequent_stage_completed",
+  "translation": "لا يمكن تنفيذ هذا الإجراء لأن {{.Field}} قد تم إكماله بالفعل."
 }
 
 

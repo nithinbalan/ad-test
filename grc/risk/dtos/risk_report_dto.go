@@ -67,23 +67,24 @@ type RiskReportSectionResponseDTO struct {
 }
 
 type RiskIdentificationResponseDTO struct {
-	ID                          uint      `json:"id"`
-	ReferenceNumber             string    `json:"reference_number"`
-	RiskCategoryTitleEn         string    `json:"risk_category_title_en"`
-	RiskCategoryTitleAr         string    `json:"risk_category_title_ar"`
-	Title                       string    `json:"title"`
-	Description                 *string   `json:"description"`
-	RiskSourceTitleEn           *string   `json:"risk_source_title_en"`
-	RiskSourceTitleAr           *string   `json:"risk_source_title_ar"`
-	RiskReportedAt              time.Time `json:"risk_reported_at"`
-	ResponsibleUnitTitleEn      string    `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr      string    `json:"responsible_unit_title_ar"`
-	RiskStatusTitleEn           string    `json:"risk_status_title_en"`
-	RiskStatusTitleAr           string    `json:"risk_status_title_ar"`
-	RiskStatusColorCode         string    `json:"risk_status_color_code"`
-	InherentRiskRatingTitleEn   *string   `json:"inherent_risk_rating_title_en"`
-	InherentRiskRatingTitleAr   *string   `json:"inherent_risk_rating_title_ar"`
-	InherentRiskRatingColorCode *string   `json:"inherent_risk_rating_color_code"`
+	ID                          uint       `json:"id"`
+	ReferenceNumber             string     `json:"reference_number"`
+	RiskCategoryTitleEn         string     `json:"risk_category_title_en"`
+	RiskCategoryTitleAr         string     `json:"risk_category_title_ar"`
+	Title                       string     `json:"title"`
+	Description                 *string    `json:"description"`
+	RiskSourceTitleEn           *string    `json:"risk_source_title_en"`
+	RiskSourceTitleAr           *string    `json:"risk_source_title_ar"`
+	RiskReportedAt              time.Time  `json:"risk_reported_at"`
+	RegistrationDate            *time.Time `json:"registration_date"`
+	ResponsibleUnitTitleEn      string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr      string     `json:"responsible_unit_title_ar"`
+	RiskStatusTitleEn           string     `json:"risk_status_title_en"`
+	RiskStatusTitleAr           string     `json:"risk_status_title_ar"`
+	RiskStatusColorCode         string     `json:"risk_status_color_code"`
+	InherentRiskRatingTitleEn   *string    `json:"inherent_risk_rating_title_en"`
+	InherentRiskRatingTitleAr   *string    `json:"inherent_risk_rating_title_ar"`
+	InherentRiskRatingColorCode *string    `json:"inherent_risk_rating_color_code"`
 
 	InherentLikelihoodTitleEn *string `json:"inherent_likelihood_title_en"`
 	InherentLikelihoodTitleAr *string `json:"inherent_likelihood_title_ar"`
@@ -123,17 +124,21 @@ type RiskReportActionPlanResponseDTO struct {
 }
 
 type RiskReportKriResponseDTO struct {
-	ID                         uint    `json:"id"`
-	RiskReportIdentificationID uint    `json:"risk_report_identification_id"`
-	RiskReferenceNumber        string  `json:"risk_reference_number"`
-	RiskTitle                  string  `json:"risk_title"`
-	Title                      string  `json:"title"`
-	Description                *string `json:"description"`
-	LowThreshold               *int    `json:"low_threshold"`
-	MediumThreshold            *int    `json:"medium_threshold"`
-	UnitTitleEn                *string `json:"unit_title_en"`
-	UnitTitleAr                *string `json:"unit_title_ar"`
-	CurrentValue               *int    `json:"current_value"`
+	ID                           uint     `json:"id"`
+	RiskReportIdentificationID   uint     `json:"risk_report_identification_id"`
+	RiskReferenceNumber          string   `json:"risk_reference_number"`
+	RiskTitle                    string   `json:"risk_title"`
+	Title                        string   `json:"title"`
+	Description                  *string  `json:"description"`
+	AnnualTarget                 *float64 `json:"annual_target"`
+	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent"`
+	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent"`
+	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent"`
+	IsLowerBetter                *bool    `json:"is_lower_better"`
+	IsHigherBetter               *bool    `json:"is_higher_better"`
+	UnitTitleEn                  *string  `json:"unit_title_en"`
+	UnitTitleAr                  *string  `json:"unit_title_ar"`
+	CurrentValue                 *float64 `json:"current_value"`
 }
 
 // // RiskReportDetailDTO represents the complete risk report details
@@ -213,17 +218,18 @@ type RiskReportFormDTO struct {
 	RiskIDs             []uint  `json:"risk_ids"`
 }
 type RiskReportIdentifiedRiskDTO struct {
-	ID                     uint      `json:"id"`
-	ReferenceNumber        string    `json:"reference_number"`
-	Title                  string    `json:"title"`
-	Description            *string   `json:"description"`
-	ReportedAt             time.Time `json:"reported_at"`
-	RiskCategoryTitleEn    string    `json:"risk_category_title_en"`
-	RiskCategoryTitleAr    string    `json:"risk_category_title_ar"`
-	RiskSourceTitleEn      *string   `json:"risk_source_title_en"`
-	RiskSourceTitleAr      *string   `json:"risk_source_title_ar"`
-	ResponsibleUnitTitleEn string    `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr string    `json:"responsible_unit_title_ar"`
+	ID                     uint       `json:"id"`
+	ReferenceNumber        string     `json:"reference_number"`
+	Title                  string     `json:"title"`
+	Description            *string    `json:"description"`
+	ReportedAt             time.Time  `json:"reported_at"`
+	RegistrationDate       *time.Time `json:"registration_date"`
+	RiskCategoryTitleEn    string     `json:"risk_category_title_en"`
+	RiskCategoryTitleAr    string     `json:"risk_category_title_ar"`
+	RiskSourceTitleEn      *string    `json:"risk_source_title_en"`
+	RiskSourceTitleAr      *string    `json:"risk_source_title_ar"`
+	ResponsibleUnitTitleEn string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr string     `json:"responsible_unit_title_ar"`
 
 	InherentRiskRatingTitleEn   *string `json:"inherent_risk_rating_title_en"`
 	InherentRiskRatingTitleAr   *string `json:"inherent_risk_rating_title_ar"`
@@ -271,13 +277,17 @@ type RiskReportActionPlanDTO struct {
 }
 
 type RiskReportKRIDTO struct {
-	Title           string  `json:"title"`
-	Description     *string `json:"description"`
-	LowThreshold    int     `json:"low_threshold"`
-	MediumThreshold int     `json:"medium_threshold"`
-	UnitTitleEn     string  `json:"unit_title_en"`
-	UnitTitleAr     string  `json:"unit_title_ar"`
-	CurrentValue    int     `json:"current_value"`
+	Title                        string   `json:"title"`
+	Description                  *string  `json:"description"`
+	AnnualTarget                 *float64 `json:"annual_target"`
+	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent"`
+	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent"`
+	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent"`
+	IsLowerBetter                *bool    `json:"is_lower_better"`
+	IsHigherBetter               *bool    `json:"is_higher_better"`
+	UnitTitleEn                  string   `json:"unit_title_en"`
+	UnitTitleAr                  string   `json:"unit_title_ar"`
+	CurrentValue                 *float64 `json:"current_value"`
 }
 
 type RiskReportDocumentDTO struct {
@@ -341,6 +351,7 @@ type RiskReportIdentifiedRiskPDFDTO struct {
 	Title                  string  `json:"title"`
 	Description            *string `json:"description"`
 	ReportedAt             string  `json:"reported_at"`
+	RegistrationDate       string  `json:"registration_date"`
 	RiskCategoryTitleEn    string  `json:"risk_category_title_en"`
 	RiskCategoryTitleAr    string  `json:"risk_category_title_ar"`
 	RiskSourceTitleEn      *string `json:"risk_source_title_en"`

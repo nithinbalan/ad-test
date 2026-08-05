@@ -141,6 +141,7 @@ type ComplianceRequirementByResponsibleUserDTO struct {
 }
 
 type ReportListQueryParamsDTO struct {
-	DateFrom string `json:"date_from"`
-	DateTo   string `json:"date_to"`
+	DateFrom    string `json:"date_from"`
+	DateTo      string `json:"date_to"`
+	IsCyberUser bool   `json:"-"`
 }

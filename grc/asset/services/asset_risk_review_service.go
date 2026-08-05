@@ -157,13 +157,14 @@ func (arrs *AssetRiskReviewService) Submit(riskID uint, currentUserID uint) (err
 		return err
 	}
 
-	riskReview := &models.RiskWorkflowReview{
-		RiskWorkflowID:   riskWorkflowLevel.ID,
-		WorkflowStatusID: workflowStatus.ID,
-		CreatedBYID:      currentUserID,
-	}
-
-	if err := arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+	if err := arrs.createReviewWithHistory(
+		riskWorkflowLevel.ID,
+		riskRegister.ID,
+		level,
+		workflowStatus.ID,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
@@ -230,12 +231,14 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
-		riskReview := &models.RiskWorkflowReview{
-			RiskWorkflowID:   currentRiskWorkflow.ID,
-			WorkflowStatusID: workflowStatus.ID,
-			CreatedBYID:      currentUserID,
-		}
-		if err = arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+		if err = arrs.createReviewWithHistory(
+			currentRiskWorkflow.ID,
+			riskRegister.ID,
+			currentApprovalLevel,
+			workflowStatus.ID,
+			currentUserID,
+			tx,
+		); err != nil {
 			return err
 		}
 
@@ -317,12 +320,14 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
-		riskReview := &models.RiskWorkflowReview{
-			RiskWorkflowID:   currentRiskWorkflow.ID,
-			WorkflowStatusID: workflowStatus.ID,
-			CreatedBYID:      currentUserID,
-		}
-		if err = arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+		if err = arrs.createReviewWithHistory(
+			currentRiskWorkflow.ID,
+			riskRegister.ID,
+			currentApprovalLevel,
+			workflowStatus.ID,
+			currentUserID,
+			tx,
+		); err != nil {
 			return err
 		}
 
@@ -464,13 +469,14 @@ func (arrs *AssetRiskReviewService) Reject(riskID uint, currentUserID uint) (err
 		return err
 	}
 
-	riskWorkflowReview := &models.RiskWorkflowReview{
-		RiskWorkflowID:   currentRiskWorkflow.ID,
-		WorkflowStatusID: workflowStatus.ID,
-		CreatedBYID:      currentUserID,
-	}
-
-	if err := arrs.repo.CreateRiskReview(riskWorkflowReview, tx); err != nil {
+	if err := arrs.createReviewWithHistory(
+		currentRiskWorkflow.ID,
+		riskRegister.ID,
+		*riskRegister.NextReviewLevel,
+		workflowStatus.ID,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
@@ -619,13 +625,14 @@ func (arrs *AssetRiskReviewService) Resubmit(riskID uint, currentUserID uint) (e
 		return err
 	}
 
-	riskReview := &models.RiskWorkflowReview{
-		RiskWorkflowID:   riskWorkflowLevel.ID,
-		WorkflowStatusID: workflowStatus.ID,
-		CreatedBYID:      currentUserID,
-	}
-
-	if err := arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+	if err := arrs.createReviewWithHistory(
+		riskWorkflowLevel.ID,
+		riskRegister.ID,
+		level,
+		workflowStatus.ID,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
@@ -699,12 +706,14 @@ func (arrs *AssetRiskReviewService) Revert(riskID uint, currentUserID uint) (err
 		return err
 	}
 
-	riskReview := &models.RiskWorkflowReview{
-		RiskWorkflowID:   currentRiskWorkflow.ID,
-		WorkflowStatusID: revertStatus.ID,
-		CreatedBYID:      currentUserID,
-	}
-	if err := arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+	if err := arrs.createReviewWithHistory(
+		currentRiskWorkflow.ID,
+		riskRegister.ID,
+		currentLevel,
+		revertStatus.ID,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
@@ -814,8 +823,8 @@ func (arrs *AssetRiskReviewService) notifyWorkflowParticipants(riskRegister *mod
 			ModuleIdentifier:     "vulnerability",
 			NotificationType:     string(commonDTOs.ReviewType),
 			ReferenceNumber:      *riskRegister.ReferenceNumber,
-			HeadingEn:            "Risk Acceptance Workflow",
-			HeadingAr:            "سير عمل قبول المخاطر",
+			HeadingEn:            "ISMS Risk Acceptance Workflow",
+			HeadingAr:            "سير عمل قبول مخاطر ISMS",
 			TitleEn:              riskRegister.Title,
 			TitleAr:              riskRegister.Title,
 			Entity:               &entity,
@@ -838,7 +847,7 @@ func (arrs *AssetRiskReviewService) notifyWorkflowParticipants(riskRegister *mod
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{responsibleUser.Email},
-			Subject:              fmt.Sprintf("Risk Acceptance Workflow: %s - Review Assigned", riskRegister.Title),
+			Subject:              fmt.Sprintf("ISMS Risk Acceptance Workflow: %s - Review Assigned", riskRegister.Title),
 			TemplateRelativePath: "asset/templates/email/asset_risk_workflow_review_user_mail.html",
 			EmailData:            emailData,
 		}
@@ -891,8 +900,8 @@ func (arrs *AssetRiskReviewService) notifyRevertedToPreviousLevel(riskRegister *
 			ModuleIdentifier:     "vulnerability",
 			NotificationType:     string(commonDTOs.RevertType),
 			ReferenceNumber:      *riskRegister.ReferenceNumber,
-			HeadingEn:            "Risk Acceptance Workflow",
-			HeadingAr:            "سير عمل قبول المخاطر",
+			HeadingEn:            "ISMS Risk Acceptance Workflow",
+			HeadingAr:            "سير عمل قبول مخاطر ISMS",
 			TitleEn:              riskRegister.Title,
 			TitleAr:              riskRegister.Title,
 			Entity:               &entity,
@@ -914,7 +923,7 @@ func (arrs *AssetRiskReviewService) notifyRevertedToPreviousLevel(riskRegister *
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{responsibleUser.Email},
-			Subject:              fmt.Sprintf("Risk Acceptance Workflow: %s - Reverted", riskRegister.Title),
+			Subject:              fmt.Sprintf("ISMS Risk Acceptance Workflow: %s - Reverted", riskRegister.Title),
 			TemplateRelativePath: "asset/templates/email/asset_risk_workflow_revert_user_mail.html",
 			EmailData:            emailData,
 		}
@@ -946,8 +955,8 @@ func (arrs *AssetRiskReviewService) sendResponsibleUserAssignNotification(curren
 		UserIDs:              []uint{responsibleUserID},
 		ModuleIdentifier:     "asset_risk",
 		NotificationType:     string(commonDTOs.AssignmentType),
-		HeadingEn:            "Risk Register Responsibility Assigned",
-		HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
+		HeadingEn:            "ISMS Risk Register Responsibility Assigned",
+		HeadingAr:            "مسؤولية تسجيل مخاطر ISMS المعينة",
 		ReferenceNumber:      riskDetail.ReferenceNumber,
 		TitleEn:              riskDetail.Title,
 		TitleAr:              riskDetail.Title,
@@ -973,7 +982,7 @@ func (arrs *AssetRiskReviewService) sendResponsibleUserAssignNotification(curren
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{responsibleUser.Email},
-		Subject:              fmt.Sprintf("Asset Risk Register: %s - Responsibility Assigned", riskDetail.Title),
+		Subject:              fmt.Sprintf("ISMS Risk Register: %s - Responsibility Assigned", riskDetail.Title),
 		TemplateRelativePath: "asset/templates/email/asset_risk_register_create_responsible_user_mail.html",
 		EmailData:            emailData,
 	}
@@ -1005,8 +1014,8 @@ func (arrs *AssetRiskReviewService) sendApprovalNotification(currentUserID uint,
 		UserIDs:              []uint{responsibleUserID},
 		ModuleIdentifier:     "vulnerability",
 		NotificationType:     string(commonDTOs.ApprovalType),
-		HeadingEn:            "Risk Acceptance Workflow",
-		HeadingAr:            "سير عمل قبول المخاطر",
+		HeadingEn:            "ISMS Risk Acceptance Workflow",
+		HeadingAr:            "سير عمل قبول مخاطر ISMS",
 		ReferenceNumber:      riskDetail.ReferenceNumber,
 		TitleEn:              riskDetail.Title,
 		TitleAr:              riskDetail.Title,
@@ -1032,7 +1041,7 @@ func (arrs *AssetRiskReviewService) sendApprovalNotification(currentUserID uint,
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{riskDetail.ResponsibleUser.Email},
-		Subject:              fmt.Sprintf("Risk Acceptance Workflow: %s - Approved", riskDetail.Title),
+		Subject:              fmt.Sprintf("ISMS Risk Acceptance Workflow: %s - Approved", riskDetail.Title),
 		TemplateRelativePath: "asset/templates/email/asset_risk_workflow_approve_user_mail.html",
 		EmailData:            emailData,
 	}
@@ -1064,8 +1073,8 @@ func (arrs *AssetRiskReviewService) sendRejectedNotification(currentUserID uint,
 		UserIDs:              []uint{responsibleUserID},
 		ModuleIdentifier:     "vulnerability",
 		NotificationType:     string(commonDTOs.RejectType),
-		HeadingEn:            "Risk Acceptance Workflow",
-		HeadingAr:            "سير عمل قبول المخاطر",
+		HeadingEn:            "ISMS Risk Acceptance Workflow",
+		HeadingAr:            "سير عمل قبول مخاطر ISMS",
 		ReferenceNumber:      riskDetail.ReferenceNumber,
 		TitleEn:              riskDetail.Title,
 		TitleAr:              riskDetail.Title,
@@ -1091,7 +1100,7 @@ func (arrs *AssetRiskReviewService) sendRejectedNotification(currentUserID uint,
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{riskDetail.ResponsibleUser.Email},
-		Subject:              fmt.Sprintf("Risk Acceptance Workflow: %s - Rejected", riskDetail.Title),
+		Subject:              fmt.Sprintf("ISMS Risk Acceptance Workflow: %s - Rejected", riskDetail.Title),
 		TemplateRelativePath: "asset/templates/email/asset_risk_workflow_reject_user_mail.html",
 		EmailData:            emailData,
 	}
@@ -1123,8 +1132,8 @@ func (arrs *AssetRiskReviewService) sendResubmittedNotification(currentUserID ui
 		UserIDs:              []uint{responsibleUserID},
 		ModuleIdentifier:     "vulnerability",
 		NotificationType:     string(commonDTOs.ReviewType),
-		HeadingEn:            "Risk Acceptance Workflow",
-		HeadingAr:            "سير عمل قبول المخاطر",
+		HeadingEn:            "ISMS Risk Acceptance Workflow",
+		HeadingAr:            "سير عمل قبول مخاطر ISMS",
 		ReferenceNumber:      riskDetail.ReferenceNumber,
 		TitleEn:              riskDetail.Title,
 		TitleAr:              riskDetail.Title,
@@ -1150,7 +1159,7 @@ func (arrs *AssetRiskReviewService) sendResubmittedNotification(currentUserID ui
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{riskDetail.ResponsibleUser.Email},
-		Subject:              fmt.Sprintf("Risk Acceptance Workflow: %s - Resubmitted", riskDetail.Title),
+		Subject:              fmt.Sprintf("ISMS Risk Acceptance Workflow: %s - Resubmitted", riskDetail.Title),
 		TemplateRelativePath: "asset/templates/email/asset_risk_workflow_resubmit_user_mail.html",
 		EmailData:            emailData,
 	}
@@ -1189,8 +1198,8 @@ func (arrs *AssetRiskReviewService) sendRevertNotification(currentUserID uint, s
 		UserIDs:              []uint{submittedByID},
 		ModuleIdentifier:     "vulnerability",
 		NotificationType:     string(commonDTOs.RevertType),
-		HeadingEn:            "Risk Acceptance Workflow",
-		HeadingAr:            "سير عمل قبول المخاطر",
+		HeadingEn:            "ISMS Risk Acceptance Workflow",
+		HeadingAr:            "سير عمل قبول مخاطر ISMS",
 		ReferenceNumber:      riskDetail.ReferenceNumber,
 		TitleEn:              riskDetail.Title,
 		TitleAr:              riskDetail.Title,
@@ -1216,7 +1225,7 @@ func (arrs *AssetRiskReviewService) sendRevertNotification(currentUserID uint, s
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{submittedByUser.Email},
-		Subject:              fmt.Sprintf("Risk Acceptance Workflow: %s - Reverted", riskDetail.Title),
+		Subject:              fmt.Sprintf("ISMS Risk Acceptance Workflow: %s - Reverted", riskDetail.Title),
 		TemplateRelativePath: "asset/templates/email/asset_risk_workflow_revert_user_mail.html",
 		EmailData:            emailData,
 	}
@@ -1226,4 +1235,28 @@ func (arrs *AssetRiskReviewService) sendRevertNotification(currentUserID uint, s
 			"error": err.Error(),
 		})
 	}
+}
+
+func (arrs *AssetRiskReviewService) createReviewWithHistory(workflowID uint, riskID uint, level int, statusID uint, userID uint, tx utility.DatabaseTransaction) error {
+	riskReview := &models.RiskWorkflowReview{
+		RiskWorkflowID:   workflowID,
+		WorkflowStatusID: statusID,
+		CreatedBYID:      userID,
+	}
+	if err := arrs.repo.CreateRiskReview(riskReview, tx); err != nil {
+		return err
+	}
+
+	historyReview := &models.RiskWorkflowHistory{
+		RiskRegisterID:   riskID,
+		Level:            level,
+		WorkflowStatusID: statusID,
+		CreatedBYID:      userID,
+		CreatedAt:        time.Now(),
+	}
+	if err := arrs.repo.CreateRiskWorkflowHistory(historyReview, tx); err != nil {
+		return err
+	}
+
+	return nil
 }

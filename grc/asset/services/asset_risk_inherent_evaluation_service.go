@@ -89,6 +89,10 @@ func (aries *AssetRiskInherentEvaluationService) Create(riskID uint, currentUser
 		return 0, err
 	}
 
+	if riskRegister.InherentRiskRatingID != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("inherent evaluation already exists for this risk"), "unique", "inherent evaluation")
+	}
+
 	likelihood, err := aries.assetRiskRegisterSvc.GetLikelihoodByID(formDTO.RiskMatrixLikelihoodID, tx)
 	if err != nil {
 		return 0, err
@@ -218,6 +222,10 @@ func (aries *AssetRiskInherentEvaluationService) Update(riskID uint, id uint, cu
 	riskRegister, err := aries.assetRiskRegisterSvc.GetByID(riskID, tx)
 	if err != nil {
 		return err
+	}
+
+	if riskRegister.ResidualRiskRatingID != nil {
+		return utility.NewValidationError(fmt.Errorf("cannot update inherent evaluation after residual evaluation has been completed"), "subsequent_stage_completed", "residual evaluation")
 	}
 
 	existingEvaluation, err := aries.repo.GetByID(id, tx)
@@ -353,6 +361,10 @@ func (aries *AssetRiskInherentEvaluationService) Delete(riskID uint, id uint, cu
 	riskRegister, err := aries.assetRiskRegisterSvc.GetByID(riskID, tx)
 	if err != nil {
 		return 0, err
+	}
+
+	if riskRegister.ResidualRiskRatingID != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("cannot delete inherent evaluation after residual evaluation has been completed"), "subsequent_stage_completed", "residual evaluation")
 	}
 
 	if _, err = aries.repo.GetByID(id, tx); err != nil {

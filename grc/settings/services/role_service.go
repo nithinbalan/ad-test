@@ -154,13 +154,17 @@ func (rs *RoleService) Update(id uint, currentUserID uint, updatedRole *models.R
 		return nil, err
 	}
 
+	if updatedRole.Type == nil {
+		updatedRole.Type = existingRole.Type
+	}
+
 	result, err := rs.repo.Update(id, updatedRole)
 
 	if err != nil {
 		return nil, err
 	}
 
-	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
+	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status", "IsCyber"}
 	changes, err := utility.CompareFields(existingRole, updatedRole, fieldsToCompare)
 
 	if err != nil {

@@ -623,7 +623,13 @@ func (crc *ComplianceRegisterController) UpdateNote(c *gin.Context) {
 }
 
 func (crc *ComplianceRegisterController) GenerateComplianceTemplate(c *gin.Context) {
-	file, err := crc.service.GenerateComplianceTemplate()
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	file, err := crc.service.GenerateComplianceTemplate(currentUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate template"})
 		return
@@ -649,7 +655,13 @@ func (crc *ComplianceRegisterController) ValidateComplianceTemplate(c *gin.Conte
 	}
 	defer openedFile.Close()
 
-	validatedData, err := crc.service.ValidateComplianceTemplate(openedFile)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	validatedData, err := crc.service.ValidateComplianceTemplate(openedFile, currentUserID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -665,7 +677,13 @@ func (crc *ComplianceRegisterController) ValidateImportCompliances(c *gin.Contex
 		return
 	}
 
-	validatedData, err := crc.service.ValidateImportCompliances(input)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	validatedData, err := crc.service.ValidateImportCompliances(input, currentUserID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

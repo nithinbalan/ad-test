@@ -84,6 +84,7 @@ type UserServiceInterface interface {
 	GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error)
 	IsSuperAdmin(userID uint) (bool, error)
 	GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models.User, error)
+	IsCyberUser(userID uint) (bool, error)
 }
 
 type UserService struct {
@@ -2871,4 +2872,8 @@ func (us *UserService) GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models
 	}
 
 	return user, nil
+}
+
+func (us *UserService) IsCyberUser(userID uint) (bool, error) {
+	return us.repo.IsCyberUser(userID)
 }

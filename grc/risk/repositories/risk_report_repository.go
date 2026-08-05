@@ -266,7 +266,7 @@ func (repo *RiskReportRepository) GetRiskIdentifications(riskReportID uint) ([]d
 	err := repo.db.Table("risk_report_identifications").
 		Select(`
 			id, reference_number, title, description, risk_category_title_en, risk_category_title_ar,
-			risk_source_title_en, risk_source_title_ar, risk_reported_at,
+			risk_source_title_en, risk_source_title_ar, risk_reported_at, registration_date,
 			responsible_unit_title_en, responsible_unit_title_ar,
 			inherent_impact_title_en, inherent_impact_title_ar, inherent_likelihood_title_en, inherent_likelihood_title_ar,
 			inherent_risk_rating_title_en, inherent_risk_rating_title_ar, inherent_risk_rating_color_code,
@@ -276,7 +276,7 @@ func (repo *RiskReportRepository) GetRiskIdentifications(riskReportID uint) ([]d
 			existing_controls, proposed_controls
 		`).
 		Where("risk_report_id = ?", riskReportID).
-		Order("risk_reported_at DESC").
+		Order("registration_date DESC").
 		Find(&risks).Error
 
 	if err != nil {
@@ -320,7 +320,12 @@ func (repo *RiskReportRepository) GetRiskKRIs(riskReportID uint) ([]dtos.RiskRep
 			risk_report_identifications.reference_number AS risk_reference_number,
 			risk_report_identifications.title AS risk_title,
 			risk_report_kris.title, risk_report_kris.description,
-			risk_report_kris.low_threshold, risk_report_kris.medium_threshold,
+			risk_report_kris.annual_target,
+			risk_report_kris.minimum_susceptibility_percent,
+			risk_report_kris.maximum_susceptibility_percent,
+			risk_report_kris.maximum_tolerable_percent,
+			risk_report_kris.is_lower_better,
+			risk_report_kris.is_higher_better,
 			risk_report_kris.unit_title_en, risk_report_kris.unit_title_ar, risk_report_kris.current_value
 		`).
 		Joins("LEFT JOIN risk_report_identifications ON risk_report_identifications.id = risk_report_kris.risk_report_identification_id").
@@ -379,6 +384,7 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate time.Time, endDa
 			risk_register.title,
 			risk_register.description,
 			risk_register.reported_at,
+			risk_register.registration_date,
 			risk_categories.title_en AS risk_category_title_en,
 			risk_categories.title_ar AS risk_category_title_ar,
 			risk_sources.title_en AS risk_source_title_en,
@@ -417,7 +423,8 @@ func (repo *RiskReportRepository) GetRisksByDateRange(startDate time.Time, endDa
 		Order("risk_register.registration_date DESC")
 
 	if len(organizationUnitIDs) > 0 {
-		query = query.Where("risk_register.responsible_unit_id IN ?", organizationUnitIDs)
+		// Filter by both division_id and responsible_unit_id
+		query = query.Where("(risk_register.division_id IN (?) OR risk_register.responsible_unit_id IN (?))", organizationUnitIDs, organizationUnitIDs)
 	}
 
 	if err := query.Find(&risks).Error; err != nil {
@@ -536,8 +543,12 @@ func (repo *RiskReportRepository) GetKRIsByRiskID(riskID uint, tx ...utility.Dat
 		Select(`
 			kri_register.title,
 			kri_register.description,
-			kri_register.low_threshold,
-			kri_register.medium_threshold,
+			kri_register.annual_target,
+			kri_register.minimum_susceptibility_percent,
+			kri_register.maximum_susceptibility_percent,
+			kri_register.maximum_tolerable_percent,
+			kri_register.is_lower_better,
+			kri_register.is_higher_better,
 			kri_register.current_value,
 			units.title_en AS unit_title_en,
 			units.title_ar AS unit_title_ar
@@ -750,6 +761,7 @@ func (repo *RiskReportRepository) GetRisksByOrgUnitsAndRiskIDs(organizationUnitI
 			risk_register.title,
 			risk_register.description,
 			risk_register.reported_at,
+			risk_register.registration_date,
 			risk_categories.title_en AS risk_category_title_en,
 			risk_categories.title_ar AS risk_category_title_ar,
 			risk_sources.title_en AS risk_source_title_en,
@@ -785,10 +797,11 @@ func (repo *RiskReportRepository) GetRisksByOrgUnitsAndRiskIDs(organizationUnitI
 		Joins("LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id").
 		Joins("LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id").
 		Where("risk_register.id IN ?", riskIDs).
-		Order("risk_register.reported_at DESC")
+		Order("risk_register.registration_date DESC")
 
 	if len(organizationUnitIDs) > 0 {
-		query = query.Where("risk_register.responsible_unit_id IN ?", organizationUnitIDs)
+		// Filter by both division_id and responsible_unit_id
+		query = query.Where("(risk_register.division_id IN (?) OR risk_register.responsible_unit_id IN (?))", organizationUnitIDs, organizationUnitIDs)
 	}
 
 	if err := query.Find(&risks).Error; err != nil {

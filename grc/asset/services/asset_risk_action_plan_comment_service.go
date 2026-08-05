@@ -104,11 +104,15 @@ func (s *AssetRiskActionPlanCommentService) GetFullDetailsByID(riskID uint, acti
 }
 
 func (rapcs *AssetRiskActionPlanCommentService) Create(riskID uint, actionPlanID uint, currentUserID uint, dto *assetDTOs.AssetRiskActionPlanCommentFormDTO) (id uint, err error) {
-	if _, err := rapcs.assetRiskActionPlanSvc.GetByID(riskID, actionPlanID); err != nil {
+	existingActionPlan, err := rapcs.assetRiskActionPlanSvc.GetByID(riskID, actionPlanID)
+	if err != nil {
 		return 0, err
 	}
+	if riskID == 0 {
+		riskID = existingActionPlan.RiskRegisterID
+	}
 
-	riskActionPlan, err := rapcs.assetRiskActionPlanSvc.GetFullDetailsByID(riskID, actionPlanID)
+	riskActionPlan, err := rapcs.assetRiskActionPlanSvc.GetFullDetailsByID(riskID, actionPlanID, 0, false)
 	if err != nil {
 		return 0, err
 	}
@@ -251,8 +255,8 @@ func (rapcs *AssetRiskActionPlanCommentService) notifyActionPlanComment(riskID u
 		UserIDs:              []uint{recipientUserID},
 		ModuleIdentifier:     "asset_risk",
 		NotificationType:     string(commonDTOs.AssignmentType),
-		HeadingEn:            "Comment Added For Risk Action Plan",
-		HeadingAr:            "تمت إضافة تعليق لخطة العمل الخاصة بالمخاطر",
+		HeadingEn:            "Comment Added For ISMS Risk Action Plan",
+		HeadingAr:            "تمت إضافة تعليق لخطة عمل مخاطر ISMS",
 		TitleEn:              riskActionPlan.Title,
 		TitleAr:              riskActionPlan.Title,
 		Entity:               &entity,
@@ -284,7 +288,7 @@ func (rapcs *AssetRiskActionPlanCommentService) notifyActionPlanComment(riskID u
 	}
 
 	emailTo := []string{recipientUser.Email}
-	subject := fmt.Sprintf("Asset Risk Action Plan: %s - Comment Added", riskActionPlan.Title)
+	subject := fmt.Sprintf("ISMS Risk Action Plan: %s - Comment Added", riskActionPlan.Title)
 	appURL := utility.GetAppURL()
 	emailData := map[string]interface{}{
 		"FirstNameEn":            recipientUser.FirstNameEn,
@@ -314,8 +318,12 @@ func (rapcs *AssetRiskActionPlanCommentService) notifyActionPlanComment(riskID u
 }
 
 func (rapcs *AssetRiskActionPlanCommentService) Update(riskID uint, actionPlanID uint, id uint, currentUserID uint, formDTO *assetDTOs.AssetRiskActionPlanCommentFormDTO) (err error) {
-	if _, err := rapcs.assetRiskActionPlanSvc.GetByID(riskID, actionPlanID); err != nil {
+	existingActionPlan, err := rapcs.assetRiskActionPlanSvc.GetByID(riskID, actionPlanID)
+	if err != nil {
 		return err
+	}
+	if riskID == 0 {
+		riskID = existingActionPlan.RiskRegisterID
 	}
 
 	existingComment, err := rapcs.GetByID(riskID, actionPlanID, id)

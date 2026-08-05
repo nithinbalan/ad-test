@@ -117,6 +117,9 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 		LEFT JOIN compliance_assessments ON compliance_assessments.id = compliance_assessment_requirements.compliance_assessment_id
         LEFT JOIN compliance_register ON compliance_register.id = compliance_assessments.compliance_register_id
 
+		LEFT JOIN compliance_register AS direct_cr
+			ON direct_cr.id = compliance_action_plans.compliance_register_id
+
 		-- control-based path (via compliance_assessment_controls)
 		LEFT JOIN compliance_assessment_controls cac 
             ON cac.id = compliance_action_plans.compliance_assessment_control_id
@@ -128,7 +131,12 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 
 	// Conditionally apply compliance ID filter
 	if complianceID != 0 {
-		query = query.Where("COALESCE(compliance_assessments.compliance_register_id, ca_ctrl.compliance_register_id) = ?", complianceID)
+		query = query.Where("COALESCE(compliance_action_plans.compliance_register_id, compliance_assessments.compliance_register_id, ca_ctrl.compliance_register_id) = ?", complianceID)
+	}
+
+	// Conditionally apply cyber filter
+	if params.IsCyberUser {
+		query = query.Where("COALESCE(direct_cr.is_cyber, compliance_register.is_cyber, cr_ctrl.is_cyber) = ?", true)
 	}
 
 	// Conditionally apply compliance ID filter
@@ -154,7 +162,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 		compliance_action_plans.responsible_user_id = ?
 		OR compliance_action_plans.created_by_id = ?
 		OR compliance_action_plans.review_user_id = ?
-		OR COALESCE(compliance_register.responsible_user_id, cr_ctrl.responsible_user_id) = ?
+		OR COALESCE(direct_cr.responsible_user_id, compliance_register.responsible_user_id, cr_ctrl.responsible_user_id) = ?
     	OR COALESCE(compliance_assessments.review_user_id, ca_ctrl.review_user_id) = ?
 		)
 		`,

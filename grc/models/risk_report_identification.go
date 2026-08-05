@@ -3,18 +3,19 @@ package models
 import "time"
 
 type RiskReportIdentification struct {
-	ID                     uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	RiskReportID           uint      `json:"risk_report_id" gorm:"not null"`
-	ReferenceNumber        string    `json:"reference_number" gorm:"not null"`
-	RiskCategoryTitleEn    string    `json:"risk_category_title_en" gorm:"not null"`
-	RiskCategoryTitleAr    string    `json:"risk_category_title_ar" gorm:"not null"`
-	Title                  string    `json:"title" gorm:"not null"`
-	Description            *string   `json:"description"`
-	RiskSourceTitleEn      *string   `json:"risk_source_title_en"`
-	RiskSourceTitleAr      *string   `json:"risk_source_title_ar"`
-	RiskReportedAt         time.Time `json:"risk_reported_at" gorm:"not null"`
-	ResponsibleUnitTitleEn string    `json:"responsible_unit_title_en" gorm:"not null"`
-	ResponsibleUnitTitleAr string    `json:"responsible_unit_title_ar" gorm:"not null"`
+	ID                     uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	RiskReportID           uint       `json:"risk_report_id" gorm:"not null"`
+	ReferenceNumber        string     `json:"reference_number" gorm:"not null"`
+	RiskCategoryTitleEn    string     `json:"risk_category_title_en" gorm:"not null"`
+	RiskCategoryTitleAr    string     `json:"risk_category_title_ar" gorm:"not null"`
+	Title                  string     `json:"title" gorm:"not null"`
+	Description            *string    `json:"description"`
+	RiskSourceTitleEn      *string    `json:"risk_source_title_en"`
+	RiskSourceTitleAr      *string    `json:"risk_source_title_ar"`
+	RiskReportedAt         time.Time  `json:"risk_reported_at" gorm:"not null"`
+	RegistrationDate       *time.Time `json:"registration_date"`
+	ResponsibleUnitTitleEn string     `json:"responsible_unit_title_en" gorm:"not null"`
+	ResponsibleUnitTitleAr string     `json:"responsible_unit_title_ar" gorm:"not null"`
 
 	InherentRiskRatingTitleEn   *string `json:"inherent_risk_rating_title_en"`
 	InherentRiskRatingTitleAr   *string `json:"inherent_risk_rating_title_ar"`

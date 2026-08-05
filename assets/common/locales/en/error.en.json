@@ -276,8 +276,20 @@
   "translation": "Review comments can only be added while the {{.Field}} workflow is active."
 },
 {
+  "id": "workflow_submission_required",
+  "translation": "The {{.Field}} is required before workflow submission."
+},
+{
+  "id": "workflow_submission_requires_one",
+  "translation": "At least one {{.Field}} is required before workflow submission."
+},
+{
   "id": "workflow_not_rejected",
   "translation": "The {{.Field}} can only be resubmitted if it has been rejected."
+},
+{
+  "id": "subsequent_stage_completed",
+  "translation": "This action cannot be performed because {{.Field}} has already been completed."
 }
 
 

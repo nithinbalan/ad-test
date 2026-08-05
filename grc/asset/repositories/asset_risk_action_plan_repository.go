@@ -16,6 +16,7 @@ type AssetRiskActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(riskID uint, params *assetDTOs.AssetRiskActionPlanListQueryParamsDTO) (*assetDTOs.AssetRiskActionPlanListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskActionPlan, error)
+	HasActionPlans(riskID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskActionPlan, error)
 	Create(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) error
@@ -173,6 +174,31 @@ func (repo *AssetRiskActionPlanRepository) GetAll(riskID uint, params *assetDTOs
 		query = query.Where("risk_action_plans.risk_register_id = ?", riskID)
 	}
 
+	// access control
+	if riskID == 0 {
+		if params.IsPassiveUser {
+			query = query.Where(`
+			(
+			risk_action_plans.responsible_user_id = ?
+			OR risk_action_plans.delegatee_user_id = ?
+			)
+			`, params.AccessUserID, params.AccessUserID)
+		} else if !params.IsAllAccess {
+			query = query.Where(`
+			(
+			risk_action_plans.responsible_user_id = ?
+			OR risk_action_plans.delegatee_user_id = ?
+			OR risk_action_plans.created_by_id = ?
+			OR risk_action_plans.review_user_id = ?
+			)
+			`, params.AccessUserID, params.AccessUserID, params.AccessUserID, params.AccessUserID)
+		}
+	}
+
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Calculate total count for pagination
@@ -223,6 +249,20 @@ func (repo *AssetRiskActionPlanRepository) GetByID(id uint, tx ...utility.Databa
 	}
 
 	return riskActionPlan, nil
+}
+
+func (repo *AssetRiskActionPlanRepository) HasActionPlans(riskID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	if err := db.Model(&models.RiskActionPlan{}).Where("risk_register_id = ?", riskID).Count(&count).Error; err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 func (repo *AssetRiskActionPlanRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskActionPlan, error) {

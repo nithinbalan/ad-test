@@ -54,9 +54,9 @@ type ComplianceRegisterServiceInterface interface {
 
 	UpdateNote(id uint, currentUserID uint, dto *complianceDTOs.ComplianceRegisterNoteDTO) error
 
-	GenerateComplianceTemplate() (*os.File, error)
-	ValidateComplianceTemplate(file io.Reader) ([]map[string]interface{}, error)
-	ValidateImportCompliances(input []map[string]interface{}) ([]map[string]interface{}, error)
+	GenerateComplianceTemplate(currentUserID uint) (*os.File, error)
+	ValidateComplianceTemplate(file io.Reader, currentUserID uint) ([]map[string]interface{}, error)
+	ValidateImportCompliances(input []map[string]interface{}, currentUserID uint) ([]map[string]interface{}, error)
 	ImportCompliances(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
@@ -133,6 +133,11 @@ func (crs *ComplianceRegisterService) GetAll(params *complianceDTOs.ComplianceRe
 		return nil, err
 	}
 
+	isCyberUser, err := crs.userSvc.IsCyberUser(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
 	var primaryUnitID uint
 	if !isSuperAdmin {
 		primaryUnitID, err = crs.userSvc.GetUserPrimaryUnitID(currentUserID)
@@ -141,7 +146,7 @@ func (crs *ComplianceRegisterService) GetAll(params *complianceDTOs.ComplianceRe
 		}
 	}
 
-	return crs.repo.GetAll(params, currentUserID, primaryUnitID, isSuperAdmin)
+	return crs.repo.GetAll(params, currentUserID, primaryUnitID, isSuperAdmin, isCyberUser)
 }
 
 func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegister, error) {
@@ -249,6 +254,11 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
 	}
 
+	isCyberUser, err := crs.userSvc.IsCyberUser(currentUserID)
+	if err != nil {
+		return 0, err
+	}
+
 	complianceRegister := &models.ComplianceRegister{
 		//ComplianceCategoryID:            complianceRegisterFormDTO.ComplianceCategoryID,
 		ComplianceStatusID: complianceRegisterFormDTO.ComplianceStatusID,
@@ -293,6 +303,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		// IsRiskBasedAssessment:              complianceRegisterFormDTO.IsRiskBasedAssessment,
 		IsPublic: complianceRegisterFormDTO.IsPublic,
 		IsShared: complianceRegisterFormDTO.IsShared,
+		IsCyber:  isCyberUser,
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -2569,7 +2580,7 @@ func (crs *ComplianceRegisterService) UpdateNote(id uint, currentUserID uint, dt
 	return nil
 }
 
-func (crs *ComplianceRegisterService) GenerateComplianceTemplate() (*os.File, error) {
+func (crs *ComplianceRegisterService) GenerateComplianceTemplate(currentUserID uint) (*os.File, error) {
 	templateHeaders := []string{
 		"LegislativeBody", "LegislationType", "LegislationNo", "ResponsibleUser",
 		"Title", "Description", "Version", "Deadline",
@@ -2644,7 +2655,7 @@ func (crs *ComplianceRegisterService) GenerateComplianceTemplate() (*os.File, er
 	}
 
 	// Fetch Compliance Folders
-	complianceFolders, err := crs.complianceFolderSvc.GetAll("", "", "", "active")
+	complianceFolders, err := crs.complianceFolderSvc.GetAll("", "", "", "active", currentUserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch compliance folders: %v", err)
 	}
@@ -2704,7 +2715,7 @@ func (crs *ComplianceRegisterService) GenerateComplianceTemplate() (*os.File, er
 	return file, nil
 }
 
-func (crs *ComplianceRegisterService) ValidateComplianceTemplate(file io.Reader) ([]map[string]interface{}, error) {
+func (crs *ComplianceRegisterService) ValidateComplianceTemplate(file io.Reader, currentUserID uint) ([]map[string]interface{}, error) {
 	rows, err := utility.ReadExcelFile(file)
 	if err != nil {
 		return nil, err
@@ -2746,7 +2757,7 @@ func (crs *ComplianceRegisterService) ValidateComplianceTemplate(file io.Reader)
 		input = append(input, record)
 	}
 
-	validatedData, err := crs.validateCompliances(input)
+	validatedData, err := crs.validateCompliances(input, currentUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -2754,8 +2765,8 @@ func (crs *ComplianceRegisterService) ValidateComplianceTemplate(file io.Reader)
 	return validatedData, nil
 }
 
-func (crs *ComplianceRegisterService) ValidateImportCompliances(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	validatedData, err := crs.validateCompliances(input)
+func (crs *ComplianceRegisterService) ValidateImportCompliances(input []map[string]interface{}, currentUserID uint) ([]map[string]interface{}, error) {
+	validatedData, err := crs.validateCompliances(input, currentUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -2764,7 +2775,7 @@ func (crs *ComplianceRegisterService) ValidateImportCompliances(input []map[stri
 }
 
 func (crs *ComplianceRegisterService) ImportCompliances(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
-	validatedData, err := crs.validateCompliances(input)
+	validatedData, err := crs.validateCompliances(input, currentUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -2885,7 +2896,7 @@ func (crs *ComplianceRegisterService) ImportCompliances(input []map[string]inter
 	return createdIDs, nil
 }
 
-func (crs *ComplianceRegisterService) validateCompliances(input []map[string]interface{}) ([]map[string]interface{}, error) {
+func (crs *ComplianceRegisterService) validateCompliances(input []map[string]interface{}, currentUserID uint) ([]map[string]interface{}, error) {
 	headers := []string{
 		"legislative_body", "legislation_type", "legislation_no", "responsible_user",
 		"title", "description", "version", "deadline",
@@ -2946,7 +2957,7 @@ func (crs *ComplianceRegisterService) validateCompliances(input []map[string]int
 	}
 
 	// Fetch Compliance Folders
-	complianceFolders, err := crs.complianceFolderSvc.GetAll("", "", "", "active")
+	complianceFolders, err := crs.complianceFolderSvc.GetAll("", "", "", "active", currentUserID)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching compliance folders: %v", err)
 	}

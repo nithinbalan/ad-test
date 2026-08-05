@@ -1,8 +1,6 @@
 package repositories
 
 import (
-	"errors"
-
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -49,9 +47,6 @@ func (repo *AssetRiskResidualEvaluationRepository) GetFullDetailsByRiskID(riskID
 		First(&riskEvaluation)
 
 	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
 		return nil, result.Error
 	}
 

@@ -34,7 +34,7 @@ func (arrc *AssetRiskResidualEvaluationController) GetAssetRiskResidualEvaluatio
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
+			c.JSON(http.StatusOK, nil)
 			return
 		default:
 			utility.SendInternalErrResp(arrc.db, c, e.Error())

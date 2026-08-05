@@ -28,7 +28,13 @@ func (cfc *ComplianceFolderController) GetAllComplianceFolders(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	folders, err := cfc.service.GetAll(sort, sortBy, keyword, status)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cfc.db, c, err.Error())
+		return
+	}
+
+	folders, err := cfc.service.GetAll(sort, sortBy, keyword, status, currentUserID)
 
 	if err != nil {
 		utility.SendInternalErrResp(cfc.db, c, err.Error())

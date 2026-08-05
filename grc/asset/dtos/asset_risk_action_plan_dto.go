@@ -82,6 +82,9 @@ type AssetRiskActionPlanListQueryParamsDTO struct {
 	Export         bool
 	DateFrom       string
 	DateTo         string
+	IsAllAccess    bool
+	AccessUserID   uint
+	IsPassiveUser  bool
 }
 
 type AssetRiskActionPlanListResponseDTO struct {

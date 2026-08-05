@@ -84,6 +84,11 @@ func (arws *AssetRiskWorkflowService) GetRiskWorkflowList(riskID uint, tx ...uti
 		return nil, err
 	}
 
+	histories, err := arws.repo.GetWorkflowHistories(riskID, tx...)
+	if err != nil {
+		return nil, err
+	}
+
 	dto := &assetRiskDTOs.AssetRiskWorkflowListDTO{
 		ID:              riskWorkflow.ID,
 		RiskRegisterID:  riskWorkflow.ID,
@@ -92,6 +97,7 @@ func (arws *AssetRiskWorkflowService) GetRiskWorkflowList(riskID uint, tx ...uti
 		NextReviewLevel: riskWorkflow.NextReviewLevel,
 		CurrentStatus:   overallStatus,
 		RiskWorkflows:   []*assetRiskDTOs.WorkflowListDTO{},
+		History:         arws.buildWorkflowHistory(histories),
 	}
 
 	var maxLevel int
@@ -461,6 +467,23 @@ func (arws *AssetRiskWorkflowService) mapOverallWorkflowStatus(riskRegister *mod
 
 	status := arws.mapWorkflowStatusToDTO(workflowStatus)
 	return &status, nil
+}
+
+func (arws *AssetRiskWorkflowService) buildWorkflowHistory(histories []*models.RiskWorkflowHistory) []*assetRiskDTOs.AssetRiskWorkflowHistoryDTO {
+	var historyDTOs []*assetRiskDTOs.AssetRiskWorkflowHistoryDTO
+
+	for _, history := range histories {
+		historyItem := &assetRiskDTOs.AssetRiskWorkflowHistoryDTO{
+			ID:             history.ID,
+			Level:          history.Level,
+			WorkflowStatus: arws.mapWorkflowStatusToDTO(history.WorkflowStatus),
+			CreatedByUser:  arws.mapUserToDTO(history.CreatedByUser),
+			CreatedAt:      history.CreatedAt,
+		}
+		historyDTOs = append(historyDTOs, historyItem)
+	}
+
+	return historyDTOs
 }
 
 func (arws *AssetRiskWorkflowService) ValidateWorkflowBeforeCreate(contextType string, tx ...utility.DatabaseTransaction) error {

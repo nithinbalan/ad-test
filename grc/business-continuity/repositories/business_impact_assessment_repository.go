@@ -383,6 +383,7 @@ func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ..
 		Preload("BusinessImpactAssessments.BusinessImpactAssessmentAnalysis.ImpactAnalysisLevel").
 		Preload("BusinessImpactAssessmentRatings").
 		Preload("BusinessImpactAssessmentRatings.OverallImpactLevel").
+		Preload("BusinessImpactAssessmentRatings.OverallOutageBucket").
 		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel").
 		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel.RtoUnit").
 		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel.MtpdUnit").

@@ -51,6 +51,10 @@ func (repo *ComplianceReportRepository) GetComplianceByComplianceCategory(params
 		Joins("LEFT JOIN compliance_register ON compliance_register.compliance_category_id = compliance_categories.id").
 		Group("compliance_categories.id, compliance_categories.title_en, compliance_categories.title_ar")
 
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
+
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -73,6 +77,10 @@ func (repo *ComplianceReportRepository) GetComplianceBySeverityLevel(params *rep
 		`).
 		Joins("LEFT JOIN compliance_register ON compliance_register.severity_level_id = severity_levels.id").
 		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code, severity_levels.type")
+
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -97,6 +105,10 @@ func (repo *ComplianceReportRepository) GetComplianceByComplianceStatus(params *
 		Joins("LEFT JOIN compliance_register ON compliance_register.compliance_status_id = compliance_statuses.id").
 		Group("compliance_statuses.id, compliance_statuses.title_en, compliance_statuses.title_ar, compliance_statuses.color_code, compliance_statuses.type")
 
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
+
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -118,6 +130,10 @@ func (repo *ComplianceReportRepository) GetComplianceByResponsibleUnit(params *r
 		`).
 		Joins("JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id").
 		Group("organization_units.id, organization_units.title_en, organization_units.title_ar, organization_units.color_code")
+
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -148,6 +164,10 @@ func (repo *ComplianceReportRepository) GetComplianceByResponsibleUser(params *r
 		Joins("JOIN users ON users.id = compliance_register.responsible_user_id").
 		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
+
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -167,7 +187,13 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByComplianceStat
             COALESCE(COUNT(compliance_requirements.id), 0) AS count
         `).
 		Joins("LEFT JOIN compliance_requirements ON compliance_requirements.compliance_status_id = compliance_statuses.id").
+		Joins("LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
 		Group("compliance_statuses.id, compliance_statuses.title_en, compliance_statuses.title_ar")
+
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -190,7 +216,13 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementBySeverity(param
             COALESCE(COUNT(compliance_requirements.id), 0) AS count
         `).
 		Joins("LEFT JOIN compliance_requirements ON compliance_requirements.severity_level_id = severity_levels.id").
+		Joins("LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
 		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code, severity_levels.type")
+
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -211,7 +243,13 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByCategory(param
             COALESCE(COUNT(compliance_requirements.id), 0) AS count
         `).
 		Joins("LEFT JOIN compliance_requirements ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id").
+		Joins("LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
 		Group("compliance_requirement_categories.id, compliance_requirement_categories.title_en, compliance_requirement_categories.title_ar")
+
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -234,7 +272,13 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUni
 		`).
 		Joins("JOIN organization_units ON organization_units.id = compliance_requirement_responsible_units.responsible_unit_id").
 		Joins("JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_responsible_units.compliance_requirement_id").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
 		Group("organization_units.id, organization_units.title_en, organization_units.title_ar, organization_units.color_code")
+
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -264,7 +308,13 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUse
 		`).
 		Joins("JOIN users ON users.id = compliance_requirement_responsible_units.responsible_user_id").
 		Joins("JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_responsible_units.compliance_requirement_id").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
 		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
+
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -287,7 +337,12 @@ func (repo *ComplianceReportRepository) GetComplianceActionPlanByStatus(params *
 			COALESCE(COUNT(compliance_action_plans.id), 0) AS count
 		`).
 		Joins("LEFT JOIN compliance_action_plans ON compliance_action_plans.action_plan_status_id = action_plan_statuses.id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_action_plans.compliance_register_id").
 		Group("action_plan_statuses.id, action_plan_statuses.title_en, action_plan_statuses.title_ar, action_plan_statuses.color_code, action_plan_statuses.type")
+
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -315,7 +370,12 @@ func (repo *ComplianceReportRepository) GetComplianceActionPlanByResponsibleUser
 			COUNT(compliance_action_plans.id) AS count
 		`).
 		Joins("JOIN users ON users.id = compliance_action_plans.responsible_user_id").
+		Joins("JOIN compliance_register ON compliance_register.id = compliance_action_plans.compliance_register_id").
 		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.email, users.color, users.profile_image_path")
+
+	if params.IsCyberUser {
+		query = query.Where("compliance_register.is_cyber = ?", true)
+	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")

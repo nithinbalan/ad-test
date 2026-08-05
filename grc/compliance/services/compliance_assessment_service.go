@@ -25,7 +25,7 @@ import (
 )
 
 type ComplianceAssessmentServiceInterface interface {
-	GetAll(params *complianceDTOs.ComplianceAssessmentListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceAssessmentListQueryParamsDTO, currentUserID uint) (*complianceDTOs.ComplianceAssessmentListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentDetailDTO, error)
 	GetFullDetailsByIDOptimized(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentDetailDTO, error)
 	GetByID(id uint) (*models.ComplianceAssessment, error)
@@ -88,8 +88,12 @@ func NewComplianceAssessmentService(
 	}
 }
 
-func (cras *ComplianceAssessmentService) GetAll(params *complianceDTOs.ComplianceAssessmentListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentListResponseDTO, error) {
-	return cras.repo.GetAll(params)
+func (cras *ComplianceAssessmentService) GetAll(params *complianceDTOs.ComplianceAssessmentListQueryParamsDTO, currentUserID uint) (*complianceDTOs.ComplianceAssessmentListResponseDTO, error) {
+	isCyberUser, err := cras.userSvc.IsCyberUser(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	return cras.repo.GetAll(params, isCyberUser)
 }
 
 func (cras ComplianceAssessmentService) GetByID(id uint) (*models.ComplianceAssessment, error) {
@@ -237,7 +241,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 	var createdIds []uint
 	var addedComplianceAssessments []map[string]interface{}
 
-	if err := cras.validateComplianceAssessmentFormDTO(complianceAssessmentFormDTO); err != nil {
+	if err := cras.validateComplianceAssessmentFormDTO(complianceAssessmentFormDTO, currentUserID); err != nil {
 		return err
 	}
 
@@ -280,7 +284,12 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 			return err
 		}
 	} else {
-		registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(*complianceAssessmentFormDTO.ResponsibleUnitID)
+		isCyberUser, err := cras.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(*complianceAssessmentFormDTO.ResponsibleUnitID, isCyberUser)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -425,7 +434,12 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		// }
 	} else {
 		// Department type: Get all registers linked to responsible unit
-		registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(*complianceAssessmentFormDTO.ResponsibleUnitID)
+		isCyberUser, err := cras.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(*complianceAssessmentFormDTO.ResponsibleUnitID, isCyberUser)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -1022,7 +1036,11 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 		formDtoResponsibleUnitID := *complianceAssessmentUpdateFormDTO.ResponsibleUnitID
 
 		if existingResponsibleUnitID != formDtoResponsibleUnitID {
-			registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(*complianceAssessmentUpdateFormDTO.ResponsibleUnitID)
+			isCyberUser, err := cras.userSvc.IsCyberUser(currentUserID)
+			if err != nil {
+				return err
+			}
+			registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(*complianceAssessmentUpdateFormDTO.ResponsibleUnitID, isCyberUser)
 			if err != nil {
 				return err
 			}
@@ -1648,7 +1666,7 @@ func (cras *ComplianceAssessmentService) ForceDelete(ids []uint, currentUserID u
 	return nil, nil
 }
 
-func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(complianceAssessmentFormDTO *complianceDTOs.ComplianceAssessmentFormDTO) error {
+func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(complianceAssessmentFormDTO *complianceDTOs.ComplianceAssessmentFormDTO, currentUserID uint) error {
 	// complianceRegister, err := cras.complianceRegisterSvc.GetByID(complianceAssessmentFormDTO.ComplianceRegisterID)
 	// if err != nil {
 	// 	return utility.NewValidationError(fmt.Errorf("compliance register does not exist"), "not_exist", "compliance register")
@@ -1656,6 +1674,11 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 
 	if _, err := cras.userSvc.GetByID(complianceAssessmentFormDTO.ReviewUserID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("review user does not exist"), "not_exist", "review user")
+	}
+
+	isCyberUser, err := cras.userSvc.IsCyberUser(currentUserID)
+	if err != nil {
+		return err
 	}
 
 	statusIds := []uint{}
@@ -1774,7 +1797,7 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 			return utility.NewForbiddenError("assessment_already_in_progress_for_department")
 		}
 
-		registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(responsibleUnitID)
+		registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(responsibleUnitID, isCyberUser)
 		if err != nil {
 			return fmt.Errorf("failed to fetch department registers: %w", err)
 		}
