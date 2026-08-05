@@ -235,15 +235,19 @@ type TopFiveRiskDTO struct {
 }
 
 type GRCReportRiskKRIDTO struct {
-	RiskRegisterTitle        string  `json:"risk_register_title"`
-	KRIRegisterTitle         string  `json:"kri_register_title"`
-	KRIRegisterDescription   *string `json:"kri_register_description"`
-	LowThreshold             *int    `json:"low_threshold"`
-	MediumThreshold          *int    `json:"medium_threshold"`
-	CurrentValue             *int    `json:"current_value"`
-	RiskStatusTitleEn        string  `json:"risk_status_title_en"`
-	RiskStatusTitleAr        string  `json:"risk_status_title_ar"`
-	RiskStatusTitleColorCode string  `json:"risk_status_title_color_code"`
+	RiskRegisterTitle            string   `json:"risk_register_title"`
+	KRIRegisterTitle             string   `json:"kri_register_title"`
+	KRIRegisterDescription       *string  `json:"kri_register_description"`
+	AnnualTarget                 *float64 `json:"annual_target"`
+	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent"`
+	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent"`
+	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent"`
+	IsLowerBetter                *bool    `json:"is_lower_better"`
+	IsHigherBetter               *bool    `json:"is_higher_better"`
+	CurrentValue                 *float64 `json:"current_value"`
+	RiskStatusTitleEn            string   `json:"risk_status_title_en"`
+	RiskStatusTitleAr            string   `json:"risk_status_title_ar"`
+	RiskStatusTitleColorCode     string   `json:"risk_status_title_color_code"`
 }
 
 type RiskControlReportDTO struct {
@@ -282,17 +286,21 @@ type GRCRiskSummaryResponseDTO struct {
 }
 
 type GRCReportRiskKriResponseDTO struct {
-	ID                       uint    `json:"id"`
-	GRCReportID              uint    `json:"grc_report_id"`
-	RiskRegisterTitle        string  `json:"risk_register_title"`
-	KRIRegisterTitle         string  `json:"kri_register_title"`
-	KRIRegisterDescription   *string `json:"kri_register_description"`
-	LowThreshold             *int    `json:"low_threshold"`
-	MediumThreshold          *int    `json:"medium_threshold"`
-	CurrentValue             *int    `json:"current_value"`
-	RiskStatusTitleEn        string  `json:"risk_status_title_en"`
-	RiskStatusTitleAr        string  `json:"risk_status_title_ar"`
-	RiskStatusTitleColorCode string  `json:"risk_status_color_code"`
+	ID                           uint     `json:"id"`
+	GRCReportID                  uint     `json:"grc_report_id"`
+	RiskRegisterTitle            string   `json:"risk_register_title"`
+	KRIRegisterTitle             string   `json:"kri_register_title"`
+	KRIRegisterDescription       *string  `json:"kri_register_description"`
+	AnnualTarget                 *float64 `json:"annual_target"`
+	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent"`
+	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent"`
+	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent"`
+	IsLowerBetter                *bool    `json:"is_lower_better"`
+	IsHigherBetter               *bool    `json:"is_higher_better"`
+	CurrentValue                 *float64 `json:"current_value"`
+	RiskStatusTitleEn            string   `json:"risk_status_title_en"`
+	RiskStatusTitleAr            string   `json:"risk_status_title_ar"`
+	RiskStatusTitleColorCode     string   `json:"risk_status_color_code"`
 }
 
 type GRCReportRiskControlResponseDTO struct {

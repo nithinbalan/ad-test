@@ -1396,6 +1396,8 @@
           <th>Unit</th>
           <th>Low Threshold</th>
           <th>Medium Threshold</th>
+          <th>High Threshold</th>
+          <th>Trend</th>
         </tr>
       </thead>
       <tbody>
@@ -1406,8 +1408,10 @@
           <td>{{if $kri.Description}}{{$kri.Description}}{{else}}-{{end}}</td>
           <td>{{if $kri.CurrentValue}}{{$kri.CurrentValue}}{{else}}-{{end}}</td>
           <td>{{if $kri.UnitTitleEn}}{{$kri.UnitTitleEn}}{{else}}-{{end}}</td>
-          <td>{{if $kri.LowThreshold}}{{$kri.LowThreshold}}{{else}}-{{end}}</td>
-          <td>{{if $kri.MediumThreshold}}{{$kri.MediumThreshold}}{{else}}-{{end}}</td>
+          <td>{{if $kri.MinimumSusceptibilityPercent}}{{$kri.MinimumSusceptibilityPercent}}%{{else}}-{{end}}</td>
+          <td>{{if $kri.MaximumSusceptibilityPercent}}{{$kri.MaximumSusceptibilityPercent}}%{{else}}-{{end}}</td>
+          <td>{{if $kri.MaximumTolerablePercent}}{{$kri.MaximumTolerablePercent}}%{{else}}-{{end}}</td>
+          <td>{{if $kri.IsLowerBetter}}Lower Better{{else if $kri.IsHigherBetter}}Higher Better{{else}}-{{end}}</td>
         </tr>
         {{end}}
       </tbody>

@@ -94,6 +94,16 @@ func (rks RiskKriService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.Ri
 		return nil, err
 	}
 
+	if riskKri.KriRegister != nil {
+		kriRegisterNextReviewDate := riskKri.KriRegister.NextReviewDate.Format("2006-01-02")
+		riskKriDTO.KriRegister.NextReviewDateString = kriRegisterNextReviewDate
+
+		if riskKri.KriRegister.LastReviewedDate != nil {
+			kriRegisterLastReviewedDate := riskKri.KriRegister.LastReviewedDate.Format("2006-01-02")
+			riskKriDTO.KriRegister.LastReviewedDateString = kriRegisterLastReviewedDate
+		}
+	}
+	
 	return &riskKriDTO, nil
 }
 

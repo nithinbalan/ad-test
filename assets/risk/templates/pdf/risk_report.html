@@ -156,14 +156,6 @@
                                     style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 500;">
                                     {{.Title}} </p>
                             </div>
-                            <div style="width: 24%; display: inline-block; vertical-align: top;">
-                                <p
-                                    style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;">
-                                    Risk Source</p>
-                                <p
-                                    style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 500;">
-                                    {{.RiskSourceTitleEn}} </p>
-                            </div>
 
 
 
@@ -174,10 +166,10 @@
                             <div style="width: 24%; display: inline-block; vertical-align: top;">
                                 <p
                                     style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;">
-                                    Risk Date</p>
+                                    Registration Date</p>
                                 <p
                                     style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 500;">
-                                    {{.ReportedAt}}</p>
+                                    {{.RegistrationDate}}</p>
                             </div>
                             <div style="width: 24%; display: inline-block; vertical-align: top;">
                                 <p
@@ -492,7 +484,8 @@
                                     Threshold </p>
                                 <p
                                     style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 500;">
-                                    Low : {{.LowThreshold}}, Medium: {{.MediumThreshold}} </p>
+                                    {{if .AnnualTarget}}Target: {{.AnnualTarget}}{{else}}Target: -{{end}} | Min: {{if .MinimumSusceptibilityPercent}}{{.MinimumSusceptibilityPercent}}%{{else}}-{{end}} | Max Sus: {{if .MaximumSusceptibilityPercent}}{{.MaximumSusceptibilityPercent}}%{{else}}-{{end}} | Max Tol: {{if .MaximumTolerablePercent}}{{.MaximumTolerablePercent}}%{{else}}-{{end}}{{if .IsLowerBetter}}<br/><span style="background:#E6F4EA;color:#1E8E3E;padding:4px 8px;border-radius:4px;font-size:11px;margin-top:6px;display:inline-block;font-weight:400;">Lower Better</span>{{else if .IsHigherBetter}}<br/><span style="background:#E6F4EA;color:#1E8E3E;padding:4px 8px;border-radius:4px;font-size:11px;margin-top:6px;display:inline-block;font-weight:400;">Higher Better</span>{{end}}
+                                </p>
                             </div>
 
                         </div>
