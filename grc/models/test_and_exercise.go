@@ -15,6 +15,7 @@ type TestAndExercise struct {
 	Description              *string    `json:"description" gorm:"type:nvarchar(max)"`
 	TestAndExerciseStatusID  uint       `json:"test_and_exercise_status_id" binding:"required" gorm:"not null"`
 	IsSytemRegisterUpdated   bool       `json:"is_sytem_register_updated" gorm:"not null;default:false"`
+	IsCyber                  bool       `json:"is_cyber" gorm:"not null;default:false"`
 	CreatedBYID              uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID              *uint      `json:"updated_by_id"`
 	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`

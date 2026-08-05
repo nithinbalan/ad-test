@@ -159,6 +159,7 @@ type ProcessListQueryParamsDTO struct {
 	Export      bool
 	DateFrom    string
 	DateTo      string
+	IsCyberUser bool
 }
 
 // ProcessListResponseDTO encapsulates the paginated response for a list of processes

@@ -171,6 +171,13 @@ func (repo *TestAndExerciseRepository) GetAll(params *businessContinuityDTOs.Tes
 			keyword, keyword, keyword, keyword)
 	}
 
+	if params.IsCyberUser {
+		query = query.Where("test_and_exercises.is_cyber = ?", true)
+	} else {
+		query = query.Where("test_and_exercises.is_cyber = ?", false)
+	}
+
+	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}

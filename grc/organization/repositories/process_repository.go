@@ -264,8 +264,18 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 			query = query.Where("risk_matrix_risk_ratings.type IN (?)", []string{"high", "very_high"})
 		case "is_bia_performed":
 			query = query.Where("processes.is_bia_performed = ?", true)
+			query = query.Where(`
+				EXISTS (
+					SELECT 1 FROM business_impact_assessments biaa
+					WHERE biaa.process_id = processes.id AND biaa.is_cyber = ?
+				)`, params.IsCyberUser)
 		case "bia_not_performed":
 			query = query.Where("processes.is_bia_performed = ?", false)
+			query = query.Where(`
+				NOT EXISTS (
+					SELECT 1 FROM business_impact_assessments biaa
+					WHERE biaa.process_id = processes.id AND biaa.is_cyber = ?
+				)`, params.IsCyberUser)
 		case "is_automatic":
 			query = query.Where("processes.is_automatic = ?", true)
 		case "is_manual":

@@ -20,7 +20,7 @@ import (
 )
 
 type BusinessFunctionServiceInterface interface {
-	GetAll(params *businessContinuityDTOs.BusinessFunctionListQueryParamsDTO) (*businessContinuityDTOs.BusinessFunctionListResponseDTO, error)
+	GetAll(params *businessContinuityDTOs.BusinessFunctionListQueryParamsDTO, currentUserID uint) (*businessContinuityDTOs.BusinessFunctionListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BusinessFunctionDetailDTO, error)
 	GetByID(id uint) (*models.BusinessFunction, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessFunctionFormDTO) (uint, error)
@@ -66,7 +66,14 @@ func NewBusinessFunctionService(
 	}
 }
 
-func (bfs *BusinessFunctionService) GetAll(params *businessContinuityDTOs.BusinessFunctionListQueryParamsDTO) (*businessContinuityDTOs.BusinessFunctionListResponseDTO, error) {
+func (bfs *BusinessFunctionService) GetAll(params *businessContinuityDTOs.BusinessFunctionListQueryParamsDTO, currentUserID uint) (*businessContinuityDTOs.BusinessFunctionListResponseDTO, error) {
+	if currentUserID != 0 {
+		isCyberUser, err := bfs.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+		params.IsCyberUser = isCyberUser
+	}
 	return bfs.repo.GetAll(params)
 }
 
@@ -132,6 +139,14 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 		return 0, err
 	}
 
+	isCyberUser := false
+	if currentUserID != 0 {
+		isCyberUser, err = bfs.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	businessFunction := &models.BusinessFunction{
 		ReferenceNumber:   referenceNumber,
 		SeverityLevelID:   businessFunctionFormDTO.SeverityLevelID,
@@ -142,6 +157,7 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 		LastReviewDate:    dates.LastReviewDate,
 		NextReviewDate:    dates.NextReviewDate,
 		CreatedBYID:       currentUserID,
+		IsCyber:           isCyberUser,
 	}
 
 	// Validate: all processes must have a non-null and non non_applicable impact analysis level

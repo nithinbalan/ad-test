@@ -148,10 +148,6 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 		}
 
 	}
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -183,6 +179,13 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 			keyword, keyword, keyword, keyword)
 	}
 
+	if params.IsCyberUser {
+		query = query.Where("business_impact_assessments.is_cyber = ?", true)
+	} else {
+		query = query.Where("business_impact_assessments.is_cyber = ?", false)
+	}
+
+	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}

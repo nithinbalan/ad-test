@@ -184,13 +184,15 @@ type BusinessImpactAssessmentListQueryParamsDTO struct {
 	Keyword     string
 	Filters     map[string][]string
 	QuickFilter []string
+	IsCyberUser bool `json:"-"`
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO struct {
-	Sort    string
-	SortBy  string
-	Keyword string
-	Filters map[string][]string
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Filters     map[string][]string
+	IsCyberUser bool `json:"-"`
 }
 
 type BusinessImpactFormDTO struct {

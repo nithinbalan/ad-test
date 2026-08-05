@@ -23,7 +23,7 @@ import (
 )
 
 type BusinessImpactAssessmentServiceInterface interface {
-	GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error)
+	GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO, currentUserID uint) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error)
 	GetAllRecoveryObjectives(params *businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListDTO, error)
 	GetProcessDetails(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BIAProcessDetailDTO, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error)
@@ -97,7 +97,14 @@ func NewBusinessImpactAssessmentService(
 	}
 }
 
-func (bias *BusinessImpactAssessmentService) GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error) {
+func (bias *BusinessImpactAssessmentService) GetAllImpactAnalysis(params *businessContinuityDTOs.BusinessImpactAssessmentListQueryParamsDTO, currentUserID uint) ([]*businessContinuityDTOs.BusinessImpactAssessmentListDTO, error) {
+	if currentUserID != 0 {
+		isCyberUser, err := bias.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+		params.IsCyberUser = isCyberUser
+	}
 	return bias.repo.GetAllImpactAnalysis(params)
 }
 
@@ -154,14 +161,25 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 		return 0, fmt.Errorf("no impact categories found")
 	}
 
+	isCyberUser := false
+	if currentUserID != 0 {
+		var err error
+		isCyberUser, err = bias.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	for _, impactCategory := range impactCategories {
 		businessImpactAssessment := &models.BusinessImpactAssessment{
 			ProcessID:        businessImpactAssessmentFormDTO.ProcessID,
 			ImpactCategoryID: impactCategory.ID,
-			// New fields
-			IsApplicable: false,
+			// New fields - set IsApplicable to true by default so all categories are shown in update
+			IsApplicable: true,
 			IsSelected:   false,
 			CreatedByID:  currentUserID,
+			IsCyber:      isCyberUser,
 		}
 		err := bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
 		if err != nil {
@@ -238,10 +256,19 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			return err
 		}
 
+		isCyberUser := false
+		if currentUserID != 0 {
+			isCyberUser, err = bias.userSvc.IsCyberUser(currentUserID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
 		for _, impactAssessment := range businessImpactAssessmentFormDTO.BusinessImpactAssessments {
-			// Only the categories the user explicitly selected in this update are persisted with details;
-			// the rest are sent by the frontend for display purposes only and are skipped here.
-			if !impactAssessment.IsSelected {
+			// Save all categories where IsApplicable is true
+			// This ensures all applicable categories are shown in subsequent updates
+			if !impactAssessment.IsApplicable {
 				continue
 			}
 
@@ -251,6 +278,7 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				IsApplicable:     impactAssessment.IsApplicable,
 				IsSelected:       impactAssessment.IsSelected,
 				CreatedByID:      currentUserID,
+				IsCyber:          isCyberUser,
 			}
 			err = bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
 			if err != nil {
@@ -258,24 +286,26 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				return err
 			}
 
-			// Create analysis records for each outage bucket
-			var analysisRecords []*models.BusinessImpactAssessmentAnalysis
-			for _, analysis := range impactAssessment.BusinessImpactAssessmentAnalysis {
-				analysisRecord := &models.BusinessImpactAssessmentAnalysis{
-					BusinessImpactAssessmentID: businessImpactAssessment.ID,
-					OutageBucketID:             analysis.OutageBucketID,
-					ImpactAnalysisLevelID:      analysis.ImpactAnalysisLevelID,
-					CreatedBYID:                currentUserID,
-					CreatedAt:                  time.Now(),
+			// Create analysis records for each outage bucket only if category is selected
+			if impactAssessment.IsSelected {
+				var analysisRecords []*models.BusinessImpactAssessmentAnalysis
+				for _, analysis := range impactAssessment.BusinessImpactAssessmentAnalysis {
+					analysisRecord := &models.BusinessImpactAssessmentAnalysis{
+						BusinessImpactAssessmentID: businessImpactAssessment.ID,
+						OutageBucketID:             analysis.OutageBucketID,
+						ImpactAnalysisLevelID:      analysis.ImpactAnalysisLevelID,
+						CreatedBYID:                currentUserID,
+						CreatedAt:                  time.Now(),
+					}
+					analysisRecords = append(analysisRecords, analysisRecord)
 				}
-				analysisRecords = append(analysisRecords, analysisRecord)
-			}
 
-			if len(analysisRecords) > 0 {
-				err = bias.repo.CreateBusinessImpactAssessmentAnalysis(analysisRecords, tx)
-				if err != nil {
-					tx.Rollback()
-					return err
+				if len(analysisRecords) > 0 {
+					err = bias.repo.CreateBusinessImpactAssessmentAnalysis(analysisRecords, tx)
+					if err != nil {
+						tx.Rollback()
+						return err
+					}
 				}
 			}
 		}

@@ -72,6 +72,7 @@ type BusinessFunctionListQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
+	IsCyberUser bool `json:"-"`
 }
 
 type BusinessFunctionListResponseDTO struct {

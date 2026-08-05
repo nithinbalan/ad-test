@@ -92,7 +92,13 @@ func (tec *TestAndExerciseController) GetAllTestAndExercises(c *gin.Context) {
 		QuickFilter: quickFilter,
 		Export:      export,
 	}
-	testAndExercises, err := tec.service.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tec.db, c, err.Error())
+		return
+	}
+
+	testAndExercises, err := tec.service.GetAll(&queryParams, currentUserID)
 
 	if err != nil {
 		utility.SendInternalErrResp(tec.db, c, err.Error())
@@ -100,12 +106,6 @@ func (tec *TestAndExerciseController) GetAllTestAndExercises(c *gin.Context) {
 	}
 
 	if export {
-
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(tec.db, c, err.Error())
-			return
-		}
 
 		excelFile, err := tec.service.ExportTestAndExercise(testAndExercises.Items, currentUserID)
 		if err != nil {

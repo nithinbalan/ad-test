@@ -98,7 +98,13 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 		QuickFilter: quickFilter,
 		Export:      export,
 	}
-	businessFunctions, err := bfc.service.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(bfc.db, c, err.Error())
+		return
+	}
+
+	businessFunctions, err := bfc.service.GetAll(&queryParams, currentUserID)
 
 	if err != nil {
 		utility.SendInternalErrResp(bfc.db, c, err.Error())
@@ -106,12 +112,6 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 	}
 
 	if export {
-
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(bfc.db, c, err.Error())
-			return
-		}
 
 		excelFile, err := bfc.service.ExportBusinessFunction(businessFunctions.Items, currentUserID)
 		if err != nil {

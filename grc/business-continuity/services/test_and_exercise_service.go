@@ -22,7 +22,7 @@ import (
 )
 
 type TestAndExerciseServiceInterface interface {
-	GetAll(params *businessContinuityDTOs.TestAndExerciseListQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseListResponseDTO, error)
+	GetAll(params *businessContinuityDTOs.TestAndExerciseListQueryParamsDTO, currentUserID uint) (*businessContinuityDTOs.TestAndExerciseListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseDetailDTO, error)
 	GetByID(id uint) (*models.TestAndExercise, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.TestAndExerciseFormDTO) (uint, error)
@@ -77,7 +77,14 @@ func NewTestAndExerciseService(
 	}
 }
 
-func (tes *TestAndExerciseService) GetAll(params *businessContinuityDTOs.TestAndExerciseListQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseListResponseDTO, error) {
+func (tes *TestAndExerciseService) GetAll(params *businessContinuityDTOs.TestAndExerciseListQueryParamsDTO, currentUserID uint) (*businessContinuityDTOs.TestAndExerciseListResponseDTO, error) {
+	if currentUserID != 0 {
+		isCyberUser, err := tes.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+		params.IsCyberUser = isCyberUser
+	}
 	return tes.repo.GetAll(params)
 }
 
@@ -148,12 +155,23 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 
 	referenceNumber, err := tes.repo.GenerateReferenceNumber()
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	dates, err := tes.parseTestAndExerciseDates(testAndExerciseFormDTO)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
+	}
+
+	isCyberUser := false
+	if currentUserID != 0 {
+		isCyberUser, err = tes.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	TestAndExercise := &models.TestAndExercise{
@@ -166,6 +184,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		Description:              testAndExerciseFormDTO.Description,
 		TestAndExerciseStatusID:  testAndExerciseStatus.ID,
 		CreatedBYID:              currentUserID,
+		IsCyber:                  isCyberUser,
 	}
 
 	id, err := tes.repo.Create(TestAndExercise, tx)
@@ -413,6 +432,7 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 
 	existingTestAndExercise, err := tes.repo.GetByID(id)
 	if err != nil {
+		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
@@ -422,9 +442,10 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 		return err
 	}
 
-	if existingTestAndExercise.ResponsibleUserID != &testAndExerciseFormDTO.ResponsibleUserID {
-		responsibleUnitID, err := tes.userSvc.GetUserPrimaryUnitID(*existingTestAndExercise.ResponsibleUserID)
+	if existingTestAndExercise.ResponsibleUserID == nil || *existingTestAndExercise.ResponsibleUserID != testAndExerciseFormDTO.ResponsibleUserID {
+		responsibleUnitID, err := tes.userSvc.GetUserPrimaryUnitID(testAndExerciseFormDTO.ResponsibleUserID)
 		if err != nil {
+			tx.Rollback()
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
 		}
 		existingTestAndExercise.ResponsibleUnitID = &responsibleUnitID
@@ -432,6 +453,7 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 
 	dates, err := tes.parseTestAndExerciseDates(testAndExerciseFormDTO)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
