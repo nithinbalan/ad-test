@@ -598,7 +598,7 @@ func (ares *AssetRiskResidualEvaluationService) notifyResidualRiskEscalation(ris
 				"RiskTitle":       riskRegister.Title,
 				"RiskRating":      riskRatingTitle,
 				"ResidualScore":   riskValue,
-				"RedirectURL":     fmt.Sprintf("%s/asset/risks/%d/risk-analysis", appURL, riskRegister.ID),
+				"RedirectURL":     fmt.Sprintf("%s/asset/risks/%d/residual-risk-analysis", appURL, riskRegister.ID),
 			},
 		}
 	}
