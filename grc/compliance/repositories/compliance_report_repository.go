@@ -357,9 +357,7 @@ func (repo *ComplianceReportRepository) GetComplianceReportDepartments(complianc
 		Preload("ComplianceRegister").
 		Preload("ComplianceStatus").
 		Preload("ComplianceReportClauses").
-		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements", func(db *gorm.DB) *gorm.DB {
-			return db.Where("score < ? AND compliance_status_id IS NOT NULL AND compliance_status_id NOT IN (SELECT id FROM compliance_statuses WHERE type = 'not_applicable')", 60)
-		}).
+		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ComplianceStatus").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.AverageComplianceStatus").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.InherentRiskRating").
