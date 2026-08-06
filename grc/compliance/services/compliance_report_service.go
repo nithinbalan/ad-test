@@ -616,7 +616,11 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 	complianceReportDetails.CreatedByUser.FirstNameAR = complianceReport.CreatedByUser.FirstNameAr
 	complianceReportDetails.CreatedByUser.LastNameEN = complianceReport.CreatedByUser.LastNameEn
 	complianceReportDetails.CreatedByUser.LastNameAR = complianceReport.CreatedByUser.LastNameAr
+	complianceReportDetails.CreatedByUser.ProfileImagePath = complianceReport.CreatedByUser.ProfileImagePath
 	complianceReportDetails.CreatedByUser.Email = complianceReport.CreatedByUser.Email
+	complianceReportDetails.CreatedByUser.Initial = complianceReport.CreatedByUser.Initial
+	complianceReportDetails.CreatedByUser.Color = complianceReport.CreatedByUser.Color
+	complianceReportDetails.CreatedByUser.MobileNumber = complianceReport.CreatedByUser.MobileNumber
 
 	// Map sections
 	for _, section := range complianceReport.Sections {
@@ -733,11 +737,16 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 
 						if nonCompliantRequirement.AcknowledgeUser != nil {
 							nonCompliantArea.AcknowledgeUser = &organizationDTOs.UserMinimalDTO{
-								ID:          int(nonCompliantRequirement.AcknowledgeUser.ID),
-								FirstNameEN: nonCompliantRequirement.AcknowledgeUser.FirstNameEn,
-								FirstNameAR: nonCompliantRequirement.AcknowledgeUser.FirstNameAr,
-								LastNameEN:  nonCompliantRequirement.AcknowledgeUser.LastNameEn,
-								LastNameAR:  nonCompliantRequirement.AcknowledgeUser.LastNameAr,
+								ID:               int(nonCompliantRequirement.AcknowledgeUser.ID),
+								FirstNameEN:      nonCompliantRequirement.AcknowledgeUser.FirstNameEn,
+								LastNameEN:       nonCompliantRequirement.AcknowledgeUser.LastNameEn,
+								FirstNameAR:      nonCompliantRequirement.AcknowledgeUser.FirstNameAr,
+								LastNameAR:       nonCompliantRequirement.AcknowledgeUser.LastNameAr,
+								ProfileImagePath: nonCompliantRequirement.AcknowledgeUser.ProfileImagePath,
+								Email:            nonCompliantRequirement.AcknowledgeUser.Email,
+								Initial:          nonCompliantRequirement.AcknowledgeUser.Initial,
+								Color:            nonCompliantRequirement.AcknowledgeUser.Color,
+								MobileNumber:     nonCompliantRequirement.AcknowledgeUser.MobileNumber,
 							}
 						}
 
@@ -888,6 +897,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 								AcknowledgeComment:                 requirement.AcknowledgeComment,
 								IsRiskBasedAssessment:              requirement.IsRiskBasedAssessment,
 								IsRegulationNotificationAssessment: requirement.IsRegulationNotificationAssessment,
+								Departments:                        []*dtos.ComplianceReportRequirementDepartment{},
 								ActionPlans:                        []*dtos.ComplianceReportActionPlan{},
 							}
 
@@ -913,11 +923,16 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 
 							if requirement.AcknowledgeUser != nil {
 								requirementDTO.AcknowledgeUser = &organizationDTOs.UserMinimalDTO{
-									ID:          int(requirement.AcknowledgeUser.ID),
-									FirstNameEN: requirement.AcknowledgeUser.FirstNameEn,
-									FirstNameAR: requirement.AcknowledgeUser.FirstNameAr,
-									LastNameEN:  requirement.AcknowledgeUser.LastNameEn,
-									LastNameAR:  requirement.AcknowledgeUser.LastNameAr,
+									ID:               int(requirement.AcknowledgeUser.ID),
+									FirstNameEN:      requirement.AcknowledgeUser.FirstNameEn,
+									LastNameEN:       requirement.AcknowledgeUser.LastNameEn,
+									FirstNameAR:      requirement.AcknowledgeUser.FirstNameAr,
+									LastNameAR:       requirement.AcknowledgeUser.LastNameAr,
+									ProfileImagePath: requirement.AcknowledgeUser.ProfileImagePath,
+									Email:            requirement.AcknowledgeUser.Email,
+									Initial:          requirement.AcknowledgeUser.Initial,
+									Color:            requirement.AcknowledgeUser.Color,
+									MobileNumber:     requirement.AcknowledgeUser.MobileNumber,
 								}
 							}
 
@@ -944,6 +959,65 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 							uniqueRequirements[requirementKey] = requirementDTO
 							uniqueClauses[clause.ClauseNo].ComplianceRequirements = append(uniqueClauses[clause.ClauseNo].ComplianceRequirements, requirementDTO)
 						}
+
+						reqDeptDTO := &dtos.ComplianceReportRequirementDepartment{
+							OrganizationUnit: settingsDTOs.OrganizationUnitDTO{
+								ID:      int(department.OrganizationUnit.ID),
+								TitleEn: department.OrganizationUnit.TitleEn,
+								TitleAr: department.OrganizationUnit.TitleAr,
+							},
+							InherentScore:  requirement.InherentScore,
+							ResidualScore:  requirement.ResidualScore,
+							IsAcknowledged: requirement.IsAcknowledged,
+							ActionPlans:    []*dtos.ComplianceReportActionPlan{},
+						}
+
+						if department.ComplianceStatus != nil {
+							reqDeptDTO.ComplianceStatus = &dtos.ComplianceStatusDTO{
+								ID:        int(department.ComplianceStatus.ID),
+								Type:      department.ComplianceStatus.Type,
+								TitleEn:   department.ComplianceStatus.TitleEn,
+								TitleAr:   department.ComplianceStatus.TitleAr,
+								ColorCode: department.ComplianceStatus.ColorCode,
+							}
+						}
+
+						if requirement.InherentRiskRating != nil {
+							reqDeptDTO.InherentRiskRating = &dtos.ComplianceAssessmentRatingDTO{
+								ID:        requirement.InherentRiskRating.ID,
+								TitleEn:   requirement.InherentRiskRating.TitleEn,
+								TitleAr:   requirement.InherentRiskRating.TitleAr,
+								ColorCode: requirement.InherentRiskRating.ColorCode,
+								Type:      requirement.InherentRiskRating.Type,
+							}
+						}
+
+						if requirement.ResidualRiskRating != nil {
+							reqDeptDTO.ResidualRiskRating = &dtos.ComplianceAssessmentRatingDTO{
+								ID:        requirement.ResidualRiskRating.ID,
+								TitleEn:   requirement.ResidualRiskRating.TitleEn,
+								TitleAr:   requirement.ResidualRiskRating.TitleAr,
+								ColorCode: requirement.ResidualRiskRating.ColorCode,
+								Type:      requirement.ResidualRiskRating.Type,
+							}
+						}
+
+						if requirement.AcknowledgeUser != nil {
+							reqDeptDTO.AcknowledgeUser = &organizationDTOs.UserMinimalDTO{
+								ID:               int(requirement.AcknowledgeUser.ID),
+								FirstNameEN:      requirement.AcknowledgeUser.FirstNameEn,
+								LastNameEN:       requirement.AcknowledgeUser.LastNameEn,
+								FirstNameAR:      requirement.AcknowledgeUser.FirstNameAr,
+								LastNameAR:       requirement.AcknowledgeUser.LastNameAr,
+								ProfileImagePath: requirement.AcknowledgeUser.ProfileImagePath,
+								Email:            requirement.AcknowledgeUser.Email,
+								Initial:          requirement.AcknowledgeUser.Initial,
+								Color:            requirement.AcknowledgeUser.Color,
+								MobileNumber:     requirement.AcknowledgeUser.MobileNumber,
+							}
+						}
+
+						requirementDTO.Departments = append(requirementDTO.Departments, reqDeptDTO)
 
 						for _, actionPlan := range requirement.ComplianceReportActionPlans {
 							actionPlanDTO := &dtos.ComplianceReportActionPlan{
@@ -973,6 +1047,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 							}
 
 							requirementDTO.ActionPlans = append(requirementDTO.ActionPlans, actionPlanDTO)
+							reqDeptDTO.ActionPlans = append(reqDeptDTO.ActionPlans, actionPlanDTO)
 						}
 					}
 				}
@@ -1545,8 +1620,8 @@ func (crs *ComplianceReportService) deptAverageForUnit(ruBuckets [][]*models.Com
 			if ru != nil && !ru.IsNotApplicable {
 				applicable = true
 
-				if ru.ComplianceAssessmentRequirement != nil && ru.ComplianceAssessmentRequirement.ComplianceStatusID != nil {
-					switch *ru.ComplianceAssessmentRequirement.ComplianceStatusID {
+				if ru.ComplianceStatusID != nil {
+					switch *ru.ComplianceStatusID {
 					case statusC.ID:
 						hasC = true
 					case statusP.ID:
