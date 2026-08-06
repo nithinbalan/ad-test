@@ -35,8 +35,8 @@ type ComplianceReportRequirement struct {
 	ComplianceReportClause      ComplianceReportClause       `json:"compliance_report_clause" gorm:"foreignKey:ComplianceReportClauseID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	ComplianceStatus            *ComplianceStatus            `json:"compliance_status,omitempty" gorm:"constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;foreignKey:ComplianceStatusID"`
 	AverageComplianceStatus     *ComplianceStatus            `json:"average_compliance_status,omitempty" gorm:"constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;foreignKey:AverageComplianceStatusID"`
-	InherentRiskRating          *RiskMatrixRiskRating        `json:"inherent_risk_rating,omitempty" gorm:"constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;foreignKey:InherentRiskRatingID"`
-	ResidualRiskRating          *RiskMatrixRiskRating        `json:"residual_risk_rating,omitempty" gorm:"constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;foreignKey:ResidualRiskRatingID"`
+	InherentRiskRating          *ComplianceAssessmentRating  `json:"inherent_risk_rating,omitempty" gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;foreignKey:InherentRiskRatingID"`
+	ResidualRiskRating          *ComplianceAssessmentRating  `json:"residual_risk_rating,omitempty" gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;foreignKey:ResidualRiskRatingID"`
 	AcknowledgeUser             *User                        `json:"acknowledge_user,omitempty" gorm:"constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;foreignKey:AcknowledgeUserID"`
 	ComplianceReportActionPlans []ComplianceReportActionPlan `json:"compliance_report_action_plans,omitempty" gorm:"foreignKey:ComplianceReportRequirementID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	CreatedByUser               User                         `json:"created_by_user" gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
