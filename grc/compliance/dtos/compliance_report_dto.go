@@ -99,24 +99,16 @@ type ComplianceReportRequirement struct {
 	AverageScore                       *float64                         `json:"average_score"`
 	InherentScore                      *float64                         `json:"inherent_score"`
 	InherentRiskRatingID               *uint                            `json:"inherent_risk_rating_id"`
-	InherentRiskRating                 *RiskMatrixRiskRatingDTO         `json:"inherent_risk_rating"`
+	InherentRiskRating                 *ComplianceAssessmentRatingDTO   `json:"inherent_risk_rating"`
 	ResidualScore                      *float64                         `json:"residual_score"`
 	ResidualRiskRatingID               *uint                            `json:"residual_risk_rating_id"`
-	ResidualRiskRating                 *RiskMatrixRiskRatingDTO         `json:"residual_risk_rating"`
+	ResidualRiskRating                 *ComplianceAssessmentRatingDTO   `json:"residual_risk_rating"`
 	IsAcknowledged                     bool                             `json:"is_acknowledged"`
 	AcknowledgeUser                    *organizationDTOs.UserMinimalDTO `json:"acknowledge_user"`
 	AcknowledgeComment                 *string                          `json:"acknowledge_comment"`
 	IsRiskBasedAssessment              *bool                            `json:"is_risk_based_assessment"`
 	IsRegulationNotificationAssessment *bool                            `json:"is_regulation_notification_assessment"`
 	ActionPlans                        []*ComplianceReportActionPlan    `json:"action_plans"`
-}
-
-type RiskMatrixRiskRatingDTO struct {
-	ID        uint   `json:"id"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Type      string `json:"type"`
 }
 
 type ComplianceReportActionPlan struct {

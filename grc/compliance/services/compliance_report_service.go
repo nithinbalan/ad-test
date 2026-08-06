@@ -742,7 +742,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 						}
 
 						if nonCompliantRequirement.InherentRiskRating != nil {
-							nonCompliantArea.InherentRiskRating = &dtos.RiskMatrixRiskRatingDTO{
+							nonCompliantArea.InherentRiskRating = &dtos.ComplianceAssessmentRatingDTO{
 								ID:        nonCompliantRequirement.InherentRiskRating.ID,
 								TitleEn:   nonCompliantRequirement.InherentRiskRating.TitleEn,
 								TitleAr:   nonCompliantRequirement.InherentRiskRating.TitleAr,
@@ -752,7 +752,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 						}
 
 						if nonCompliantRequirement.ResidualRiskRating != nil {
-							nonCompliantArea.ResidualRiskRating = &dtos.RiskMatrixRiskRatingDTO{
+							nonCompliantArea.ResidualRiskRating = &dtos.ComplianceAssessmentRatingDTO{
 								ID:        nonCompliantRequirement.ResidualRiskRating.ID,
 								TitleEn:   nonCompliantRequirement.ResidualRiskRating.TitleEn,
 								TitleAr:   nonCompliantRequirement.ResidualRiskRating.TitleAr,
@@ -922,7 +922,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 							}
 
 							if requirement.InherentRiskRating != nil {
-								requirementDTO.InherentRiskRating = &dtos.RiskMatrixRiskRatingDTO{
+								requirementDTO.InherentRiskRating = &dtos.ComplianceAssessmentRatingDTO{
 									ID:        requirement.InherentRiskRating.ID,
 									TitleEn:   requirement.InherentRiskRating.TitleEn,
 									TitleAr:   requirement.InherentRiskRating.TitleAr,
@@ -932,7 +932,7 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 							}
 
 							if requirement.ResidualRiskRating != nil {
-								requirementDTO.ResidualRiskRating = &dtos.RiskMatrixRiskRatingDTO{
+								requirementDTO.ResidualRiskRating = &dtos.ComplianceAssessmentRatingDTO{
 									ID:        requirement.ResidualRiskRating.ID,
 									TitleEn:   requirement.ResidualRiskRating.TitleEn,
 									TitleAr:   requirement.ResidualRiskRating.TitleAr,
