@@ -215,6 +215,8 @@ func (repo *ComplianceReportRepository) GetComplianceAssessmentByResponsibleUnit
 
 	if isCyberUser {
 		subQuery = subQuery.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		subQuery = subQuery.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if err := subQuery.Pluck("ca1.id", &latestAssessmentIDs).Error; err != nil {

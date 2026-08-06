@@ -83,7 +83,48 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAllClauses(assessmentI
 		sortChildClauses(clause)
 	}
 
+	// For department-type assessments, only include clauses that actually have a
+	// requirement linked to this assessment's responsible unit (directly or via a
+	// descendant clause). This prevents unrelated clauses from other departments
+	// showing up for this assessment.
+	var assessment models.ComplianceAssessment
+	if err := repo.db.Select("id", "type", "responsible_unit_id").First(&assessment, assessmentID).Error; err != nil {
+		return nil, err
+	}
+
+	if assessment.Type != nil && *assessment.Type == "department" && assessment.ResponsibleUnitID != nil {
+		var validClauseIDs []uint
+		if err := repo.db.Table("compliance_requirements cr").
+			Select("DISTINCT cr.compliance_clause_id").
+			Joins("JOIN compliance_assessment_requirements car ON car.compliance_requirement_id = cr.id").
+			Joins("JOIN compliance_assessment_requirement_responsible_units carru ON carru.compliance_assessment_requirement_id = car.id").
+			Where("car.compliance_assessment_id = ? AND carru.responsible_unit_id = ?", assessmentID, *assessment.ResponsibleUnitID).
+			Pluck("cr.compliance_clause_id", &validClauseIDs).Error; err != nil {
+			return nil, err
+		}
+
+		validClauseIDSet := make(map[uint]bool, len(validClauseIDs))
+		for _, id := range validClauseIDs {
+			validClauseIDSet[id] = true
+		}
+
+		clauses = filterClausesByValidIDs(clauses, validClauseIDSet)
+	}
+
 	return clauses, nil
+}
+
+// filterClausesByValidIDs recursively filters a clause tree, keeping only clauses
+// that are themselves valid or have at least one valid descendant.
+func filterClausesByValidIDs(clauses []*models.ComplianceClause, validClauseIDSet map[uint]bool) []*models.ComplianceClause {
+	filtered := make([]*models.ComplianceClause, 0, len(clauses))
+	for _, clause := range clauses {
+		clause.ChildClauses = filterClausesByValidIDs(clause.ChildClauses, validClauseIDSet)
+		if validClauseIDSet[clause.ID] || len(clause.ChildClauses) > 0 {
+			filtered = append(filtered, clause)
+		}
+	}
+	return filtered
 }
 
 func (repo *ComplianceAssessmentRequirementRepository) GetClauseRequirementCounts(assessmentID uint) (map[uint]complianceDTOs.ClauseRequirementCountDTO, error) {
