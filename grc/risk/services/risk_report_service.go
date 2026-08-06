@@ -811,6 +811,14 @@ func (rrs *RiskReportService) DeleteRiskReportDocument(riskReportID uint, docume
 }
 
 func (rrs *RiskReportService) GetRiskReportExportZip(riskReportID uint, currentUserID uint) (string, error) {
+	// Validate that template images are configured
+	if _, err := rrs.settingSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := rrs.settingSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover_image_missing")
+	}
+
 	// Fetch risk report detail
 	riskReport, err := rrs.GetRiskReportDetails(riskReportID)
 	if err != nil {
