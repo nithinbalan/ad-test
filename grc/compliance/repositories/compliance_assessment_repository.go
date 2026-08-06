@@ -170,26 +170,28 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 			LEFT JOIN organization_units ON organization_units.id = compliance_assessments.responsible_unit_id
 		`)
 
-	// Cyber users should only see assessments linked to cyber compliance registers
+	// Cyber users should see assessments linked to at least one cyber compliance register
+	// Non-cyber users should see assessments linked to at least one non-cyber compliance register
+	// (assessments can be linked to multiple registers with mixed cyber flags, so we use an
+	// inclusion check rather than excluding any assessment that has an opposite-type register)
 	if isCyberUser {
 		query = query.Where(`
-			NOT EXISTS (
-				SELECT 1
-				FROM compliance_assessment_compliances cac
-				JOIN compliance_register cr ON cr.id = cac.compliance_register_id
-				WHERE cac.compliance_assessment_id = compliance_assessments.id
-				AND cr.is_cyber = 0
-			)
-		`)
-	} else {
-		// Non-cyber users should never see assessments linked to cyber compliance registers
-		query = query.Where(`
-			NOT EXISTS (
+			EXISTS (
 				SELECT 1
 				FROM compliance_assessment_compliances cac
 				JOIN compliance_register cr ON cr.id = cac.compliance_register_id
 				WHERE cac.compliance_assessment_id = compliance_assessments.id
 				AND cr.is_cyber = 1
+			)
+		`)
+	} else {
+		query = query.Where(`
+			EXISTS (
+				SELECT 1
+				FROM compliance_assessment_compliances cac
+				JOIN compliance_register cr ON cr.id = cac.compliance_register_id
+				WHERE cac.compliance_assessment_id = compliance_assessments.id
+				AND cr.is_cyber = 0
 			)
 		`)
 	}
@@ -1978,6 +1980,8 @@ func (repo *ComplianceAssessmentRepository) GetRegisterIDsWithResponsibleUnitID(
 
 	if isCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	result := query.Pluck("compliance_clauses.compliance_register_id", &registerIDs)
