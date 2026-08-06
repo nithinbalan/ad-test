@@ -284,6 +284,10 @@
 {
   "id": "subsequent_stage_completed",
   "translation": "لا يمكن تنفيذ هذا الإجراء لأن {{.Field}} قد تم إكماله بالفعل."
+},
+{
+  "id": "reporting_user_not_found",
+  "translation": "لا يوجد مستخدم تقاريري للمستخدم المحدد."
 }
 
 

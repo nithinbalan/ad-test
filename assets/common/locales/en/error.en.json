@@ -290,7 +290,12 @@
 {
   "id": "subsequent_stage_completed",
   "translation": "This action cannot be performed because {{.Field}} has already been completed."
+},
+{
+  "id": "reporting_user_not_found",
+  "translation": "No reporting user found for the specified user."
 }
+
 
 
 
