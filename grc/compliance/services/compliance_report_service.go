@@ -17,6 +17,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	settingsDTOs "jethur/grc/settings/dtos"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -27,6 +28,7 @@ type ComplianceReportService struct {
 	activityLogService  logServices.ActivityLogServiceInterface
 	complianceStatusSvc ComplianceStatusServiceInterface
 	userSvc             organizationServices.UserServiceInterface
+	reportTemplateSvc   settingsServices.ReportTemplateSettingServiceInterface
 }
 
 type ComplianceReportServiceInterface interface {
@@ -44,12 +46,14 @@ func NewComplianceReportService(
 	activityLogService logServices.ActivityLogServiceInterface,
 	complianceStatusSvc ComplianceStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	reportTemplateSvc settingsServices.ReportTemplateSettingServiceInterface,
 ) *ComplianceReportService {
 	return &ComplianceReportService{
 		repo:                repo,
 		activityLogService:  activityLogService,
 		complianceStatusSvc: complianceStatusSvc,
 		userSvc:             userSvc,
+		reportTemplateSvc:   reportTemplateSvc,
 	}
 }
 
@@ -328,7 +332,10 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 				if residualScore == nil {
 					residualScore = residualScoreFromRUs(ra.RUs)
 				}
-				residualRiskRatingID := ra.Requirement.ComplianceRequirement.ResidualRiskRatingID
+				residualRiskRatingID := ra.Requirement.AverageResidualRiskRatingID
+				if residualRiskRatingID == nil {
+					residualRiskRatingID = residualRiskRatingFromRUs(ra.RUs)
+				}
 
 				isRiskBased, isRegNotification := assessmentTypesFromRUs(ra.RUs)
 
@@ -496,6 +503,10 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 					currStatusID = req.ComplianceRequirement.ComplianceStatusID
 				}
 
+				if statusIDPtr == nil {
+					statusIDPtr = currStatusID
+				}
+
 				isAck, ackUserID, ackComment := acknowledgementFromRUs(rag.RUs)
 
 				inherentScore := req.ComplianceRequirement.InherentRiskScore
@@ -504,7 +515,10 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 				if residualScore == nil {
 					residualScore = residualScoreFromRUs(rag.RUs)
 				}
-				residualRiskRatingID := req.ComplianceRequirement.ResidualRiskRatingID
+				residualRiskRatingID := req.AverageResidualRiskRatingID
+				if residualRiskRatingID == nil {
+					residualRiskRatingID = residualRiskRatingFromRUs(rag.RUs)
+				}
 
 				isRiskBased, isRegNotification := assessmentTypesFromRUs(rag.RUs)
 
@@ -1320,6 +1334,14 @@ func (crs *ComplianceReportService) DeleteComplianceReport(complianceReportID ui
 }
 
 func (crs *ComplianceReportService) ExportComplianceReportToPDF(complianceReportID uint, currentUserID uint) (string, error) {
+	// Validate that template images are configured
+	if _, err := crs.reportTemplateSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := crs.reportTemplateSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover_image_missing")
+	}
+
 	complianceReport, err := crs.GetComplianceReportDetails(complianceReportID)
 	if err != nil {
 		return "", err
@@ -1429,6 +1451,10 @@ func avgScoreAndStatusFromRUsFrameworkAware(rus []*models.ComplianceAssessmentRe
 			continue
 		}
 
+		if ru.ComplianceStatusID != nil {
+			statusFreq[*ru.ComplianceStatusID]++
+		}
+
 		if ru.IsNotApplicable {
 			continue
 		}
@@ -1456,21 +1482,7 @@ func avgScoreAndStatusFromRUsFrameworkAware(rus []*models.ComplianceAssessmentRe
 				totalScore += float64(*ru.Score)
 			}
 		}
-
-		if ru.ComplianceStatusID != nil {
-			statusFreq[*ru.ComplianceStatusID]++
-		}
 	}
-
-	if maxPossible <= 0 {
-		return 0, nil
-	}
-
-	pct := (totalScore / maxPossible) * 100.0
-	if pct == 100 {
-		pct = 99.99
-	}
-	avgPct = math.Round(pct*100) / 100
 
 	var modeID uint
 	var best int
@@ -1480,6 +1492,20 @@ func avgScoreAndStatusFromRUsFrameworkAware(rus []*models.ComplianceAssessmentRe
 			modeID = k
 		}
 	}
+
+	if maxPossible <= 0 {
+		if best == 0 {
+			return 0, nil
+		}
+		return 0, &modeID
+	}
+
+	pct := (totalScore / maxPossible) * 100.0
+	if pct == 100 {
+		pct = 99.99
+	}
+	avgPct = math.Round(pct*100) / 100
+
 	if best == 0 {
 		return avgPct, nil
 	}
@@ -1542,6 +1568,34 @@ func residualScoreFromRUs(rus []*models.ComplianceAssessmentRequirementResponsib
 
 	avg := math.Round((total/float64(count))*100) / 100
 	return &avg
+}
+
+func residualRiskRatingFromRUs(rus []*models.ComplianceAssessmentRequirementResponsibleUnit) *uint {
+	if len(rus) == 0 {
+		return nil
+	}
+
+	freq := map[uint]int{}
+	for _, ru := range rus {
+		if ru == nil || ru.ResidualRiskRatingID == nil {
+			continue
+		}
+		freq[*ru.ResidualRiskRatingID]++
+	}
+
+	var modeID uint
+	var best int
+	for k, c := range freq {
+		if c > best {
+			best = c
+			modeID = k
+		}
+	}
+
+	if best == 0 {
+		return nil
+	}
+	return &modeID
 }
 
 func assessmentTypesFromRUs(rus []*models.ComplianceAssessmentRequirementResponsibleUnit) (isRiskBased *bool, isRegNotification *bool) {

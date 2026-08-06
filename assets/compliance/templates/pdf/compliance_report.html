@@ -47,28 +47,27 @@
                <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 30px;  text-align: left; margin-bottom: 4px;"><span style="color: #fff; margin: 40px 0; font-size: 16px; font-weight: bold;">{{.Data.Title}}</span></p>
                <div style="margin-top: 40px; ">
                   <div style="width: 30%; display: inline-block; vertical-align: top;">
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;"><span style="font-weight: bold;">Report Period</span></p>
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">{{.Data.StartDate}} to {{.Data.EndDate}}</p>
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;">Report Period</p>
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: bold; line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">{{formatDate .Data.StartDate}} to {{formatDate .Data.EndDate}}</p>
                   </div>
                   <div style="width: 30%; display: inline-block; vertical-align: top;">
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;"><span style="font-weight: bold;">Reviewer</span></p>
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">Mr. Farhan Alanazi
-                        (Compliance Officer)
-                     </p>
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;">Report Generated On</p>
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: bold; line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">{{formatDate .Data.CreatedAt}}</p>
                   </div>
                   <div style="width: 30%; display: inline-block; vertical-align: top;">
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;"><span style="font-weight: bold;">Report Generated On</span></p>
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">{{.Data.CreatedAt}}</p>
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;">Prepared By</p>
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: bold; line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">{{.Data.CreatedByUser.FirstNameEN}} {{.Data.CreatedByUser.LastNameEN}}</p>
                   </div>
                </div>
                <div style="margin-top: 10px; ">
                   <div style="width: 30%; display: inline-block; vertical-align: top;">
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;"><span style="font-weight: bold;">Senior Reviewer</span></p>
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">Mr. Nasser Al-Luhaidan (GRC officer)</p>
-                  </div>
-                  <div style="width: 55%; display: inline-block; vertical-align: top;">
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;"><span style="font-weight: bold;">Compliance Framework</span></p>
-                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">{{.Data.ComplianceRegister.TitleEn}}</p>
+                     {{if eq .Data.AssessmentType "framework"}}
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;">Compliance Framework</p>
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: bold; line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">{{if .Data.ComplianceRegister}}{{.Data.ComplianceRegister.TitleEn}}{{end}}</p>
+                     {{else}}
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: 300; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px;">Department</p>
+                     <p style="margin: 0 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #fff; font-size: 14px; font-weight: bold; line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">{{if .Data.ResponsibleUnit}}{{.Data.ResponsibleUnit.TitleEn}}{{end}}</p>
+                     {{end}}
                   </div>
                </div>
             </div>
@@ -84,136 +83,156 @@
             </div>
             {{end}}
             {{if eq .Type "compliance-status-by-department"}}
-            <div style="margin: 0 0 20px 0; color: #000; background: #FCFCFC; border-radius: 3px; padding: 15px; border:1px solid #EAEDF2; page-break-inside: avoid;">
-               <h2 style="color: #000; font-size: 18px; font-weight: bold; margin: 0 0 15px 0;">{{.TitleEn}}</h2>
-               {{range .ComplianceReportDepartments}}
-               <div style="page-break-inside: avoid; margin-top: 10px;">
-                  <table style="width: 100%; border-collapse: collapse;">
-                     <tr>
-                        <td colspan="4" style="padding: 10px; border-top: 1px solid #C9D0DA; background: #F8F9FA;">
-                           <h3 style="color: #000; font-size: 15px; font-weight: bold; margin: 0;">{{.OrganizationUnit.TitleEn}}</h3>
-                        </td>
-                     </tr>
-                     <tr>
-                        <td style="width: 20%; padding: 10px; background: #F8F9FA; border: 1px solid #EAEDF2;">
-                           <p style="margin: 0; font-size: 14px; font-weight: bold;">Compliance Score</p>
-                           <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: 500; color: #0E7B61;">{{.CompliancePercentage}}%</p>
-                        </td>
-                        <td colspan="3" style="padding: 10px; background: #F8F9FA; border: 1px solid #EAEDF2;">
-                           <table style="width: 100%; border-collapse: collapse;">
-                              <tr>
-                                 <td style="width: 40%; padding: 5px; font-size: 12px; font-weight: bold; border-bottom: 1px solid #EAEDF2;">Non-Compliant Area</td>
-                                 <td style="width: 60%; padding: 5px; font-size: 12px; font-weight: bold; border-bottom: 1px solid #EAEDF2;">Action Plans</td>
-                              </tr>
-                              {{range .NonCompliantAreas}}
-                              <tr style="page-break-inside: avoid;">
-                                 <td style="padding: 8px; border-bottom: 1px solid #EAEDF2;">
-                                    <p style="margin: 0; font-size: 12px;">{{.TitleEn}}</p>
-                                 </td>
-                                 <td style="padding: 8px; border-bottom: 1px solid #EAEDF2;">
-                                    {{range .ActionPlans}}
-                                    <p style="margin: 0 0 5px 0; font-size: 12px;">• {{.Title}}</p>
-                                    {{end}}
-                                 </td>
-                              </tr>
-                              {{end}}
-                           </table>
-                        </td>
-                     </tr>
-                  </table>
-               </div>
-               {{end}}
-            </div>
-            {{end}}
-            {{if eq .Type "compliance-status-by-standard"}}
-            {{$hasStandards := false}}
-            {{range .ComplianceReportStandards}}
-            {{if .ComplianceRequirements}}
-            {{$hasStandards = true}}
-            {{end}}
-            {{end}}
-            {{if $hasStandards}}
-            <div style="margin: 0 0 20px 0; color: #000; background: #FCFCFC; border-radius: 3px; padding: 15px; border:1px solid #EAEDF2;">
-               <h2 style="color: #000; font-size: 18px; font-weight: bold; margin: 0 0 15px 0;">{{.TitleEn}}</h2>
-               {{range .ComplianceReportStandards}}
-               {{if .ComplianceRequirements}}
-               <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+            <div style="margin: 0 0 20px 0; page-break-inside: avoid;">
+               <h2 style="color: #000; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">{{.TitleEn}}</h2>
+               <table style="width: 100%; border-collapse: collapse; border: 1px solid #E5E7EB;">
                   <thead>
-                     <tr>
-                        <td colspan="3" style="padding: 10px; border-top: 1px solid #C9D0DA; background: #F8F9FA;">
-                           <h3 style="color: #000; font-size: 15px; font-weight: bold; margin: 0;">{{.ClauseNo}} - {{.ClauseTitleEn}}</h3>
-                        </td>
-                     </tr>
-                     <tr>
-                        <td style="width: 40%; padding: 8px; font-size: 12px; font-weight: bold; border-bottom: 1px solid #EAEDF2;">Requirement</td>
-                        <td style="width: 30%; padding: 8px; font-size: 12px; font-weight: bold; border-bottom: 1px solid #EAEDF2;">Status</td>
-                        <td style="width: 30%; padding: 8px; font-size: 12px; font-weight: bold; border-bottom: 1px solid #EAEDF2;">Action Plans</td>
+                     <tr style="background: #F9FAFB;">
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">#</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Compliance Register</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Department</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Assessment Type</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Requirement</th>
                      </tr>
                   </thead>
                   <tbody>
-                     {{range .ComplianceRequirements}}
-                     {{if .TitleEn}}
+                     {{$rowNum := 0}}
+                     {{range .ComplianceReportDepartments}}
+                     {{range .ComplianceReportDepartment}}
+                     {{$dept := .}}
+                     {{$rowNum = add $rowNum 1}}
+                     {{if eq (len $dept.NonCompliantAreas) 0}}
                      <tr>
-                        <td style="padding: 8px; border-bottom: 1px solid #EAEDF2;">
-                           <p style="margin: 0; font-size: 12px;">{{.TitleEn}}</p>
-                        </td>
-                        <td style="padding: 8px; border-bottom: 1px solid #EAEDF2;">
-                           {{if .ComplianceStatus}}
-                           <span class="status-badge">{{.ComplianceStatus.TitleEn}}</span>
-                           {{end}}
-                        </td>
-                        <td style="padding: 8px; border-bottom: 1px solid #EAEDF2;">
-                           {{range .ActionPlans}}
-                           {{if .Title}}
-                           <p style="margin: 0 0 5px 0; font-size: 12px;">• {{.Title}}</p>
-                           {{end}}
-                           {{end}}
-                        </td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">{{$rowNum}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">{{if $dept.ComplianceRegister}}{{$dept.ComplianceRegister.TitleEn}}{{end}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">{{$dept.OrganizationUnit.TitleEn}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;"></td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB;"></td>
                      </tr>
+                     {{else}}
+                     {{$deptRowspan := len $dept.NonCompliantAreas}}
+                     {{range $idx, $req := $dept.NonCompliantAreas}}
+                     <tr>
+                        {{if eq $idx 0}}
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;" rowspan="{{$deptRowspan}}">{{$rowNum}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;" rowspan="{{$deptRowspan}}">{{if $dept.ComplianceRegister}}{{$dept.ComplianceRegister.TitleEn}}{{end}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;" rowspan="{{$deptRowspan}}">{{$dept.OrganizationUnit.TitleEn}}</td>
+                        {{end}}
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">{{if $req.IsRiskBasedAssessment}}Risk Based Assessment{{else if $req.IsRegulationNotificationAssessment}}For Information & Acknowledgement{{end}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB;">{{$req.TitleEn}}</td>
+                     </tr>
+                     {{end}}
+                     {{end}}
                      {{end}}
                      {{end}}
                   </tbody>
                </table>
-               {{end}}
-               {{end}}
             </div>
             {{end}}
+            {{if eq .Type "compliance-status-by-standard"}}
+            <div style="margin: 0 0 20px 0; page-break-inside: avoid;">
+               <h2 style="color: #000; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">{{.TitleEn}}</h2>
+               <table style="width: 100%; border-collapse: collapse; border: 1px solid #E5E7EB;">
+                  <thead>
+                     <tr style="background: #F9FAFB;">
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">#</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Clause No</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Clause</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Requirement</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Compliance Status</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Residual Risk Score</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Residual Risk Rating</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Acknowledgement User</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Comments</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Acknowledgement Status</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {{$rowNum := 0}}
+                     {{range .ComplianceReportStandards}}
+                     {{range .ComplianceReportClause}}
+                     {{$clause := .}}
+                     {{$rowNum = add $rowNum 1}}
+                     {{$clauseRowspan := len $clause.ComplianceRequirements}}
+                     {{if eq $clauseRowspan 0}}{{$clauseRowspan = 1}}{{end}}
+                     {{range $idx, $req := $clause.ComplianceRequirements}}
+                     <tr>
+                        {{if eq $idx 0}}
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;" rowspan="{{$clauseRowspan}}">{{$rowNum}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;" rowspan="{{$clauseRowspan}}">{{$clause.ClauseNo}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;" rowspan="{{$clauseRowspan}}">{{$clause.ClauseTitleEn}}</td>
+                        {{end}}
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">{{$req.TitleEn}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">
+                           {{if $req.IsRiskBasedAssessment}}
+                           {{$complianceStatus := $req.AverageComplianceStatus}}
+                           {{if not $complianceStatus}}{{$complianceStatus = $req.ComplianceStatus}}{{end}}
+                           {{if $complianceStatus}}
+                           <span class="status-badge" style="background-color: {{$complianceStatus.ColorCode}}1A; border-color: {{$complianceStatus.ColorCode}}; color: {{$complianceStatus.ColorCode}};">{{$complianceStatus.TitleEn}}</span>
+                           {{end}}
+                           {{end}}
+                        </td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">
+                           {{if $req.IsRiskBasedAssessment}}{{$req.ResidualScore}}{{end}}
+                        </td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">
+                           {{if and $req.IsRiskBasedAssessment $req.ResidualRiskRating}}
+                           <span class="status-badge" style="background-color: {{$req.ResidualRiskRating.ColorCode}}1A; border-color: {{$req.ResidualRiskRating.ColorCode}}; color: {{$req.ResidualRiskRating.ColorCode}};">{{$req.ResidualRiskRating.TitleEn}}</span>
+                           {{end}}
+                        </td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">
+                           {{if and $req.IsRegulationNotificationAssessment $req.AcknowledgeUser}}{{$req.AcknowledgeUser.FirstNameEN}} {{$req.AcknowledgeUser.LastNameEN}}{{end}}
+                        </td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">
+                           {{if $req.AcknowledgeComment}}{{$req.AcknowledgeComment}}{{end}}
+                        </td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB;">
+                           {{if $req.IsRegulationNotificationAssessment}}
+                           {{if $req.IsAcknowledged}}
+                           <span class="status-badge" style="background-color: #90DD751A; border-color: #90DD75; color: #90DD75;">Acknowledged</span>
+                           {{else}}
+                           <span class="status-badge" style="background-color: #FFC1071A; border-color: #FFC107; color: #FFC107;">Pending</span>
+                           {{end}}
+                           {{end}}
+                        </td>
+                     </tr>
+                     {{end}}
+                     {{end}}
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
             {{end}}
             
             {{if eq .Type "action-plan-implementation"}}
-            <div style="margin: 0 0 20px 0; color: #000; background: #FCFCFC; border-radius: 3px; padding: 15px; border:1px solid #EAEDF2;">
-               <h2 style="color: #000; font-size: 18px; font-weight: bold; margin: 0 0 15px 0;">{{.TitleEn}}</h2>
-               {{range.ComplianceReportActionPlans}}
-               <div style="padding: 10px 0; border-top:1px solid #C9D0DA">
-                  <h3 style="color: #000; font-size: 15px; font-weight: bold; margin: 0 0 10px 0;">{{.Title}}</h3>
-                  <div style="margin: 0;">
-                     <div style="width: 24%; display: inline-block; vertical-align: top;">
-                        <p style="margin: 0 0 5px 0; font-size: 14px; line-height: 1.5em;">Department</p>
-                        <p style="margin: 0; font-size: 14px; line-height: 1.5em; font-weight: 500;">{{.OrganizationUnit.TitleEn}}</p>
-                     </div>
-                     <div style="width: 24%; display: inline-block; vertical-align: top;">
-                        <p style="margin: 0 0 5px 0; font-size: 14px; line-height: 1.5em;">Status</p>
-                        <p style="margin: 0; font-size: 14px; line-height: 1.5em;">
-                           {{if .ActionPlanStatus}}
-                           <span style="background: #FBF4EC; color: '{{.ActionPlanStatus.ColorCode}}'; padding: 4px 8px; border-radius: 5px; font-size: 12px; line-height: normal; display: inline-block; border: 1px solid #EDD7BF; font-weight: 400;">{{.ActionPlanStatus.TitleEn}}</span>
+            <div style="margin: 0 0 20px 0; page-break-inside: avoid;">
+               <h2 style="color: #000; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">{{.TitleEn}}</h2>
+               <table style="width: 100%; border-collapse: collapse; border: 1px solid #E5E7EB;">
+                  <thead>
+                     <tr style="background: #F9FAFB;">
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">#</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Action Plan</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Department</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">Target Date</th>
+                        <th style="padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #374151; border-bottom: 1px solid #E5E7EB;">Action Plan Status</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {{range $idx, $ap := .ComplianceReportActionPlans}}
+                     <tr>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">{{add $idx 1}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">{{$ap.Title}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">{{$ap.OrganizationUnit.TitleEn}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB; border-right: 1px solid #E5E7EB;">{{$ap.TargetDate}}</td>
+                        <td style="padding: 10px; font-size: 12px; color: #374151; border-bottom: 1px solid #E5E7EB;">
+                           {{if $ap.ActionPlanStatus}}
+                           <span class="status-badge" style="background-color: {{$ap.ActionPlanStatus.ColorCode}}1A; border-color: {{$ap.ActionPlanStatus.ColorCode}}; color: {{$ap.ActionPlanStatus.ColorCode}};">{{$ap.ActionPlanStatus.TitleEn}}</span>
                            {{end}}
-                        </p>
-                     </div>
-                     <div style="width: 24%; display: inline-block; vertical-align: top;">
-                        <p style="margin: 0 0 5px 0; font-size: 14px; line-height: 1.5em;">Due Date</p>
-                        <p style="margin: 0; font-size: 14px; line-height: 1.5em; font-weight: 500;">{{.TargetDate}}</p>
-                     </div>
-                     <div style="width: 24%; display: inline-block; vertical-align: top;">
-                        <p style="margin: 0 0 5px 0; font-size: 14px; line-height: 1.5em;">Control Effectiveness</p>
-                        <p style="margin: 0; font-size: 14px; line-height: 1.5em;">
-                           {{if .SeverityLevel}}
-                           <span style="background: #FBF4EC; color: '{{.SeverityLevel.ColorCode}}'; padding: 4px 8px; border-radius: 5px; font-size: 12px; line-height: normal; display: inline-block; border: 1px solid #EDD7BF; font-weight: 400;">{{.SeverityLevel.TitleEn}}</span>
-                           {{end}}
-                        </p>
-                     </div>
-                  </div>
-               </div>
-               {{end}}
+                        </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
             </div>
             {{end}}
             {{if eq .Type "conclusion-recommendations"}}

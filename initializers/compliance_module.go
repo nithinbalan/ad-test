@@ -351,7 +351,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceAssessmentRequirementActionPlanCommentController := controllers.NewComplianceAssessmentRequirementActionPlanCommentController(complianceAssessmentRequirementActionPlanCommentSvc)
 
 	complianceReportRepo := repositories.NewComplianceReportRepository(db)
-	complianceReportSvc := services.NewComplianceReportService(complianceReportRepo, sharedModule.ActivityLogService, complianceStatusSvc, organizationModule.UserSvc)
+	complianceReportSvc := services.NewComplianceReportService(complianceReportRepo, sharedModule.ActivityLogService, complianceStatusSvc, organizationModule.UserSvc, settingsModule.ReportTemplateSettingSvc)
 	complianceReportController := controllers.NewComplianceReportController(complianceReportSvc)
 
 	policyExceptionRepo := repositories.NewPolicyExceptionRepository(db)
