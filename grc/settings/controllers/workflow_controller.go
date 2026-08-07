@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	settingDTOs "jethur/grc/settings/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
@@ -247,7 +246,6 @@ func (wfc *WorkflowController) CreateWorkflowLevel(c *gin.Context) {
 }
 
 func (wfc *WorkflowController) DeleteWorkflowLevel(c *gin.Context) {
-	fmt.Println("hii")
 	workflowLevelIDStr := c.Param("levelId")
 	workflowLevelID, err := strconv.ParseUint(workflowLevelIDStr, 10, 32)
 	if err != nil {

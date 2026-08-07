@@ -84,6 +84,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRiskActionPlanController := app.AssetModule.AssetRiskActionPlanController
 	assetRiskActionPlanStatusUpdateController := app.AssetModule.AssetRiskActionPlanStatusUpdateController
 	assetRiskActionPlanCommentController := app.AssetModule.AssetRiskActionPlanCommentController
+	assetWorkflowLevelController := app.AssetModule.AssetWorkflowLevelController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -663,5 +664,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-risk-register/:id/closures", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskClosureController.CreateAssetRiskClosure)
 	assetRoutes.PUT("/asset-risk-register/:id/closures/:closureId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskClosureController.UpdateAssetRiskClosure)
 	assetRoutes.DELETE("/asset-risk-register/:id/closures/:closureId", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskClosureController.DeleteAssetRiskClosure)
+
+	// Asset Workflow Level
+	assetRoutes.POST("/asset-workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetWorkflowLevelController.CreateWorkflowLevel)
+	assetRoutes.DELETE("/asset-workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetWorkflowLevelController.DeleteWorkflowLevel)
 
 }

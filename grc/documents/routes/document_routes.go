@@ -51,6 +51,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentReportController := app.DocumentModule.DocumentReportController
 	policyController := app.DocumentModule.PolicyController
 	policyAcknowledgeUserController := app.DocumentModule.PolicyAcknowledgeUserController
+	documentWorkflowLevelController := app.DocumentModule.DocumentWorkflowLevelController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -252,5 +253,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Policy Acknowledge User
 	documentRoutes.POST("/policies/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "policies", "modify"), policyAcknowledgeUserController.CreatePolicyAcknowledgeUser)
 	documentRoutes.DELETE("/policies/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "policies", "modify"), policyAcknowledgeUserController.DeletePolicyAcknowledgeUser)
+
+	// Document Workflow Level
+	documentRoutes.POST("/documents/:id/workflow-levels", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentWorkflowLevelController.CreateWorkflowLevel)
+	documentRoutes.DELETE("/documents/:id/workflow-levels/:levelId", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentWorkflowLevelController.DeleteWorkflowLevel)
 
 }

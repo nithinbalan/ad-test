@@ -64,6 +64,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentImpactTypeController := app.ComplianceModule.ComplianceAssessmentImpactTypeController
 	complianceAssessmentRatingController := app.ComplianceModule.ComplianceAssessmentRatingController
 	complianceAssessmentRequirementResidualRiskAnalysisController := app.ComplianceModule.ComplianceAssessmentRequirementResidualRiskAnalysisController
+	complianceWorkflowLevelController := app.ComplianceModule.ComplianceWorkflowLevelController
 
 	// consultationRequestStatusController := app.ComplianceModule.ConsultationRequestStatusController
 	LegislativeBodyController := app.ComplianceModule.LegislativeBodyController
@@ -680,4 +681,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-register/:id/compliance-assessments", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterAssessmentController.GetAllComplianceRegisterAssessments)
 	complianceRoutes.POST("/compliance-register/:id/compliance-assessments", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterAssessmentController.CreateComplianceRegisterAssessment)
 	complianceRoutes.POST("/compliance-register/:id/compliance-assessments/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterAssessmentController.DeleteComplianceRegisterAssessments)
+
+	// Compliance Workflow Levels
+	complianceRoutes.POST("/compliance-workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceWorkflowLevelController.CreateWorkflowLevel)
+	complianceRoutes.DELETE("/compliance-workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceWorkflowLevelController.DeleteWorkflowLevel)
 }

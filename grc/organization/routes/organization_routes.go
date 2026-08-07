@@ -79,6 +79,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processExternalDependencyController := app.OrganizationModule.ProcessExternalDependencyController
 	processEmployeeAnalysisController := app.OrganizationModule.ProcessEmployeeAnalysisController
 	processEquipmentToolController := app.OrganizationModule.ProcessEquipmentToolController
+	organizationWorkflowLevelController := app.OrganizationModule.OrganizationWorkflowLevelController
+
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
 	organizationRoutes.POST("/designations/template/validate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ValidateDesignationTemplate)
@@ -653,4 +655,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/process-equipment-tools", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processEquipmentToolController.CreateProcessEquipmentTool)
 	organizationRoutes.PUT("/process-equipment-tools/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processEquipmentToolController.UpdateProcessEquipmentTool)
 	organizationRoutes.POST("/process-equipment-tools/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processEquipmentToolController.DeleteProcessEquipmentTools)
+
+	//Workflow Levels
+	organizationRoutes.POST("/organization-workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), organizationWorkflowLevelController.CreateWorkflowLevel)
+	organizationRoutes.DELETE("/organization-workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), organizationWorkflowLevelController.DeleteWorkflowLevel)
 }

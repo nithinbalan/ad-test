@@ -60,6 +60,7 @@ type AuditModule struct {
 	AuditReportReviewController                  *controllers.AuditReportReviewController
 	AuditFinalReportAppendixController           *controllers.AuditFinalReportAppendixController
 	AuditFindingAssociatedItemController         *controllers.AuditFindingAssociatedItemController
+	AuditWorkflowLevelController                 *controllers.AuditWorkflowLevelController
 
 	AuditPlanSvc                          services.AuditPlanServiceInterface
 	AuditSvc                              services.AuditServiceInterface
@@ -326,7 +327,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditDocumentRequestSvc,
 		auditDocumentRequestStatusSvc,
 		organizationModule.UserSvc,
-		commonModule.NotificationService, 
+		commonModule.NotificationService,
 		taskModule.TaskService,
 		auditTimelineSvc,
 	)
@@ -521,6 +522,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingAssociatedItemSvc := services.NewAuditFindingAssociatedItemService(auditFindingAssociatedItemRepo, auditFindingSvc, commonModule.AssociatedItemValidationService)
 	auditFindingAssociatedItemController := controllers.NewAuditFindingAssociatedItemController(auditFindingAssociatedItemSvc)
 
+	auditWorkflowLevelController := controllers.NewAuditWorkflowLevelController(settingModule.WorkflowSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -573,6 +576,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditReportReviewController:                  auditReportReviewController,
 		AuditFinalReportAppendixController:           auditFinalReportAppendixController,
 		AuditFindingAssociatedItemController:         auditFindingAssociatedItemController,
+		AuditWorkflowLevelController:                 auditWorkflowLevelController,
 
 		AuditPlanSvc:                          auditPlanSvc,
 		AuditSvc:                              auditSvc,
