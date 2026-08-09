@@ -20,12 +20,17 @@ import (
 
 type IdentityReviewCampaignServiceInterface interface {
 	GetAll(params *dtos.IdentityReviewCampaignListQueryParamsDTO) (*dtos.IdentityReviewCampaignListResponseDTO, error)
-	GetByID(id uint) (*models.IdentityReviewCampaign, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.IdentityReviewCampaign, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewCampaignDetailDTO, error)
 	Create(currentUserID uint, formDTO *dtos.IdentityReviewCampaignFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, formDTO *dtos.IdentityReviewCampaignFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(id uint, token string) (string, error)
+	CalculateAndUpdateCompletionPercentage(id uint, tx ...utility.DatabaseTransaction) error
+}
+
+func (ircs *IdentityReviewCampaignService) CalculateAndUpdateCompletionPercentage(id uint, tx ...utility.DatabaseTransaction) error {
+	return ircs.repo.CalculateAndUpdateCompletionPercentage(id, tx...)
 }
 
 type IdentityReviewCampaignService struct {
@@ -56,8 +61,8 @@ func (ircs *IdentityReviewCampaignService) GetAll(params *dtos.IdentityReviewCam
 	return ircs.repo.GetAll(params)
 }
 
-func (ircs *IdentityReviewCampaignService) GetByID(id uint) (*models.IdentityReviewCampaign, error) {
-	campaign, err := ircs.repo.GetByID(id)
+func (ircs *IdentityReviewCampaignService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.IdentityReviewCampaign, error) {
+	campaign, err := ircs.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -104,11 +109,11 @@ func (ircs *IdentityReviewCampaignService) GetFullDetailsByID(id uint, tx ...uti
 }
 
 func (ircs *IdentityReviewCampaignService) Create(currentUserID uint, formDTO *dtos.IdentityReviewCampaignFormDTO) (uint, error) {
-	if len(formDTO.AssetIDs) == 0 {
+	if formDTO.AssetID == 0 {
 		return 0, utility.NewValidationError(
-			fmt.Errorf("at least one asset is required"),
+			fmt.Errorf("asset is required"),
 			"required",
-			"asset_ids",
+			"asset_id",
 		)
 	}
 
@@ -157,15 +162,12 @@ func (ircs *IdentityReviewCampaignService) Create(currentUserID uint, formDTO *d
 		return 0, err
 	}
 
-	var systems []*models.IdentityReviewCampaignSystem
-	for _, assetID := range formDTO.AssetIDs {
-		assetID := assetID
-		systems = append(systems, &models.IdentityReviewCampaignSystem{
-			IdentityReviewCampaignID: id,
-			AssetRegisterID:          &assetID,
-			CreatedByID:              currentUserID,
-		})
-	}
+	assetID := formDTO.AssetID
+	systems := []*models.IdentityReviewCampaignSystem{{
+		IdentityReviewCampaignID: id,
+		AssetRegisterID:          &assetID,
+		CreatedByID:              currentUserID,
+	}}
 
 	if err := ircs.repo.CreateSystems(systems, tx); err != nil {
 		tx.Rollback()
@@ -266,6 +268,15 @@ func (ircs *IdentityReviewCampaignService) Update(id uint, currentUserID uint, f
 		return err
 	}
 
+	if campaign.SubmittedAt != nil && campaign.WorkflowID != formDTO.WorkflowID {
+		tx.Rollback()
+		return utility.NewValidationError(
+			fmt.Errorf("workflow cannot be changed after campaign submission"),
+			"workflow_already_submitted",
+			"workflow_id",
+		)
+	}
+
 	if err := ircs.validateIdentityReviewCampaignFormDTO(formDTO); err != nil {
 		tx.Rollback()
 		return err
@@ -297,15 +308,12 @@ func (ircs *IdentityReviewCampaignService) Update(id uint, currentUserID uint, f
 		return err
 	}
 
-	var systems []*models.IdentityReviewCampaignSystem
-	for _, assetID := range formDTO.AssetIDs {
-		assetID := assetID
-		systems = append(systems, &models.IdentityReviewCampaignSystem{
-			IdentityReviewCampaignID: id,
-			AssetRegisterID:          &assetID,
-			CreatedByID:              currentUserID,
-		})
-	}
+	assetID := formDTO.AssetID
+	systems := []*models.IdentityReviewCampaignSystem{{
+		IdentityReviewCampaignID: id,
+		AssetRegisterID:          &assetID,
+		CreatedByID:              currentUserID,
+	}}
 
 	if err := ircs.repo.CreateSystems(systems, tx); err != nil {
 		tx.Rollback()

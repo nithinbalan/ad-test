@@ -16,9 +16,9 @@ import (
 
 type TaskServiceInterface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
-	GetByID(id uint) (*models.Task, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
 	GetByFieldID(field string, value interface{}, tx ...utility.DatabaseTransaction) (*models.Task, error)
-	GetByResponsibleUserID(field string, value interface{}, responsibleUserID uint) (*models.Task, error)
+	GetByResponsibleUserID(field string, value interface{}, responsibleUserID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
 	GetAllTasksByResponsibleUserID(responsibleuserID uint, delegateeUserID uint) ([]*models.Task, error)
 	GetModuleCountByTaskIDs(taskIDs []uint) (int, error)
 	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error)
@@ -62,8 +62,8 @@ func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTO
 	return ts.repo.GetAll(params)
 }
 
-func (ts TaskService) GetByID(id uint) (*models.Task, error) {
-	task, err := ts.repo.GetByID(id)
+func (ts TaskService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
+	task, err := ts.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -84,8 +84,8 @@ func (ts TaskService) GetByFieldID(field string, value interface{}, tx ...utilit
 	return task, nil
 }
 
-func (ts TaskService) GetByResponsibleUserID(field string, value interface{}, responsibleuserID uint) (*models.Task, error) {
-	task, err := ts.repo.GetByResponsibleUserID(field, value, responsibleuserID)
+func (ts TaskService) GetByResponsibleUserID(field string, value interface{}, responsibleuserID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
+	task, err := ts.repo.GetByResponsibleUserID(field, value, responsibleuserID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, value)
@@ -132,6 +132,7 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		ControlActionPlanID:             taskDTO.ControlActionPlanID,
 		RiskActionPlanID:                taskDTO.RiskActionPlanID,
 		MeetingActionPlanID:             taskDTO.MeetingActionPlanID,
+		IdentityReviewActionPlanID:      taskDTO.IdentityReviewActionPlanID,
 		AuditFindingActionPlanID:        taskDTO.AuditFindingActionPlanID,
 		ProjectActionPlanID:             taskDTO.ProjectActionPlanID,
 		ThreatActionPlanID:              taskDTO.ThreatActionPlanID,
@@ -202,7 +203,7 @@ func (ts *TaskService) Delete(id uint, currentUserID uint) (uint, error) {
 }
 
 func (ts *TaskService) UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, isReviewUserNull bool, tx ...utility.DatabaseTransaction) error {
-	existingTask, err := ts.GetByID(taskID)
+	existingTask, err := ts.GetByID(taskID, tx...)
 	if err != nil {
 		return err
 	}
@@ -338,7 +339,7 @@ func (ts *TaskService) AuditDocumentRequestTaskUpdate(auditDocumentRequestID uin
 }
 
 func (ts *TaskService) UpdateActionPlanTaskStatus(field string, value interface{}, userID uint, taskStatusID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
-	task, err := ts.GetByResponsibleUserID(field, value, userID)
+	task, err := ts.GetByResponsibleUserID(field, value, userID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, userID)
@@ -357,7 +358,7 @@ func (ts *TaskService) UpdateActionPlanTaskStatus(field string, value interface{
 }
 
 func (ts *TaskService) UpdateDelegateeUser(taskID uint, delegateeUserID *uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
-	task, err := ts.repo.GetByID(taskID)
+	task, err := ts.repo.GetByID(taskID, tx...)
 	if err != nil {
 		return nil, err
 	}

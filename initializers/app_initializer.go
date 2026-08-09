@@ -69,7 +69,7 @@ func NewApp(db *gorm.DB) *App {
 	policyModule := NewPolicyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, documentModule)
 	consultationRequestModule := NewConsultationRequestModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule, documentModule)
 	violationReportModule := NewViolationReportModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule, assetModule)
-	identityAccessReviewModule := NewIdentityAccessReviewModule(db, sharedModule, organizationModule, settingsModule)
+	identityAccessReviewModule := NewIdentityAccessReviewModule(db, sharedModule, organizationModule, settingsModule, masterModule, taskModule, commonModule)
 
 	return &App{
 		DB:                          db,

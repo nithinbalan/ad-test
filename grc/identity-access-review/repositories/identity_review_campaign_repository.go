@@ -26,6 +26,7 @@ type IdentityReviewCampaignRepositoryInterface interface {
 	CreateDocuments(documents []*models.IdentityReviewCampaignDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.IdentityReviewCampaignDocument, error)
 	DeleteDocuments(documentIDs []uint, tx ...utility.DatabaseTransaction) error
+	CalculateAndUpdateCompletionPercentage(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IdentityReviewCampaignRepository struct {
@@ -92,13 +93,13 @@ func (repo *IdentityReviewCampaignRepository) GetAll(params *dtos.IdentityReview
 			query = query.Where("identity_review_campaigns.campaign_status_id IN (?)", values)
 		case "reviewer_id":
 			query = query.Where("identity_review_campaigns.reviewer_id IN (?)", values)
-		case "system_register_id":
+		case "asset_register_id":
 			query = query.Where(`
 				EXISTS (
 					SELECT 1
 					FROM identity_review_campaign_systems
 					WHERE identity_review_campaign_systems.identity_review_campaign_id = identity_review_campaigns.id
-					AND identity_review_campaign_systems.system_register_id IN (?)
+					AND identity_review_campaign_systems.asset_register_id IN (?)
 				)`, values)
 		}
 	}
@@ -180,7 +181,7 @@ func (repo *IdentityReviewCampaignRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Systems").
-		Preload("Systems.SystemRegister").
+		Preload("Systems.AssetRegister").
 		Preload("Documents").
 		First(&campaign, id)
 
@@ -309,4 +310,36 @@ func (repo *IdentityReviewCampaignRepository) DeleteDocuments(documentIDs []uint
 
 	return db.Where("id IN (?)", documentIDs).
 		Delete(&models.IdentityReviewCampaignDocument{}).Error
+}
+
+func (repo *IdentityReviewCampaignRepository) CalculateAndUpdateCompletionPercentage(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var totalCount int64
+	if err := db.Model(&models.IdentityReviewUser{}).
+		Where("identity_review_campaign_id = ?", id).
+		Count(&totalCount).Error; err != nil {
+		return err
+	}
+
+	var completedCount int64
+	if err := db.Model(&models.IdentityReviewUser{}).
+		Where("identity_review_campaign_id = ? AND account_decision_id IS NOT NULL", id).
+		Count(&completedCount).Error; err != nil {
+		return err
+	}
+
+	return db.Model(&models.IdentityReviewCampaign{}).
+		Where("id = ?", id).
+		Update("completion_percentage", calculateCompletionPercentage(totalCount, completedCount)).Error
+}
+
+func calculateCompletionPercentage(totalCount, completedCount int64) int {
+	if totalCount == 0 {
+		return 0
+	}
+	return int((completedCount*100 + totalCount/2) / totalCount)
 }

@@ -36,6 +36,7 @@ func (ircc *IdentityReviewCampaignController) GetAllIdentityReviewCampaigns(c *g
 		"review_type_ids",
 		"campaign_status_ids",
 		"reviewer_ids",
+		"asset_register_ids",
 	}
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 

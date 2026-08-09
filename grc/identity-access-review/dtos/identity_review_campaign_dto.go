@@ -57,7 +57,7 @@ type IdentityReviewCampaignFormDTO struct {
 	ReviewerID         uint                          `json:"reviewer_id" binding:"required"`
 	WorkflowID         uint                          `json:"workflow_id" binding:"required"`
 	ReminderDaysOffset *int                          `json:"reminder_days_offset"`
-	AssetIDs           []uint                        `json:"asset_ids"`
+	AssetID            uint                          `json:"asset_id" binding:"required"`
 	Documents          []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
@@ -73,16 +73,17 @@ type IdentityReviewCampaignUserDTO struct {
 	ProfileImagePath *string `json:"profile_image_path"`
 }
 
-type IdentityReviewCampaignSystemRegisterDTO struct {
-	ID      uint   `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
+type IdentityReviewCampaignAssetRegisterDTO struct {
+	ID              uint   `json:"id"`
+	ReferenceNumber string `json:"reference_number"`
+	TitleEn         string `json:"title_en"`
+	TitleAr         string `json:"title_ar"`
 }
 
-type IdentityReviewCampaignSystemDTO struct {
-	ID               uint                                    `json:"id"`
-	SystemRegisterID uint                                    `json:"system_register_id"`
-	SystemRegister   IdentityReviewCampaignSystemRegisterDTO `json:"system_register"`
+type IdentityReviewCampaignAssetDTO struct {
+	ID              uint                                   `json:"id"`
+	AssetRegisterID uint                                   `json:"asset_register_id"`
+	AssetRegister   IdentityReviewCampaignAssetRegisterDTO `json:"asset_register"`
 }
 
 type IdentityReviewCampaignDocumentDTO struct {
@@ -116,7 +117,7 @@ type IdentityReviewCampaignDetailDTO struct {
 	CampaignStatus       ReviewCampaignStatusDTO              `json:"campaign_status"`
 	Reviewer             IdentityReviewCampaignUserDTO        `json:"reviewer"`
 	Workflow             IdentityReviewCampaignWorkflowDTO    `json:"workflow"`
-	Systems              []*IdentityReviewCampaignSystemDTO   `json:"systems"`
+	Systems              []*IdentityReviewCampaignAssetDTO    `json:"assets"`
 	Documents            []*IdentityReviewCampaignDocumentDTO `json:"documents"`
 	CreatedBy            IdentityReviewCampaignUserDTO        `json:"created_by"`
 	UpdatedBy            *IdentityReviewCampaignUserDTO       `json:"updated_by"`
