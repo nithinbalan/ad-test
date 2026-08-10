@@ -294,6 +294,10 @@
 {
   "id": "reporting_user_not_found",
   "translation": "No reporting user found for the specified user."
+},
+{
+  "id": "no_users_for_role",
+  "translation": "No users found for the specified role."
 }
 
 

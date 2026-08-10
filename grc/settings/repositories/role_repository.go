@@ -10,7 +10,7 @@ import (
 
 type RoleRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*dtos.RoleDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string, isCommittee string) ([]*dtos.RoleDTO, error)
 	GetFullDetailsByID(id uint) (*models.Role, error)
 	GetByID(id uint) (*models.Role, error)
 	Create(role *models.Role) (*models.Role, error)
@@ -45,7 +45,7 @@ func (repo *RoleRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string) ([]*dtos.RoleDTO, error) {
+func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, status string, licenseTypeID string, isCommittee string) ([]*dtos.RoleDTO, error) {
 	var roles []*dtos.RoleDTO
 
 	query := repo.db.Table("roles").
@@ -71,6 +71,10 @@ func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, s
 
 	if licenseTypeID != "" {
 		query = query.Where("roles.license_type_id = ?", licenseTypeID)
+	}
+
+	if isCommittee == "true" {
+		query = query.Where("roles.type IN (?)", []string{"ceo", "shared-services"})
 	}
 
 	query = query.Order(sortBy + " " + sort)

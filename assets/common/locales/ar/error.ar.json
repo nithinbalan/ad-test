@@ -288,6 +288,10 @@
 {
   "id": "reporting_user_not_found",
   "translation": "لا يوجد مستخدم تقاريري للمستخدم المحدد."
+},
+{
+  "id": "no_users_for_role",
+  "translation": "لا يوجد مستخدمون للدور المحدد."
 }
 
 
