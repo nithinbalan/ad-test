@@ -53,6 +53,7 @@ type IdentityReviewUserListDTO struct {
 	AccountDecisionID          *uint      `json:"account_decision_id"`
 	AccountDecisionTitleEn     *string    `json:"account_decision_title_en"`
 	AccountDecisionTitleAr     *string    `json:"account_decision_title_ar"`
+	AccountDecisionColorCode   *string    `json:"account_decision_color_code"`
 	AccountDecisionType        *string    `json:"account_decision_type"`
 	CreatedAt                  time.Time  `json:"created_at"`
 	UpdatedAt                  *time.Time `json:"updated_at"`

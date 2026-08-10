@@ -58,6 +58,7 @@ func (repo *IdentityReviewUserRepository) GetAll(params *dtos.IdentityReviewUser
 			identity_review_users.account_decision_id,
 			account_decisions.title_en AS account_decision_title_en,
 			account_decisions.title_ar AS account_decision_title_ar,
+			account_decisions.color_code AS account_decision_color_code,
 			account_decisions.type AS account_decision_type,
 			identity_review_users.created_at,
 			identity_review_users.updated_at,

@@ -14,8 +14,6 @@ type IdentityReviewUser struct {
 	AccountDecisionID        *uint      `json:"account_decision_id" gorm:"default:null"`
 	CurrentRole              *string    `json:"current_role" gorm:"type:nvarchar(max);default:null"`
 	ReviewComment            *string    `json:"review_comment" gorm:"type:nvarchar(max);default:null"`
-	ActionOwnerID            *uint      `json:"action_owner_id" gorm:"default:null"`
-	ActionPlanStatusID       *uint      `json:"action_plan_status_id" gorm:"default:null"`
 	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID              uint       `json:"created_by_id" gorm:"not null"`
@@ -26,8 +24,6 @@ type IdentityReviewUser struct {
 	Privilege              *PrivilegedAccount      `json:"privilege" gorm:"foreignKey:PrivilegeID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	AccountType            *AccountType            `json:"account_type" gorm:"foreignKey:AccountTypeID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	AccountDecision        *AccountDecision        `json:"account_decision" gorm:"foreignKey:AccountDecisionID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ActionOwner            *User                   `json:"action_owner" gorm:"foreignKey:ActionOwnerID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ActionPlanStatus       *ActionPlanStatus       `json:"action_plan_status" gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	CreatedByUser          *User                   `json:"created_by" gorm:"foreignKey:CreatedByID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	UpdatedByUser          *User                   `json:"updated_by" gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 }
