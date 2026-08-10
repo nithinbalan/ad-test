@@ -578,7 +578,8 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 			LEFT JOIN business_continuity_duration_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
 			LEFT JOIN business_continuity_duration_units AS time_units_rsp ON time_units_rsp.id = processes.rsp_unit_id
 		`).
-		Where("processes.is_bia_performed = ?", 1)
+		Where("processes.is_bia_performed = ?", 1).
+		Where("business_functions.is_cyber = ?", params.IsCyberUser)
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

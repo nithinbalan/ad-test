@@ -80,6 +80,7 @@ type RiskModule struct {
 	RiskRegisterUpdatePlanWorkflowController       *controllers.RiskRegisterUpdatePlanWorkflowController
 	RiskRegisterUpdatePlanReviewController         *controllers.RiskRegisterUpdatePlanReviewController
 	RiskRegisterUpdatePlanReviewCommentController  *controllers.RiskUpdatePlanReviewCommentController
+	RiskWorkflowLevelController                    *controllers.RiskWorkflowLevelController
 
 	RiskRegisterSvc           services.RiskRegisterServiceInterface
 	RiskHeatMapSvc            services.RiskHeatmapServiceInterface
@@ -759,6 +760,8 @@ func NewRiskModule(db *gorm.DB,
 	)
 	riskRegisterUpdatePlanReviewCommentController := controllers.NewRiskUpdatePlanReviewCommentController(riskRegisterUpdatePlanReviewCommentSvc)
 
+	riskWorkflowLevelController := controllers.NewRiskWorkflowLevelController(settingsModule.WorkflowSvc)
+
 	return &RiskModule{
 		RiskCategoryController:                         riskCategoryController,
 		PotentialRiskStatusController:                  potentialRiskStatusController,
@@ -831,6 +834,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskRegisterUpdatePlanWorkflowController:       riskRegisterUpdatePlanWorkflowController,
 		RiskRegisterUpdatePlanReviewController:         riskRegisterUpdatePlanReviewController,
 		RiskRegisterUpdatePlanReviewCommentController:  riskRegisterUpdatePlanReviewCommentController,
+		RiskWorkflowLevelController:                    riskWorkflowLevelController,
 
 		RiskRegisterSvc:           riskRegisterSvc,
 		RiskHeatMapSvc:            riskHeatmapSvc,

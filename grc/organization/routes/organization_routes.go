@@ -79,6 +79,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processExternalDependencyController := app.OrganizationModule.ProcessExternalDependencyController
 	processEmployeeAnalysisController := app.OrganizationModule.ProcessEmployeeAnalysisController
 	processEquipmentToolController := app.OrganizationModule.ProcessEquipmentToolController
+	organizationWorkflowLevelController := app.OrganizationModule.OrganizationWorkflowLevelController
+
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
 	organizationRoutes.POST("/designations/template/validate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ValidateDesignationTemplate)
@@ -590,6 +592,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/internal-committees/:committeeId/revert", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowReviewController.RevertInternalCommittee)
 	organizationRoutes.GET("/internal-committees/:committeeId/workflow-list", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowController.GetWorkflowList)
 	organizationRoutes.GET("/internal-committees/:committeeId/previous-version-history", middlewares.RolePermissionMiddleware(db, "committee_management", "view"), internalCommitteeWorkflowController.GetPreviousVersionWorkflowHistory)
+	organizationRoutes.PUT("/internal-committees/:committeeId/next-level-participants", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowController.UpdateNextLevelParticipant)
 
 	// Internal Committee Review Comments
 	organizationRoutes.GET("/internal-committees/:committeeId/review-comments", middlewares.RolePermissionMiddleware(db, "committee_management", "view"), internalCommitteeReviewCommentController.GetAllComments)
@@ -653,4 +656,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/process-equipment-tools", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processEquipmentToolController.CreateProcessEquipmentTool)
 	organizationRoutes.PUT("/process-equipment-tools/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processEquipmentToolController.UpdateProcessEquipmentTool)
 	organizationRoutes.POST("/process-equipment-tools/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processEquipmentToolController.DeleteProcessEquipmentTools)
+
+	//Workflow Levels
+	organizationRoutes.POST("/organization-workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), organizationWorkflowLevelController.CreateWorkflowLevel)
+	organizationRoutes.DELETE("/organization-workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), organizationWorkflowLevelController.DeleteWorkflowLevel)
 }

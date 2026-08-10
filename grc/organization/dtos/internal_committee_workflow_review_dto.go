@@ -17,14 +17,15 @@ type InternalCommitteeWorkflowListDTO struct {
 }
 
 type WorkflowListDTO struct {
-	Level         int                          `json:"level"`
-	ApprovalType  string                       `json:"approval_type"`
-	ReviewUsers   []*UserMinimalDTO            `json:"review_users"`
-	ApprovedUsers []*UserMinimalDTO            `json:"approved_users"`
-	ApprovedAt    time.Time                    `json:"approved_at,omitempty"`
-	RejectedUser  *UserMinimalDTO              `json:"rejected_user"`
-	RejectedAt    time.Time                    `json:"rejected_at"`
-	CurrentStatus masterDTOs.WorkflowStatusDTO `json:"current_status"`
+	Level             int                          `json:"level"`
+	ApprovalType      string                       `json:"approval_type"`
+	IsSecondLastLevel bool                         `json:"is_second_last_level"`
+	ReviewUsers       []*UserMinimalDTO            `json:"review_users"`
+	ApprovedUsers     []*UserMinimalDTO            `json:"approved_users"`
+	ApprovedAt        time.Time                    `json:"approved_at,omitempty"`
+	RejectedUser      *UserMinimalDTO              `json:"rejected_user"`
+	RejectedAt        time.Time                    `json:"rejected_at"`
+	CurrentStatus     masterDTOs.WorkflowStatusDTO `json:"current_status"`
 }
 
 type InternalCommitteeWorkflowHistoryDTO struct {

@@ -39,6 +39,7 @@ type DocumentModule struct {
 	DocumentReportController                      *controllers.DocumentReportController
 	PolicyController                              *controllers.PolicyController
 	PolicyAcknowledgeUserController               *controllers.PolicyAcknowledgeUserController
+	DocumentWorkflowLevelController               *controllers.DocumentWorkflowLevelController
 	// DocumentRequirementController                 *controllers.DocumentRequirementController
 
 	DocumentSvc                 services.DocumentServiceInterface
@@ -266,6 +267,8 @@ func NewDocumentModule(db *gorm.DB,
 	policyController := controllers.NewPolicyController(documentSvc)
 	policyAcknowledgeUserController := controllers.NewPolicyAcknowledgeUserController(documentAcknowledgeUserSvc)
 
+	documentWorkflowLevelController := controllers.NewDocumentWorkflowLevelController(settingsModule.WorkflowSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController:                    documentCategoryController,
 		DocumentTypeController:                        documentTypeController,
@@ -296,6 +299,7 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentReportController:                      documentReportController,
 		PolicyController:                              policyController,
 		PolicyAcknowledgeUserController:               policyAcknowledgeUserController,
+		DocumentWorkflowLevelController:               documentWorkflowLevelController,
 
 		DocumentSvc:                 documentSvc,
 		DocumentChangeRequestSvc:    documentChangeRequestSvc,

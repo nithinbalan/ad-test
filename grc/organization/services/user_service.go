@@ -1413,7 +1413,7 @@ func (us *UserService) GenerateUserTemplate() (*os.File, error) {
 	sheets["UserStatus"] = append([][]interface{}{utility.ConvertToInterfaceSlice(userStatusHeaders)}, userStatusData...)
 
 	// 5. Add Roles sheet
-	roles, err := us.roleSvc.GetAll("", "", "", "active", "")
+	roles, err := us.roleSvc.GetAll("", "", "", "active", "", "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch roles: %v", err)
 	}
@@ -1683,7 +1683,7 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 	}
 
 	// Fetch roles
-	roles, err := us.roleSvc.GetAll("", "", "", "active", "")
+	roles, err := us.roleSvc.GetAll("", "", "", "active", "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error fetching roles: %v", err)
 	}

@@ -471,7 +471,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 		}
 		icwrs.sendApprovalNotification(committeeID, currentUserID, committeeDetails)
 
-	case "multiple-users", "role":
+	case "multiple-users", "role", "user-and-reporting-user":
 		allowed := false
 		for _, participant := range currentCommitteeWorkflow.InternalCommitteeWorkflowParticipants {
 			if participant.UserID == currentUserID {

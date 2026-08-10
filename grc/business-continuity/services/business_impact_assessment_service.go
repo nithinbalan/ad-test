@@ -32,7 +32,7 @@ type BusinessImpactAssessmentServiceInterface interface {
 	UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
 	UpdateProcessCriticality(businessImpactAssessmentProcessCriticalityFormDTO businessContinuityDTOs.BusinessImpactAssessmentProcessCriticalityFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
+	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO, currentUserID uint) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 
 	ExportBiaMatrix(data []businessContinuityDTOs.BIAMatrixResponseDTO, currentUserID uint) (*os.File, error)
 	ExportBia(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error)
@@ -855,7 +855,14 @@ func (bias *BusinessImpactAssessmentService) Delete(ids []uint, currentUserID ui
 	return failedIds, nil
 }
 
-func (bias *BusinessImpactAssessmentService) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {
+func (bias *BusinessImpactAssessmentService) GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO, currentUserID uint) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error) {
+	if currentUserID != 0 {
+		isCyberUser, err := bias.userSvc.IsCyberUser(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+		params.IsCyberUser = isCyberUser
+	}
 	return bias.repo.GetBIAMatrix(params)
 }
 

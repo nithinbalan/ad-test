@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
@@ -68,4 +69,38 @@ func (icwc *InternalCommitteeWorkflowController) GetPreviousVersionWorkflowHisto
 	}
 
 	c.JSON(http.StatusOK, history)
+}
+
+func (icwc *InternalCommitteeWorkflowController) UpdateNextLevelParticipant(c *gin.Context) {
+	committeeIDStr := c.Param("committeeId")
+	committeeID, err := strconv.ParseUint(committeeIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var dto dtos.UpdateNextLevelParticipantDTO
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(icwc.db, c, err.Error())
+		return
+	}
+
+	if err := icwc.service.UpdateNextLevelParticipant(uint(committeeID), currentUserID, &dto); err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(icwc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Next level participant updated successfully"})
 }

@@ -307,6 +307,7 @@ type BIAMatrixQueryParamsDTO struct {
 	Filters     map[string][]string
 	Export      bool
 	QuickFilter []string
+	IsCyberUser bool `json:"-"`
 }
 
 type BIAProcessDetailDTO struct {

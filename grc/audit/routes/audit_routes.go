@@ -67,6 +67,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditReportReviewController := app.AuditModule.AuditReportReviewController
 	auditFinalReportAppendixController := app.AuditModule.AuditFinalReportAppendixController
 	auditFindingAssociatedItemController := app.AuditModule.AuditFindingAssociatedItemController
+	auditWorkflowLevelController := app.AuditModule.AuditWorkflowLevelController
 
 	// Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -299,7 +300,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/approve", auditFindingActionPlanStatusUpdateController.ApproveAuditFindingActionPlan)
 	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/revert", auditFindingActionPlanStatusUpdateController.RevertAuditFindingActionPlan)
 
-	// Audit Finding Action Plan Comment 
+	// Audit Finding Action Plan Comment
 	unauthenticatedRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/comments/:commentId/document-download", auditFindingActionPlanCommentController.DownloadAuditFindingActionPlanCommentDocument)
 	unauthenticatedRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/comments/:commentId/document-preview", auditFindingActionPlanCommentController.GetAuditFindingActionPlanCommentDocumentPreview)
 	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanCommentController.GetAllComments)
@@ -439,4 +440,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/final-reports/:finalReportId/appendices", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditFinalReportAppendixController.CreateAuditFinalReportAppendix)
 	auditRoutes.DELETE("/audits/:auditId/final-reports/:finalReportId/appendices/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditFinalReportAppendixController.DeleteAuditFinalReportAppendix)
 	unauthenticatedRoutes.GET("/audits/:auditId/final-reports/:finalReportId/appendices/:id/document-download", auditFinalReportAppendixController.DownloadFinalReportAppendixDocument)
+
+	// Audit Workflow Level
+	auditRoutes.POST("/audits/:auditId/workflow-levels", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditWorkflowLevelController.CreateWorkflowLevel)
+	auditRoutes.DELETE("/audits/:auditId/workflow-levels/:levelId", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditWorkflowLevelController.DeleteWorkflowLevel)
 }

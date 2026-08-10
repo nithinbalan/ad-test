@@ -757,7 +757,13 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 		QuickFilter: quickFilter,
 	}
 
-	matrix, err := biac.service.GetBIAMatrix(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	matrix, err := biac.service.GetBIAMatrix(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

@@ -47,6 +47,7 @@ type BusinessContinuityModule struct {
 	BiaProcessReviewController                       *controllers.BiaProcessReviewController
 	BiaProcessWorkflowController                     *controllers.BiaProcessWorkflowController
 	BiaProcessReviewCommentController                *controllers.BiaProcessReviewCommentController
+	BusinessContinuityWorkflowLevelController        *controllers.BusinessContinuityWorkflowLevelController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -262,6 +263,8 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcmManualProcedureFormSvc := services.NewBCMManualProcedureFormService(bcmManualProcedureFormRepo, sharedModule.ActivityLogService)
 	bcmManualProcedureFormController := controllers.NewBCMManualProcedureFormController(bcmManualProcedureFormSvc)
 
+	businessContinuityWorkflowLevelController := controllers.NewBusinessContinuityWorkflowLevelController(settingsModule.WorkflowSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
 		BusinessImpactAssessmentController:               businessImpactAssessmentController,
@@ -301,6 +304,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		BiaProcessReviewController:                       biaProcessReviewController,
 		BiaProcessWorkflowController:                     biaProcessWorkflowController,
 		BiaProcessReviewCommentController:                biaProcessReviewCommentController,
+		BusinessContinuityWorkflowLevelController:        businessContinuityWorkflowLevelController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,
