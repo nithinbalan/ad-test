@@ -475,7 +475,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/asset-risk-register/export", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAssetRiskRegisterExport)
 	assetRoutes.GET("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAssetRiskRegisterDetails)
 	assetRoutes.POST("/asset-risk-register", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskRegisterController.CreateAssetRiskRegister)
-	assetRoutes.PUT("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskRegisterController.UpdateAssetRiskRegister)
+	assetRoutes.PUT("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.UpdateAssetRiskRegister)
 	assetRoutes.POST("/asset-risk-register/delete", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.DeleteAssetRiskRegisters)
 
 	// Risk Acceptance Workflow
