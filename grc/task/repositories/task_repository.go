@@ -15,9 +15,9 @@ import (
 type TaskRepositoryInteface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
-	GetByID(id uint) (*models.Task, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
 	GetByFieldID(field string, value interface{}, tx ...utility.DatabaseTransaction) (*models.Task, error)
-	GetByResponsibleUserID(field string, value interface{}, responsibleuserID uint) (*models.Task, error)
+	GetByResponsibleUserID(field string, value interface{}, responsibleuserID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
 	GetAllTasksByResponsibleUserID(responsibleuserID uint, delegateeUserID uint) ([]*models.Task, error)
 	GetModuleCountByTaskIDs(taskIDs []uint) (int, error)
 	Create(task *models.Task, tx ...utility.DatabaseTransaction) (uint, error)
@@ -201,10 +201,14 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 	return response, nil
 }
 
-func (repo *TaskRepository) GetByID(id uint) (*models.Task, error) {
+func (repo *TaskRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
 	var task *models.Task
 
-	result := repo.db.First(&task, id)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.First(&task, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -228,10 +232,14 @@ func (repo *TaskRepository) GetByFieldID(field string, value interface{}, tx ...
 	return &task, nil
 }
 
-func (repo *TaskRepository) GetByResponsibleUserID(field string, value interface{}, responsibleUserID uint) (*models.Task, error) {
+func (repo *TaskRepository) GetByResponsibleUserID(field string, value interface{}, responsibleUserID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
 	var task models.Task
 
-	result := repo.db.Where(field+" = ? AND responsible_user_id = ?", value, responsibleUserID).Last(&task)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.Where(field+" = ? AND responsible_user_id = ?", value, responsibleUserID).Last(&task)
 	if result.Error != nil {
 		return nil, result.Error
 	}

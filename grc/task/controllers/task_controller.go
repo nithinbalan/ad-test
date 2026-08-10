@@ -34,6 +34,7 @@ func (tc *TaskController) GetAllTasks(c *gin.Context) {
 		"compliance_action_plan_ids",
 		"sla_action_plan_ids",
 		"incident_action_plan_ids",
+		"identity_review_action_plan_ids",
 		"control_action_plan_ids",
 		"severity_level_ids",
 		"module_ids",

@@ -14,6 +14,7 @@ type TaskListDTO struct {
 	DocumentID                      uint    `json:"document_id"`
 	IncidentActionPlanID            uint    `json:"incident_action_plan_id"`
 	MeetingActionPlanID             uint    `json:"meeting_action_plan_id"`
+	IdentityReviewActionPlanID      uint    `json:"identity_review_action_plan_id"`
 	AuditFindingActionPlanID        uint    `json:"audit_finding_action_plan_id"`
 	ControlActionPlanID             uint    `json:"control_action_plan_id"`
 	RiskActionPlanID                uint    `json:"risk_action_plan_id"`

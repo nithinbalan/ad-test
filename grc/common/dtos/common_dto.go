@@ -53,6 +53,7 @@ type TaskFormDTO struct {
 	ControlActionPlanID             *uint      `json:"control_action_plan_id,omitempty"`
 	RiskActionPlanID                *uint      `json:"risk_action_plan_id,omitempty"`
 	MeetingActionPlanID             *uint      `json:"meeting_action_plan_id,omitempty"`
+	IdentityReviewActionPlanID      *uint      `json:"identity_review_action_plan_id,omitempty"`
 	AuditFindingActionPlanID        *uint      `json:"audit_finding_action_plan_id,omitempty"`
 	ProjectActionPlanID             *uint      `json:"project_action_plan_id,omitempty"`
 	DocumentID                      *uint      `json:"document_id,omitempty"`
