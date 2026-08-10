@@ -53,6 +53,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	biaProcessReviewController := app.BusinessContinuityModule.BiaProcessReviewController
 	biaProcessWorkflowController := app.BusinessContinuityModule.BiaProcessWorkflowController
 	biaProcessReviewCommentController := app.BusinessContinuityModule.BiaProcessReviewCommentController
+	businessContinuityWorkflowLevelController := app.BusinessContinuityModule.BusinessContinuityWorkflowLevelController
+
 	// businessfunctionAssociatedItemController := app.BusinessContinuityModule.BusinessFunctionAssociateItemController
 
 	// bcp phase
@@ -342,5 +344,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	unauthenticatedRoutes.GET("/bia-process/:id/review-comments/:commentId/document-preview", biaProcessReviewCommentController.GetDocumentPreview)
 	unauthenticatedRoutes.GET("/bia-process/:id/review-comments/:commentId/document-download", biaProcessReviewCommentController.DownloadDocument)
+
+	// Business Continuity Workflow Level
+	businessContinuityRoutes.POST("/business-continuity-workflow/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), businessContinuityWorkflowLevelController.CreateWorkflowLevel)
+	businessContinuityRoutes.DELETE("/business-continuity-workflow/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), businessContinuityWorkflowLevelController.DeleteWorkflowLevel)
 
 }

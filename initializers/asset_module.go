@@ -72,6 +72,7 @@ type AssetModule struct {
 	AssetRiskActionPlanController                 *controllers.AssetRiskActionPlanController
 	AssetRiskActionPlanStatusUpdateController     *controllers.AssetRiskActionPlanStatusUpdateController
 	AssetRiskActionPlanCommentController          *controllers.AssetRiskActionPlanCommentController
+	AssetWorkflowLevelController                  *controllers.AssetWorkflowLevelController
 
 	// controllers which use service of risk module
 	AssetRiskRootCauseAnalysisController *controllers.AssetRiskRootCauseAnalysisController
@@ -535,6 +536,8 @@ func NewAssetModule(db *gorm.DB,
 	)
 	assetRiskActionPlanCommentController := controllers.NewAssetRiskActionPlanCommentController(assetRiskActionPlanCommentSvc)
 
+	assetWorkflowLevelController := controllers.NewAssetWorkflowLevelController(settingsModule.WorkflowSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -599,6 +602,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetRiskActionPlanController:                 assetRiskActionPlanController,
 		AssetRiskActionPlanStatusUpdateController:     assetRiskActionPlanStatusUpdateController,
 		AssetRiskActionPlanCommentController:          assetRiskActionPlanCommentController,
+		AssetWorkflowLevelController:                  assetWorkflowLevelController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}

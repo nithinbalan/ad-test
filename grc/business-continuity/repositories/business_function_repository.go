@@ -154,6 +154,12 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 			continue
 		}
 	}
+	if params.IsCyberUser {
+		query = query.Where("business_functions.is_cyber = ?", true)
+	} else {
+		query = query.Where("business_functions.is_cyber = ?", false)
+	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"

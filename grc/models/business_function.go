@@ -12,6 +12,7 @@ type BusinessFunction struct {
 	Title                            string     `json:"title" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
 	Description                      *string    `json:"description" gorm:"type:nvarchar(max)"`
 	BcpStatus                        bool       `json:"bcp_status"`
+	IsCyber                          bool       `json:"is_cyber" gorm:"not null;default:false"`
 	ReviewFrequencyID                *uint      `json:"review_frequency_id"`
 	NextReviewDate                   *time.Time `json:"next_review_date"`
 	LastReviewDate                   *time.Time `json:"last_review_date"`

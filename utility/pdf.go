@@ -69,6 +69,7 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 	templates := template.New("pdf").Funcs(template.FuncMap{
 		"formatDate": func(date string) string { return date },
 		"safeHTML":   func(content string) template.HTML { return template.HTML(content) },
+		"stripHTML":  func(content string) string { return StripHTMLTags(content) },
 		"add":        func(a, b int) int { return a + b },
 		"boolToYesNo": func(b *bool) string {
 			if b == nil {
@@ -297,6 +298,32 @@ func ConvertPolicyHTMLContentToPDF(headerHTML, footerHTML, coverHTML, disclaimer
 func StripPTags(input string) string {
 	re := regexp.MustCompile(`(?i)</?p[^>]*>`)
 	return re.ReplaceAllString(input, "")
+}
+
+func StripHTMLTags(input string) string {
+	// Convert common line-breaking tags to new lines before stripping tags
+	input = strings.ReplaceAll(input, "<br>", "\n")
+	input = strings.ReplaceAll(input, "<br/>", "\n")
+	input = strings.ReplaceAll(input, "<br />", "\n")
+	input = strings.ReplaceAll(input, "</p>", "\n")
+	input = strings.ReplaceAll(input, "</div>", "\n")
+	input = strings.ReplaceAll(input, "</li>", "\n")
+	input = strings.ReplaceAll(input, "<li>", "• ")
+
+	// Remove HTML entities
+	input = strings.ReplaceAll(input, "&nbsp;", " ")
+	input = strings.ReplaceAll(input, "&lt;", "<")
+	input = strings.ReplaceAll(input, "&gt;", ">")
+	input = strings.ReplaceAll(input, "&amp;", "&")
+
+	// Remove all remaining HTML tags
+	re := regexp.MustCompile(`<[^>]*>`)
+	input = re.ReplaceAllString(input, "")
+
+	// Clean up whitespace
+	input = strings.Join(strings.Fields(input), " ")
+
+	return input
 }
 
 func CreateZipFile(zipPath string, files []string) error {

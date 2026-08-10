@@ -61,6 +61,7 @@ type TestAndExerciseListQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
+	IsCyberUser bool `json:"-"`
 }
 
 type TestAndExerciseListResponseDTO struct {

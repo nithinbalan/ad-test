@@ -87,6 +87,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRegisterUpdatePlanWorkflowController := app.RiskModule.RiskRegisterUpdatePlanWorkflowController
 	riskRegisterUpdatePlanReviewController := app.RiskModule.RiskRegisterUpdatePlanReviewController
 	riskUpdatePlanReviewCommentController := app.RiskModule.RiskRegisterUpdatePlanReviewCommentController
+	riskWorkflowLevelController := app.RiskModule.RiskWorkflowLevelController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -545,6 +546,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Workflow
 	riskRoutes.GET("/risk-register-update-plans/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanWorkflowController.GetWorkflowList)
+
 	// Review
 	riskRoutes.POST("/risk-register-update-plans/:id/submit", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanReviewController.SubmitRiskRegisterUpdatePlan)
 	riskRoutes.POST("/risk-register-update-plans/:id/approve", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanReviewController.ApproveRiskRegisterUpdatePlan)
@@ -672,4 +674,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Risk Update Plan Timeline Types
 	riskRoutes.GET("/risk-update-plan-timeline-types", riskUpdatePlanTimelineTypeController.GetAllRiskUpdatePlanTimelineTypes)
 	riskRoutes.GET("/risk-update-plan-timeline-types/:id", riskUpdatePlanTimelineTypeController.GetRiskUpdatePlanTimelineTypeDetails)
+
+	//WorkflowLevel
+	riskRoutes.POST("/risk-workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskWorkflowLevelController.CreateWorkflowLevel)
+	riskRoutes.DELETE("/risk-workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskWorkflowLevelController.DeleteWorkflowLevel)
 }

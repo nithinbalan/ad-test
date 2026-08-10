@@ -33,6 +33,7 @@ type WorkflowRepositoryInterface interface {
 	GetMaxLevelByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
 	DecrementSubsequentLevels(workflowID uint, deletedLevel int, tx ...utility.DatabaseTransaction) error
 	IncrementSubsequentLevels(workflowID uint, startingLevel uint, tx ...utility.DatabaseTransaction) error
+	GetReportingUserIDByUserID(userID uint, tx ...utility.DatabaseTransaction) (*uint, error)
 }
 
 // Implementation
@@ -373,6 +374,20 @@ func (repo *WorkflowRepository) DecrementSubsequentLevels(workflowID uint, delet
 	return db.Model(&models.WorkflowLevel{}).
 		Where("workflow_id = ? AND level > ?", workflowID, deletedLevel).
 		UpdateColumn("level", gorm.Expr("level - 1")).Error
+}
+
+func (repo *WorkflowRepository) GetReportingUserIDByUserID(userID uint, tx ...utility.DatabaseTransaction) (*uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var user models.User
+	if err := db.Select("id", "reporting_user_id").First(&user, userID).Error; err != nil {
+		return nil, err
+	}
+
+	return user.ReportingUserID, nil
 }
 
 func (repo *WorkflowRepository) IncrementSubsequentLevels(workflowID uint, startingLevel uint, tx ...utility.DatabaseTransaction) error {

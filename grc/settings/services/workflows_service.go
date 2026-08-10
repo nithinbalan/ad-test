@@ -363,6 +363,43 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 			tx.Rollback()
 			return 0, err
 		}
+
+	case "user-and-reporting-user":
+		// Handle user-and-reporting-user by storing the given user(s) and each of their
+		// reporting users as participants
+		if len(workflowLevelFormDTO.UserIds) < 1 {
+			tx.Rollback()
+			return 0, fmt.Errorf("user is required for selected level type")
+		}
+		for _, userID := range workflowLevelFormDTO.UserIds {
+			participant := &models.WorkflowLevelParticipant{
+				WorkflowLevelID: id,
+				UserID:          userID,
+			}
+			if err := ws.repo.CreateParticipant(participant, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+			reportingUserID, err := ws.repo.GetReportingUserIDByUserID(*userID, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+			if reportingUserID == nil {
+				tx.Rollback()
+				return 0, utility.NewValidationError(fmt.Errorf("no reporting user found for user id %d", *userID), "reporting_user_not_found", "")
+			}
+
+			reportingUserParticipant := &models.WorkflowLevelParticipant{
+				WorkflowLevelID: id,
+				UserID:          reportingUserID,
+			}
+			if err := ws.repo.CreateParticipant(reportingUserParticipant, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
 	}
 
 	tx.Commit()

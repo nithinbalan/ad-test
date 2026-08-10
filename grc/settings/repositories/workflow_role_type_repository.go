@@ -24,6 +24,20 @@ func NewWorkflowLevelTypeRepository(db *gorm.DB) *WorkflowLevelTypeRepository {
 	}
 }
 
+// moduleIdentifierTokenCondition builds a SQL condition (and its args) that matches
+// the given identifier as a standalone token within a comma-separated module_identifier
+// column value (e.g. "organization,compliance" matches identifier "organization").
+func moduleIdentifierTokenCondition(identifier string) (string, []interface{}) {
+	cond := "(module_identifier = ? OR module_identifier LIKE ? OR module_identifier LIKE ? OR module_identifier LIKE ?)"
+	args := []interface{}{
+		identifier,
+		identifier + ",%",
+		"%," + identifier,
+		"%," + identifier + ",%",
+	}
+	return cond, args
+}
+
 func (repo *WorkflowLevelTypeRepository) GetAll(sort string, sortBy string, keyword string, status string, moduleIdentifier string) ([]*models.WorkflowLevelType, error) {
 	var workflowLevelTypes []*models.WorkflowLevelType
 
@@ -49,9 +63,17 @@ func (repo *WorkflowLevelTypeRepository) GetAll(sort string, sortBy string, keyw
 
 	switch moduleIdentifier {
 	case "common":
-		query = query.Where("module_identifier = ?", "common")
+		cond, args := moduleIdentifierTokenCondition("common")
+		query = query.Where(cond, args...)
 	case "organization":
-		query = query.Where("module_identifier IN ?", []string{"common", "organization"})
+		commonCond, commonArgs := moduleIdentifierTokenCondition("common")
+		orgCond, orgArgs := moduleIdentifierTokenCondition("organization")
+		query = query.Where("("+commonCond+" OR "+orgCond+")", append(commonArgs, orgArgs...)...)
+
+	case "compliance":
+		commonCond, commonArgs := moduleIdentifierTokenCondition("common")
+		complianceCond, complianceArgs := moduleIdentifierTokenCondition("compliance")
+		query = query.Where("("+commonCond+" OR "+complianceCond+")", append(commonArgs, complianceArgs...)...)
 	}
 
 	query = query.Order(sortBy + " " + sort)

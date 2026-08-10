@@ -89,7 +89,13 @@ func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *g
 		QuickFilter: quickFilter,
 		Export:      export,
 	}
-	businessContinuityPlans, err := bcpc.service.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		return
+	}
+
+	businessContinuityPlans, err := bcpc.service.GetAll(&queryParams, currentUserID)
 
 	if err != nil {
 		utility.SendInternalErrResp(bcpc.db, c, err.Error())
@@ -97,12 +103,6 @@ func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *g
 	}
 
 	if export {
-
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(bcpc.db, c, err.Error())
-			return
-		}
 
 		excelFile, err := bcpc.service.ExportBusinessContinuityPlan(businessContinuityPlans.Items, currentUserID)
 		if err != nil {

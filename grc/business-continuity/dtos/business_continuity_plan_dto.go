@@ -84,6 +84,7 @@ type BusinessContinuityPlanListQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
+	IsCyberUser bool `json:"-"`
 }
 
 type BusinessContinuityPlanListResponseDTO struct {

@@ -253,6 +253,7 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 			Title:                       risk.Title,
 			Description:                 risk.Description,
 			RiskReportedAt:              risk.ReportedAt,
+			RegistrationDate:            risk.RegistrationDate,
 			RiskCategoryTitleEn:         risk.RiskCategoryTitleEn,
 			RiskCategoryTitleAr:         risk.RiskCategoryTitleAr,
 			RiskSourceTitleEn:           risk.RiskSourceTitleEn,
@@ -329,15 +330,19 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 
 		for _, kri := range kris {
 			riskKRI := &models.RiskReportKRI{
-				RiskReportID:               riskReportID,
-				RiskReportIdentificationID: riskIdentification.ID,
-				Title:                      kri.Title,
-				Description:                kri.Description,
-				LowThreshold:               &kri.LowThreshold,
-				MediumThreshold:            &kri.MediumThreshold,
-				UnitTitleEn:                &kri.UnitTitleEn,
-				UnitTitleAr:                &kri.UnitTitleAr,
-				CurrentValue:               &kri.CurrentValue,
+				RiskReportID:                 riskReportID,
+				RiskReportIdentificationID:   riskIdentification.ID,
+				Title:                        kri.Title,
+				Description:                  kri.Description,
+				AnnualTarget:                 kri.AnnualTarget,
+				MinimumSusceptibilityPercent: kri.MinimumSusceptibilityPercent,
+				MaximumSusceptibilityPercent: kri.MaximumSusceptibilityPercent,
+				MaximumTolerablePercent:      kri.MaximumTolerablePercent,
+				IsLowerBetter:                kri.IsLowerBetter,
+				IsHigherBetter:               kri.IsHigherBetter,
+				UnitTitleEn:                  &kri.UnitTitleEn,
+				UnitTitleAr:                  &kri.UnitTitleAr,
+				CurrentValue:                 kri.CurrentValue,
 			}
 
 			if err := rrs.repo.CreateRiskKRI(riskKRI, tx); err != nil {
@@ -806,6 +811,14 @@ func (rrs *RiskReportService) DeleteRiskReportDocument(riskReportID uint, docume
 }
 
 func (rrs *RiskReportService) GetRiskReportExportZip(riskReportID uint, currentUserID uint) (string, error) {
+	// Validate that template images are configured
+	if _, err := rrs.settingSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := rrs.settingSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover_image_missing")
+	}
+
 	// Fetch risk report detail
 	riskReport, err := rrs.GetRiskReportDetails(riskReportID)
 	if err != nil {
@@ -826,12 +839,23 @@ func (rrs *RiskReportService) GetRiskReportExportZip(riskReportID uint, currentU
 
 		if section.Type == "identification" {
 			for _, risk := range riskReport.Risks {
+				riskDescription := ""
+				if risk.Description != nil {
+					riskDescription = utility.StripHTMLTags(*risk.Description)
+				}
+
+				registrationDate := "-"
+				if risk.RegistrationDate != nil && !risk.RegistrationDate.IsZero() {
+					registrationDate = risk.RegistrationDate.Format("2006-01-02")
+				}
+
 				riskItem := dtos.RiskReportIdentifiedRiskPDFDTO{
 					ID:                          risk.ID,
 					ReferenceNumber:             risk.ReferenceNumber,
 					Title:                       risk.Title,
-					Description:                 risk.Description,
-					ReportedAt:                  risk.RiskReportedAt.Format("2006-01-02"),
+					Description:                 &riskDescription,
+					ReportedAt:                  "-",
+					RegistrationDate:            registrationDate,
 					RiskCategoryTitleEn:         risk.RiskCategoryTitleEn,
 					RiskCategoryTitleAr:         risk.RiskCategoryTitleAr,
 					RiskSourceTitleEn:           risk.RiskSourceTitleEn,

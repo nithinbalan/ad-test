@@ -121,19 +121,19 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 		Export:      export,
 	}
 
-	processes, err := biac.processSvc.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	processes, err := biac.processSvc.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(biac.db, c, err.Error())
 		return
 	}
 
 	if export {
-
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(biac.db, c, err.Error())
-			return
-		}
 
 		excelFile, err := biac.service.ExportBia(processes.Items, currentUserID)
 		if err != nil {
@@ -435,7 +435,13 @@ func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.C
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
-	businessImpactAssessments, err := biac.service.GetAllImpactAnalysis(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	businessImpactAssessments, err := biac.service.GetAllImpactAnalysis(&queryParams, currentUserID)
 
 	if err != nil {
 		utility.SendInternalErrResp(biac.db, c, err.Error())
@@ -751,7 +757,13 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 		QuickFilter: quickFilter,
 	}
 
-	matrix, err := biac.service.GetBIAMatrix(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	matrix, err := biac.service.GetBIAMatrix(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

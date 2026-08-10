@@ -35,6 +35,7 @@ type App struct {
 	PolicyModule                *PolicyModule
 	ConsultationRequestModule   *ConsultationRequestModule
 	ViolationReportModule       *ViolationReportModule
+	IdentityAccessReviewModule  *IdentityAccessReviewModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -68,6 +69,7 @@ func NewApp(db *gorm.DB) *App {
 	policyModule := NewPolicyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, documentModule)
 	consultationRequestModule := NewConsultationRequestModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule, documentModule)
 	violationReportModule := NewViolationReportModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule, assetModule)
+	identityAccessReviewModule := NewIdentityAccessReviewModule(db, sharedModule, organizationModule, settingsModule, masterModule, taskModule, commonModule)
 
 	return &App{
 		DB:                          db,
@@ -100,5 +102,6 @@ func NewApp(db *gorm.DB) *App {
 		PolicyModule:                policyModule,
 		ConsultationRequestModule:   consultationRequestModule,
 		ViolationReportModule:       violationReportModule,
+		IdentityAccessReviewModule:  identityAccessReviewModule,
 	}
 }

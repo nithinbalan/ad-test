@@ -50,6 +50,7 @@ type UserServiceInterface interface {
 	SetUserSettingService(svc UserSettingServiceInterface)
 	GetUserPrimaryUnitID(userID uint) (uint, error)
 	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	GetUserIdsByRoleExcludingSystemUsers(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 
 	GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error)
 	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
@@ -992,6 +993,15 @@ func (us *UserService) GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTrans
 	return userIds, nil
 }
 
+func (us *UserService) GetUserIdsByRoleExcludingSystemUsers(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	userIds, err := us.repo.GetUserIdsByRoleExcludingSystemUsers(roleID, tx...)
+	if err != nil {
+		return nil, err
+	}
+
+	return userIds, nil
+}
+
 func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error) {
 	var userDetailsDTO userDTOs.CurrentUserDetailsDTO
 
@@ -1403,7 +1413,7 @@ func (us *UserService) GenerateUserTemplate() (*os.File, error) {
 	sheets["UserStatus"] = append([][]interface{}{utility.ConvertToInterfaceSlice(userStatusHeaders)}, userStatusData...)
 
 	// 5. Add Roles sheet
-	roles, err := us.roleSvc.GetAll("", "", "", "active", "")
+	roles, err := us.roleSvc.GetAll("", "", "", "active", "", "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch roles: %v", err)
 	}
@@ -1673,7 +1683,7 @@ func (us *UserService) validateUsers(input []map[string]interface{}) ([]map[stri
 	}
 
 	// Fetch roles
-	roles, err := us.roleSvc.GetAll("", "", "", "active", "")
+	roles, err := us.roleSvc.GetAll("", "", "", "active", "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error fetching roles: %v", err)
 	}

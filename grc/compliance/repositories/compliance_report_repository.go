@@ -13,9 +13,11 @@ import (
 type ComplianceReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *dtos.ComplianceReportListQueryParamsDTO) (*dtos.ComplianceReportListResponseDTO, error)
+	GetComplianceRegisterByID(id uint) (*models.ComplianceRegister, error)
 	Create(complianceReport *models.ComplianceReport, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateSection(section *models.ComplianceReportSection, tx ...utility.DatabaseTransaction) (uint, error)
 	GetComplianceAssessmentByComplianceRegisterID(complianceRegisterID uint, startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]models.ComplianceAssessment, error)
+	GetComplianceAssessmentByResponsibleUnitID(responsibleUnitID uint, isCyberUser bool, startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]models.ComplianceAssessment, error)
 	CreateComplianceReportDepartment(reportDepartment *models.ComplianceReportDepartment, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateComplianceReportClause(reportClause *models.ComplianceReportClause, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateComplianceReportRequirement(reportRequirement *models.ComplianceReportRequirement, tx ...utility.DatabaseTransaction) (uint, error)
@@ -56,9 +58,11 @@ func (repo *ComplianceReportRepository) GetAll(params *dtos.ComplianceReportList
 		Select(`
 			compliance_reports.id,
 			compliance_reports.title,
+			compliance_reports.assessment_type,
 			CONVERT(VARCHAR, compliance_reports.start_date, 23) AS start_date,
 			CONVERT(VARCHAR, compliance_reports.end_date, 23) AS end_date,
 			compliance_reports.created_at,
+			compliance_reports.is_cyber,
 			compliance_register.title_en AS compliance_register_title_en,
 			compliance_register.title_ar AS compliance_register_title_ar,
 			created_user.id AS created_user_id,
@@ -73,6 +77,12 @@ func (repo *ComplianceReportRepository) GetAll(params *dtos.ComplianceReportList
 		`).
 		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_reports.compliance_register_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = compliance_reports.created_by_id")
+
+	if params.IsCyber {
+		query = query.Where("compliance_reports.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_reports.is_cyber = ?", false)
+	}
 
 	if params.Keyword != "" {
 		query = query.Where(`
@@ -125,15 +135,25 @@ func (repo *ComplianceReportRepository) GetComplianceAssessmentByComplianceRegis
 		db = tx[0].DB()
 	}
 
+	start := time.Date(
+		startDate.Year(), startDate.Month(), startDate.Day(),
+		0, 0, 0, 0, time.UTC,
+	)
+
+	end := time.Date(
+		endDate.Year(), endDate.Month(), endDate.Day(),
+		0, 0, 0, 0, time.UTC,
+	)
+
 	var complianceAssessments []models.ComplianceAssessment
 	// First get the latest assessment IDs for each department
 	var latestAssessmentIDs []uint
 	subQuery := db.Table("compliance_assessments ca1").
 		Select("ca1.id").
+		Joins("JOIN compliance_assessment_compliances cac ON cac.compliance_assessment_id = ca1.id").
 		Joins("JOIN compliance_assessment_statuses ON ca1.compliance_assessment_status_id = compliance_assessment_statuses.id").
-		Where("ca1.compliance_register_id = ? AND ca1.created_at > ? AND ca1.created_at < ?", complianceRegisterID, startDate, endDate).
-		Where("compliance_assessment_statuses.type = ?", "approved").
-		Where("ca1.created_at = (SELECT MAX(ca2.created_at) FROM compliance_assessments ca2 WHERE ca2.organization_unit_id = ca1.organization_unit_id AND ca2.compliance_register_id = ca1.compliance_register_id)").
+		Where("cac.compliance_register_id = ? AND CAST(ca1.created_at AS DATE) >= ? AND CAST(ca1.created_at AS DATE) <= ?", complianceRegisterID, start.Format("2006-01-02"), end.Format("2006-01-02")).
+		Where("compliance_assessment_statuses.type = ? AND ca1.type = ?", "approved", "framework").
 		Pluck("ca1.id", &latestAssessmentIDs)
 
 	if subQuery.Error != nil {
@@ -143,10 +163,82 @@ func (repo *ComplianceReportRepository) GetComplianceAssessmentByComplianceRegis
 	// Then get the full assessment data for these IDs
 	result := db.Preload("AssessmentRequirements").
 		Preload("AssessmentRequirements.ComplianceRequirement").
-		Preload("AssessmentRequirements.ActionPlans").
+		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceStatus").
+		Preload("AssessmentRequirements.ResponsibleUnits").
+		Preload("AssessmentRequirements.ResponsibleUnits.ActionPlans").
+		Preload("AssessmentRequirements.ResponsibleUnits.ComplianceAssessmentRequirement").
+		Preload("AssessmentRequirements.ResponsibleUnits.ComplianceAssessmentFrameworkValue").
+		Preload("AssessmentRequirements.ResponsibleUnits.ComplianceStatus").
+		Preload("AssessmentRequirements.ResponsibleUnits.AcknowledgeUser").
 		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceClause").
 		Preload("AssessmentRequirements.ComplianceStatus").
 		Preload("ComplianceAssessmentStatus").
+		Preload("ComplianceAssessmentCompliances").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister").
+		Where("id IN ?", latestAssessmentIDs).
+		Find(&complianceAssessments)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return complianceAssessments, nil
+}
+
+func (repo *ComplianceReportRepository) GetComplianceAssessmentByResponsibleUnitID(responsibleUnitID uint, isCyberUser bool, startDate time.Time, endDate time.Time, tx ...utility.DatabaseTransaction) ([]models.ComplianceAssessment, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	start := time.Date(
+		startDate.Year(), startDate.Month(), startDate.Day(),
+		0, 0, 0, 0, time.UTC,
+	)
+
+	end := time.Date(
+		endDate.Year(), endDate.Month(), endDate.Day(),
+		0, 0, 0, 0, time.UTC,
+	)
+
+	var complianceAssessments []models.ComplianceAssessment
+	// First get the latest assessment IDs for each department
+	var latestAssessmentIDs []uint
+	subQuery := db.Table("compliance_assessments ca1").
+		Select("ca1.id").
+		Joins("JOIN compliance_assessment_compliances cac ON cac.compliance_assessment_id = ca1.id").
+		Joins("JOIN compliance_assessment_statuses ON ca1.compliance_assessment_status_id = compliance_assessment_statuses.id").
+		Joins("JOIN compliance_register ON compliance_register.id = cac.compliance_register_id").
+		Where("ca1.responsible_unit_id = ? AND CAST(ca1.created_at AS DATE) >= ? AND CAST(ca1.created_at AS DATE) <= ?", responsibleUnitID, start.Format("2006-01-02"), end.Format("2006-01-02")).
+		Where("compliance_assessment_statuses.type = ? AND ca1.type = ?", "approved", "department").
+		Where("compliance_register.approved_by_id IS NOT NULL")
+
+	if isCyberUser {
+		subQuery = subQuery.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		subQuery = subQuery.Where("compliance_register.is_cyber = ?", false)
+	}
+
+	if err := subQuery.Pluck("ca1.id", &latestAssessmentIDs).Error; err != nil {
+		return nil, err
+	}
+
+	// Then get the full assessment data for these IDs
+	result := db.Preload("AssessmentRequirements").
+		Preload("AssessmentRequirements.ComplianceRequirement").
+		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceStatus").
+		Preload("AssessmentRequirements.ResponsibleUnits").
+		Preload("AssessmentRequirements.ResponsibleUnits.ActionPlans").
+		Preload("AssessmentRequirements.ResponsibleUnits.ComplianceAssessmentRequirement").
+		Preload("AssessmentRequirements.ResponsibleUnits.ComplianceAssessmentFrameworkValue").
+		Preload("AssessmentRequirements.ResponsibleUnits.ComplianceStatus").
+		Preload("AssessmentRequirements.ResponsibleUnits.AcknowledgeUser").
+		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceClause").
+		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceClause.ComplianceRegister").
+		Preload("AssessmentRequirements.ComplianceStatus").
+		Preload("ComplianceAssessmentStatus").
+		Preload("ComplianceAssessmentCompliances").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister").
 		Where("id IN ?", latestAssessmentIDs).
 		Find(&complianceAssessments)
 
@@ -264,16 +356,24 @@ func (repo *ComplianceReportRepository) GetComplianceReportDepartments(complianc
 
 	result := repo.db.
 		Preload("OrganizationUnit").
+		Preload("ComplianceRegister").
+		Preload("ComplianceStatus").
 		Preload("ComplianceReportClauses").
-		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements", func(db *gorm.DB) *gorm.DB {
-			return db.Where("score < ? AND compliance_status_id IS NOT NULL AND compliance_status_id NOT IN (SELECT id FROM compliance_statuses WHERE type = 'not_applicable')", 60)
-		}).
+		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ComplianceStatus").
+		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.AverageComplianceStatus").
+		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.InherentRiskRating").
+		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ResidualRiskRating").
+		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.AcknowledgeUser").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ComplianceReportActionPlans").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ComplianceReportActionPlans.ActionPlanStatus").
 		Preload("ComplianceReportClauses.ComplianceReportNonCompliantRequirements.ComplianceReportActionPlans.SeverityLevel").
 		Preload("ComplianceReportClauses.ComplianceReportRequirements").
+		Preload("ComplianceReportClauses.ComplianceReportRequirements.ComplianceStatus").
 		Preload("ComplianceReportClauses.ComplianceReportRequirements.AverageComplianceStatus").
+		Preload("ComplianceReportClauses.ComplianceReportRequirements.InherentRiskRating").
+		Preload("ComplianceReportClauses.ComplianceReportRequirements.ResidualRiskRating").
+		Preload("ComplianceReportClauses.ComplianceReportRequirements.AcknowledgeUser").
 		Preload("ComplianceReportClauses.ComplianceReportRequirements.ComplianceReportActionPlans").
 		Preload("ComplianceReportClauses.ComplianceReportRequirements.ComplianceReportActionPlans.ActionPlanStatus").
 		Preload("ComplianceReportClauses.ComplianceReportRequirements.ComplianceReportActionPlans.SeverityLevel").
@@ -378,4 +478,12 @@ func (repo *ComplianceReportRepository) GetAllComplianceStatuses() ([]*models.Co
 		return nil, err
 	}
 	return statuses, nil
+}
+
+func (repo *ComplianceReportRepository) GetComplianceRegisterByID(id uint) (*models.ComplianceRegister, error) {
+	var register models.ComplianceRegister
+	if err := repo.db.First(&register, id).Error; err != nil {
+		return nil, err
+	}
+	return &register, nil
 }

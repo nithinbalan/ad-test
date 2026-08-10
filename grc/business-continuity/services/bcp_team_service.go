@@ -253,10 +253,14 @@ func (brs *BcpTeamService) Delete(bcpId uint, teamIDs []uint, currentUserID uint
 			continue
 		}
 
+		responsibleUserName := ""
+		if team.ResponsibleUser != nil {
+			responsibleUserName = fmt.Sprintf("%s %s", team.ResponsibleUser.FirstNameEn, team.ResponsibleUser.LastNameEn)
+		}
 		deletedTeams = append(deletedTeams, map[string]interface{}{
 			"id":               team.ID,
 			"responsibility":   team.Responsibility,
-			"responsible_user": fmt.Sprintf("%s %s", team.ResponsibleUser.FirstNameEn, team.ResponsibleUser.FirstNameEn),
+			"responsible_user": responsibleUserName,
 		})
 
 		if err := brs.repo.Delete(teamID, tx); err != nil {

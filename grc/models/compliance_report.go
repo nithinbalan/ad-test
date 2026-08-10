@@ -7,7 +7,10 @@ import (
 type ComplianceReport struct {
 	ID                   uint      `json:"id" gorm:"primaryKey;autoIncrement"`
 	Title                string    `json:"title" gorm:"type:nvarchar(500);not null" binding:"required"`
-	ComplianceRegisterID uint      `json:"compliance_register_id" gorm:"not null" binding:"required"`
+	AssessmentType       string    `json:"assessment_type" gorm:"type:nvarchar(20);not null;" binding:"required"`
+	ComplianceRegisterID *uint     `json:"compliance_register_id" gorm:"default:null"`
+	ResponsibleUnitID    *uint     `json:"responsible_unit_id"`
+	IsCyber              bool      `json:"is_cyber" gorm:"type:bit;not null;default:0"`
 	StartDate            time.Time `json:"start_date" gorm:"type:date;not null" binding:"required"`
 	EndDate              time.Time `json:"end_date" gorm:"type:date;not null" binding:"required"`
 	CreatedBYID          uint      `json:"created_by_id" gorm:"not null" binding:"required"`
@@ -15,6 +18,7 @@ type ComplianceReport struct {
 
 	// Associations
 	ComplianceRegister *ComplianceRegister `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	ResponsibleUnit    *OrganizationUnit   `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	CreatedByUser      *User               `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 
 	Sections []*ComplianceReportSection `gorm:"foreignKey:ComplianceReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`

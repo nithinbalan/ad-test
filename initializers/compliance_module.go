@@ -56,6 +56,7 @@ type ComplianceModule struct {
 	ComplianceDetailDashboardController                             *controllers.ComplianceDetailDashboardController
 	ComplianceAssessmentImpactTypeController                        *controllers.ComplianceAssessmentImpactTypeController
 	ComplianceAssessmentRatingController                            *controllers.ComplianceAssessmentRatingController
+	ComplianceWorkflowLevelController                               *controllers.ComplianceWorkflowLevelController
 	// ConsultationRequestStatusController                             *controllers.ConsultationRequestStatusController
 	LegislativeBodyController                                     *controllers.LegislativeBodyController
 	LegislationTypeController                                     *controllers.LegislationTypeController
@@ -351,7 +352,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceAssessmentRequirementActionPlanCommentController := controllers.NewComplianceAssessmentRequirementActionPlanCommentController(complianceAssessmentRequirementActionPlanCommentSvc)
 
 	complianceReportRepo := repositories.NewComplianceReportRepository(db)
-	complianceReportSvc := services.NewComplianceReportService(complianceReportRepo, sharedModule.ActivityLogService)
+	complianceReportSvc := services.NewComplianceReportService(complianceReportRepo, sharedModule.ActivityLogService, complianceStatusSvc, organizationModule.UserSvc, settingsModule.ReportTemplateSettingSvc)
 	complianceReportController := controllers.NewComplianceReportController(complianceReportSvc)
 
 	policyExceptionRepo := repositories.NewPolicyExceptionRepository(db)
@@ -473,6 +474,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	)
 	complianceRegisterReviewCommentController := controllers.NewComplianceRegisterReviewCommentController(complianceRegisterReviewCommentSvc)
 
+	complianceWorkflowLevelController := controllers.NewComplianceWorkflowLevelController(settingsModule.WorkflowSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -535,6 +538,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceRegisterReviewController:                            complianceRegisterReviewController,
 		ComplianceRegisterReviewCommentController:                     complianceRegisterReviewCommentController,
 		ComplianceEvidenceSubmissionController:                        evidenceSubmissionController,
+		ComplianceWorkflowLevelController:                             complianceWorkflowLevelController,
 
 		ComplianceRegisterSvc:              complianceRegisterSvc,
 		ComplianceRegisterWorkflowSvc:      complianceRegisterWorkflowSvc,

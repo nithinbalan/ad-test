@@ -53,6 +53,8 @@ func (repo *ComplianceReportRepository) GetComplianceByComplianceCategory(params
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -80,6 +82,8 @@ func (repo *ComplianceReportRepository) GetComplianceBySeverityLevel(params *rep
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -107,6 +111,8 @@ func (repo *ComplianceReportRepository) GetComplianceByComplianceStatus(params *
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -133,6 +139,8 @@ func (repo *ComplianceReportRepository) GetComplianceByResponsibleUnit(params *r
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -166,6 +174,8 @@ func (repo *ComplianceReportRepository) GetComplianceByResponsibleUser(params *r
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -193,6 +203,8 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByComplianceStat
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -222,6 +234,8 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementBySeverity(param
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -249,6 +263,8 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByCategory(param
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -278,6 +294,8 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUni
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -314,6 +332,8 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUse
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -342,6 +362,8 @@ func (repo *ComplianceReportRepository) GetComplianceActionPlanByStatus(params *
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -375,6 +397,8 @@ func (repo *ComplianceReportRepository) GetComplianceActionPlanByResponsibleUser
 
 	if params.IsCyberUser {
 		query = query.Where("compliance_register.is_cyber = ?", true)
+	} else {
+		query = query.Where("compliance_register.is_cyber = ?", false)
 	}
 
 	if params.DateFrom != "" && params.DateTo != "" {

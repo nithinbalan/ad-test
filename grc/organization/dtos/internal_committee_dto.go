@@ -226,3 +226,8 @@ type CommitteeFormationExportPDFDTO struct {
 	RolesAndResponsibilities []string
 	DocumentGenerationDate   string
 }
+
+type UpdateNextLevelParticipantDTO struct {
+	CurrentLevel int  `json:"current_level" binding:"required"`
+	RoleID       uint `json:"role_id" binding:"required"`
+}

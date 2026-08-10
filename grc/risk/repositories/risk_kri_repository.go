@@ -216,11 +216,20 @@ func (repo *RiskKriRepository) GetFullDetailsByID(id uint) (*models.RiskKri, err
 		Preload("RiskRegister").
 		Preload("KriRegister").
 		Preload("KriRegister.KRICategory").
+		Preload("KriRegister.KRISubCategory").
 		Preload("KriRegister.ResponsibleUnit").
 		Preload("KriRegister.ResponsibleUser").
 		Preload("KriRegister.ReviewFrequency").
 		Preload("KriRegister.RiskLevel").
 		Preload("KriRegister.ValueUpdates").
+		Preload("KriRegister.ValueUpdates.KRIFrequencyValue").
+		Preload("KriRegister.ValueUpdates.KRIFrequencyValue.RiskToleranceStatus").
+		Preload("KriRegister.Unit").
+		Preload("KriRegister.DistributionStatus").
+		Preload("KriRegister.LevelOfMeasurement").
+		Preload("KriRegister.KRIFrequencyValues").
+		Preload("KriRegister.CreatedByUser").
+		Preload("KriRegister.UpdatedByUser").
 		First(&riskKri, id)
 
 	if result.Error != nil {

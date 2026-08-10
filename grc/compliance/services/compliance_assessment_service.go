@@ -298,7 +298,6 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 			tx.Rollback()
 			return utility.NewForbiddenError("assessment_has_no_compliance_registers")
 		}
-		fmt.Println("registerIDs:", registerIDs)
 		var complianceAssessmentCompliance []*models.ComplianceAssessmentCompliance
 		for _, registerID := range registerIDs {
 			complianceAssessmentCompliance = append(complianceAssessmentCompliance, &models.ComplianceAssessmentCompliance{
@@ -461,7 +460,6 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 
 				if compliance.IsRequirementAssessment {
 					for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
-						fmt.Println("complianceRequirement:", complianceRequirement)
 						// Find matching responsible unit
 						var matchedRU *complianceDTOs.ComplianceRequirementResponsibleUnitDTO
 						for _, ru := range complianceRequirement.ResponsibleUnits {
@@ -811,11 +809,6 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 		return err
 	}
 
-	complianceAssessmentRevertedStatus, err := cras.complianceAssessmentStatusSvc.GetByType("reverted")
-	if err != nil {
-		return err
-	}
-
 	tx := cras.repo.BeginTransaction()
 
 	existingComplianceAssessment, err := cras.repo.GetFullDetailsByIDOptimized(id, tx)
@@ -831,7 +824,7 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 	}
 
 	if *existingComplianceAssessment.Type == "framework" {
-		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID || existingComplianceAssessment.ComplianceAssessmentStatusID == complianceAssessmentRevertedStatus.ID {
+		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID {
 			tx.Rollback()
 			return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
 		}
@@ -1027,7 +1020,7 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 		}
 
 	} else {
-		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID || existingComplianceAssessment.ComplianceAssessmentStatusID == complianceAssessmentRevertedStatus.ID {
+		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID {
 			tx.Rollback()
 			return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
 		}

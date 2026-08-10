@@ -3373,22 +3373,22 @@ func (rrs RiskRegisterService) ExportRiskRegisterPDF(id uint, currentUserID uint
 			unitTitleArPtr = &kri.UnitTitleAr
 		}
 
-		lowThresholdPtr := &kri.LowThreshold
-		mediumThresholdPtr := &kri.MediumThreshold
-		currentValuePtr := &kri.CurrentValue
-
 		kriResponse := riskDTOs.RiskReportKriResponseDTO{
-			ID:                         0,
-			RiskReportIdentificationID: 0,
-			RiskReferenceNumber:        riskDTO.ReferenceNumber,
-			RiskTitle:                  riskDTO.Title,
-			Title:                      kri.Title,
-			Description:                kri.Description,
-			LowThreshold:               lowThresholdPtr,
-			MediumThreshold:            mediumThresholdPtr,
-			UnitTitleEn:                unitTitleEnPtr,
-			UnitTitleAr:                unitTitleArPtr,
-			CurrentValue:               currentValuePtr,
+			ID:                           0,
+			RiskReportIdentificationID:   0,
+			RiskReferenceNumber:          riskDTO.ReferenceNumber,
+			RiskTitle:                    riskDTO.Title,
+			Title:                        kri.Title,
+			Description:                  kri.Description,
+			AnnualTarget:                 kri.AnnualTarget,
+			MinimumSusceptibilityPercent: kri.MinimumSusceptibilityPercent,
+			MaximumSusceptibilityPercent: kri.MaximumSusceptibilityPercent,
+			MaximumTolerablePercent:      kri.MaximumTolerablePercent,
+			IsLowerBetter:                kri.IsLowerBetter,
+			IsHigherBetter:               kri.IsHigherBetter,
+			UnitTitleEn:                  unitTitleEnPtr,
+			UnitTitleAr:                  unitTitleArPtr,
+			CurrentValue:                 kri.CurrentValue,
 		}
 		kris = append(kris, kriResponse)
 	}

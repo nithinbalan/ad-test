@@ -865,11 +865,10 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) ExportTestAndExerciseRec
 	var headers []string
 	if userSetting.Language == "ar" {
 		headers = []string{
-			"SL No.",
+			"#",
 			"Title",
-			"Description",
-			"Process",
-			"Priority Level",
+			"System Register",
+			"Severity Level",
 			"Responsible User",
 			"Target Date",
 			"Percentage",
@@ -878,11 +877,10 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) ExportTestAndExerciseRec
 		}
 	} else {
 		headers = []string{
-			"SL No.",
+			"#",
 			"Title",
-			"Description",
-			"Process",
-			"Priority Level",
+			"System Register",
+			"Severity Level",
 			"Responsible User",
 			"Target Date",
 			"Percentage",
@@ -895,7 +893,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) ExportTestAndExerciseRec
 	for i, ap := range data {
 		percentage := ""
 		if ap.Percentage != nil {
-			percentage = fmt.Sprintf("%d%%", *ap.Percentage)
+			percentage = fmt.Sprintf("%d", *ap.Percentage)
 		}
 		targetDate := utility.GetStringValue(ap.TargetDate)
 		if targetDate != "" {
@@ -909,8 +907,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) ExportTestAndExerciseRec
 			rows[i] = []interface{}{
 				i + 1,
 				ap.Title,
-				utility.GetStringValue(ap.Description),
-				utility.GetStringValue(ap.ProcessTitleAr),
+				utility.GetStringValue(ap.SystemRegisterTitleAr),
 				utility.GetStringValue(ap.SeverityLevelTitleAr),
 				fmt.Sprintf("%s %s", ap.ResponsibleUserFirstNameAr, ap.ResponsibleUserLastNameAr),
 				targetDate,
@@ -922,8 +919,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) ExportTestAndExerciseRec
 			rows[i] = []interface{}{
 				i + 1,
 				ap.Title,
-				utility.GetStringValue(ap.Description),
-				utility.GetStringValue(ap.ProcessTitleEn),
+				utility.GetStringValue(ap.SystemRegisterTitleEn),
 				utility.GetStringValue(ap.SeverityLevelTitleEn),
 				fmt.Sprintf("%s %s", ap.ResponsibleUserFirstNameEn, ap.ResponsibleUserLastNameEn),
 				targetDate,

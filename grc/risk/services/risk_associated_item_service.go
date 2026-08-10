@@ -568,6 +568,11 @@ func (rais *RiskAssociatedItemService) DeletetRiskControl(riskID uint, controlID
 
 	if err := rais.repo.DeletetRiskControl(riskID, controlID, tx); err != nil {
 		tx.Rollback()
+		if utility.IsForeignKeyConstraintError(err) {
+			return utility.NewForbiddenError(
+				"This control cannot be unmapped because it is linked to an existing Control Analysis.",
+			)
+		}
 		return err
 	}
 

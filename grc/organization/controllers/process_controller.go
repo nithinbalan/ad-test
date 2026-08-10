@@ -122,19 +122,19 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		DateTo:      dateTo,
 	}
 
-	processes, err := pc.service.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	processes, err := pc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(pc.db, c, err.Error())
 		return
 	}
 
 	if export {
-
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(pc.db, c, err.Error())
-			return
-		}
 
 		excelFile, err := pc.service.ExportProcesses(processes.Items, currentUserID)
 		if err != nil {

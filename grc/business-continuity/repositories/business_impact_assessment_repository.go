@@ -148,10 +148,6 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 		}
 
 	}
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -183,6 +179,13 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 			keyword, keyword, keyword, keyword)
 	}
 
+	if params.IsCyberUser {
+		query = query.Where("business_impact_assessments.is_cyber = ?", true)
+	} else {
+		query = query.Where("business_impact_assessments.is_cyber = ?", false)
+	}
+
+	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
@@ -575,7 +578,8 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 			LEFT JOIN business_continuity_duration_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
 			LEFT JOIN business_continuity_duration_units AS time_units_rsp ON time_units_rsp.id = processes.rsp_unit_id
 		`).
-		Where("processes.is_bia_performed = ?", 1)
+		Where("processes.is_bia_performed = ?", 1).
+		Where("business_functions.is_cyber = ?", params.IsCyberUser)
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

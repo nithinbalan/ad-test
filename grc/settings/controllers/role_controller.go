@@ -30,8 +30,9 @@ func (rc *RoleController) GetAllRoles(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	licenseTypeID := c.Query("license_type_id")
+	isCommittee := c.Query("is_committee")
 
-	roles, err := rc.service.GetAll(sort, sortBy, keyword, status, licenseTypeID)
+	roles, err := rc.service.GetAll(sort, sortBy, keyword, status, licenseTypeID, isCommittee)
 
 	if err != nil {
 		utility.SendInternalErrResp(rc.db, c, err.Error())

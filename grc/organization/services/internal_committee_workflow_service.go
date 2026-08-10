@@ -28,6 +28,7 @@ type InternalCommitteeWorkflowServiceInterface interface {
 	GetInternalCommitteeWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.InternalCommitteeWorkflow, error)
 	GetNextLevel(internalCommitteeWorkflowID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.InternalCommitteeWorkflow, error)
 	CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.InternalCommitteeWorkflowParticipant, tx ...utility.DatabaseTransaction) (bool, error)
+	UpdateNextLevelParticipant(internalCommitteeID uint, currentUserID uint, dto *organizationDTOs.UpdateNextLevelParticipantDTO, tx ...utility.DatabaseTransaction) error
 
 	DeleteInternalCommitteeWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteInternalCommitteeReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -47,6 +48,7 @@ type InternalCommitteeWorkflowService struct {
 	workflowContextSvc   masterSvc.WorkflowContextServiceInterface
 	organizationUnitsSvc OrganizationUnitsServiceInterface
 	settingsOrgUnitSvc   settinsSvc.OrganizationUnitServiceInterface
+	roleSvc              settinsSvc.RoleServiceInterface
 }
 
 func NewInternalCommitteeWorkflowService(
@@ -59,6 +61,7 @@ func NewInternalCommitteeWorkflowService(
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 	organizationUnitsSvc OrganizationUnitsServiceInterface,
 	settingsOrgUnitSvc settinsSvc.OrganizationUnitServiceInterface,
+	roleSvc settinsSvc.RoleServiceInterface,
 ) InternalCommitteeWorkflowServiceInterface {
 	return &InternalCommitteeWorkflowService{
 		repo:                 repo,
@@ -70,6 +73,7 @@ func NewInternalCommitteeWorkflowService(
 		workflowContextSvc:   workflowContextSvc,
 		organizationUnitsSvc: organizationUnitsSvc,
 		settingsOrgUnitSvc:   settingsOrgUnitSvc,
+		roleSvc:              roleSvc,
 	}
 }
 
@@ -125,13 +129,22 @@ func (icws *InternalCommitteeWorkflowService) GetInternalCommitteeWorkflowList(i
 		}
 	}
 
+	// Calculate total levels to determine second last level
+	var maxLevel int
+	for _, workflow := range committeeWorkflow.InternalCommitteeWorkflows {
+		if workflow.Level > maxLevel {
+			maxLevel = workflow.Level
+		}
+	}
+
 	for _, workflow := range committeeWorkflow.InternalCommitteeWorkflows {
 		workflowDTO := &organizationDTOs.WorkflowListDTO{
-			Level:         workflow.Level,
-			ApprovalType:  workflow.ApprovalTypes,
-			CurrentStatus: icws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
-			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
-			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
+			Level:             workflow.Level,
+			ApprovalType:      workflow.ApprovalTypes,
+			IsSecondLastLevel: workflow.Level == maxLevel-1,
+			CurrentStatus:     icws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
+			ApprovedUsers:     []*organizationDTOs.UserMinimalDTO{},
+			ReviewUsers:       []*organizationDTOs.UserMinimalDTO{},
 		}
 
 		var lastApprovedAt time.Time
@@ -621,6 +634,132 @@ func (icws *InternalCommitteeWorkflowService) ValidateWorkflowBeforeCreate(conte
 	if !hasParticipants {
 		return utility.NewForbiddenError("participants_not_configured")
 	}
+
+	return nil
+}
+
+func (icws *InternalCommitteeWorkflowService) UpdateNextLevelParticipant(internalCommitteeID uint, currentUserID uint, dto *organizationDTOs.UpdateNextLevelParticipantDTO, tx ...utility.DatabaseTransaction) error {
+	// Get latest committee version
+	committee, err := icws.committeeSvc.GetLatestVersionByID(internalCommitteeID)
+	if err != nil {
+		return err
+	}
+
+	var latestVersionID uint
+	for _, version := range committee.InternalCommitteeVersions {
+		if version.IsLatestVersion != nil && *version.IsLatestVersion {
+			latestVersionID = version.ID
+			break
+		}
+	}
+
+	if latestVersionID == 0 {
+		return fmt.Errorf("no latest version found for committee")
+	}
+
+	// Validate current level exists
+	_, err = icws.repo.GetInternalCommitteeWorkflowByLevel(latestVersionID, dto.CurrentLevel, tx...)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("current level %d not found", dto.CurrentLevel), "current_level_not_found", "")
+	}
+
+	// Calculate target level
+	targetLevel := dto.CurrentLevel + 1
+
+	// Get target workflow
+	targetWorkflow, err := icws.repo.GetInternalCommitteeWorkflowByLevel(latestVersionID, targetLevel, tx...)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("target level %d not found", targetLevel), "target_level_not_found", "")
+	}
+
+	// Validate target level is not already approved
+	workflowStatus, err := icws.workflowStatusSvc.GetByID(targetWorkflow.WorkflowStatusID)
+	if err != nil {
+		return err
+	}
+	if workflowStatus.Type == "approve" {
+		return utility.NewValidationError(fmt.Errorf("target level %d is already approved", targetLevel), "target_level_already_approved", "")
+	}
+
+	// Validate role ID is allowed (CEO or Shared Services)
+	role, err := icws.roleSvc.GetByID(dto.RoleID)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("role not found"), "role_not_found", "")
+	}
+
+	// Check if role is CEO or Shared Services
+	// Assuming role titles are stored in TitleEn field
+	allowedRoles := map[string]bool{
+		"ceo":             true,
+		"shared-services": true,
+	}
+
+	if !allowedRoles[*role.Type] {
+		return utility.NewValidationError(fmt.Errorf("role %s is not allowed for participant update", role.TitleEn), "role_not_allowed", "")
+	}
+
+	// Delete existing participants for target level
+	var existingParticipantIds []*uint
+	for _, participant := range targetWorkflow.InternalCommitteeWorkflowParticipants {
+		participantId := participant.ID
+		existingParticipantIds = append(existingParticipantIds, &participantId)
+	}
+
+	if len(existingParticipantIds) > 0 {
+		if err := icws.repo.DeleteInternalCommitteeWorkflowParticipants(existingParticipantIds, tx...); err != nil {
+			return err
+		}
+	}
+
+	// Get users by role ID to create individual participants
+	userIds, err := icws.userSvc.GetUserIdsByRole(dto.RoleID, tx...)
+	if err != nil {
+		return err
+	}
+
+	if len(userIds) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no users found for role %s", role.TitleEn), "no_users_for_role", "")
+	}
+
+	// Create participants for each user with the role
+	for _, userId := range userIds {
+		committeeWorkflowParticipant := &models.InternalCommitteeWorkflowParticipant{
+			InternalCommitteeWorkflowID: targetWorkflow.ID,
+			UserID:                      userId,
+			RoleID:                      &dto.RoleID,
+			CreatedBYID:                 currentUserID,
+		}
+		if err := icws.repo.CreateInternalCommitteeWorkflowParticipant(committeeWorkflowParticipant, tx...); err != nil {
+			return err
+		}
+	}
+
+	// Log activity asynchronously
+	go func() {
+		err := icws.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.InternalCommitteeWorkflow{}.TableName(),
+			targetWorkflow.ID,
+			targetWorkflow,
+			currentUserID,
+			"organization",
+			"committee_management",
+			"internal_committee_workflow",
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.InternalCommitteeWorkflow{}.TableName(),
+				"recordID":  targetWorkflow.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
 
 	return nil
 }

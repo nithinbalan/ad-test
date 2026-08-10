@@ -487,10 +487,11 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Approve(riskID uint, riskA
 		return err
 	}
 
+	closedPercentage := uint(100)
 	riskActionPlanUpdate := &models.RiskActionPlanStatusUpdate{
 		RiskActionPlanID:   riskActionPlanID,
 		ActionPlanStatusID: riskActionPlanClosedStatus.ID,
-		Percentage:         nil,
+		Percentage:         &closedPercentage,
 		Comment:            formDTO.Comment,
 		CreatedByID:        currentUserID,
 	}
@@ -658,9 +659,11 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Revert(riskID uint, riskAc
 		return err
 	}
 
+	reopenedPercentage := uint(0)
 	riskActionPlanUpdate := &models.RiskActionPlanStatusUpdate{
 		RiskActionPlanID:   riskActionPlanID,
 		ActionPlanStatusID: riskActionPlanReopenStatus.ID,
+		Percentage:         &reopenedPercentage,
 		Comment:            formDTO.Comment,
 		CreatedByID:        currentUserID,
 	}

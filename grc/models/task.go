@@ -14,6 +14,7 @@ type Task struct {
 	ControlActionPlanID             *uint      `json:"control_action_plan_id"`
 	RiskActionPlanID                *uint      `json:"risk_action_plan_id"`
 	MeetingActionPlanID             *uint      `json:"meeting_action_plan_id"`
+	IdentityReviewActionPlanID      *uint      `json:"identity_review_action_plan_id"`
 	AuditFindingActionPlanID        *uint      `json:"audit_finding_action_plan_id"`
 	ProjectActionPlanID             *uint      `json:"project_action_plan_id"`
 	ThreatActionPlanID              *uint      `json:"threat_action_plan_id"`
@@ -51,8 +52,9 @@ type Task struct {
 	SLAActionPlan             *SLAActionPlan             `gorm:"foreignKey:SLAActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	IncidentActionPlan        *IncidentActionPlan        `gorm:"foreignKey:IncidentActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ControlActionPlan         *ControlActionPlan         `gorm:"foreignKey:ControlActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskActionPlan            *RiskActionPlan            `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`         // New relationship added
-	MeetingActionPlan         *MeetingActionPlan         `gorm:"foreignKey:MeetingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`      // New relationship added
+	RiskActionPlan            *RiskActionPlan            `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`    // New relationship added
+	MeetingActionPlan         *MeetingActionPlan         `gorm:"foreignKey:MeetingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"` // New relationship added
+	IdentityReviewActionPlan  *IdentityReviewActionPlan  `gorm:"foreignKey:IdentityReviewActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	AuditFindingActionPlan    *AuditFindingActionPlan    `gorm:"foreignKey:AuditFindingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"` // New relationship added
 	ProjectActionPlan         *ProjectActionPlan         `gorm:"foreignKey:ProjectActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ThreatActionPlan          *ThreatActionPlan          `gorm:"foreignKey:ThreatActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
