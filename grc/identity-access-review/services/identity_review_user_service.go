@@ -15,17 +15,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type IdentityReviewUserServiceInterface interface {
 	GetAll(params *dtos.IdentityReviewUserListQueryParamsDTO) (*dtos.IdentityReviewUserListResponseDTO, error)
 	GetByID(id uint) (*models.IdentityReviewUser, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IdentityReviewUser, error)
-	Create(currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*models.IdentityReviewUser, error)
-	Update(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*models.IdentityReviewUser, error)
-	UpdateAccountDecision(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserAccountDecisionUpdateFormDTO, tx ...utility.DatabaseTransaction) (*models.IdentityReviewUser, error)
-	UpdatePrivilege(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserPrivilegeUpdateFormDTO, tx ...utility.DatabaseTransaction) (*models.IdentityReviewUser, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewUserDetailDTO, error)
+	Create(currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*dtos.IdentityReviewUserDetailDTO, error)
+	Update(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*dtos.IdentityReviewUserDetailDTO, error)
+	UpdateAccountDecision(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserAccountDecisionUpdateFormDTO, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewUserDetailDTO, error)
+	UpdatePrivilege(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserPrivilegeUpdateFormDTO, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewUserDetailDTO, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GenerateIdentityReviewUserTemplate(currentUserID uint) (*os.File, error)
 	ValidateIdentityReviewUserTemplate(file io.Reader, identityReviewCampaignID uint, currentUserID uint) ([]map[string]interface{}, error)
@@ -79,7 +80,9 @@ func (irus *IdentityReviewUserService) GetByID(id uint) (*models.IdentityReviewU
 	return identityReviewUser, nil
 }
 
-func (irus *IdentityReviewUserService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IdentityReviewUser, error) {
+func (irus *IdentityReviewUserService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewUserDetailDTO, error) {
+	var identityReviewUserDetailDTO dtos.IdentityReviewUserDetailDTO
+
 	identityReviewUser, err := irus.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -88,10 +91,32 @@ func (irus *IdentityReviewUserService) GetFullDetailsByID(id uint, tx ...utility
 		return nil, err
 	}
 
-	return identityReviewUser, nil
+	if err := mapstructure.Decode(identityReviewUser, &identityReviewUserDetailDTO); err != nil {
+		return nil, err
+	}
+
+	identityReviewCampaign, err := irus.identityReviewCampaignSvc.GetFullDetailsByID(
+		identityReviewUser.IdentityReviewCampaignID,
+		tx...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	identityReviewUserDetailDTO.IdentityReviewCampaign = identityReviewCampaign
+
+	department, err := irus.organizationUnitSvc.GetFullDetailsByID(identityReviewUser.DepartmentID)
+	if err != nil {
+		return nil, err
+	}
+	identityReviewUserDetailDTO.Department = department
+
+	identityReviewUserDetailDTO.CreatedAt = identityReviewUser.CreatedAt
+	identityReviewUserDetailDTO.UpdatedAt = identityReviewUser.UpdatedAt
+
+	return &identityReviewUserDetailDTO, nil
 }
 
-func (irus *IdentityReviewUserService) Create(currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*models.IdentityReviewUser, error) {
+func (irus *IdentityReviewUserService) Create(currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*dtos.IdentityReviewUserDetailDTO, error) {
 	if err := irus.validateForm(formDTO); err != nil {
 		return nil, err
 	}
@@ -150,7 +175,7 @@ func (irus *IdentityReviewUserService) Create(currentUserID uint, formDTO *dtos.
 	return createdUser, nil
 }
 
-func (irus *IdentityReviewUserService) Update(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*models.IdentityReviewUser, error) {
+func (irus *IdentityReviewUserService) Update(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*dtos.IdentityReviewUserDetailDTO, error) {
 	existingUser, err := irus.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -209,7 +234,7 @@ func (irus *IdentityReviewUserService) Update(id uint, currentUserID uint, formD
 	return updatedUser, nil
 }
 
-func (irus *IdentityReviewUserService) UpdateAccountDecision(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserAccountDecisionUpdateFormDTO, tx ...utility.DatabaseTransaction) (*models.IdentityReviewUser, error) {
+func (irus *IdentityReviewUserService) UpdateAccountDecision(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserAccountDecisionUpdateFormDTO, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewUserDetailDTO, error) {
 	databaseTx := utility.DatabaseTransaction(nil)
 	ownsTransaction := len(tx) == 0 || tx[0] == nil
 	if ownsTransaction {
@@ -218,10 +243,13 @@ func (irus *IdentityReviewUserService) UpdateAccountDecision(id uint, currentUse
 		databaseTx = tx[0]
 	}
 
-	existingUser, err := irus.GetFullDetailsByID(id, databaseTx)
+	existingUser, err := irus.repo.GetFullDetailsByID(id, databaseTx)
 	if err != nil {
 		if ownsTransaction {
 			databaseTx.Rollback()
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
 	}
@@ -396,9 +424,12 @@ func (irus *IdentityReviewUserService) validateForm(formDTO *dtos.IdentityReview
 	return nil
 }
 
-func (irus *IdentityReviewUserService) UpdatePrivilege(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserPrivilegeUpdateFormDTO, tx ...utility.DatabaseTransaction) (*models.IdentityReviewUser, error) {
-	existingUser, err := irus.GetFullDetailsByID(id, tx...)
+func (irus *IdentityReviewUserService) UpdatePrivilege(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserPrivilegeUpdateFormDTO, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewUserDetailDTO, error) {
+	existingUser, err := irus.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
 		return nil, err
 	}
 

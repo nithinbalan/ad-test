@@ -2,6 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"time"
 )
 
@@ -70,4 +71,29 @@ type IdentityReviewUserListDTO struct {
 type IdentityReviewUserListResponseDTO struct {
 	Items      []*IdentityReviewUserListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type IdentityReviewUserDetailDTO struct {
+	ID                       uint                              `json:"id"`
+	IdentityReviewCampaignID uint                              `json:"identity_review_campaign_id"`
+	Username                 string                            `json:"username"`
+	UserIdentifier           *string                           `json:"user_identifier"`
+	LastLogin                *string                           `json:"last_login"`
+	DepartmentID             uint                              `json:"department_id"`
+	PrivilegeID              *uint                             `json:"privilege_id"`
+	AccountTypeID            *uint                             `json:"account_type_id"`
+	AccountDecisionID        *uint                             `json:"account_decision_id"`
+	CurrentRole              *string                           `json:"current_role"`
+	ReviewComment            *string                           `json:"review_comment"`
+	CreatedAt                time.Time                         `json:"created_at"`
+	UpdatedAt                *time.Time                        `json:"updated_at"`
+	CreatedByID              uint                              `json:"created_by_id"`
+	UpdatedByID              *uint                             `json:"updated_by_id"`
+	IdentityReviewCampaign   *IdentityReviewCampaignDetailDTO  `json:"identity_review_campaign"`
+	Department               *settingsDTOs.OrganizationUnitDTO `json:"department"`
+	Privilege                *PrivilegedAccountDTO             `json:"privilege"`
+	AccountType              *AccountTypeDTO                   `json:"account_type"`
+	AccountDecision          *AccountDecisionDTO               `json:"account_decision"`
+	CreatedByUser            *IdentityReviewCampaignUserDTO    `json:"created_by"`
+	UpdatedByUser            *IdentityReviewCampaignUserDTO    `json:"updated_by"`
 }
