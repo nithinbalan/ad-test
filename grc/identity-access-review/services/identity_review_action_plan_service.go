@@ -213,7 +213,7 @@ func (iraps *IdentityReviewActionPlanService) Create(identityReviewUserID uint, 
 		ActionPlanStatusID:         actionPlanStatus.ID,
 		Comment:                    "Initial action plan status",
 		Percentage:                 &percentage,
-		CreatedByID:                currentUserID,
+		CreatedBYID:                currentUserID,
 	}, tx); err != nil {
 		tx.Rollback()
 		return 0, err

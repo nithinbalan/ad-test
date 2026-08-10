@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @font-face { font-family:'Lexend Deca'; src:url('{{.LexandDecaFont300}}') format('woff'); font-weight:300; }
+    @font-face { font-family:'Lexend Deca'; src:url('{{.LexandDecaFont400}}') format('woff'); font-weight:400; }
+    @font-face { font-family:'Lexend Deca'; src:url('{{.LexandDecaFont600}}') format('woff'); font-weight:600; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:18px 40px; font-family:'Lexend Deca', sans-serif; color:#1f2937; font-size:10px; line-height:1.45; -webkit-print-color-adjust:exact; }
+    .section { margin-bottom:22px; }
+    .section-title { font-size:17px; font-weight:600; color:#111827; margin-bottom:11px; }
+    .card { border:1px solid #e5e7eb; border-radius:9px; padding:16px; background:#fff; }
+    .label { color:#6b7280; font-size:9px; margin-bottom:4px; }
+    .value { color:#111827; font-size:11px; font-weight:400; }
+    table.data { width:100%; border-collapse:collapse; table-layout:fixed; }
+    table.data th { background:#f3f4f6; color:#374151; padding:8px 6px; text-align:left; font-size:8px; font-weight:600; border:1px solid #e5e7eb; }
+    table.data td { padding:8px 6px; border:1px solid #e5e7eb; vertical-align:top; font-size:8px; word-wrap:break-word; }
+    table.data tr { page-break-inside:avoid; }
+    thead { display:table-header-group; }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <div class="section-title">1. Campaign Overview and Progress</div>
+    <table style="width:100%; border-collapse:collapse; page-break-inside:avoid;">
+      <tr>
+        <td style="width:63%; padding-right:10px; vertical-align:top;">
+          <div class="card" style="height:285px;">
+            <table style="width:100%; border-collapse:collapse;">
+              <tr>
+                <td style="width:50%; padding:5px 12px 14px 0;"><div class="label">Campaign name</div><div class="value">{{.Data.CampaignName}}</div></td>
+                <td style="width:50%; padding:5px 0 14px 0;"><div class="label">Reference number</div><div class="value">{{.Data.ReferenceNumber}}</div></td>
+              </tr>
+              <tr>
+                <td style="padding:5px 12px 14px 0;"><div class="label">Status</div><div class="value"><span style="display:inline-block; padding:3px 8px; border-radius:5px; color:{{.Data.CampaignStatusColorCode}}; border:1px solid {{.Data.CampaignStatusColorCode}};">{{.Data.CampaignStatusTitleEn}}</span></div></td>
+                <td style="padding:5px 0 14px 0;"><div class="label">Review type</div><div class="value">{{.Data.ReviewTypeTitleEn}}</div></td>
+              </tr>
+              <tr>
+                <td style="padding:5px 12px 14px 0;"><div class="label">Reviewer</div><div class="value">{{.Data.ReviewerName}}</div></td>
+                <td style="padding:5px 0 14px 0;"><div class="label">Review period</div><div class="value">{{.Data.StartDate}} - {{.Data.DueDate}}</div></td>
+              </tr>
+              <tr>
+                <td style="padding:5px 12px 14px 0;"><div class="label">Asset title</div><div class="value">{{.Data.AssetTitleEn}}</div></td>
+                <td style="padding:5px 0 14px 0;"><div class="label">Reminder before due date</div><div class="value">{{.Data.ReminderDaysOffset}}</div></td>
+              </tr>
+              <tr>
+                <td colspan="2" style="padding-top:5px;"><div class="label">Description</div><div class="value">{{if .Data.Description}}{{.Data.Description}}{{else}}-{{end}}</div></td>
+              </tr>
+            </table>
+          </div>
+        </td>
+        <td style="width:37%; vertical-align:top;">
+          <div class="card" style="height:285px; text-align:center;">
+            <div class="label" style="font-size:11px; text-align:left;">Progress</div>
+            <svg width="245" height="220" viewBox="0 0 360 205" xmlns="http://www.w3.org/2000/svg" style="margin-top:10px;">
+              <path d="M 35 180 A 145 145 0 0 1 325 180" fill="none" stroke="#e5e7eb" stroke-width="38" />
+              <path d="M 35 180 A 145 145 0 0 1 325 180" fill="none" stroke="#165d31" stroke-width="38" stroke-dasharray="{{printf "%.1f" .Data.CompletionProgressDash}} 455.5" />
+              <text x="180" y="177" text-anchor="middle" font-size="28" font-weight="600" fill="#111827">{{.Data.CompletionPercentage}}%</text>
+            </svg>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Users</div>
+    {{if .Data.Users}}
+    <table class="data">
+      <thead>
+        <tr>
+          <th style="width:4%;">#</th>
+          <th style="width:14%;">Username</th>
+          <th style="width:12%;">User ID</th>
+          <th style="width:14%;">Department</th>
+          <th style="width:13%;">Account type</th>
+          <th style="width:12%;">Privilege</th>
+          <th style="width:14%;">Decision</th>
+          <th style="width:10%;">Current role</th>
+          <th style="width:7%;">Last login</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $user := .Data.Users}}
+        <tr>
+          <td>{{add $index 1}}</td>
+          <td>{{$user.Username}}</td>
+          <td>{{if $user.UserIdentifier}}{{$user.UserIdentifier}}{{else}}-{{end}}</td>
+          <td>{{$user.DepartmentTitleEn}}</td>
+          <td>{{if $user.AccountTypeTitleEn}}{{$user.AccountTypeTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $user.PrivilegeTitleEn}}{{$user.PrivilegeTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $user.AccountDecisionTitleEn}}<span style="display:inline-block; padding:2px 6px; border-radius:4px; color:{{if $user.AccountDecisionColorCode}}{{$user.AccountDecisionColorCode}}{{else}}#6b7280{{end}}; border:1px solid {{if $user.AccountDecisionColorCode}}{{$user.AccountDecisionColorCode}}{{else}}#d1d5db{{end}};">{{$user.AccountDecisionTitleEn}}</span>{{else}}Pending{{end}}</td>
+          <td>{{if $user.CurrentRole}}{{$user.CurrentRole}}{{else}}-{{end}}</td>
+          <td>{{if $user.LastLogin}}{{$user.LastLogin}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="card" style="color:#6b7280; text-align:center;">No users are assigned to this campaign.</div>
+    {{end}}
+  </div>
+
+  {{if .Data.Workflow}}
+  {{if gt (len .Data.Workflow.Workflows) 0}}
+  <div class="section">
+    <div class="section-title">3. Workflow Levels</div>
+    <table class="data">
+      <thead>
+        <tr>
+          <th style="width:12%;">Level</th>
+          <th style="width:48%;">Reviewer</th>
+          <th style="width:23%;">Date</th>
+          <th style="width:17%;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $workflow := .Data.Workflow.Workflows}}
+        <tr>
+          <td>Level {{$workflow.Level}}</td>
+          <td>{{range $index, $user := $workflow.ApprovedUsers}}{{if $user}}{{if $index}}, {{end}}{{$user.FirstNameEN}} {{$user.LastNameEN}}{{end}}{{else}}-{{end}}</td>
+          <td>{{if $workflow.ApprovedAtString}}{{$workflow.ApprovedAtString}}{{else}}-{{end}}</td>
+          <td><span style="display:inline-block; padding:2px 6px; border-radius:4px; color:{{$workflow.CurrentStatus.ColorCode}}; border:1px solid {{$workflow.CurrentStatus.ColorCode}};">{{$workflow.CurrentStatus.TitleEn}}</span></td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+  {{end}}
+</body>
+</html>

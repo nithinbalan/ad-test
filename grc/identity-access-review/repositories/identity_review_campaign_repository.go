@@ -17,6 +17,7 @@ type IdentityReviewCampaignRepositoryInterface interface {
 	GetAll(params *dtos.IdentityReviewCampaignListQueryParamsDTO) (*dtos.IdentityReviewCampaignListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.IdentityReviewCampaign, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IdentityReviewCampaign, error)
+	GetExportUsers(id uint) ([]*dtos.IdentityReviewCampaignExportUserDTO, error)
 	Create(campaign *models.IdentityReviewCampaign, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(campaign *models.IdentityReviewCampaign, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -190,6 +191,38 @@ func (repo *IdentityReviewCampaignRepository) GetFullDetailsByID(id uint, tx ...
 	}
 
 	return &campaign, nil
+}
+
+func (repo *IdentityReviewCampaignRepository) GetExportUsers(id uint) ([]*dtos.IdentityReviewCampaignExportUserDTO, error) {
+	var users []*dtos.IdentityReviewCampaignExportUserDTO
+
+	err := repo.db.Table("identity_review_users").
+		Select(`
+			identity_review_users.id,
+			identity_review_users.username,
+			identity_review_users.user_identifier,
+			identity_review_users.last_login,
+			identity_review_users.current_role,
+			departments.title_en AS department_title_en,
+			account_types.title_en AS account_type_title_en,
+			privileged_accounts.title_en AS privilege_title_en,
+			identity_review_users.account_decision_id,
+			account_decisions.title_en AS account_decision_title_en,
+			account_decisions.color_code AS account_decision_color_code,
+			account_decisions.type AS account_decision_type
+		`).
+		Joins("INNER JOIN organization_units AS departments ON departments.id = identity_review_users.department_id").
+		Joins("LEFT JOIN account_types ON account_types.id = identity_review_users.account_type_id").
+		Joins("LEFT JOIN privileged_accounts ON privileged_accounts.id = identity_review_users.privilege_id").
+		Joins("LEFT JOIN account_decisions ON account_decisions.id = identity_review_users.account_decision_id").
+		Where("identity_review_users.identity_review_campaign_id = ?", id).
+		Order("identity_review_users.username ASC, identity_review_users.id ASC").
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (repo *IdentityReviewCampaignRepository) Create(campaign *models.IdentityReviewCampaign, tx ...utility.DatabaseTransaction) (uint, error) {

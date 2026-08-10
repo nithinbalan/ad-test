@@ -220,11 +220,21 @@ func (ircws *IdentityReviewCampaignWorkflowService) GetWorkflowList(campaignID u
 		}
 
 		for _, review := range workflow.IdentityReviewCampaignWorkflowReviews {
+			reviewUser := review.CreatedByUser
+			if reviewUser == nil {
+				for _, participant := range workflow.IdentityReviewCampaignWorkflowParticipants {
+					if participant.UserID == review.CreatedByID {
+						reviewUser = participant.User
+						break
+					}
+				}
+			}
 			if review.WorkflowStatus != nil && review.WorkflowStatus.Type == "approve" {
-				workflowItem.ApprovedUsers = append(workflowItem.ApprovedUsers, ircws.mapUserToDTO(review.CreatedByUser))
+				workflowItem.ApprovedUsers = append(workflowItem.ApprovedUsers, ircws.mapUserToDTO(reviewUser))
 				t := review.CreatedAt
 				if workflowItem.ApprovedAt == nil || t.After(*workflowItem.ApprovedAt) {
 					workflowItem.ApprovedAt = &t
+					workflowItem.ApprovedAtString = t.Format("02 Jan 2006 03:04 PM")
 				}
 				if workflow.Level == maxLevel && campaign.NextReviewLevel == nil {
 					result.ApprovedAt = &t
@@ -232,7 +242,7 @@ func (ircws *IdentityReviewCampaignWorkflowService) GetWorkflowList(campaignID u
 				}
 			}
 			if review.WorkflowStatus != nil && review.WorkflowStatus.Type == "reject" {
-				workflowItem.RejectedUser = ircws.mapUserToDTO(review.CreatedByUser)
+				workflowItem.RejectedUser = ircws.mapUserToDTO(reviewUser)
 				t := review.CreatedAt
 				workflowItem.RejectedAt = &t
 			}

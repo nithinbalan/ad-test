@@ -2,10 +2,12 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"jethur/grc/identity-access-review/dtos"
 	"jethur/grc/identity-access-review/services"
 	"jethur/utility"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -259,4 +261,37 @@ func (ircc *IdentityReviewCampaignController) DownloadIdentityReviewCampaignDocu
 	c.Header("Cache-Control", "must-revalidate")
 	c.Header("Pragma", "public")
 	c.File(documentPath)
+}
+
+func (ircc *IdentityReviewCampaignController) ExportIdentityReviewCampaignZip(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	zipFilePath, err := ircc.service.ExportZip(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(nil, c, e.Error())
+		}
+		return
+	}
+
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=identity_review_campaign_%d.zip", id))
+	c.File(zipFilePath)
+
+	defer os.Remove(zipFilePath)
 }

@@ -9,10 +9,12 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -27,6 +29,8 @@ type IdentityReviewCampaignServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(id uint, token string) (string, error)
 	CalculateAndUpdateCompletionPercentage(id uint, tx ...utility.DatabaseTransaction) error
+	ExportZip(id uint, currentUserID uint) (string, error)
+	SetIdentityReviewCampaignWorkflowService(svc IdentityReviewCampaignWorkflowServiceInterface)
 }
 
 func (ircs *IdentityReviewCampaignService) CalculateAndUpdateCompletionPercentage(id uint, tx ...utility.DatabaseTransaction) error {
@@ -34,11 +38,17 @@ func (ircs *IdentityReviewCampaignService) CalculateAndUpdateCompletionPercentag
 }
 
 type IdentityReviewCampaignService struct {
-	repo                    repositories.IdentityReviewCampaignRepositoryInterface
-	activityLogSvc          logServices.ActivityLogServiceInterface
-	reviewTypeSvc           ReviewTypeServiceInterface
-	reviewCampaignStatusSvc ReviewCampaignStatusServiceInterface
-	userSvc                 organizationServices.UserServiceInterface
+	repo                              repositories.IdentityReviewCampaignRepositoryInterface
+	activityLogSvc                    logServices.ActivityLogServiceInterface
+	reviewTypeSvc                     ReviewTypeServiceInterface
+	reviewCampaignStatusSvc           ReviewCampaignStatusServiceInterface
+	userSvc                           organizationServices.UserServiceInterface
+	reportTemplateSettingSvc          settingsServices.ReportTemplateSettingServiceInterface
+	identityReviewCampaignWorkflowSvc IdentityReviewCampaignWorkflowServiceInterface
+}
+
+func (ircs *IdentityReviewCampaignService) SetIdentityReviewCampaignWorkflowService(svc IdentityReviewCampaignWorkflowServiceInterface) {
+	ircs.identityReviewCampaignWorkflowSvc = svc
 }
 
 func NewIdentityReviewCampaignService(
@@ -47,13 +57,15 @@ func NewIdentityReviewCampaignService(
 	reviewTypeSvc ReviewTypeServiceInterface,
 	reviewCampaignStatusSvc ReviewCampaignStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	reportTemplateSettingSvc settingsServices.ReportTemplateSettingServiceInterface,
 ) IdentityReviewCampaignServiceInterface {
 	return &IdentityReviewCampaignService{
-		repo:                    repo,
-		activityLogSvc:          activityLogSvc,
-		reviewTypeSvc:           reviewTypeSvc,
-		reviewCampaignStatusSvc: reviewCampaignStatusSvc,
-		userSvc:                 userSvc,
+		repo:                     repo,
+		activityLogSvc:           activityLogSvc,
+		reviewTypeSvc:            reviewTypeSvc,
+		reviewCampaignStatusSvc:  reviewCampaignStatusSvc,
+		userSvc:                  userSvc,
+		reportTemplateSettingSvc: reportTemplateSettingSvc,
 	}
 }
 
@@ -621,4 +633,150 @@ func (ircs *IdentityReviewCampaignService) GetDocumentPath(id uint, token string
 	}
 
 	return fullPath, nil
+}
+
+func (ircs *IdentityReviewCampaignService) ExportZip(id uint, currentUserID uint) (string, error) {
+	if _, err := ircs.reportTemplateSettingSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := ircs.reportTemplateSettingSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover_image_missing")
+	}
+
+	campaign, err := ircs.repo.GetFullDetailsByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", utility.NewResourceNotFoundError(err, id)
+		}
+		return "", err
+	}
+
+	users, err := ircs.repo.GetExportUsers(id)
+	if err != nil {
+		return "", err
+	}
+
+	workflow, err := ircs.identityReviewCampaignWorkflowSvc.GetWorkflowList(id)
+	if err != nil {
+		return "", err
+	}
+
+	completionPercentage := campaign.CompletionPercentage
+	if completionPercentage < 0 {
+		completionPercentage = 0
+	} else if completionPercentage > 100 {
+		completionPercentage = 100
+	}
+
+	reviewerName := "-"
+	if campaign.Reviewer != nil {
+		reviewerName = campaign.Reviewer.FirstNameEn + " " + campaign.Reviewer.LastNameEn
+	}
+
+	reviewTypeTitleEn := "-"
+	if campaign.ReviewType != nil {
+		reviewTypeTitleEn = campaign.ReviewType.TitleEn
+	}
+
+	reminderDaysOffset := "-"
+	if campaign.ReminderDaysOffset != nil {
+		reminderDaysOffset = fmt.Sprintf("%d days", *campaign.ReminderDaysOffset)
+	}
+
+	assetTitleEn := "-"
+	if len(campaign.Systems) > 0 && campaign.Systems[0].AssetRegister != nil {
+		assetTitleEn = campaign.Systems[0].AssetRegister.TitleEn
+	}
+
+	campaignStatusTitleEn := "-"
+	campaignStatusColorCode := "#6b7280"
+	if campaign.CampaignStatus != nil {
+		campaignStatusTitleEn = campaign.CampaignStatus.TitleEn
+		campaignStatusColorCode = campaign.CampaignStatus.ColorCode
+	}
+
+	viewModel := dtos.IdentityReviewCampaignExportPDFDTO{
+		CampaignName:            campaign.CampaignName,
+		ReferenceNumber:         campaign.ReferenceNumber,
+		Description:             campaign.Description,
+		StartDate:               campaign.StartDate.Format("02 Jan 2006"),
+		DueDate:                 campaign.DueDate.Format("02 Jan 2006"),
+		GeneratedAt:             time.Now().Format("02 Jan 2006"),
+		ReviewTypeTitleEn:       reviewTypeTitleEn,
+		ReminderDaysOffset:      reminderDaysOffset,
+		AssetTitleEn:            assetTitleEn,
+		CampaignStatusTitleEn:   campaignStatusTitleEn,
+		CampaignStatusColorCode: campaignStatusColorCode,
+		ReviewerName:            reviewerName,
+		CompletionPercentage:    completionPercentage,
+		CompletionProgressDash:  float64(completionPercentage) * 4.555,
+		Users:                   users,
+		Workflow:                workflow,
+	}
+
+	bodyContent, err := utility.GeneratePDFContent(viewModel, []string{"identity-access-review/templates/pdf/identity_review_campaign_body.html"}, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate PDF body: %w", err)
+	}
+	coverContent, err := utility.GeneratePDFContent(viewModel, []string{"identity-access-review/templates/pdf/identity_review_campaign_cover.html"}, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate PDF cover: %w", err)
+	}
+	headerContent, err := utility.GeneratePDFContent(viewModel, []string{"identity-access-review/templates/pdf/identity_review_campaign_header.html"}, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate PDF header: %w", err)
+	}
+	footerContent, err := utility.GeneratePDFContent(viewModel, []string{"identity-access-review/templates/pdf/identity_review_campaign_footer.html"}, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate PDF footer: %w", err)
+	}
+
+	exportDir, err := os.MkdirTemp("", fmt.Sprintf("identity-review-campaign-%d-", id))
+	if err != nil {
+		return "", fmt.Errorf("failed to create temporary export directory: %w", err)
+	}
+	defer os.RemoveAll(exportDir)
+
+	pdfFileName := fmt.Sprintf("IdentityAccessReviewCampaign_%d.pdf", id)
+	pdfFilePath := filepath.Join(exportDir, pdfFileName)
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, bodyContent, pdfFilePath, headerContent, footerContent); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	filesToZip := []string{pdfFilePath}
+	usedFileNames := map[string]bool{pdfFileName: true}
+	for _, document := range campaign.Documents {
+		documentPath, err := ircs.GetDocumentPath(id, document.Token)
+		if err != nil {
+			return "", fmt.Errorf("failed to include document %d in export: %w", document.ID, err)
+		}
+
+		documentFileName := filepath.Base(document.OriginalName)
+		if documentFileName == "." || documentFileName == string(filepath.Separator) || documentFileName == "" {
+			documentFileName = filepath.Base(document.Name)
+		}
+		if usedFileNames[documentFileName] {
+			documentFileName = fmt.Sprintf("%d_%s", document.ID, documentFileName)
+		}
+		usedFileNames[documentFileName] = true
+
+		stagedDocumentPath := filepath.Join(exportDir, documentFileName)
+		if err := utility.CopyFile(documentPath, stagedDocumentPath); err != nil {
+			return "", fmt.Errorf("failed to stage document %d for export: %w", document.ID, err)
+		}
+		filesToZip = append(filesToZip, stagedDocumentPath)
+	}
+
+	zipDir := filepath.Join("storage", "zip")
+	if err := os.MkdirAll(zipDir, os.ModePerm); err != nil {
+		return "", fmt.Errorf("failed to create ZIP directory: %w", err)
+	}
+
+	zipFilePath := filepath.Join(zipDir, fmt.Sprintf("identity_review_campaign_%d.zip", id))
+	if err := utility.CreateZipFile(zipFilePath, filesToZip); err != nil {
+		_ = os.Remove(zipFilePath)
+		return "", fmt.Errorf("failed to create ZIP file: %w", err)
+	}
+
+	return zipFilePath, nil
 }

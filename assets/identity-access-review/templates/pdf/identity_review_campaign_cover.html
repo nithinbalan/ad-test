@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; background: #2F4C81; font-family: 'Lexend Deca', sans-serif; }
+    @font-face { font-family: 'Lexend Deca'; src: url('{{.LexandDecaFont400}}') format('woff'); font-weight: 400; }
+    @font-face { font-family: 'Lexend Deca'; src: url('{{.LexandDecaFont600}}') format('woff'); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div style="width:1000px; margin:0 auto; background:#2F4C81;">
+    <div style="height:1304px; position:relative; background:url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) center center no-repeat; background-size:cover;">
+      <img src="{{.ApiPath}}/report-template-settings/image-preview?type=logo" alt="Logo"
+        style="position:absolute; top:60px; left:60px; max-height:150px; max-width:350px;" />
+      <div style="position:absolute; left:60px; right:60px; bottom:75px; text-align:center;">
+        <div style="font-size:36px; font-weight:600; color:#111827; margin-bottom:16px;">Identity Access Review</div>
+        <div style="font-size:25px; font-weight:400; color:#374151;">{{.Data.CampaignName}}</div>
+      </div>
+    </div>
+    <div style="height:110px; padding:0 45px; background:#2F4C81; color:#fff; box-sizing:border-box;">
+      <table style="width:100%; height:100%; color:#fff; border-collapse:collapse; table-layout:fixed;">
+        <tr>
+          <td style="width:33.33%; vertical-align:middle; text-align:center;">
+            <div style="font-size:12px; font-weight:400; opacity:.85;">Reference number</div>
+            <div style="font-size:15px; margin-top:5px;">{{.Data.ReferenceNumber}}</div>
+          </td>
+          <td style="width:33.33%; vertical-align:middle; text-align:center;">
+            <div style="font-size:12px; font-weight:400; opacity:.85;">Review period</div>
+            <div style="font-size:15px; margin-top:5px;">{{.Data.StartDate}} - {{.Data.DueDate}}</div>
+          </td>
+          <td style="width:33.34%; vertical-align:middle; text-align:center;">
+            <div style="font-size:12px; font-weight:400; opacity:.85;">Generated</div>
+            <div style="font-size:15px; margin-top:5px;">{{.Data.GeneratedAt}}</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

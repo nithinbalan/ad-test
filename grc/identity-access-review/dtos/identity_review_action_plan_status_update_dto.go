@@ -23,6 +23,7 @@ type IdentityReviewActionPlanStatusUpdateListDTO struct {
 	CreatedUserFirstNameAr     string                                                 `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn      string                                                 `json:"created_user_last_name_en"`
 	CreatedUserLastNameAr      string                                                 `json:"created_user_last_name_ar"`
+	CreatedUserInitial         string                                                 `json:"created_user_initial"`
 	Documents                  []*models.IdentityReviewActionPlanStatusUpdateDocument `json:"documents" gorm:"-"`
 }
 

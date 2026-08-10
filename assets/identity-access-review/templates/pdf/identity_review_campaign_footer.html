@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>body { margin:0; padding:0; font-family:'Lexend Deca', sans-serif; font-size:10px; }</style>
+</head>
+<body>
+  <div style="border-top:1px solid #dedede; margin:0 32px; padding-top:10px; overflow:hidden; color:#444;">
+    <div style="float:left;">www.jethur.com</div>
+    <div style="float:right;">Page <span class="page"></span></div>
+  </div>
+  <script>
+    var vars = {};
+    var values = document.location.search.substring(1).split('&');
+    for (var i in values) {
+      if (values.hasOwnProperty(i)) {
+        var pair = values[i].split('=', 2);
+        vars[pair[0]] = decodeURIComponent(pair[1]);
+      }
+    }
+    document.querySelector('.page').textContent = vars.page || '';
+  </script>
+</body>
+</html>

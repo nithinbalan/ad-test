@@ -216,6 +216,27 @@ func (iruc *IdentityReviewUserController) UpdateIdentityReviewUserAccountDecisio
 	c.JSON(http.StatusOK, identityReviewUser)
 }
 
+func (iruc *IdentityReviewUserController) GetIdentityReviewUserAccountDecisionHistory(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	history, err := iruc.service.GetAccountDecisionHistory(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(nil, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, history)
+}
+
 func (iruc *IdentityReviewUserController) DeleteIdentityReviewUsers(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids" binding:"required,min=1"`

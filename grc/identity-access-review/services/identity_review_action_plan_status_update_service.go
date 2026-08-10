@@ -25,7 +25,7 @@ type IdentityReviewActionPlanStatusUpdateServiceInterface interface {
 	GetAll(identityReviewUserID uint, identityReviewActionPlanID uint, sort string, sortBy string, keyword string) ([]*dtos.IdentityReviewActionPlanStatusUpdateListDTO, error)
 	Create(identityReviewUserID uint, identityReviewActionPlanID uint, currentUserID uint, identityReviewActionPlanStatusUpdateFormDTO *dtos.IdentityReviewActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(identityReviewUserID uint, identityReviewActionPlanID uint, id uint, currentUserID uint, identityReviewActionPlanStatusUpdateFormDTO *dtos.IdentityReviewActionPlanStatusUpdateFormDTO) error
-	GetLatestIdentityReviewActionPlanStatusUpdate(identityReviewUserID uint, identityReviewActionPlanID uint) (*models.IdentityReviewActionPlanStatusUpdate, error)
+	GetLatestIdentityReviewActionPlanStatusUpdate(identityReviewUserID uint, identityReviewActionPlanID uint) (*dtos.IdentityReviewActionPlanStatusUpdateListDTO, error)
 	GetDocumentPath(identityReviewUserID uint, identityReviewActionPlanID uint, id uint, token string) (string, error)
 	Approve(identityReviewUserID uint, identityReviewActionPlanID uint, currentUserID uint, identityReviewActionPlanReviewFormDTO *dtos.IdentityReviewActionPlanReviewFormDTO) error
 	Revert(identityReviewUserID uint, identityReviewActionPlanID uint, currentUserID uint, identityReviewActionPlanReviewFormDTO *dtos.IdentityReviewActionPlanReviewFormDTO) error
@@ -105,7 +105,7 @@ func (irapsus *IdentityReviewActionPlanStatusUpdateService) Create(identityRevie
 		ActionPlanStatusID:         identityReviewActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:                    identityReviewActionPlanStatusUpdateFormDTO.Comment,
 		Percentage:                 identityReviewActionPlanStatusUpdateFormDTO.Percentage,
-		CreatedByID:                currentUserID,
+		CreatedBYID:                currentUserID,
 	}
 
 	id, err := irapsus.repo.Create(identityReviewActionPlanUpdate, tx)
@@ -234,7 +234,7 @@ func (irapsus *IdentityReviewActionPlanStatusUpdateService) Update(identityRevie
 	existingIdentityReviewActionPlanStatusUpdate.ActionPlanStatusID = identityReviewActionPlanStatusUpdateFormDTO.ActionPlanStatusID
 	existingIdentityReviewActionPlanStatusUpdate.Comment = identityReviewActionPlanStatusUpdateFormDTO.Comment
 	existingIdentityReviewActionPlanStatusUpdate.Percentage = identityReviewActionPlanStatusUpdateFormDTO.Percentage
-	existingIdentityReviewActionPlanStatusUpdate.UpdatedByID = &currentUserID
+	existingIdentityReviewActionPlanStatusUpdate.UpdatedBYID = &currentUserID
 
 	err = irapsus.repo.Update(existingIdentityReviewActionPlanStatusUpdate, tx)
 	if err != nil {
@@ -377,7 +377,7 @@ func (irapsus *IdentityReviewActionPlanStatusUpdateService) Update(identityRevie
 	return nil
 }
 
-func (irapsus IdentityReviewActionPlanStatusUpdateService) GetLatestIdentityReviewActionPlanStatusUpdate(identityReviewUserID uint, actionPlanID uint) (*models.IdentityReviewActionPlanStatusUpdate, error) {
+func (irapsus IdentityReviewActionPlanStatusUpdateService) GetLatestIdentityReviewActionPlanStatusUpdate(identityReviewUserID uint, actionPlanID uint) (*dtos.IdentityReviewActionPlanStatusUpdateListDTO, error) {
 	if _, err := irapsus.identityReviewActionPlanSvc.GetByID(identityReviewUserID, actionPlanID); err != nil {
 		return nil, err
 	}
@@ -471,7 +471,7 @@ func (irapsus *IdentityReviewActionPlanStatusUpdateService) Approve(identityRevi
 		ActionPlanStatusID:         closedStatus.ID,
 		Percentage:                 &existingActionPlan.Percentage,
 		Comment:                    identityReviewActionPlanReviewFormDTO.Comment,
-		CreatedByID:                currentUserID,
+		CreatedBYID:                currentUserID,
 	}
 
 	id, err := irapsus.repo.Create(identityReviewActionPlanUpdate, tx)
@@ -578,7 +578,7 @@ func (irapsus *IdentityReviewActionPlanStatusUpdateService) Revert(identityRevie
 		ActionPlanStatusID:         reopenStatus.ID,
 		Percentage:                 &existingActionPlan.Percentage,
 		Comment:                    identityReviewActionPlanReviewFormDTO.Comment,
-		CreatedByID:                currentUserID,
+		CreatedBYID:                currentUserID,
 	}
 
 	id, err := irapsus.repo.Create(identityReviewActionPlanUpdate, tx)
