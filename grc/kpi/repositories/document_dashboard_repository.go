@@ -54,7 +54,7 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 	documentCountsQuery := repo.db.Table("documents d").
 		Select(`
 			COUNT(d.id) AS total_documents,
-			COALESCE(SUM(CASE WHEN ds.type = 'approved' THEN 1 ELSE 0 END), 0) AS approved_documents,
+			COALESCE(SUM(CASE WHEN ds.type IN ('approved', 'published') THEN 1 ELSE 0 END), 0) AS approved_documents,
 			COALESCE(SUM(CASE WHEN ds.type = 'published' THEN 1 ELSE 0 END), 0) AS published_documents
 		`).
 		Joins("LEFT JOIN document_statuses ds ON ds.id = d.document_status_id").
