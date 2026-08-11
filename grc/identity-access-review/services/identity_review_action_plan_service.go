@@ -46,6 +46,7 @@ type IdentityReviewActionPlanService struct {
 	accountDecisionSvc    AccountDecisionServiceInterface
 	privilegedSvc         PrivilegedAccountServiceInterface
 	userCommentSvc        IdentityReviewUserCommentServiceInterface
+	notificationSvc       commonServices.NotificationServiceInterface
 }
 
 func NewIdentityReviewActionPlanService(
@@ -61,6 +62,7 @@ func NewIdentityReviewActionPlanService(
 	accountDecisionSvc AccountDecisionServiceInterface,
 	privilegedSvc PrivilegedAccountServiceInterface,
 	userCommentSvc IdentityReviewUserCommentServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) IdentityReviewActionPlanServiceInterface {
 	return &IdentityReviewActionPlanService{
 		repo:                  repo,
@@ -75,6 +77,7 @@ func NewIdentityReviewActionPlanService(
 		accountDecisionSvc:    accountDecisionSvc,
 		privilegedSvc:         privilegedSvc,
 		userCommentSvc:        userCommentSvc,
+		notificationSvc:       notificationSvc,
 	}
 }
 
@@ -264,6 +267,30 @@ func (iraps *IdentityReviewActionPlanService) Create(identityReviewUserID uint, 
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		urlParam := fmt.Sprintf(`{"identity_review_user_id":%d,"action_plan_id":%d}`, identityReviewUserID, id)
+		entity := "identity-access-review-action-plan"
+		action := "responsible-user-assign"
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{actionPlan.ResponsibleUserID},
+			ModuleIdentifier:     "identity_access_review",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Identity Access Review Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل مراجعة الهوية والوصول",
+			TitleEn:              actionPlan.Title,
+			TitleAr:              actionPlan.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		if err := iraps.notificationSvc.SendNotification(dbNotificationDTO, nil, "identity_access_review_action_plan"); err != nil {
+			utility.LogError("Failed to send identity access review action plan creation notification", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 	}()
 

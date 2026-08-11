@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	"jethur/grc/identity-access-review/dtos"
 	"jethur/grc/identity-access-review/repositories"
 	logServices "jethur/grc/logs/services"
@@ -45,6 +47,7 @@ type IdentityReviewCampaignService struct {
 	userSvc                           organizationServices.UserServiceInterface
 	reportTemplateSettingSvc          settingsServices.ReportTemplateSettingServiceInterface
 	identityReviewCampaignWorkflowSvc IdentityReviewCampaignWorkflowServiceInterface
+	notificationSvc                   commonServices.NotificationServiceInterface
 }
 
 func (ircs *IdentityReviewCampaignService) SetIdentityReviewCampaignWorkflowService(svc IdentityReviewCampaignWorkflowServiceInterface) {
@@ -58,6 +61,7 @@ func NewIdentityReviewCampaignService(
 	reviewCampaignStatusSvc ReviewCampaignStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	reportTemplateSettingSvc settingsServices.ReportTemplateSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) IdentityReviewCampaignServiceInterface {
 	return &IdentityReviewCampaignService{
 		repo:                     repo,
@@ -66,6 +70,7 @@ func NewIdentityReviewCampaignService(
 		reviewCampaignStatusSvc:  reviewCampaignStatusSvc,
 		userSvc:                  userSvc,
 		reportTemplateSettingSvc: reportTemplateSettingSvc,
+		notificationSvc:          notificationSvc,
 	}
 }
 
@@ -254,6 +259,31 @@ func (ircs *IdentityReviewCampaignService) Create(currentUserID uint, formDTO *d
 			nil,
 		); err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		urlParam := fmt.Sprintf(`{"identity_review_campaign_id":%d}`, id)
+		entity := "identity-access-review-campaign"
+		action := "reviewer-assign"
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{campaign.ReviewerID},
+			ModuleIdentifier:     "identity_access_review",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      campaign.ReferenceNumber,
+			HeadingEn:            "Identity Access Review Campaign Assigned",
+			HeadingAr:            "تم تعيين حملة مراجعة الهوية والوصول",
+			TitleEn:              campaign.CampaignName,
+			TitleAr:              campaign.CampaignName,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		if err := ircs.notificationSvc.SendNotification(dbNotificationDTO, nil, "identity_access_review_campaign"); err != nil {
+			utility.LogError("Failed to send identity access review campaign creation notification", map[string]interface{}{
 				"error": err.Error(),
 			})
 		}

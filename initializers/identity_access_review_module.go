@@ -50,6 +50,7 @@ func NewIdentityAccessReviewModule(
 		reviewCampaignStatusSvc,
 		organizationModule.UserSvc,
 		settingsModule.ReportTemplateSettingSvc,
+		commonModule.NotificationService,
 	)
 	identityReviewCampaignController := controllers.NewIdentityReviewCampaignController(identityReviewCampaignSvc)
 
@@ -131,6 +132,7 @@ func NewIdentityAccessReviewModule(
 		accountDecisionSvc,
 		privilegedAccountSvc,
 		identityReviewUserCommentSvc,
+		commonModule.NotificationService,
 	)
 	identityReviewActionPlanController := controllers.NewIdentityReviewActionPlanController(identityReviewActionPlanSvc)
 
