@@ -34,6 +34,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentTimelineController := app.IncidentModule.IncidentTimelineController
 	incidentActionPlanCommentController := app.IncidentModule.IncidentActionPlanCommentController
 	IncidentReportController := app.IncidentModule.IncidentReportController
+	incidentResponseTeamController := app.IncidentModule.IncidentResponseTeamController
+	incidentImpactController := app.IncidentModule.IncidentImpactController
+	incidentScopeController := app.IncidentModule.IncidentScopeController
+	incidentSensitivityClassificationController := app.IncidentModule.IncidentSensitivityClassificationController
 
 	// Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -195,5 +199,39 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.PUT("/incidents-reports/:incidentReportId/sections/:sectionId", IncidentReportController.UpdateIncidentReportSection)
 	incidentRoutes.DELETE("/incidents-reports/:incidentReportId/sections/:sectionId", IncidentReportController.DeleteIncidentReportSection)
 	incidentRoutes.GET("/incidents-reports/:incidentReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), IncidentReportController.GetIncidentReportExportZip)
+
+	// Incident Response Team
+	incidentRoutes.GET("/incident-response-teams", incidentResponseTeamController.GetAllIncidentResponseTeams)
+	incidentRoutes.GET("/incident-response-teams/:id", incidentResponseTeamController.GetIncidentResponseTeamDetails)
+	incidentRoutes.POST("/incident-response-teams", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentResponseTeamController.CreateIncidentResponseTeam)
+	incidentRoutes.PUT("/incident-response-teams/:id", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentResponseTeamController.UpdateIncidentResponseTeam)
+	incidentRoutes.POST("/incident-response-teams/delete", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentResponseTeamController.DeleteIncidentResponseTeams)
+
+	// Incident Impact
+	incidentRoutes.GET("/incident-impacts", incidentImpactController.GetAllIncidentImpacts)
+	incidentRoutes.GET("/incident-impacts/:id", incidentImpactController.GetIncidentImpactDetails)
+	incidentRoutes.POST("/incident-impacts", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentImpactController.CreateIncidentImpact)
+	incidentRoutes.PUT("/incident-impacts/:id", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentImpactController.UpdateIncidentImpact)
+	incidentRoutes.POST("/incident-impacts/delete", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentImpactController.DeleteIncidentImpacts)
+	incidentRoutes.PUT("/incident-impacts/activate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentImpactController.ActivateIncidentImpacts)
+	incidentRoutes.PUT("/incident-impacts/deactivate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentImpactController.DeactivateIncidentImpacts)
+
+	// Incident Scope
+	incidentRoutes.GET("/incident-scopes", incidentScopeController.GetAllIncidentScopes)
+	incidentRoutes.GET("/incident-scopes/:id", incidentScopeController.GetIncidentScopeDetails)
+	incidentRoutes.POST("/incident-scopes", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentScopeController.CreateIncidentScope)
+	incidentRoutes.PUT("/incident-scopes/:id", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentScopeController.UpdateIncidentScope)
+	incidentRoutes.POST("/incident-scopes/delete", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentScopeController.DeleteIncidentScopes)
+	incidentRoutes.PUT("/incident-scopes/activate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentScopeController.ActivateIncidentScopes)
+	incidentRoutes.PUT("/incident-scopes/deactivate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentScopeController.DeactivateIncidentScopes)
+
+	// Incident Sensitivity Classification
+	incidentRoutes.GET("/incident-sensitivity-classifications", incidentSensitivityClassificationController.GetAllIncidentSensitivityClassifications)
+	incidentRoutes.GET("/incident-sensitivity-classifications/:id", incidentSensitivityClassificationController.GetIncidentSensitivityClassificationDetails)
+	incidentRoutes.POST("/incident-sensitivity-classifications", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentSensitivityClassificationController.CreateIncidentSensitivityClassification)
+	incidentRoutes.PUT("/incident-sensitivity-classifications/:id", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentSensitivityClassificationController.UpdateIncidentSensitivityClassification)
+	incidentRoutes.POST("/incident-sensitivity-classifications/delete", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentSensitivityClassificationController.DeleteIncidentSensitivityClassifications)
+	incidentRoutes.PUT("/incident-sensitivity-classifications/activate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentSensitivityClassificationController.ActivateIncidentSensitivityClassifications)
+	incidentRoutes.PUT("/incident-sensitivity-classifications/deactivate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentSensitivityClassificationController.DeactivateIncidentSensitivityClassifications)
 
 }
