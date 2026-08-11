@@ -25,10 +25,24 @@ type DocumentStatusByTypeDTO struct {
 	Total          int64  `json:"total"`
 }
 
-type DocumentOnTimeReviewTrendDTO struct {
-	Month              string   `json:"month"`
-	MonthLabel         string   `json:"month_label"`
-	OnTimePercentage   *float64 `json:"on_time_percentage"`
-	TargetPercentage   float64  `json:"target_percentage"`
-	VarianceFromTarget *float64 `json:"variance_from_target"`
+type DocumentConfidentialityClassificationDTO struct {
+	ConfidentialityClassificationID uint    `json:"confidentiality_classification_id"`
+	TitleEn                         string  `json:"title_en"`
+	TitleAr                         string  `json:"title_ar"`
+	Count                           int64   `json:"count"`
+	Percentage                      float64 `json:"percentage"`
+}
+
+type DocumentResponsibleUnitDTO struct {
+	ResponsibleUnitID uint    `json:"responsible_unit_id"`
+	TitleEn           string  `json:"title_en"`
+	TitleAr           string  `json:"title_ar"`
+	Count             int64   `json:"count"`
+	Percentage        float64 `json:"percentage"`
+}
+
+type DocumentReviewCountTrendDTO struct {
+	Month      string `json:"month"`
+	MonthLabel string `json:"month_label"`
+	Count      int64  `json:"count"`
 }

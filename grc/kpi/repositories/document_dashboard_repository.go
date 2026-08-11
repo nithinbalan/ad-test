@@ -12,7 +12,9 @@ import (
 type DocumentDashboardRepositoryInterface interface {
 	GetDocumentSummary(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentDashboardSummaryDTO, error)
 	GetDocumentStatusByType(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentStatusByTypeDTO, error)
-	GetDocumentOnTimeReviewTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error)
+	GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentConfidentialityClassificationDTO, error)
+	GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentResponsibleUnitDTO, error)
+	GetDocumentReviewCountTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentReviewCountTrendDTO, error)
 }
 
 type DocumentDashboardRepository struct {
@@ -35,13 +37,10 @@ type complianceRegisterLegislation struct {
 
 type documentMonthlyReviewCounts struct {
 	Month         time.Time
-	TotalReviews  int64
-	OnTimeReviews int64
+	DocumentCount int64
 }
 
 var eccLegislationNumberPattern = regexp.MustCompile(`(?i)(^|[^a-z0-9])ECC([^a-z0-9]|$)`)
-
-const documentOnTimeReviewTarget = 85.0
 
 func NewDocumentDashboardRepository(db *gorm.DB) DocumentDashboardRepositoryInterface {
 	return &DocumentDashboardRepository{db: db}
@@ -157,26 +156,37 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 		}
 	}
 
-	if len(eccComplianceRegisterIDs) > 0 && result.TotalDocuments > 0 {
-		var mappedDocumentCount int64
-		mappedDocumentsQuery := repo.db.Table("document_compliance_requirements dcr").
-			Joins("INNER JOIN documents d ON d.id = dcr.document_id").
-			Where("dcr.compliance_register_id IN ?", eccComplianceRegisterIDs).
-			Where("dcr.compliance_clause_id IS NOT NULL").
-			Where("d.is_internal = ? AND d.is_folder = ?", false, false)
-		if len(documentCategoryIDs) > 0 {
-			mappedDocumentsQuery = mappedDocumentsQuery.Where("d.document_category_id IN ?", documentCategoryIDs)
-		}
-		err = mappedDocumentsQuery.
-			Distinct("dcr.document_id").
-			Count(&mappedDocumentCount).Error
+	if len(eccComplianceRegisterIDs) > 0 {
+		var totalECCControlCount int64
+		err = repo.db.Table("compliance_controls cc").
+			Where("cc.compliance_register_id IN ?", eccComplianceRegisterIDs).
+			Distinct("cc.control_id").
+			Count(&totalECCControlCount).Error
 		if err != nil {
 			return nil, err
 		}
 
-		result.ECCControlsDocumentedPercentage = roundToOneDecimal(
-			float64(mappedDocumentCount) * 100 / float64(result.TotalDocuments),
-		)
+		var documentedECCControlCount int64
+		documentedControlsQuery := repo.db.Table("compliance_controls cc").
+			Joins("INNER JOIN document_controls dc ON dc.control_id = cc.control_id").
+			Joins("INNER JOIN documents d ON d.id = dc.document_id").
+			Where("cc.compliance_register_id IN ?", eccComplianceRegisterIDs).
+			Where("d.is_internal = ? AND d.is_folder = ?", false, false)
+		if len(documentCategoryIDs) > 0 {
+			documentedControlsQuery = documentedControlsQuery.Where("d.document_category_id IN ?", documentCategoryIDs)
+		}
+		err = documentedControlsQuery.
+			Distinct("cc.control_id").
+			Count(&documentedECCControlCount).Error
+		if err != nil {
+			return nil, err
+		}
+
+		if totalECCControlCount > 0 {
+			result.ECCControlsDocumentedPercentage = roundToOneDecimal(
+				float64(documentedECCControlCount) * 100 / float64(totalECCControlCount),
+			)
+		}
 	}
 
 	return result, nil
@@ -240,7 +250,96 @@ func (repo *DocumentDashboardRepository) GetDocumentStatusByType(params *kpiDTOs
 	return result, nil
 }
 
-func (repo *DocumentDashboardRepository) GetDocumentOnTimeReviewTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error) {
+func (repo *DocumentDashboardRepository) GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentConfidentialityClassificationDTO, error) {
+	result := []kpiDTOs.DocumentConfidentialityClassificationDTO{}
+	documentCategoryIDs := params.Filters["document_category_id"]
+
+	query := repo.db.Table("confidentiality_classifications cc").
+		Select(`
+			cc.id AS confidentiality_classification_id,
+			cc.title_en,
+			cc.title_ar,
+			COUNT(d.id) AS count
+		`)
+	documentJoin := `LEFT JOIN documents d
+		ON d.confidentiality_classification_id = cc.id
+		AND d.is_internal = 0
+		AND d.is_folder = 0`
+	if len(documentCategoryIDs) > 0 {
+		documentJoin += " AND d.document_category_id IN ?"
+		query = query.Joins(documentJoin, documentCategoryIDs)
+	} else {
+		query = query.Joins(documentJoin)
+	}
+	err := query.
+		Where("cc.status = ?", "active").
+		Group("cc.id, cc.title_en, cc.title_ar").
+		Order("COUNT(d.id) DESC, cc.title_en ASC").
+		Scan(&result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var totalDocumentCount int64
+	for _, item := range result {
+		totalDocumentCount += item.Count
+	}
+	if totalDocumentCount > 0 {
+		for index := range result {
+			result[index].Percentage = roundToOneDecimal(
+				float64(result[index].Count) * 100 / float64(totalDocumentCount),
+			)
+		}
+	}
+
+	return result, nil
+}
+
+func (repo *DocumentDashboardRepository) GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentResponsibleUnitDTO, error) {
+	result := []kpiDTOs.DocumentResponsibleUnitDTO{}
+	documentCategoryIDs := params.Filters["document_category_id"]
+
+	query := repo.db.Table("organization_units ou").
+		Select(`
+			ou.id AS responsible_unit_id,
+			ou.title_en,
+			ou.title_ar,
+			COUNT(d.id) AS count
+		`)
+	documentJoin := `LEFT JOIN documents d
+		ON d.responsible_unit_id = ou.id
+		AND d.is_internal = 0
+		AND d.is_folder = 0`
+	if len(documentCategoryIDs) > 0 {
+		documentJoin += " AND d.document_category_id IN ?"
+		query = query.Joins(documentJoin, documentCategoryIDs)
+	} else {
+		query = query.Joins(documentJoin)
+	}
+	err := query.
+		Group("ou.id, ou.title_en, ou.title_ar").
+		Order("COUNT(d.id) DESC, ou.title_en ASC").
+		Scan(&result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var totalDocumentCount int64
+	for _, item := range result {
+		totalDocumentCount += item.Count
+	}
+	if totalDocumentCount > 0 {
+		for index := range result {
+			result[index].Percentage = roundToOneDecimal(
+				float64(result[index].Count) * 100 / float64(totalDocumentCount),
+			)
+		}
+	}
+
+	return result, nil
+}
+
+func (repo *DocumentDashboardRepository) GetDocumentReviewCountTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentReviewCountTrendDTO, error) {
 	documentCategoryIDs := params.Filters["document_category_id"]
 	now := time.Now().UTC()
 	currentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
@@ -251,15 +350,11 @@ func (repo *DocumentDashboardRepository) GetDocumentOnTimeReviewTrend(params *kp
 	query := repo.db.Table("document_reviews dr").
 		Select(`
 			DATEFROMPARTS(YEAR(dr.review_date), MONTH(dr.review_date), 1) AS month,
-			COUNT(dr.id) AS total_reviews,
-			COALESCE(SUM(CASE
-				WHEN dr.review_date <= d.next_review_date THEN 1 ELSE 0 END
-			), 0) AS on_time_reviews
+			COUNT(DISTINCT dr.document_id) AS document_count
 		`).
 		Joins("INNER JOIN documents d ON d.id = dr.document_id").
 		Where("dr.review_date >= ? AND dr.review_date < ?", startMonth, nextMonth).
 		Where("dr.review_date <= CAST(GETDATE() AS date)").
-		Where("d.next_review_date IS NOT NULL").
 		Where("d.is_internal = ? AND d.is_folder = ?", false, false)
 	if len(documentCategoryIDs) > 0 {
 		query = query.Where("d.document_category_id IN ?", documentCategoryIDs)
@@ -276,22 +371,16 @@ func (repo *DocumentDashboardRepository) GetDocumentOnTimeReviewTrend(params *kp
 		countsByMonth[counts.Month.Format("2006-01")] = counts
 	}
 
-	result := make([]kpiDTOs.DocumentOnTimeReviewTrendDTO, 0, 12)
+	result := make([]kpiDTOs.DocumentReviewCountTrendDTO, 0, 12)
 	for month := startMonth; month.Before(nextMonth); month = month.AddDate(0, 1, 0) {
 		monthKey := month.Format("2006-01")
-		item := kpiDTOs.DocumentOnTimeReviewTrendDTO{
-			Month:            monthKey,
-			MonthLabel:       month.Format("Jan"),
-			TargetPercentage: documentOnTimeReviewTarget,
+		item := kpiDTOs.DocumentReviewCountTrendDTO{
+			Month:      monthKey,
+			MonthLabel: month.Format("Jan"),
 		}
 
-		if counts, ok := countsByMonth[monthKey]; ok && counts.TotalReviews > 0 {
-			percentage := roundToOneDecimal(
-				float64(counts.OnTimeReviews) * 100 / float64(counts.TotalReviews),
-			)
-			variance := roundToOneDecimal(percentage - documentOnTimeReviewTarget)
-			item.OnTimePercentage = &percentage
-			item.VarianceFromTarget = &variance
+		if counts, ok := countsByMonth[monthKey]; ok {
+			item.Count = counts.DocumentCount
 		}
 
 		result = append(result, item)

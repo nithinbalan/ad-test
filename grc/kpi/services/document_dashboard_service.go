@@ -8,7 +8,9 @@ import (
 type DocumentDashboardServiceInterface interface {
 	GetDocumentSummary(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentDashboardSummaryDTO, error)
 	GetDocumentStatusByType(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentStatusByTypeDTO, error)
-	GetDocumentOnTimeReviewTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error)
+	GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentConfidentialityClassificationDTO, error)
+	GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentResponsibleUnitDTO, error)
+	GetDocumentReviewCountTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentReviewCountTrendDTO, error)
 }
 
 type DocumentDashboardService struct {
@@ -27,6 +29,14 @@ func (service *DocumentDashboardService) GetDocumentStatusByType(params *kpiDTOs
 	return service.repo.GetDocumentStatusByType(params)
 }
 
-func (service *DocumentDashboardService) GetDocumentOnTimeReviewTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentOnTimeReviewTrendDTO, error) {
-	return service.repo.GetDocumentOnTimeReviewTrend(params)
+func (service *DocumentDashboardService) GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentConfidentialityClassificationDTO, error) {
+	return service.repo.GetDocumentsByConfidentialityClassification(params)
+}
+
+func (service *DocumentDashboardService) GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentResponsibleUnitDTO, error) {
+	return service.repo.GetDocumentsByResponsibleUnit(params)
+}
+
+func (service *DocumentDashboardService) GetDocumentReviewCountTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentReviewCountTrendDTO, error) {
+	return service.repo.GetDocumentReviewCountTrend(params)
 }

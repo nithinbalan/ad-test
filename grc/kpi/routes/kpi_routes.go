@@ -138,5 +138,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Document Dashboard
 	kpiRoutes.GET("/kpis/document/summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentSummary)
 	kpiRoutes.GET("/kpis/document/status-by-type", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentStatusByType)
-	kpiRoutes.GET("/kpis/document/on-time-review-trend", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentOnTimeReviewTrend)
+	kpiRoutes.GET("/kpis/document/by-confidentiality-classification", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentsByConfidentialityClassification)
+	kpiRoutes.GET("/kpis/document/by-responsible-unit", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentsByResponsibleUnit)
+	kpiRoutes.GET("/kpis/document/review-count-trend", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentReviewCountTrend)
 }

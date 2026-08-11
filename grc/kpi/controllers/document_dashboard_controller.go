@@ -51,14 +51,46 @@ func (controller *DocumentDashboardController) GetDocumentStatusByType(c *gin.Co
 	c.JSON(http.StatusOK, response)
 }
 
-func (controller *DocumentDashboardController) GetDocumentOnTimeReviewTrend(c *gin.Context) {
+func (controller *DocumentDashboardController) GetDocumentsByConfidentialityClassification(c *gin.Context) {
 	allowedParams := []string{
 		"document_category_ids",
 	}
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 	queryParams := &kpiDTOs.DocumentDashboardQueryParamsDTO{Filters: filters}
 
-	response, err := controller.service.GetDocumentOnTimeReviewTrend(queryParams)
+	response, err := controller.service.GetDocumentsByConfidentialityClassification(queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(controller.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (controller *DocumentDashboardController) GetDocumentsByResponsibleUnit(c *gin.Context) {
+	allowedParams := []string{
+		"document_category_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+	queryParams := &kpiDTOs.DocumentDashboardQueryParamsDTO{Filters: filters}
+
+	response, err := controller.service.GetDocumentsByResponsibleUnit(queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(controller.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (controller *DocumentDashboardController) GetDocumentReviewCountTrend(c *gin.Context) {
+	allowedParams := []string{
+		"document_category_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+	queryParams := &kpiDTOs.DocumentDashboardQueryParamsDTO{Filters: filters}
+
+	response, err := controller.service.GetDocumentReviewCountTrend(queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(controller.db, c, err.Error())
 		return
