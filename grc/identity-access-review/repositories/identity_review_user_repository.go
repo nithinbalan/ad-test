@@ -17,6 +17,9 @@ type IdentityReviewUserRepositoryInterface interface {
 	Create(identityReviewUser *models.IdentityReviewUser, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(identityReviewUser *models.IdentityReviewUser, tx ...utility.DatabaseTransaction) error
 	UpdateAccountDecision(identityReviewUser *models.IdentityReviewUser, tx ...utility.DatabaseTransaction) error
+	CreateAccountDecisionHistory(history *models.IdentityReviewUserAccountDecisionHistory, tx ...utility.DatabaseTransaction) error
+	GetAccountDecisionHistory(identityReviewUserID uint) ([]*dtos.IdentityReviewUserAccountDecisionHistoryDTO, error)
+	DeleteAccountDecisionHistory(identityReviewUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdatePrivilege(identityReviewUser *models.IdentityReviewUser, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
@@ -213,6 +216,60 @@ func (repo *IdentityReviewUserRepository) UpdateAccountDecision(identityReviewUs
 			"updated_by_id":       identityReviewUser.UpdatedByID,
 			"updated_at":          identityReviewUser.UpdatedAt,
 		}).Error
+}
+
+func (repo *IdentityReviewUserRepository) CreateAccountDecisionHistory(history *models.IdentityReviewUserAccountDecisionHistory, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(history).Error
+}
+
+func (repo *IdentityReviewUserRepository) GetAccountDecisionHistory(identityReviewUserID uint) ([]*dtos.IdentityReviewUserAccountDecisionHistoryDTO, error) {
+	var histories []*dtos.IdentityReviewUserAccountDecisionHistoryDTO
+
+	err := repo.db.Table("identity_review_user_account_decision_histories AS history").
+		Select(`
+			history.id,
+			history.identity_review_user_id,
+			history.account_decision_id,
+			history.created_at,
+			account_decisions.title_en AS account_decision_title_en,
+			account_decisions.title_ar AS account_decision_title_ar,
+			account_decisions.color_code AS account_decision_color_code,
+			account_decisions.type AS account_decision_type,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path
+		`).
+		Joins("INNER JOIN account_decisions ON account_decisions.id = history.account_decision_id").
+		Joins("INNER JOIN users AS created_user ON created_user.id = history.created_by_id").
+		Where("history.identity_review_user_id = ?", identityReviewUserID).
+		Order("history.created_at DESC, history.id DESC").
+		Find(&histories).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return histories, nil
+}
+
+func (repo *IdentityReviewUserRepository) DeleteAccountDecisionHistory(identityReviewUserID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("identity_review_user_id = ?", identityReviewUserID).
+		Delete(&models.IdentityReviewUserAccountDecisionHistory{}).Error
 }
 
 func (repo *IdentityReviewUserRepository) UpdatePrivilege(identityReviewUser *models.IdentityReviewUser, tx ...utility.DatabaseTransaction) error {

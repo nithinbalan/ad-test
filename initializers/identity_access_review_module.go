@@ -49,6 +49,8 @@ func NewIdentityAccessReviewModule(
 		reviewTypeSvc,
 		reviewCampaignStatusSvc,
 		organizationModule.UserSvc,
+		settingsModule.ReportTemplateSettingSvc,
+		commonModule.NotificationService,
 	)
 	identityReviewCampaignController := controllers.NewIdentityReviewCampaignController(identityReviewCampaignSvc)
 
@@ -61,6 +63,7 @@ func NewIdentityAccessReviewModule(
 		organizationModule.UserSvc,
 		organizationModule.OrganizationUnitsSvc,
 	)
+	identityReviewCampaignSvc.SetIdentityReviewCampaignWorkflowService(identityReviewCampaignWorkflowSvc)
 	identityReviewCampaignWorkflowController := controllers.NewIdentityReviewCampaignWorkflowController(identityReviewCampaignWorkflowSvc)
 
 	identityReviewCampaignReviewRepo := repositories.NewIdentityReviewCampaignReviewRepository(db)
@@ -129,6 +132,7 @@ func NewIdentityAccessReviewModule(
 		accountDecisionSvc,
 		privilegedAccountSvc,
 		identityReviewUserCommentSvc,
+		commonModule.NotificationService,
 	)
 	identityReviewActionPlanController := controllers.NewIdentityReviewActionPlanController(identityReviewActionPlanSvc)
 

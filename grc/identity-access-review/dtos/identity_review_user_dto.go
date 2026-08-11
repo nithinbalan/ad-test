@@ -21,6 +21,26 @@ type IdentityReviewUserAccountDecisionUpdateFormDTO struct {
 	AccountDecisionID uint `json:"account_decision_id" binding:"required"`
 }
 
+type IdentityReviewUserAccountDecisionHistoryDTO struct {
+	ID                          uint      `json:"id"`
+	IdentityReviewUserID        uint      `json:"identity_review_user_id"`
+	AccountDecisionID           uint      `json:"account_decision_id"`
+	AccountDecisionTitleEn      string    `json:"account_decision_title_en"`
+	AccountDecisionTitleAr      string    `json:"account_decision_title_ar"`
+	AccountDecisionColorCode    string    `json:"account_decision_color_code"`
+	AccountDecisionType         string    `json:"account_decision_type"`
+	CreatedAt                   time.Time `json:"created_at"`
+	CreatedUserID               uint      `json:"created_user_id"`
+	CreatedUserFirstNameEn      string    `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string    `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string    `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string    `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string    `json:"created_user_initial"`
+	CreatedUserColor            string    `json:"created_user_color"`
+	CreatedUserEmail            string    `json:"created_user_email"`
+	CreatedUserProfileImagePath *string   `json:"created_user_profile_image_path"`
+}
+
 type IdentityReviewUserPrivilegeUpdateFormDTO struct {
 	PrivilegeID *uint `json:"privilege_id" binding:"omitempty"`
 }

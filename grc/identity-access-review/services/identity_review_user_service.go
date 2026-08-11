@@ -23,6 +23,7 @@ type IdentityReviewUserServiceInterface interface {
 	GetAll(params *dtos.IdentityReviewUserListQueryParamsDTO) (*dtos.IdentityReviewUserListResponseDTO, error)
 	GetByID(id uint) (*models.IdentityReviewUser, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewUserDetailDTO, error)
+	GetAccountDecisionHistory(id uint) ([]*dtos.IdentityReviewUserAccountDecisionHistoryDTO, error)
 	Create(currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*dtos.IdentityReviewUserDetailDTO, error)
 	Update(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserFormDTO) (*dtos.IdentityReviewUserDetailDTO, error)
 	UpdateAccountDecision(id uint, currentUserID uint, formDTO *dtos.IdentityReviewUserAccountDecisionUpdateFormDTO, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewUserDetailDTO, error)
@@ -78,6 +79,14 @@ func (irus *IdentityReviewUserService) GetByID(id uint) (*models.IdentityReviewU
 	}
 
 	return identityReviewUser, nil
+}
+
+func (irus *IdentityReviewUserService) GetAccountDecisionHistory(id uint) ([]*dtos.IdentityReviewUserAccountDecisionHistoryDTO, error) {
+	if _, err := irus.GetByID(id); err != nil {
+		return nil, err
+	}
+
+	return irus.repo.GetAccountDecisionHistory(id)
 }
 
 func (irus *IdentityReviewUserService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.IdentityReviewUserDetailDTO, error) {
@@ -254,6 +263,7 @@ func (irus *IdentityReviewUserService) UpdateAccountDecision(id uint, currentUse
 		return nil, err
 	}
 	oldUser := *existingUser
+	decisionChanged := existingUser.AccountDecisionID == nil || *existingUser.AccountDecisionID != formDTO.AccountDecisionID
 
 	if existingUser.IdentityReviewCampaignID == 0 {
 		if ownsTransaction {
@@ -287,6 +297,20 @@ func (irus *IdentityReviewUserService) UpdateAccountDecision(id uint, currentUse
 			databaseTx.Rollback()
 		}
 		return nil, err
+	}
+
+	if decisionChanged {
+		history := &models.IdentityReviewUserAccountDecisionHistory{
+			IdentityReviewUserID: id,
+			AccountDecisionID:    formDTO.AccountDecisionID,
+			CreatedByID:          currentUserID,
+		}
+		if err := irus.repo.CreateAccountDecisionHistory(history, databaseTx); err != nil {
+			if ownsTransaction {
+				databaseTx.Rollback()
+			}
+			return nil, err
+		}
 	}
 
 	if err := irus.identityReviewCampaignSvc.CalculateAndUpdateCompletionPercentage(existingUser.IdentityReviewCampaignID, databaseTx); err != nil {
@@ -347,6 +371,11 @@ func (irus *IdentityReviewUserService) Delete(ids []uint, currentUserID uint) ([
 		}
 
 		tx := irus.repo.BeginTransaction()
+		if err := irus.repo.DeleteAccountDecisionHistory(id, tx); err != nil {
+			tx.Rollback()
+			failedIDs = append(failedIDs, id)
+			continue
+		}
 		if err := irus.repo.Delete(id, tx); err != nil {
 			tx.Rollback()
 			failedIDs = append(failedIDs, id)

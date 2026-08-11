@@ -20,7 +20,7 @@ type IdentityReviewActionPlanStatusUpdateRepositoryInterface interface {
 	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.IdentityReviewActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []uint, tx ...utility.DatabaseTransaction) error
 
-	GetLatestIdentityReviewActionPlanStatusUpdate(identityReviewActionPlanID uint) (*models.IdentityReviewActionPlanStatusUpdate, error)
+	GetLatestIdentityReviewActionPlanStatusUpdate(identityReviewActionPlanID uint) (*identityAccessReviewDTOs.IdentityReviewActionPlanStatusUpdateListDTO, error)
 }
 
 type IdentityReviewActionPlanStatusUpdateRepository struct {
@@ -58,7 +58,8 @@ func (repo *IdentityReviewActionPlanStatusUpdateRepository) GetAll(identityRevie
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
 			created_user.last_name_en AS created_user_last_name_en,
-			created_user.last_name_ar AS created_user_last_name_ar
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial
 		`).
 		Joins("JOIN identity_review_action_plans ON identity_review_action_plans.id = identity_review_action_plan_status_updates.identity_review_action_plan_id").
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = identity_review_action_plan_status_updates.action_plan_status_id").
@@ -98,20 +99,45 @@ func (repo *IdentityReviewActionPlanStatusUpdateRepository) GetByID(identityRevi
 	return &identityReviewActionPlanStatusUpdate, nil
 }
 
-func (repo *IdentityReviewActionPlanStatusUpdateRepository) GetLatestIdentityReviewActionPlanStatusUpdate(identityReviewActionPlanID uint) (*models.IdentityReviewActionPlanStatusUpdate, error) {
-	var identityReviewActionPlanStatusUpdate models.IdentityReviewActionPlanStatusUpdate
-	if err := repo.db.
-		Joins("CreatedByUser").
-		Joins("UpdatedByUser").
-		Preload("ActionPlanStatus").
-		Preload("Documents").
+func (repo *IdentityReviewActionPlanStatusUpdateRepository) GetLatestIdentityReviewActionPlanStatusUpdate(identityReviewActionPlanID uint) (*identityAccessReviewDTOs.IdentityReviewActionPlanStatusUpdateListDTO, error) {
+	var update identityAccessReviewDTOs.IdentityReviewActionPlanStatusUpdateListDTO
+
+	query := repo.db.Table("identity_review_action_plan_status_updates").
+		Select(`
+			identity_review_action_plan_status_updates.id,
+			identity_review_action_plan_status_updates.identity_review_action_plan_id,
+			identity_review_action_plans.title AS action_plan_title,
+			identity_review_action_plan_status_updates.action_plan_status_id,
+			action_plan_statuses.title_en AS action_plan_status_title_en,
+			action_plan_statuses.title_ar AS action_plan_status_title_ar,
+			action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
+			identity_review_action_plan_status_updates.comment,
+			identity_review_action_plan_status_updates.percentage,
+			CONVERT(VARCHAR, identity_review_action_plan_status_updates.created_at, 120) AS created_at,
+			CONVERT(VARCHAR, identity_review_action_plan_status_updates.updated_at, 120) AS updated_at,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial
+		`).
+		Joins("JOIN identity_review_action_plans ON identity_review_action_plans.id = identity_review_action_plan_status_updates.identity_review_action_plan_id").
+		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = identity_review_action_plan_status_updates.action_plan_status_id").
+		Joins("JOIN users AS created_user ON created_user.id = identity_review_action_plan_status_updates.created_by_id").
 		Where("identity_review_action_plan_status_updates.identity_review_action_plan_id = ?", identityReviewActionPlanID).
 		Order("identity_review_action_plan_status_updates.created_at DESC").
-		First(&identityReviewActionPlanStatusUpdate).Error; err != nil {
+		First(&update)
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	if err := repo.db.Where("identity_review_action_plan_status_update_id = ?", update.ID).Find(&update.Documents).Error; err != nil {
 		return nil, err
 	}
 
-	return &identityReviewActionPlanStatusUpdate, nil
+	return &update, nil
 }
 
 func (repo *IdentityReviewActionPlanStatusUpdateRepository) Create(identityReviewActionPlanStatusUpdate *models.IdentityReviewActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {

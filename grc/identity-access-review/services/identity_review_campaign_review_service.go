@@ -749,7 +749,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyWorkflowParticipants(cam
 	}
 
 	urlParam := fmt.Sprintf(`{"identity_review_campaign_id":%d}`, campaign.ID)
-	entity := "identity-review-campaign"
+	entity := "identity-access-review-campaign"
 	action := "review-user-assign"
 	appURL := utility.GetAppURL()
 	redirectURL := fmt.Sprintf("%s/identity-access-review/campaigns/%d/overview", appURL, campaign.ID)
@@ -797,7 +797,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyWorkflowParticipants(cam
 			EmailData:            emailData,
 		}
 
-		if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_access_review"); err != nil {
+		if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_access_review_campaign"); err != nil {
 			utility.LogError("Failed to send identity review workflow notification", map[string]interface{}{
 				"error": err.Error(),
 			})
@@ -816,7 +816,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyRevertedToPreviousLevel(
 
 	urlParam := fmt.Sprintf(`{"identity_review_campaign_id":%d}`, campaign.ID)
 
-	entity := "identity-review-campaign"
+	entity := "identity-access-review-campaign"
 	action := "reverted"
 
 	appURL := utility.GetAppURL()
@@ -833,7 +833,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyRevertedToPreviousLevel(
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{participant.User.ID},
-			ModuleIdentifier:     "identity_review",
+			ModuleIdentifier:     "identity_access_review",
 			NotificationType:     string(commonDTOs.RevertType),
 			ReferenceNumber:      campaign.ReferenceNumber,
 			HeadingEn:            "Identity Review Campaign Workflow",
@@ -865,7 +865,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyRevertedToPreviousLevel(
 			EmailData:            emailData,
 		}
 
-		if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_review"); err != nil {
+		if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_access_review_campaign"); err != nil {
 			utility.LogError("Failed to send identity review previous-level notification", map[string]interface{}{
 				"error": err.Error(),
 			})
@@ -892,12 +892,12 @@ func (ircrs *IdentityReviewCampaignReviewService) sendApprovalNotification(curre
 
 	urlParam := fmt.Sprintf(`{"identity_review_campaign_id":%d}`, campaign.ID)
 
-	entity := "identity-review-campaign"
+	entity := "identity-access-review-campaign"
 	action := "approval"
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserIDs:              []uint{submittedByID},
-		ModuleIdentifier:     "identity_review",
+		ModuleIdentifier:     "identity_access_review",
 		NotificationType:     string(commonDTOs.ApprovalType),
 		ReferenceNumber:      campaign.ReferenceNumber,
 		HeadingEn:            "Identity Review Campaign Workflow",
@@ -932,7 +932,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendApprovalNotification(curre
 		EmailData:            emailData,
 	}
 
-	if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_review"); err != nil {
+	if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_access_review_campaign"); err != nil {
 		utility.LogError("Failed to send identity review campaign approval notification", map[string]interface{}{
 			"error": err.Error(),
 		})
@@ -958,12 +958,12 @@ func (ircrs *IdentityReviewCampaignReviewService) sendRejectedNotification(curre
 
 	urlParam := fmt.Sprintf(`{"identity_review_campaign_id":%d}`, campaign.ID)
 
-	entity := "identity-review-campaign"
+	entity := "identity-access-review-campaign"
 	action := "rejected"
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserIDs:              []uint{submittedByID},
-		ModuleIdentifier:     "identity_review",
+		ModuleIdentifier:     "identity_access_review",
 		NotificationType:     string(commonDTOs.RejectType),
 		ReferenceNumber:      campaign.ReferenceNumber,
 		HeadingEn:            "Identity Review Campaign Workflow",
@@ -998,7 +998,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendRejectedNotification(curre
 		EmailData:            emailData,
 	}
 
-	if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_review"); err != nil {
+	if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_access_review_campaign"); err != nil {
 		utility.LogError("Failed to send identity review campaign rejection notification", map[string]interface{}{
 			"error": err.Error(),
 		})
@@ -1016,7 +1016,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendResubmittedNotification(cu
 
 	urlParam := fmt.Sprintf(`{"identity_review_campaign_id":%d}`, campaign.ID)
 
-	entity := "identity-review-campaign"
+	entity := "identity-access-review-campaign"
 	action := "resubmitted"
 
 	appURL := utility.GetAppURL()
@@ -1033,7 +1033,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendResubmittedNotification(cu
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{participant.User.ID},
-			ModuleIdentifier:     "identity_review",
+			ModuleIdentifier:     "identity_access_review",
 			NotificationType:     string(commonDTOs.ReviewType),
 			ReferenceNumber:      campaign.ReferenceNumber,
 			HeadingEn:            "Identity Review Campaign Workflow",
@@ -1065,7 +1065,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendResubmittedNotification(cu
 			EmailData:            emailData,
 		}
 
-		if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_review"); err != nil {
+		if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_access_review_campaign"); err != nil {
 			utility.LogError("Failed to send identity review resubmission notification", map[string]interface{}{
 				"error": err.Error(),
 			})
@@ -1092,12 +1092,12 @@ func (ircrs *IdentityReviewCampaignReviewService) sendRevertNotification(current
 
 	urlParam := fmt.Sprintf(`{"identity_review_campaign_id":%d}`, campaign.ID)
 
-	entity := "identity-review-campaign"
+	entity := "identity-access-review-campaign"
 	action := "reverted"
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserIDs:              []uint{submittedByID},
-		ModuleIdentifier:     "identity_review",
+		ModuleIdentifier:     "identity_access_review",
 		NotificationType:     string(commonDTOs.RevertType),
 		ReferenceNumber:      campaign.ReferenceNumber,
 		HeadingEn:            "Identity Review Campaign Workflow",
@@ -1132,7 +1132,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendRevertNotification(current
 		EmailData:            emailData,
 	}
 
-	if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_review"); err != nil {
+	if err := ircrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "identity_access_review_campaign"); err != nil {
 		utility.LogError("Failed to send identity review campaign revert notification", map[string]interface{}{
 			"error": err.Error(),
 		})

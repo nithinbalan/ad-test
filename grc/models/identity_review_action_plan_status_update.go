@@ -10,13 +10,13 @@ type IdentityReviewActionPlanStatusUpdate struct {
 	Percentage                 *uint      `json:"percentage" gorm:"default:null"`
 	CreatedAt                  time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                  *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedByID                uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID                *uint      `json:"updated_by_id" gorm:"default:null"`
+	CreatedBYID                uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID                *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	IdentityReviewActionPlan *IdentityReviewActionPlan                       `json:"identity_review_action_plan,omitempty" gorm:"foreignKey:IdentityReviewActionPlanID"`
 	ActionPlanStatus         *ActionPlanStatus                               `json:"action_plan_status" gorm:"foreignKey:ActionPlanStatusID"`
-	CreatedByUser            *User                                           `json:"created_by" gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser            *User                                           `json:"updated_by" gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser            *User                                           `json:"created_by" gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser            *User                                           `json:"updated_by" gorm:"foreignKey:UpdatedBYID"`
 	Documents                []*IdentityReviewActionPlanStatusUpdateDocument `json:"documents" gorm:"foreignKey:IdentityReviewActionPlanStatusUpdateID"`
 }
 

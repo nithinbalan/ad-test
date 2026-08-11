@@ -39,6 +39,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// identity review campaigns
 	identityAccessReviewRoutes.GET("/identity-access-review/review-campaigns", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "view"), identityReviewCampaignController.GetAllIdentityReviewCampaigns)
 	identityAccessReviewRoutes.GET("/identity-access-review/review-campaigns/:id", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "view"), identityReviewCampaignController.GetIdentityReviewCampaignDetails)
+	identityAccessReviewRoutes.GET("/identity-access-review/review-campaigns/:id/export-pdf", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "view"), identityReviewCampaignController.ExportIdentityReviewCampaignZip)
 	identityAccessReviewRoutes.POST("/identity-access-review/review-campaigns", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "modify"), identityReviewCampaignController.CreateIdentityReviewCampaign)
 	identityAccessReviewRoutes.PUT("/identity-access-review/review-campaigns/:id", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "modify"), identityReviewCampaignController.UpdateIdentityReviewCampaign)
 	identityAccessReviewRoutes.POST("/identity-access-review/review-campaigns/delete", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "modify"), identityReviewCampaignController.DeleteIdentityReviewCampaigns)
@@ -68,6 +69,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	identityAccessReviewRoutes.POST("/identity-access-review/identity-review-users", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "modify"), identityReviewUserController.CreateIdentityReviewUser)
 	identityAccessReviewRoutes.PUT("/identity-access-review/identity-review-users/:id", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "modify"), identityReviewUserController.UpdateIdentityReviewUser)
 	identityAccessReviewRoutes.PUT("/identity-access-review/identity-review-users/:id/account-decision", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "modify"), identityReviewUserController.UpdateIdentityReviewUserAccountDecision)
+	identityAccessReviewRoutes.GET("/identity-access-review/identity-review-users/:id/account-decision-history", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "view"), identityReviewUserController.GetIdentityReviewUserAccountDecisionHistory)
 	identityAccessReviewRoutes.POST("/identity-access-review/identity-review-users/delete", middlewares.RolePermissionMiddleware(app.DB, "review_campaign", "modify"), identityReviewUserController.DeleteIdentityReviewUsers)
 
 	// identity review user comments

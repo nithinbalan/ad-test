@@ -20,14 +20,15 @@ type IdentityReviewCampaignWorkflowListDTO struct {
 }
 
 type IdentityReviewCampaignWorkflowLevelDTO struct {
-	Level         int                                `json:"level"`
-	ApprovalType  string                             `json:"approval_type"`
-	ReviewUsers   []*organizationDTOs.UserMinimalDTO `json:"review_users"`
-	ApprovedUsers []*organizationDTOs.UserMinimalDTO `json:"approved_users"`
-	ApprovedAt    *time.Time                         `json:"approved_at"`
-	RejectedUser  *organizationDTOs.UserMinimalDTO   `json:"rejected_user"`
-	RejectedAt    *time.Time                         `json:"rejected_at"`
-	CurrentStatus masterDTOs.WorkflowStatusDTO       `json:"current_status"`
+	Level            int                                `json:"level"`
+	ApprovalType     string                             `json:"approval_type"`
+	ReviewUsers      []*organizationDTOs.UserMinimalDTO `json:"review_users"`
+	ApprovedUsers    []*organizationDTOs.UserMinimalDTO `json:"approved_users"`
+	ApprovedAt       *time.Time                         `json:"approved_at"`
+	ApprovedAtString string                             `json:"approved_at_string"`
+	RejectedUser     *organizationDTOs.UserMinimalDTO   `json:"rejected_user"`
+	RejectedAt       *time.Time                         `json:"rejected_at"`
+	CurrentStatus    masterDTOs.WorkflowStatusDTO       `json:"current_status"`
 }
 
 type IdentityReviewCampaignWorkflowHistoryDTO struct {
