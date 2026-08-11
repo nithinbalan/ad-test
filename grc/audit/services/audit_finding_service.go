@@ -23,6 +23,7 @@ import (
 
 type AuditFindingServiceInterface interface {
 	GetAll(params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error)
+	GetAllByAudit(auditID uint, params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingDetailDTO, error)
 	GetByID(id uint) (*models.AuditFinding, error)
 	Create(currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
@@ -71,6 +72,20 @@ func NewAuditFindingService(
 }
 
 func (afs *AuditFindingService) GetAll(params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error) {
+	return afs.repo.GetAll(params)
+}
+
+func (afs *AuditFindingService) GetAllByAudit(auditID uint, params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error) {
+	if _, err := afs.auditSvc.GetByID(auditID); err != nil {
+		return nil, err
+	}
+
+	if params.Filters == nil {
+		params.Filters = make(map[string][]string)
+	}
+
+	params.Filters["audit_findings.audit_id"] = []string{strconv.FormatUint(uint64(auditID), 10)}
+
 	return afs.repo.GetAll(params)
 }
 
