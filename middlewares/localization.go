@@ -29,8 +29,9 @@ func LocalizerMiddleware(bundle *i18n.Bundle) gin.HandlerFunc {
 
 		localizer := i18n.NewLocalizer(bundle, tag.String())
 
-		// Store the localizer in the context
+		// Store the localizer and bundle in the context
 		c.Set("localizer", localizer)
+		c.Set("i18n_bundle", bundle)
 		c.Next()
 	}
 }
