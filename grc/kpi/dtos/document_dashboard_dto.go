@@ -5,16 +5,17 @@ type DocumentDashboardQueryParamsDTO struct {
 }
 
 type DocumentDashboardSummaryDTO struct {
-	TotalDocuments                     int64    `json:"total_documents"`
-	TotalDocumentsChangePercentage     *float64 `json:"total_documents_change_percentage"`
-	ApprovedDocuments                  int64    `json:"approved_documents"`
-	ApprovedDocumentsChangePercentage  *float64 `json:"approved_documents_change_percentage"`
-	PublishedDocuments                 int64    `json:"published_documents"`
-	PublishedDocumentsChangePercentage *float64 `json:"published_documents_change_percentage"`
-	ReviewedOnTimePercentage           float64  `json:"reviewed_on_time_percentage"`
-	ReviewedOnTimeChangePercentage     *float64 `json:"reviewed_on_time_change_percentage"`
-	AverageApprovalTimeDays            float64  `json:"average_approval_time_days"`
-	ECCControlsDocumentedPercentage    float64  `json:"ecc_controls_documented_percentage"`
+	TotalDocuments                      int64    `json:"total_documents"`
+	TotalDocumentsChangePercentage      *float64 `json:"total_documents_change_percentage"`
+	ApprovedDocuments                   int64    `json:"approved_documents"`
+	ApprovedDocumentsChangePercentage   *float64 `json:"approved_documents_change_percentage"`
+	PublishedDocuments                  int64    `json:"published_documents"`
+	PublishedDocumentsChangePercentage  *float64 `json:"published_documents_change_percentage"`
+	ReviewedOnTimePercentage            float64  `json:"reviewed_on_time_percentage"`
+	ReviewedOnTimeChangePercentage      *float64 `json:"reviewed_on_time_change_percentage"`
+	AverageApprovalTimeDays             float64  `json:"average_approval_time_days"`
+	AverageApprovalTimeChangePercentage *float64 `json:"average_approval_time_change_percentage"`
+	ECCControlsDocumentedPercentage     float64  `json:"ecc_controls_documented_percentage"`
 }
 
 type DocumentStatusByTypeDTO struct {

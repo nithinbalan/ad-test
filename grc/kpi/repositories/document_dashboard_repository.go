@@ -40,7 +40,9 @@ type documentThirtyDayComparisonCounts struct {
 }
 
 type documentApprovalTimeResult struct {
-	AverageApprovalTimeDays float64
+	AverageApprovalTimeDays         float64
+	CurrentAverageApprovalTimeDays  *float64
+	PreviousAverageApprovalTimeDays *float64
 }
 
 type complianceRegisterLegislation struct {
@@ -201,7 +203,17 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 			COALESCE(
 				AVG(CAST(DATEDIFF(second, dv.submitted_at, final_approval.final_approved_at) AS FLOAT) / 86400.0),
 				0
-			) AS average_approval_time_days
+			) AS average_approval_time_days,
+			AVG(CASE
+				WHEN final_approval.final_approved_at >= DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND final_approval.final_approved_at < DATEADD(day, 1, CAST(GETDATE() AS date))
+				THEN CAST(DATEDIFF(second, dv.submitted_at, final_approval.final_approved_at) AS FLOAT) / 86400.0
+			END) AS current_average_approval_time_days,
+			AVG(CASE
+				WHEN final_approval.final_approved_at >= DATEADD(day, -59, CAST(GETDATE() AS date))
+					AND final_approval.final_approved_at < DATEADD(day, -29, CAST(GETDATE() AS date))
+				THEN CAST(DATEDIFF(second, dv.submitted_at, final_approval.final_approved_at) AS FLOAT) / 86400.0
+			END) AS previous_average_approval_time_days
 		`).
 		Joins("INNER JOIN documents d ON d.id = dv.document_id").
 		Joins(`INNER JOIN (
@@ -237,6 +249,12 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 	}
 
 	result.AverageApprovalTimeDays = roundToOneDecimal(approvalTime.AverageApprovalTimeDays)
+	if approvalTime.CurrentAverageApprovalTimeDays != nil && approvalTime.PreviousAverageApprovalTimeDays != nil {
+		result.AverageApprovalTimeChangePercentage = calculateMetricPercentageChange(
+			*approvalTime.CurrentAverageApprovalTimeDays,
+			*approvalTime.PreviousAverageApprovalTimeDays,
+		)
+	}
 
 	complianceRegisters := []complianceRegisterLegislation{}
 	err = repo.db.Table("compliance_register").
