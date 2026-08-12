@@ -24,7 +24,7 @@ type DocumentReportListDTO struct {
 	DocumentTypeTitleEn     *string   `json:"document_type_title_en"`
 	DocumentTypeTitleAr     *string   `json:"document_type_title_ar"`
 	CreatedAt               time.Time `json:"created_at"`
-	CreatedUserID           uint      `json:"created_by_id"`
+	CreatedUserID           uint      `json:"created_user_id"`
 	CreatedUserFirstNameEn  string    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr  string    `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn   string    `json:"created_user_last_name_en"`
