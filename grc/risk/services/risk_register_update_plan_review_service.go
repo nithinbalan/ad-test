@@ -279,8 +279,9 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) Approve(riskRegisterUpdatePla
 	}
 
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual":
-		if currentUserID != currentWorkflow.RiskRegisterUpdatePlanWorkflowParticipants[0].UserID {
+	case "individual", "hod":
+		if len(currentWorkflow.RiskRegisterUpdatePlanWorkflowParticipants) == 0 ||
+			currentUserID != currentWorkflow.RiskRegisterUpdatePlanWorkflowParticipants[0].UserID {
 			tx.Rollback()
 			return utility.NewForbiddenError("you have no permission to approve")
 		}

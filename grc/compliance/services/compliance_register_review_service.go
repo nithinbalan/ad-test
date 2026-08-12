@@ -252,8 +252,9 @@ func (crrs *ComplianceRegisterReviewService) Approve(complianceRegisterID uint, 
 	}
 
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual":
-		if currentUserID != currentWorkflow.ComplianceRegisterWorkflowParticipants[0].UserID {
+	case "individual", "hod":
+		if len(currentWorkflow.ComplianceRegisterWorkflowParticipants) == 0 ||
+			currentUserID != currentWorkflow.ComplianceRegisterWorkflowParticipants[0].UserID {
 			tx.Rollback()
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
@@ -328,7 +329,7 @@ func (crrs *ComplianceRegisterReviewService) Approve(complianceRegisterID uint, 
 		}
 		crrs.sendApprovalNotification(complianceRegisterID, currentUserID, complianceDetails)
 
-	case "multiple-users", "role":
+	case "multiple-users", "role", "user-and-reporting-user":
 		allowed := false
 		for _, participant := range currentWorkflow.ComplianceRegisterWorkflowParticipants {
 			if participant.UserID == currentUserID {

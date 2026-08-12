@@ -444,6 +444,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		organizationModule.UserSvc,
 		masterModule.WorkflowContextSvc,
 		commonModule.NotificationService,
+		organizationModule.OrganizationUnitsSvc,
 	)
 	complianceRegisterWorkflowSvc.SetComplianceRegisterService(complianceRegisterSvc)
 	complianceRegisterWorkflowController := controllers.NewComplianceRegisterWorkflowController(complianceRegisterWorkflowSvc)

@@ -173,6 +173,7 @@ func NewRiskModule(db *gorm.DB,
 		masterModule.WorkflowStatusSvc,
 		organizationModule.UserSvc,
 		masterModule.WorkflowContextSvc,
+		organizationModule.OrganizationUnitsSvc,
 	)
 	kriRegisterSvc.SetKRIWorkflowService(kriRegisterWorkflowSvc)
 	kriRegisterWorkflowSvc.SetKRIRegisterService(kriRegisterSvc)
@@ -285,6 +286,7 @@ func NewRiskModule(db *gorm.DB,
 		masterModule.WorkflowStatusSvc,
 		organizationModule.UserSvc,
 		masterModule.WorkflowContextSvc,
+		organizationModule.OrganizationUnitsSvc,
 	)
 
 	riskRegisterRepo := repositories.NewRiskRegisterRepository(db)
@@ -489,6 +491,7 @@ func NewRiskModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		masterModule.WorkflowContextSvc,
 		commonModule.NotificationService,
+		organizationModule.OrganizationUnitsSvc,
 	)
 	riskResponseWorkflowSvc.SetRiskResponseService(riskResponseSvc)
 	riskResponseWorkflowController := controllers.NewRiskResponseWorkflowController(riskResponseWorkflowSvc)
@@ -731,6 +734,7 @@ func NewRiskModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		masterModule.WorkflowContextSvc,
 		commonModule.NotificationService,
+		organizationModule.OrganizationUnitsSvc,
 	)
 	riskRegisterUpdatePlanWorkflowSvc.SetRiskRegisterUpdatePlanService(riskRegisterUpdatePlanSvc)
 	riskRegisterUpdatePlanWorkflowController := controllers.NewRiskRegisterUpdatePlanWorkflowController(riskRegisterUpdatePlanWorkflowSvc)
