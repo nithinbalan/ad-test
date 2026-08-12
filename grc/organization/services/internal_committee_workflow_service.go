@@ -153,21 +153,6 @@ func (icws *InternalCommitteeWorkflowService) GetInternalCommitteeWorkflowList(i
 		// Determine if this level is currently under review or needs re-approval
 		isCurrentLevel := dto.NextReviewLevel != nil && *dto.NextReviewLevel == workflow.Level
 
-		// Check if this level needs re-approval using tagged switch
-		// When Level N is reverted, NextReviewLevel becomes N-1
-		// We need to clear: Level N-1 (current review level) and Level N (reverted level)
-		needsReapproval := false
-		if dto.NextReviewLevel != nil {
-			switch workflow.Level {
-			case *dto.NextReviewLevel:
-				// Current review level needs reapproval
-				needsReapproval = true
-			case *dto.NextReviewLevel + 1:
-				// Reverted level needs reapproval
-				needsReapproval = true
-			}
-		}
-
 		// Only show approved_users and rejected_user if workflow status matches
 		// This allows us to keep review history while showing correct current state
 		if workflow.WorkflowStatus != nil {
@@ -176,8 +161,8 @@ func (icws *InternalCommitteeWorkflowService) GetInternalCommitteeWorkflowList(i
 
 				// Show approved users based on workflow status and current review level
 				if review.WorkflowStatus.Type == "approve" {
-					// Show approved users if workflow is fully approved and doesn't need re-approval
-					if workflow.WorkflowStatus.Type == "approve" && !needsReapproval {
+					// Show approved users if workflow is fully approved
+					if workflow.WorkflowStatus.Type == "approve" {
 						workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
 						if lastApprovedAt.IsZero() || review.CreatedAt.After(lastApprovedAt) {
 							lastApprovedAt = review.CreatedAt
