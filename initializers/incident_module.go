@@ -9,24 +9,28 @@ import (
 )
 
 type IncidentModule struct {
-	IncidentCategoryController                *controllers.IncidentCategoryController
-	IncidentSubCategoryController             *controllers.IncidentSubCategoryController
-	IncidentTypeController                    *controllers.IncidentTypeController
-	IncidentStatusController                  *controllers.IncidentStatusController
-	IncidentRegisterController                *controllers.IncidentRegisterController
-	IncidentInvestigationStatusController     *controllers.IncidentInvestigationStatusController
-	IncidentInvestigationController           *controllers.IncidentInvestigationController
-	IncidentActionPlanController              *controllers.IncidentActionPlanController
-	IncidentActionPlanStatusUpdateController  *controllers.IncidentActionPlanStatusUpdateController
-	IncidentRootCauseAnalysisController       *controllers.IncidentRootCauseAnalysisController
-	IncidentCommunicationLogController        *controllers.IncidentCommunicationLogController
-	IncidentClosureController                 *controllers.IncidentClosureController
-	IncidentPostReviewEffectivenessController *controllers.IncidentPostReviewEffectivenessController
-	IncidentPostReviewController              *controllers.IncidentPostReviewController
-	IncidentAssociatedItemController          *controllers.IncidentAssociatedItemController
-	IncidentTimelineController                *controllers.IncidentTimelineController
-	IncidentActionPlanCommentController       *controllers.IncidentActionPlanCommentController
-	IncidentReportController                  *controllers.IncidentReportController
+	IncidentCategoryController                  *controllers.IncidentCategoryController
+	IncidentSubCategoryController               *controllers.IncidentSubCategoryController
+	IncidentTypeController                      *controllers.IncidentTypeController
+	IncidentStatusController                    *controllers.IncidentStatusController
+	IncidentRegisterController                  *controllers.IncidentRegisterController
+	IncidentInvestigationStatusController       *controllers.IncidentInvestigationStatusController
+	IncidentInvestigationController             *controllers.IncidentInvestigationController
+	IncidentActionPlanController                *controllers.IncidentActionPlanController
+	IncidentActionPlanStatusUpdateController    *controllers.IncidentActionPlanStatusUpdateController
+	IncidentRootCauseAnalysisController         *controllers.IncidentRootCauseAnalysisController
+	IncidentCommunicationLogController          *controllers.IncidentCommunicationLogController
+	IncidentClosureController                   *controllers.IncidentClosureController
+	IncidentPostReviewEffectivenessController   *controllers.IncidentPostReviewEffectivenessController
+	IncidentPostReviewController                *controllers.IncidentPostReviewController
+	IncidentAssociatedItemController            *controllers.IncidentAssociatedItemController
+	IncidentTimelineController                  *controllers.IncidentTimelineController
+	IncidentActionPlanCommentController         *controllers.IncidentActionPlanCommentController
+	IncidentReportController                    *controllers.IncidentReportController
+	IncidentResponseTeamController              *controllers.IncidentResponseTeamController
+	IncidentImpactController                    *controllers.IncidentImpactController
+	IncidentScopeController                     *controllers.IncidentScopeController
+	IncidentSensitivityClassificationController *controllers.IncidentSensitivityClassificationController
 
 	IncidentRegisterSvc   services.IncidentRegisterServiceInterface
 	IncidentActionPlanSvc services.IncidentActionPlanServiceInterface
@@ -156,25 +160,45 @@ func NewIncidentModule(db *gorm.DB,
 	incidentReportSvc := services.NewIncidentReportService(incidentReportrepo, settingsModule.ReportTemplateSettingSvc, incidentRootCauseAnalysisSvc, incidentActionPlanSvc, sharedModule.ActivityLogService)
 	incidentReportController := controllers.NewIncidentReportController(incidentReportSvc)
 
+	incidentResponseTeamRepo := repositories.NewIncidentResponseTeamRepository(db)
+	incidentResponseTeamSvc := services.NewIncidentResponseTeamService(incidentResponseTeamRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
+	incidentResponseTeamController := controllers.NewIncidentResponseTeamController(incidentResponseTeamSvc)
+
+	incidentImpactRepo := repositories.NewIncidentImpactRepository(db)
+	incidentImpactSvc := services.NewIncidentImpactService(incidentImpactRepo, sharedModule.ActivityLogService)
+	incidentImpactController := controllers.NewIncidentImpactController(incidentImpactSvc)
+
+	incidentScopeRepo := repositories.NewIncidentScopeRepository(db)
+	incidentScopeSvc := services.NewIncidentScopeService(incidentScopeRepo, sharedModule.ActivityLogService)
+	incidentScopeController := controllers.NewIncidentScopeController(incidentScopeSvc)
+
+	incidentSensitivityClassificationRepo := repositories.NewIncidentSensitivityClassificationRepository(db)
+	incidentSensitivityClassificationSvc := services.NewIncidentSensitivityClassificationService(incidentSensitivityClassificationRepo, sharedModule.ActivityLogService)
+	incidentSensitivityClassificationController := controllers.NewIncidentSensitivityClassificationController(incidentSensitivityClassificationSvc)
+
 	return &IncidentModule{
-		IncidentCategoryController:                incidentCategoryController,
-		IncidentSubCategoryController:             incidentSubCategoryController,
-		IncidentTypeController:                    incidentTypeController,
-		IncidentStatusController:                  incidentStatusController,
-		IncidentRegisterController:                incidentRegisterController,
-		IncidentInvestigationStatusController:     incidentInvestigationStatusController,
-		IncidentInvestigationController:           incidentInvestigationController,
-		IncidentActionPlanController:              incidentActionPlanController,
-		IncidentActionPlanStatusUpdateController:  incidentActionPlanStatusUpdateController,
-		IncidentRootCauseAnalysisController:       incidentRootCauseAnalysisController,
-		IncidentCommunicationLogController:        incidentCommunicationLogController,
-		IncidentClosureController:                 incidentClosureController,
-		IncidentPostReviewEffectivenessController: incidentPostReviewEffectivenessController,
-		IncidentPostReviewController:              incidentPostReviewController,
-		IncidentAssociatedItemController:          incidentAssociatedItemController,
-		IncidentTimelineController:                incidentTimelineController,
-		IncidentActionPlanCommentController:       incidentActionPlanCommentController,
-		IncidentReportController:                  incidentReportController,
+		IncidentCategoryController:                  incidentCategoryController,
+		IncidentSubCategoryController:               incidentSubCategoryController,
+		IncidentTypeController:                      incidentTypeController,
+		IncidentStatusController:                    incidentStatusController,
+		IncidentRegisterController:                  incidentRegisterController,
+		IncidentInvestigationStatusController:       incidentInvestigationStatusController,
+		IncidentInvestigationController:             incidentInvestigationController,
+		IncidentActionPlanController:                incidentActionPlanController,
+		IncidentActionPlanStatusUpdateController:    incidentActionPlanStatusUpdateController,
+		IncidentRootCauseAnalysisController:         incidentRootCauseAnalysisController,
+		IncidentCommunicationLogController:          incidentCommunicationLogController,
+		IncidentClosureController:                   incidentClosureController,
+		IncidentPostReviewEffectivenessController:   incidentPostReviewEffectivenessController,
+		IncidentPostReviewController:                incidentPostReviewController,
+		IncidentAssociatedItemController:            incidentAssociatedItemController,
+		IncidentTimelineController:                  incidentTimelineController,
+		IncidentActionPlanCommentController:         incidentActionPlanCommentController,
+		IncidentReportController:                    incidentReportController,
+		IncidentResponseTeamController:              incidentResponseTeamController,
+		IncidentImpactController:                    incidentImpactController,
+		IncidentScopeController:                     incidentScopeController,
+		IncidentSensitivityClassificationController: incidentSensitivityClassificationController,
 
 		IncidentRegisterSvc:   incidentRegisterSvc,
 		IncidentActionPlanSvc: incidentActionPlanSvc,

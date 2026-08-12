@@ -258,8 +258,9 @@ func (rrs *RiskResponseReviewService) Approve(riskResponseID uint, currentUserID
 	}
 
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual":
-		if currentUserID != currentWorkflow.RiskResponseWorkflowParticipants[0].UserID {
+	case "individual", "hod":
+		if len(currentWorkflow.RiskResponseWorkflowParticipants) == 0 ||
+			currentUserID != currentWorkflow.RiskResponseWorkflowParticipants[0].UserID {
 			tx.Rollback()
 			return utility.NewForbiddenError("you have no permission to approve")
 		}

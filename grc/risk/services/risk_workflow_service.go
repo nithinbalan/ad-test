@@ -36,13 +36,14 @@ type RiskWorkflowServiceInterface interface {
 }
 
 type RiskWorkflowService struct {
-	repo               repositories.RiskWorkflowRepositoryInterface
-	activityLogSvc     logSvc.ActivityLogServiceInterface
-	workflowSvc        settinsSvc.WorkflowServiceInterface
-	workflowStatusSvc  masterSvc.WorkflowStatusServiceInterface
-	userSvc            organizationSvc.UserServiceInterface
-	riskRegisterSvc    RiskRegisterServiceInterface
-	workflowContextSvc masterSvc.WorkflowContextServiceInterface
+	repo                 repositories.RiskWorkflowRepositoryInterface
+	activityLogSvc       logSvc.ActivityLogServiceInterface
+	workflowSvc          settinsSvc.WorkflowServiceInterface
+	workflowStatusSvc    masterSvc.WorkflowStatusServiceInterface
+	userSvc              organizationSvc.UserServiceInterface
+	riskRegisterSvc      RiskRegisterServiceInterface
+	workflowContextSvc   masterSvc.WorkflowContextServiceInterface
+	organizationUnitsSvc organizationSvc.OrganizationUnitsServiceInterface
 }
 
 func NewRiskWorkflowService(
@@ -52,14 +53,16 @@ func NewRiskWorkflowService(
 	workflowStatusSvc masterSvc.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
+	organizationUnitsSvc organizationSvc.OrganizationUnitsServiceInterface,
 ) RiskWorkflowServiceInterface {
 	return &RiskWorkflowService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		workflowSvc:        workflowSvc,
-		workflowStatusSvc:  workflowStatusSvc,
-		userSvc:            userSvc,
-		workflowContextSvc: workflowContextSvc,
+		repo:                 repo,
+		activityLogSvc:       activityLogSvc,
+		workflowSvc:          workflowSvc,
+		workflowStatusSvc:    workflowStatusSvc,
+		userSvc:              userSvc,
+		workflowContextSvc:   workflowContextSvc,
+		organizationUnitsSvc: organizationUnitsSvc,
 	}
 }
 
@@ -182,6 +185,19 @@ func (arws *RiskWorkflowService) CreateRiskWorkflow(riskWorkflowID uint, context
 				}
 			} else if participant.User != nil {
 				userId := uint(participant.User.ID)
+				err = arws.createWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
+				if err != nil {
+					return err
+				}
+			} else if participant.Unit != nil {
+				deptHead, err := arws.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(participant.Unit.ID))
+				if err != nil {
+					return err
+				}
+				if deptHead.HeadUser == nil {
+					return utility.NewForbiddenError(fmt.Sprintf("No head has been assigned to organization unit '%d'.", participant.Unit.ID))
+				}
+				userId := uint(deptHead.HeadUser.ID)
 				err = arws.createWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
 				if err != nil {
 					return err

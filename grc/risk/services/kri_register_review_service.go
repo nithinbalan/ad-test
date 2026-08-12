@@ -206,8 +206,9 @@ func (krs *KRIRegisterReviewService) Approve(kriRegisterID uint, currentUserID u
 	}
 
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual":
-		if currentUserID != currentWorkflow.KRIRegisterWorkflowParticipants[0].UserID {
+	case "individual", "hod":
+		if len(currentWorkflow.KRIRegisterWorkflowParticipants) == 0 ||
+			currentUserID != currentWorkflow.KRIRegisterWorkflowParticipants[0].UserID {
 			tx.Rollback()
 			return utility.NewForbiddenError("you have no permission to approve")
 		}

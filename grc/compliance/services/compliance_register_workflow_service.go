@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
@@ -46,6 +47,7 @@ type ComplianceRegisterWorkflowService struct {
 	complianceRegisterSvc ComplianceRegisterServiceInterface
 	workflowContextSvc    masterSvc.WorkflowContextServiceInterface
 	notificationSvc       commonServices.NotificationServiceInterface
+	organizationUnitsSvc  organizationSvc.OrganizationUnitsServiceInterface
 }
 
 func NewComplianceRegisterWorkflowService(
@@ -57,16 +59,18 @@ func NewComplianceRegisterWorkflowService(
 	userSvc organizationSvc.UserServiceInterface,
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	organizationUnitsSvc organizationSvc.OrganizationUnitsServiceInterface,
 ) ComplianceRegisterWorkflowServiceInterface {
 	return &ComplianceRegisterWorkflowService{
-		repo:               repo,
-		reviewRepo:         reviewRepo,
-		activityLogSvc:     activityLogSvc,
-		workflowSvc:        workflowSvc,
-		workflowStatusSvc:  workflowStatusSvc,
-		userSvc:            userSvc,
-		workflowContextSvc: workflowContextSvc,
-		notificationSvc:    notificationSvc,
+		repo:                 repo,
+		reviewRepo:           reviewRepo,
+		activityLogSvc:       activityLogSvc,
+		workflowSvc:          workflowSvc,
+		workflowStatusSvc:    workflowStatusSvc,
+		userSvc:              userSvc,
+		workflowContextSvc:   workflowContextSvc,
+		notificationSvc:      notificationSvc,
+		organizationUnitsSvc: organizationUnitsSvc,
 	}
 }
 
@@ -193,6 +197,19 @@ func (crws *ComplianceRegisterWorkflowService) CreateComplianceRegisterWorkflow(
 				}
 			} else if participant.User != nil {
 				userID := uint(participant.User.ID)
+				err = crws.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...)
+				if err != nil {
+					return err
+				}
+			} else if participant.Unit != nil {
+				deptHead, err := crws.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(participant.Unit.ID))
+				if err != nil {
+					return err
+				}
+				if deptHead.HeadUser == nil {
+					return utility.NewForbiddenError(fmt.Sprintf("No head has been assigned to organization unit '%d'.", participant.Unit.ID))
+				}
+				userID := uint(deptHead.HeadUser.ID)
 				err = crws.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...)
 				if err != nil {
 					return err

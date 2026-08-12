@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	commonServices "jethur/grc/common/services"
 	logSvc "jethur/grc/logs/services"
 	masterDTOs "jethur/grc/masters/dtos"
@@ -38,15 +39,16 @@ type RiskResponseWorkflowServiceInterface interface {
 }
 
 type RiskResponseWorkflowService struct {
-	repo               repositories.RiskResponseWorkflowRepositoryInterface
-	reviewRepo         repositories.RiskResponseReviewRepositoryInterface
-	activityLogSvc     logSvc.ActivityLogServiceInterface
-	workflowSvc        settingsSvc.WorkflowServiceInterface
-	workflowStatusSvc  masterSvc.WorkflowStatusServiceInterface
-	userSvc            organizationSvc.UserServiceInterface
-	riskResponseSvc    RiskResponseServiceInterface
-	workflowContextSvc masterSvc.WorkflowContextServiceInterface
-	notificationSvc    commonServices.NotificationServiceInterface
+	repo                 repositories.RiskResponseWorkflowRepositoryInterface
+	reviewRepo           repositories.RiskResponseReviewRepositoryInterface
+	activityLogSvc       logSvc.ActivityLogServiceInterface
+	workflowSvc          settingsSvc.WorkflowServiceInterface
+	workflowStatusSvc    masterSvc.WorkflowStatusServiceInterface
+	userSvc              organizationSvc.UserServiceInterface
+	riskResponseSvc      RiskResponseServiceInterface
+	workflowContextSvc   masterSvc.WorkflowContextServiceInterface
+	notificationSvc      commonServices.NotificationServiceInterface
+	organizationUnitsSvc organizationSvc.OrganizationUnitsServiceInterface
 }
 
 func NewRiskResponseWorkflowService(
@@ -58,16 +60,18 @@ func NewRiskResponseWorkflowService(
 	userSvc organizationSvc.UserServiceInterface,
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	organizationUnitsSvc organizationSvc.OrganizationUnitsServiceInterface,
 ) RiskResponseWorkflowServiceInterface {
 	return &RiskResponseWorkflowService{
-		repo:               repo,
-		reviewRepo:         reviewRepo,
-		activityLogSvc:     activityLogSvc,
-		workflowSvc:        workflowSvc,
-		workflowStatusSvc:  workflowStatusSvc,
-		userSvc:            userSvc,
-		workflowContextSvc: workflowContextSvc,
-		notificationSvc:    notificationSvc,
+		repo:                 repo,
+		reviewRepo:           reviewRepo,
+		activityLogSvc:       activityLogSvc,
+		workflowSvc:          workflowSvc,
+		workflowStatusSvc:    workflowStatusSvc,
+		userSvc:              userSvc,
+		workflowContextSvc:   workflowContextSvc,
+		notificationSvc:      notificationSvc,
+		organizationUnitsSvc: organizationUnitsSvc,
 	}
 }
 
@@ -188,6 +192,19 @@ func (rrws *RiskResponseWorkflowService) CreateRiskResponseWorkflow(riskResponse
 				}
 			} else if participant.User != nil {
 				userID := uint(participant.User.ID)
+				err = rrws.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...)
+				if err != nil {
+					return err
+				}
+			} else if participant.Unit != nil {
+				deptHead, err := rrws.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(participant.Unit.ID))
+				if err != nil {
+					return err
+				}
+				if deptHead.HeadUser == nil {
+					return utility.NewForbiddenError(fmt.Sprintf("No head has been assigned to organization unit '%d'.", participant.Unit.ID))
+				}
+				userID := uint(deptHead.HeadUser.ID)
 				err = rrws.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...)
 				if err != nil {
 					return err
