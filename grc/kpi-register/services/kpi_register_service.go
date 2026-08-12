@@ -397,7 +397,7 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *kp
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{uint(responsibleUser.ID)},
-			ModuleIdentifier:     "kpi",
+			ModuleIdentifier:     "kpi_register",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "KPI Review Assigned",
 			HeadingAr:            "تم تعيين مراجعة KPI",
@@ -715,7 +715,7 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{uint(responsibleUser.ID)},
-				ModuleIdentifier:     "kpi",
+				ModuleIdentifier:     "kpi_register",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "KPI Review Assigned",
 				HeadingAr:            "تم تعيين مراجعة KPI",

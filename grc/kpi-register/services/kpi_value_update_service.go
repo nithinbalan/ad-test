@@ -715,7 +715,7 @@ func (kvus *KPIValueUpdateService) logAndNotifyKPIValueReview(updateId uint, cur
 			updateId,
 			nil,
 			currentUserID,
-			"strategy", "kpi", "reviews", nil,
+			"key_performance_indicator", "kpi_review", "reviews", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -774,7 +774,7 @@ func (kvus *KPIValueUpdateService) logAndNotifyKPIValueReview(updateId uint, cur
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{uint(targetUser.ID)},
-			ModuleIdentifier:     "kpi",
+			ModuleIdentifier:     "kpi_review",
 			NotificationType:     string(commonDTOs.ReviewType),
 			HeadingEn:            headingEn,
 			HeadingAr:            headingAr,

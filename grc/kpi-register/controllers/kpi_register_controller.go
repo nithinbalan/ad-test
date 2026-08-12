@@ -719,6 +719,12 @@ func (krc *KPIRegisterController) GetAllKPIResponsibleUsers(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(krc.db, c, err.Error())
+		return
+	}
+
 	allowedParams := []string{
 		"designation_ids",
 		"organization_unit_1_ids",
@@ -771,15 +777,16 @@ func (krc *KPIRegisterController) GetAllKPIResponsibleUsers(c *gin.Context) {
 	}
 
 	queryParams := organizationDTOs.UserListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   dbField,
-		Keyword:  keyword,
-		Status:   status,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
-		DateFrom: dateFrom,
-		DateTo:   dateTo,
+		Sort:          sort,
+		SortBy:        dbField,
+		Keyword:       keyword,
+		Status:        status,
+		Page:          page,
+		PageSize:      pageSize,
+		Filters:       filters,
+		DateFrom:      dateFrom,
+		DateTo:        dateTo,
+		CurrentUserID: currentUserID,
 	}
 
 	users, err := krc.service.GetAllResponsibleUsers(&queryParams)

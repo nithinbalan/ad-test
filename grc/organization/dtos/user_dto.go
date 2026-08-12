@@ -46,19 +46,21 @@ type UserListDTO struct {
 }
 
 type UserListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Status      string
-	Page        int
-	PageSize    int
-	UserIDs     []int
-	Filters     map[string][]string
-	QuickFilter []string
-	Export      bool
-	RoleIDs     []int
-	DateFrom    string
-	DateTo      string
+	Sort           string
+	SortBy         string
+	Keyword        string
+	Status         string
+	Page           int
+	PageSize       int
+	UserIDs        []int
+	Filters        map[string][]string
+	QuickFilter    []string
+	Export         bool
+	RoleIDs        []int
+	DateFrom       string
+	DateTo         string
+	CurrentUserID  uint
+	IsDivisionWise bool
 }
 
 type PrimaryUnitUserListQueryParamsDTO struct {
