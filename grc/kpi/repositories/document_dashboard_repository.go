@@ -24,6 +24,19 @@ type DocumentDashboardRepository struct {
 type documentReviewTimelinessCounts struct {
 	CurrentPeriodReviews       int64
 	CurrentPeriodOnTimeReviews int64
+	CurrentThirtyDayReviews    int64
+	CurrentThirtyDayOnTime     int64
+	PreviousThirtyDayReviews   int64
+	PreviousThirtyDayOnTime    int64
+}
+
+type documentThirtyDayComparisonCounts struct {
+	CurrentTotal      int64
+	PreviousTotal     int64
+	CurrentApproved   int64
+	PreviousApproved  int64
+	CurrentPublished  int64
+	PreviousPublished int64
 }
 
 type documentApprovalTimeResult struct {
@@ -66,6 +79,61 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 		return nil, err
 	}
 
+	comparisonCounts := &documentThirtyDayComparisonCounts{}
+	comparisonQuery := repo.db.Table("documents d").
+		Select(`
+			COALESCE(SUM(CASE
+				WHEN d.created_at >= DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND d.created_at < DATEADD(day, 1, CAST(GETDATE() AS date))
+				THEN 1 ELSE 0 END), 0) AS current_total,
+			COALESCE(SUM(CASE
+				WHEN d.created_at >= DATEADD(day, -59, CAST(GETDATE() AS date))
+					AND d.created_at < DATEADD(day, -29, CAST(GETDATE() AS date))
+				THEN 1 ELSE 0 END), 0) AS previous_total,
+			COALESCE(SUM(CASE
+				WHEN d.created_at >= DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND d.created_at < DATEADD(day, 1, CAST(GETDATE() AS date))
+					AND ds.type IN ('approved', 'published')
+				THEN 1 ELSE 0 END), 0) AS current_approved,
+			COALESCE(SUM(CASE
+				WHEN d.created_at >= DATEADD(day, -59, CAST(GETDATE() AS date))
+					AND d.created_at < DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND ds.type IN ('approved', 'published')
+				THEN 1 ELSE 0 END), 0) AS previous_approved,
+			COALESCE(SUM(CASE
+				WHEN d.created_at >= DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND d.created_at < DATEADD(day, 1, CAST(GETDATE() AS date))
+					AND ds.type = 'published'
+				THEN 1 ELSE 0 END), 0) AS current_published,
+			COALESCE(SUM(CASE
+				WHEN d.created_at >= DATEADD(day, -59, CAST(GETDATE() AS date))
+					AND d.created_at < DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND ds.type = 'published'
+				THEN 1 ELSE 0 END), 0) AS previous_published
+		`).
+		Joins("LEFT JOIN document_statuses ds ON ds.id = d.document_status_id").
+		Where("d.is_internal = ? AND d.is_folder = ?", false, false)
+	if len(documentCategoryIDs) > 0 {
+		comparisonQuery = comparisonQuery.Where("d.document_category_id IN ?", documentCategoryIDs)
+	}
+	err = comparisonQuery.Scan(comparisonCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result.TotalDocumentsChangePercentage = calculatePercentageChange(
+		comparisonCounts.CurrentTotal,
+		comparisonCounts.PreviousTotal,
+	)
+	result.ApprovedDocumentsChangePercentage = calculatePercentageChange(
+		comparisonCounts.CurrentApproved,
+		comparisonCounts.PreviousApproved,
+	)
+	result.PublishedDocumentsChangePercentage = calculatePercentageChange(
+		comparisonCounts.CurrentPublished,
+		comparisonCounts.PreviousPublished,
+	)
+
 	reviewCounts := &documentReviewTimelinessCounts{}
 	reviewCountsQuery := repo.db.Table("document_reviews dr").
 		Select(`
@@ -79,7 +147,29 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 					AND dr.review_date <= CAST(GETDATE() AS date)
 					AND d.next_review_date IS NOT NULL
 					AND dr.review_date <= d.next_review_date
-				THEN 1 ELSE 0 END), 0) AS current_period_on_time_reviews
+				THEN 1 ELSE 0 END), 0) AS current_period_on_time_reviews,
+			COALESCE(SUM(CASE
+				WHEN dr.review_date >= DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND dr.review_date < DATEADD(day, 1, CAST(GETDATE() AS date))
+					AND d.next_review_date IS NOT NULL
+				THEN 1 ELSE 0 END), 0) AS current_thirty_day_reviews,
+			COALESCE(SUM(CASE
+				WHEN dr.review_date >= DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND dr.review_date < DATEADD(day, 1, CAST(GETDATE() AS date))
+					AND d.next_review_date IS NOT NULL
+					AND dr.review_date <= d.next_review_date
+				THEN 1 ELSE 0 END), 0) AS current_thirty_day_on_time,
+			COALESCE(SUM(CASE
+				WHEN dr.review_date >= DATEADD(day, -59, CAST(GETDATE() AS date))
+					AND dr.review_date < DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND d.next_review_date IS NOT NULL
+				THEN 1 ELSE 0 END), 0) AS previous_thirty_day_reviews,
+			COALESCE(SUM(CASE
+				WHEN dr.review_date >= DATEADD(day, -59, CAST(GETDATE() AS date))
+					AND dr.review_date < DATEADD(day, -29, CAST(GETDATE() AS date))
+					AND d.next_review_date IS NOT NULL
+					AND dr.review_date <= d.next_review_date
+				THEN 1 ELSE 0 END), 0) AS previous_thirty_day_on_time
 		`).
 		Joins("INNER JOIN documents d ON d.id = dr.document_id").
 		Where("d.is_internal = ? AND d.is_folder = ?", false, false)
@@ -94,6 +184,14 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 	if reviewCounts.CurrentPeriodReviews > 0 {
 		result.ReviewedOnTimePercentage = roundToOneDecimal(
 			float64(reviewCounts.CurrentPeriodOnTimeReviews) * 100 / float64(reviewCounts.CurrentPeriodReviews),
+		)
+	}
+	if reviewCounts.CurrentThirtyDayReviews > 0 && reviewCounts.PreviousThirtyDayReviews > 0 {
+		currentOnTimePercentage := float64(reviewCounts.CurrentThirtyDayOnTime) * 100 / float64(reviewCounts.CurrentThirtyDayReviews)
+		previousOnTimePercentage := float64(reviewCounts.PreviousThirtyDayOnTime) * 100 / float64(reviewCounts.PreviousThirtyDayReviews)
+		result.ReviewedOnTimeChangePercentage = calculateMetricPercentageChange(
+			currentOnTimePercentage,
+			previousOnTimePercentage,
 		)
 	}
 
@@ -194,6 +292,28 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 
 func roundToOneDecimal(value float64) float64 {
 	return math.Round(value*10) / 10
+}
+
+func calculatePercentageChange(currentCount, previousCount int64) *float64 {
+	if previousCount == 0 {
+		return nil
+	}
+
+	percentage := roundToOneDecimal(
+		float64(currentCount-previousCount) * 100 / float64(previousCount),
+	)
+	return &percentage
+}
+
+func calculateMetricPercentageChange(currentValue, previousValue float64) *float64 {
+	if previousValue == 0 {
+		return nil
+	}
+
+	percentage := roundToOneDecimal(
+		(currentValue - previousValue) * 100 / previousValue,
+	)
+	return &percentage
 }
 
 func (repo *DocumentDashboardRepository) GetDocumentStatusByType(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentStatusByTypeDTO, error) {
