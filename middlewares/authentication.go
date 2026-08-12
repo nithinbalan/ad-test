@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"gorm.io/gorm"
 )
 
@@ -41,6 +42,7 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 
 		var user models.User
 		err = db.Preload("UserStatus").
+			Preload("UserSetting").
 			Where("id = ?", currentUserID).
 			First(&user).Error
 
@@ -58,6 +60,16 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 			utility.SendForbiddenErrResp(c, "User account is inactive")
 			c.Abort()
 			return
+		}
+
+		// Override the request localizer with the user's preferred language
+		if user.UserSetting != nil && user.UserSetting.Language != "" {
+			if bundleInterface, exists := c.Get("i18n_bundle"); exists {
+				if bundle, ok := bundleInterface.(*i18n.Bundle); ok {
+					localizer := i18n.NewLocalizer(bundle, user.UserSetting.Language)
+					c.Set("localizer", localizer)
+				}
+			}
 		}
 
 		c.Next()
