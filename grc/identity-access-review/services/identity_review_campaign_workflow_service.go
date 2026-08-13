@@ -345,6 +345,8 @@ func (ircws *IdentityReviewCampaignWorkflowService) mapOverallWorkflowStatus(cam
 	switch campaign.CampaignStatus.Type {
 	case "approved", "closed":
 		statusType = "approve"
+	case "rejected":
+		statusType = "reject"
 	case "submitted":
 		if campaign.NextReviewLevel != nil && *campaign.NextReviewLevel == 1 {
 			statusType = "submit"
