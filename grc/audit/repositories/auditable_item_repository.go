@@ -142,11 +142,6 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -167,12 +162,28 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
             organization_units.title_ar LIKE ? OR
             audit_statuses.title_en LIKE ? OR
             audit_statuses.title_ar LIKE ? OR
-            auditor_risk_ratings.title_en LIKE ? OR
-            auditor_risk_ratings.title_ar LIKE ?)`,
+            processes.title_en LIKE ? OR
+            processes.title_ar LIKE ? OR
+            controls.title_en LIKE ? OR
+            controls.title_ar LIKE ? OR
+            documents.title_en LIKE ? OR
+            documents.title_ar LIKE ? OR
+            incident_register.title LIKE ? OR
+            compliance_requirements.title_en LIKE ? OR
+            compliance_requirements.title_ar LIKE ? OR
+            risk_register.title LIKE ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword,
+			keyword, keyword)
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	// Sort by the specified column and order

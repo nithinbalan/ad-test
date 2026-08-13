@@ -145,6 +145,7 @@ type DocumentDetailsDTO struct {
 	Acknowledged                  *bool                            `json:"acknowledged,omitempty"`
 	ReviewFrequency               *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
 	NextReviewDate                *time.Time                       `json:"next_review_date"`
+	MarkedAsAuditableItem         bool                             `json:"marked_as_auditable_item"`
 }
 
 type ConfidentialityDTO struct {

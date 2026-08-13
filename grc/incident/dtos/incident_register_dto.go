@@ -168,6 +168,7 @@ type IncidentRegisterDetailDTO struct {
 	UpdatedAt              *time.Time                          `json:"updated_at"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO     `json:"created_by"`
 	UpdatedByUser          organizationDTOs.UserMinimalDTO     `json:"updated_by"`
+	MarkedAsAuditableItem  bool                                `json:"marked_as_auditable_item"`
 }
 
 type IncidentAssociatedDocumentDTO struct {

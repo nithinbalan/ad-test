@@ -142,6 +142,133 @@ func (afc *AuditFindingController) GetAuditFindingExport(c *gin.Context) {
 	afc.GetAllAuditFindings(c)
 }
 
+func (afc *AuditFindingController) GetAllAuditFindingsByAudit(c *gin.Context) {
+	auditIDStr := c.Param("auditId")
+	auditID, err := strconv.ParseUint(auditIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.DefaultQuery("sort_by", "title")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(afc.db, c, "Invalid export parameter")
+			return
+		}
+	}
+
+	allowedParams := []string{
+		"auditable_item_ids",
+		"audit_finding_category_ids",
+		"severity_level_ids",
+		"audit_finding_status_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(afc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(afc.db, c, "Invalid page_size parameter")
+		return
+	}
+	validSortFields := map[string]string{
+		"reference_number":                "audit_findings.reference_number",
+		"title":                           "audit_findings.title",
+		"description":                     "audit_findings.description",
+		"recommendations":                 "audit_findings.recommendations",
+		"audit_id":                        "audits.id",
+		"audit_title":                     "audit_plans.title",
+		"auditable_item_title_en":         "auditable_items.title_en",
+		"auditable_item_title_ar":         "auditable_items.title_ar",
+		"audit_finding_category_title_en": "audit_finding_categories.title_en",
+		"audit_finding_category_title_ar": "audit_finding_categories.title_ar",
+		"severity_level_title_en":         "severity_levels.title_en",
+		"severity_level_title_ar":         "severity_levels.title_ar",
+		"audit_finding_status_title_en":   "audit_finding_statuses.title_en",
+		"audit_finding_status_title_ar":   "audit_finding_statuses.title_ar",
+	}
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	queryParams := auditDTOs.AuditFindingListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
+	}
+
+	auditFindings, err := afc.service.GetAllByAudit(uint(auditID), &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(afc.db, c, e.Error())
+			return
+		}
+	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(afc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := afc.service.ExportAuditFindings(auditFindings.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(afc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Audit Findings.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+	c.JSON(http.StatusOK, auditFindings)
+}
+
+func (afc *AuditFindingController) GetAuditFindingExportByAudit(c *gin.Context) {
+	c.Set("export", true)
+	afc.GetAllAuditFindingsByAudit(c)
+}
+
 func (afc *AuditFindingController) GetAuditFindingDetails(c *gin.Context) {
 
 	idStr := c.Param("findingId")
