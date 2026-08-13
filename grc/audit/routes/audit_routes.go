@@ -69,6 +69,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditFindingAssociatedItemController := app.AuditModule.AuditFindingAssociatedItemController
 	auditWorkflowLevelController := app.AuditModule.AuditWorkflowLevelController
 
+	// Source-module controllers
+	processController := app.OrganizationModule.ProcessController
+	controlController := app.OrganizationModule.ControlController
+	documentController := app.DocumentModule.DocumentController
+	incidentRegisterController := app.IncidentModule.IncidentRegisterController
+	riskRegisterController := app.RiskModule.RiskRegisterController
+
 	// Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
 	auditRoutes.GET("/audit-statuses/:id", auditStatusController.GetAuditStatusDetails)
@@ -80,6 +87,22 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Audit Universe
 	auditRoutes.POST("/audit-universe/mark-as-auditable-item", middlewares.RolePermissionMiddleware(db, "audit_universe", "modify"), auditUniverseController.MarkAsAuditableItem)
 	auditRoutes.POST("/audit-universe/unmark-as-auditable-item", middlewares.RolePermissionMiddleware(db, "audit_universe", "modify"), auditUniverseController.UnmarkAsAuditableItem)
+
+	// Audit Universe - source items
+	auditRoutes.GET("/audit-universe/processes", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), processController.GetAllProcesses)
+	auditRoutes.GET("/audit-universe/processes/:processId", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), processController.GetProcessDetails)
+
+	auditRoutes.GET("/audit-universe/controls", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), controlController.GetAllControls)
+	auditRoutes.GET("/audit-universe/controls/:controlId", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), controlController.GetControlDetails)
+
+	auditRoutes.GET("/audit-universe/documents", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), documentController.GetAllDocuments)
+	auditRoutes.GET("/audit-universe/documents/:id", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), middlewares.DocumentAccessCheckingMiddleware(db), documentController.GetDocumentDetails)
+
+	auditRoutes.GET("/audit-universe/incident-registers", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), incidentRegisterController.GetAllIncidentRegisters)
+	auditRoutes.GET("/audit-universe/incident-registers/:id", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), incidentRegisterController.GetIncidentRegisterDetails)
+
+	auditRoutes.GET("/audit-universe/risk-registers", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), riskRegisterController.GetAllRiskRegisters)
+	auditRoutes.GET("/audit-universe/risk-registers/:id", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), riskRegisterController.GetRiskRegisterDetails)
 
 	// Auditable Item
 	auditRoutes.GET("/auditable-items", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), auditableItemController.GetAllAuditableItems)
