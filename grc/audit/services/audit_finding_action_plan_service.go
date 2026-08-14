@@ -152,17 +152,18 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	tx := afaps.repo.BeginTransaction()
 
 	auditFindingActionPlan := &models.AuditFindingActionPlan{
-		AuditFindingID:     findingID,
-		Title:              AuditFindingActionPlanFormDTO.Title,
-		Description:        AuditFindingActionPlanFormDTO.Description,
-		SeverityLevelID:    AuditFindingActionPlanFormDTO.SeverityLevelID,
-		ResponsibleUserID:  AuditFindingActionPlanFormDTO.ResponsibleUserID,
-		ReviewUserID:       AuditFindingActionPlanFormDTO.ReviewUserID,
-		TargetDate:         dates.TargetDate,
-		Percentage:         AuditFindingActionPlanFormDTO.Percentage,
-		Comments:           AuditFindingActionPlanFormDTO.Comments,
-		ActionPlanStatusID: actionPlanStatus.ID,
-		CreatedBYID:        currentUserID,
+		AuditFindingID:             findingID,
+		Title:                      AuditFindingActionPlanFormDTO.Title,
+		Description:                AuditFindingActionPlanFormDTO.Description,
+		SeverityLevelID:            AuditFindingActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:          AuditFindingActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:               AuditFindingActionPlanFormDTO.ReviewUserID,
+		TargetDate:                 dates.TargetDate,
+		Percentage:                 AuditFindingActionPlanFormDTO.Percentage,
+		Comments:                   AuditFindingActionPlanFormDTO.Comments,
+		ActionPlanStatusID:         actionPlanStatus.ID,
+		AuditFindingReassessmentID: AuditFindingActionPlanFormDTO.AuditFindingReassessmentID,
+		CreatedBYID:                currentUserID,
 	}
 
 	if AuditFindingActionPlanFormDTO.ResponsibleUserID != 0 {
@@ -175,7 +176,6 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 			auditFindingActionPlan.DelegateeUserID = delegateeID
 		}
 	}
-
 
 	id, err := afaps.repo.Create(auditFindingActionPlan, tx)
 	if err != nil {
@@ -358,6 +358,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.ReviewUserID = AuditFindingActionPlanFormDTO.ReviewUserID
 	existingAuditFindingActionPlan.TargetDate = dates.TargetDate
 	existingAuditFindingActionPlan.Comments = AuditFindingActionPlanFormDTO.Comments
+	existingAuditFindingActionPlan.AuditFindingReassessmentID = AuditFindingActionPlanFormDTO.AuditFindingReassessmentID
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	if AuditFindingActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != AuditFindingActionPlanFormDTO.ResponsibleUserID {
@@ -675,7 +676,7 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 		tx.Rollback()
 		return failedIds, nil
 	}
-	
+
 	tx.Commit()
 
 	if len(successfulIds) > 0 {

@@ -60,6 +60,7 @@ type AuditFindingFormDTO struct {
 	DepartmentResponse     *string                        `json:"department_response,omitempty"`
 	DepartmentResponseBYID *uint                          `json:"department_response_by_id,omitempty"`
 	DepartmentResponseAt   *time.Time                     `json:"department_response_at,omitempty"`
+	AuditChecklistID       *uint                          `json:"audit_checklist_id,omitempty"`
 }
 
 type AuditFindingDocumentFormDTO struct {

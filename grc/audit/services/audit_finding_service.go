@@ -158,6 +158,7 @@ func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *
 		DepartmentResponse:     auditFindingFormDTO.DepartmentResponse,
 		DepartmentResponseBYID: auditFindingFormDTO.DepartmentResponseBYID,
 		DepartmentResponseAt:   auditFindingFormDTO.DepartmentResponseAt,
+		AuditChecklistID:       auditFindingFormDTO.AuditChecklistID,
 		CreatedAt:              time.Now(),
 		CreatedBYID:            currentUserID,
 	}

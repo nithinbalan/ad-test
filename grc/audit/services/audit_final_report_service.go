@@ -58,7 +58,7 @@ type AuditFinalReportService struct {
 	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
 	settingSvc                settingsServices.AuditTemplateSettingServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
-	auditTimelineSvc 		  AuditTimelineServiceInterface
+	auditTimelineSvc          AuditTimelineServiceInterface
 }
 
 func NewAuditFinalReportService(
@@ -897,6 +897,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				DepartmentResponse:     latestComment,
 				DepartmentResponseBYID: latestCreatedByID,
 				DepartmentResponseAt:   latestCreatedAt,
+				AuditChecklistID:       draftFinding.AuditChecklistID,
 			}
 
 			findingID, err := afrs.auditFindingSvc.Create(currentUserID, findingDTO, tx)

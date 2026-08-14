@@ -41,6 +41,7 @@ type AuditModule struct {
 	AuditFindingActionPlanController             *controllers.AuditFindingActionPlanController
 	AuditFindingActionPlanCommentController      *controllers.AuditFindingActionPlanCommentController
 	AuditFindingActionPlanStatusUpdateController *controllers.AuditFindingActionPlanStatusUpdateController
+	AuditFindingReassessmentController           *controllers.AuditFindingReassessmentController
 	AuditDocumentRequestConversationController   *controllers.AuditDocumentRequestConversationController
 	AuditChecklistController                     *controllers.AuditChecklistController
 	AuditScheduleController                      *controllers.AuditScheduleController
@@ -76,6 +77,7 @@ type AuditModule struct {
 	AuditFindingRootCauseAnalysisSvc      services.AuditFindingRootCauseAnalysisServiceInterface
 	AuditFindingActionPlanSvc             services.AuditFindingActionPlanServiceInterface
 	AuditFindingActionPlanStatusUpdateSvc services.AuditFindingActionPlanStatusUpdateServiceInterface
+	AuditFindingReassessmentSvc           services.AuditFindingReassessmentServiceInterface
 	AuditFinalReportSvc                   services.AuditFinalReportServiceInterface
 	AuditFindingActionPlanCommentSvc      services.AuditFindingActionPlanCommentServiceInterface
 }
@@ -357,6 +359,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingActionPlanStatusUpdateSvc := services.NewAuditFindingActionPlanStatusUpdateService(auditFindingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, auditFindingActionPlanSvc, masterModule.ActionPlanStatusSvc, auditFindingSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	auditFindingActionPlanStatusUpdateController := controllers.NewAuditFindingActionPlanStatusUpdateController(auditFindingActionPlanStatusUpdateSvc)
 
+	auditFindingReassessmentRepo := repositories.NewAuditFindingReassessmentRepository(db)
+	auditFindingReassessmentSvc := services.NewAuditFindingReassessmentService(auditFindingReassessmentRepo, sharedModule.ActivityLogService, auditFindingSvc, auditFindingActionPlanSvc)
+	auditFindingReassessmentController := controllers.NewAuditFindingReassessmentController(auditFindingReassessmentSvc)
+
 	auditFindingActionPlanCommentRepo := repositories.NewAuditFindingActionPlanCommentRepository(db)
 	auditFindingActionPlanCommentSvc := services.NewAuditFindingActionPlanCommentService(auditFindingActionPlanCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, auditFindingActionPlanSvc, commonModule.NotificationService)
 	auditFindingActionPlanCommentController := controllers.NewAuditFindingActionPlanCommentController(auditFindingActionPlanCommentSvc)
@@ -557,6 +563,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFindingActionPlanController:             auditFindingActionPlanController,
 		AuditFindingActionPlanCommentController:      auditFindingActionPlanCommentController,
 		AuditFindingActionPlanStatusUpdateController: auditFindingActionPlanStatusUpdateController,
+		AuditFindingReassessmentController:           auditFindingReassessmentController,
 		AuditDocumentRequestConversationController:   auditDocumentRequestConversationController,
 		AuditChecklistController:                     auditChecklistController,
 		AuditScheduleController:                      auditScheduleController,
@@ -592,6 +599,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFindingRootCauseAnalysisSvc:      auditFindingRootCauseAnalysisSvc,
 		AuditFindingActionPlanSvc:             auditFindingActionPlanSvc,
 		AuditFindingActionPlanStatusUpdateSvc: auditFindingActionPlanStatusUpdateSvc,
+		AuditFindingReassessmentSvc:           auditFindingReassessmentSvc,
 		AuditFinalReportSvc:                   auditFinalReportSvc,
 		AuditFindingActionPlanCommentSvc:      auditFindingActionPlanCommentSvc,
 	}
