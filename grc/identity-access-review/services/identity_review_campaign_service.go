@@ -690,6 +690,31 @@ func (ircs *IdentityReviewCampaignService) ExportZip(id uint, currentUserID uint
 	if err != nil {
 		return "", err
 	}
+	for _, workflowLevel := range workflow.Workflows {
+		workflowLevel.StatusTextColor, workflowLevel.StatusBorderColor, workflowLevel.StatusBackgroundColor =
+			utility.ResolveStatusBadgeColors(
+				workflowLevel.CurrentStatus.ColorCode,
+				workflowLevel.CurrentStatus.Type,
+				workflowLevel.CurrentStatus.TitleEn,
+			)
+	}
+
+	for _, user := range users {
+		statusColorCode := ""
+		if user.AccountDecisionColorCode != nil {
+			statusColorCode = *user.AccountDecisionColorCode
+		}
+		statusType := ""
+		if user.AccountDecisionType != nil {
+			statusType = *user.AccountDecisionType
+		}
+		statusLabel := "Pending"
+		if user.AccountDecisionTitleEn != nil {
+			statusLabel = *user.AccountDecisionTitleEn
+		}
+		user.AccountDecisionTextColor, user.AccountDecisionBorderColor, user.AccountDecisionBackgroundColor =
+			utility.ResolveStatusBadgeColors(statusColorCode, statusType, statusLabel)
+	}
 
 	completionPercentage := campaign.CompletionPercentage
 	if completionPercentage < 0 {
@@ -720,28 +745,34 @@ func (ircs *IdentityReviewCampaignService) ExportZip(id uint, currentUserID uint
 
 	campaignStatusTitleEn := "-"
 	campaignStatusColorCode := "#6b7280"
+	campaignStatusType := ""
 	if campaign.CampaignStatus != nil {
 		campaignStatusTitleEn = campaign.CampaignStatus.TitleEn
 		campaignStatusColorCode = campaign.CampaignStatus.ColorCode
+		campaignStatusType = campaign.CampaignStatus.Type
 	}
+	campaignStatusTextColor, campaignStatusBorderColor, campaignStatusBackgroundColor :=
+		utility.ResolveStatusBadgeColors(campaignStatusColorCode, campaignStatusType, campaignStatusTitleEn)
 
 	viewModel := dtos.IdentityReviewCampaignExportPDFDTO{
-		CampaignName:            campaign.CampaignName,
-		ReferenceNumber:         campaign.ReferenceNumber,
-		Description:             campaign.Description,
-		StartDate:               campaign.StartDate.Format("02 Jan 2006"),
-		DueDate:                 campaign.DueDate.Format("02 Jan 2006"),
-		GeneratedAt:             time.Now().Format("02 Jan 2006"),
-		ReviewTypeTitleEn:       reviewTypeTitleEn,
-		ReminderDaysOffset:      reminderDaysOffset,
-		AssetTitleEn:            assetTitleEn,
-		CampaignStatusTitleEn:   campaignStatusTitleEn,
-		CampaignStatusColorCode: campaignStatusColorCode,
-		ReviewerName:            reviewerName,
-		CompletionPercentage:    completionPercentage,
-		CompletionProgressDash:  float64(completionPercentage) * 4.555,
-		Users:                   users,
-		Workflow:                workflow,
+		CampaignName:                  campaign.CampaignName,
+		ReferenceNumber:               campaign.ReferenceNumber,
+		Description:                   campaign.Description,
+		StartDate:                     campaign.StartDate.Format("02 Jan 2006"),
+		DueDate:                       campaign.DueDate.Format("02 Jan 2006"),
+		GeneratedAt:                   time.Now().Format("02 Jan 2006"),
+		ReviewTypeTitleEn:             reviewTypeTitleEn,
+		ReminderDaysOffset:            reminderDaysOffset,
+		AssetTitleEn:                  assetTitleEn,
+		CampaignStatusTitleEn:         campaignStatusTitleEn,
+		CampaignStatusTextColor:       campaignStatusTextColor,
+		CampaignStatusBorderColor:     campaignStatusBorderColor,
+		CampaignStatusBackgroundColor: campaignStatusBackgroundColor,
+		ReviewerName:                  reviewerName,
+		CompletionPercentage:          completionPercentage,
+		CompletionProgressDash:        float64(completionPercentage) * 4.555,
+		Users:                         users,
+		Workflow:                      workflow,
 	}
 
 	bodyContent, err := utility.GeneratePDFContent(viewModel, []string{"identity-access-review/templates/pdf/identity_review_campaign_body.html"}, "", "")

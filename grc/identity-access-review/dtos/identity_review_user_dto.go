@@ -10,8 +10,8 @@ type IdentityReviewUserFormDTO struct {
 	IdentityReviewCampaignID uint   `json:"identity_review_campaign_id" binding:"required"`
 	Username                 string `json:"username" binding:"required,max=255"`
 	UserIdentifier           string `json:"user_identifier" binding:"required,max=255"`
-	LastLogin                string `json:"last_login" binding:"required,max=255"`
-	CurrentRole              string `json:"current_role" binding:"required"`
+	LastLogin                string `json:"last_login" binding:"omitempty,max=255"`
+	CurrentRole              string `json:"current_role" binding:"omitempty"`
 	DepartmentID             uint   `json:"department_id" binding:"required"`
 	PrivilegeID              *uint  `json:"privilege_id" binding:"omitempty"`
 	AccountTypeID            *uint  `json:"account_type_id" binding:"omitempty"`

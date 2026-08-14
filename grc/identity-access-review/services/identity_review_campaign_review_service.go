@@ -160,7 +160,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Submit(campaignID uint, curren
 func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, currentUserID uint) (err error) {
 	tx := ircrs.repo.BeginTransaction()
 
-	var notify func()
+	var notifications []func()
 
 	defer func() {
 		if p := recover(); p != nil {
@@ -177,8 +177,12 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 			return
 		}
 
-		if notify != nil {
-			go notify()
+		if len(notifications) > 0 {
+			go func() {
+				for _, notify := range notifications {
+					notify()
+				}
+			}()
 		}
 	}()
 
@@ -202,6 +206,11 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 	}
 
 	workflowStatus, err := ircrs.workflowStatusSvc.GetByType("approve")
+	if err != nil {
+		return err
+	}
+
+	pendingStatus, err := ircrs.workflowStatusSvc.GetByType("pending")
 	if err != nil {
 		return err
 	}
@@ -246,6 +255,10 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 			return err
 		}
 
+		notifications = append(notifications, func() {
+			ircrs.sendApprovalNotification(currentUserID, campaign.CreatedByID, campaign)
+		})
+
 	case "multiple-users", "role":
 		var approvingParticipant *models.IdentityReviewCampaignWorkflowParticipant
 
@@ -285,6 +298,10 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 			return err
 		}
 
+		notifications = append(notifications, func() {
+			ircrs.sendApprovalNotification(currentUserID, campaign.CreatedByID, campaign)
+		})
+
 		if currentWorkflow.ApprovalTypes == "all" {
 			allApproved, err := ircrs.workflowSvc.CheckAllParticipantsApproved(
 				currentWorkflow.ID,
@@ -318,12 +335,6 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 			return err
 		}
 
-		var submittedByID uint
-
-		if campaign.SubmittedBy != nil {
-			submittedByID = *campaign.SubmittedBy
-		}
-
 		campaign.CampaignStatusID = approvedStatus.ID
 		campaign.NextReviewLevel = nil
 		campaign.ReviewedBy = &currentUserID
@@ -333,15 +344,19 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 			return err
 		}
 
-		if submittedByID != 0 {
-			notify = func() {
-				ircrs.sendApprovalNotification(currentUserID, submittedByID, campaign)
-			}
-		}
-
 		return nil
 	}
 
+	inProgressStatus, err := ircrs.campaignStatusSvc.GetByType("in_progress")
+	if err != nil {
+		return err
+	}
+
+	if err := ircrs.workflowSvc.UpdateWorkflowStatus(nextWorkflowLevel.ID, pendingStatus.ID, tx); err != nil {
+		return err
+	}
+
+	campaign.CampaignStatusID = inProgressStatus.ID
 	campaign.NextReviewLevel = &nextWorkflowLevel.Level
 	campaign.UpdatedByID = &currentUserID
 
@@ -354,9 +369,9 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 		return err
 	}
 
-	notify = func() {
+	notifications = append(notifications, func() {
 		ircrs.notifyWorkflowParticipants(campaign, nextWorkflow, currentUserID)
-	}
+	})
 
 	return nil
 }
@@ -578,7 +593,6 @@ func (ircrs *IdentityReviewCampaignReviewService) Resubmit(campaignID uint, curr
 	}
 
 	notify = func() {
-		ircrs.notifyWorkflowParticipants(campaign, workflowLevel, currentUserID)
 		ircrs.sendResubmittedNotification(currentUserID, campaign, workflowLevel)
 	}
 
@@ -654,6 +668,13 @@ func (ircrs *IdentityReviewCampaignReviewService) Revert(campaignID uint, curren
 		return err
 	}
 
+	inProgressStatus, err := ircrs.campaignStatusSvc.GetByType("in_progress")
+	if err != nil {
+		return err
+	}
+
+	campaign.CampaignStatusID = inProgressStatus.ID
+
 	if err := ircrs.createReviewWithHistory(
 		currentWorkflow.ID,
 		campaignID,
@@ -698,14 +719,8 @@ func (ircrs *IdentityReviewCampaignReviewService) Revert(campaignID uint, curren
 
 		campaign.NextReviewLevel = &previousLevel
 	} else {
-		inProgressStatus, err := ircrs.campaignStatusSvc.GetByType("in_progress")
-		if err != nil {
-			return err
-		}
-
 		submittedByID := campaign.SubmittedBy
 
-		campaign.CampaignStatusID = inProgressStatus.ID
 		campaign.SubmittedBy = nil
 		campaign.SubmittedAt = nil
 		campaign.NextReviewLevel = nil
@@ -753,9 +768,15 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyWorkflowParticipants(cam
 	action := "review-user-assign"
 	appURL := utility.GetAppURL()
 	redirectURL := fmt.Sprintf("%s/identity-access-review/campaigns/%d/overview", appURL, campaign.ID)
+	notifiedUserIDs := make(map[uint]struct{})
 
 	for _, participant := range workflowLevel.IdentityReviewCampaignWorkflowParticipants {
-		responsibleUser, err := ircrs.userSvc.GetByID(participant.User.ID)
+		if _, alreadyNotified := notifiedUserIDs[participant.UserID]; alreadyNotified {
+			continue
+		}
+		notifiedUserIDs[participant.UserID] = struct{}{}
+
+		responsibleUser, err := ircrs.userSvc.GetByID(participant.UserID)
 		if err != nil {
 			utility.LogError("Failed to fetch workflow participant", map[string]interface{}{
 				"error": err.Error(),
@@ -764,7 +785,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyWorkflowParticipants(cam
 		}
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{participant.User.ID},
+			UserIDs:              []uint{participant.UserID},
 			ModuleIdentifier:     "identity_access_review",
 			NotificationType:     string(commonDTOs.ReviewType),
 			ReferenceNumber:      campaign.ReferenceNumber,
@@ -793,7 +814,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyWorkflowParticipants(cam
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{responsibleUser.Email},
 			Subject:              fmt.Sprintf("Identity Review Campaign: %s - Review Assigned", campaign.CampaignName),
-			TemplateRelativePath: "identity_access_review/templates/email/identity_review_campaign_workflow_review_user_mail.html",
+			TemplateRelativePath: "identity-access-review/templates/email/identity_review_campaign_workflow_review_user_mail.html",
 			EmailData:            emailData,
 		}
 
@@ -821,9 +842,15 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyRevertedToPreviousLevel(
 
 	appURL := utility.GetAppURL()
 	redirectURL := fmt.Sprintf("%s/identity-access-review/campaigns/%d/overview", appURL, campaign.ID)
+	notifiedUserIDs := make(map[uint]struct{})
 
 	for _, participant := range workflowLevel.IdentityReviewCampaignWorkflowParticipants {
-		responsibleUser, err := ircrs.userSvc.GetByID(participant.User.ID)
+		if _, alreadyNotified := notifiedUserIDs[participant.UserID]; alreadyNotified {
+			continue
+		}
+		notifiedUserIDs[participant.UserID] = struct{}{}
+
+		responsibleUser, err := ircrs.userSvc.GetByID(participant.UserID)
 		if err != nil {
 			utility.LogError("Failed to fetch identity review workflow participant", map[string]interface{}{
 				"error": err.Error(),
@@ -832,7 +859,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyRevertedToPreviousLevel(
 		}
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{participant.User.ID},
+			UserIDs:              []uint{participant.UserID},
 			ModuleIdentifier:     "identity_access_review",
 			NotificationType:     string(commonDTOs.RevertType),
 			ReferenceNumber:      campaign.ReferenceNumber,
@@ -861,7 +888,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyRevertedToPreviousLevel(
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{responsibleUser.Email},
 			Subject:              fmt.Sprintf("Identity Review Campaign: %s - Reverted", campaign.CampaignName),
-			TemplateRelativePath: "identity_review/templates/email/identity_review_campaign_workflow_revert_user_mail.html",
+			TemplateRelativePath: "identity-access-review/templates/email/identity_review_campaign_workflow_revert_user_mail.html",
 			EmailData:            emailData,
 		}
 
@@ -873,7 +900,7 @@ func (ircrs *IdentityReviewCampaignReviewService) notifyRevertedToPreviousLevel(
 	}
 }
 
-func (ircrs *IdentityReviewCampaignReviewService) sendApprovalNotification(currentUserID uint, submittedByID uint, campaign *models.IdentityReviewCampaign) {
+func (ircrs *IdentityReviewCampaignReviewService) sendApprovalNotification(currentUserID uint, createdByID uint, campaign *models.IdentityReviewCampaign) {
 	approvedByUser, err := ircrs.userSvc.GetByID(currentUserID)
 	if err != nil {
 		utility.LogError("Failed to fetch approving user", map[string]interface{}{
@@ -882,9 +909,9 @@ func (ircrs *IdentityReviewCampaignReviewService) sendApprovalNotification(curre
 		return
 	}
 
-	submittedByUser, err := ircrs.userSvc.GetByID(submittedByID)
+	createdByUser, err := ircrs.userSvc.GetByID(createdByID)
 	if err != nil {
-		utility.LogError("Failed to fetch campaign submitted user", map[string]interface{}{
+		utility.LogError("Failed to fetch campaign created user", map[string]interface{}{
 			"error": err.Error(),
 		})
 		return
@@ -896,7 +923,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendApprovalNotification(curre
 	action := "approval"
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-		UserIDs:              []uint{submittedByID},
+		UserIDs:              []uint{createdByID},
 		ModuleIdentifier:     "identity_access_review",
 		NotificationType:     string(commonDTOs.ApprovalType),
 		ReferenceNumber:      campaign.ReferenceNumber,
@@ -915,8 +942,8 @@ func (ircrs *IdentityReviewCampaignReviewService) sendApprovalNotification(curre
 	redirectURL := fmt.Sprintf("%s/identity-access-review/campaigns/%d/overview", appURL, campaign.ID)
 
 	emailData := map[string]interface{}{
-		"FirstNameEn":           submittedByUser.FirstNameEn,
-		"LastNameEn":            submittedByUser.LastNameEn,
+		"FirstNameEn":           createdByUser.FirstNameEn,
+		"LastNameEn":            createdByUser.LastNameEn,
 		"CampaignName":          campaign.CampaignName,
 		"ReferenceNumber":       campaign.ReferenceNumber,
 		"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
@@ -926,9 +953,9 @@ func (ircrs *IdentityReviewCampaignReviewService) sendApprovalNotification(curre
 	}
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-		EmailTo:              []string{submittedByUser.Email},
+		EmailTo:              []string{createdByUser.Email},
 		Subject:              fmt.Sprintf("Identity Review Campaign: %s - Approved", campaign.CampaignName),
-		TemplateRelativePath: "identity_review/templates/email/identity_review_campaign_workflow_approve_user_mail.html",
+		TemplateRelativePath: "identity-access-review/templates/email/identity_review_campaign_workflow_approve_user_mail.html",
 		EmailData:            emailData,
 	}
 
@@ -994,7 +1021,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendRejectedNotification(curre
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{submittedByUser.Email},
 		Subject:              fmt.Sprintf("Identity Review Campaign: %s - Rejected", campaign.CampaignName),
-		TemplateRelativePath: "identity_review/templates/email/identity_review_campaign_workflow_reject_user_mail.html",
+		TemplateRelativePath: "identity-access-review/templates/email/identity_review_campaign_workflow_reject_user_mail.html",
 		EmailData:            emailData,
 	}
 
@@ -1021,9 +1048,15 @@ func (ircrs *IdentityReviewCampaignReviewService) sendResubmittedNotification(cu
 
 	appURL := utility.GetAppURL()
 	redirectURL := fmt.Sprintf("%s/identity-access-review/campaigns/%d/overview", appURL, campaign.ID)
+	notifiedUserIDs := make(map[uint]struct{})
 
 	for _, participant := range workflowLevel.IdentityReviewCampaignWorkflowParticipants {
-		responsibleUser, err := ircrs.userSvc.GetByID(participant.User.ID)
+		if _, alreadyNotified := notifiedUserIDs[participant.UserID]; alreadyNotified {
+			continue
+		}
+		notifiedUserIDs[participant.UserID] = struct{}{}
+
+		responsibleUser, err := ircrs.userSvc.GetByID(participant.UserID)
 		if err != nil {
 			utility.LogError("Failed to fetch identity review workflow participant", map[string]interface{}{
 				"error": err.Error(),
@@ -1032,7 +1065,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendResubmittedNotification(cu
 		}
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{participant.User.ID},
+			UserIDs:              []uint{participant.UserID},
 			ModuleIdentifier:     "identity_access_review",
 			NotificationType:     string(commonDTOs.ReviewType),
 			ReferenceNumber:      campaign.ReferenceNumber,
@@ -1061,7 +1094,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendResubmittedNotification(cu
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{responsibleUser.Email},
 			Subject:              fmt.Sprintf("Identity Review Campaign: %s - Resubmitted", campaign.CampaignName),
-			TemplateRelativePath: "identity_review/templates/email/identity_review_campaign_workflow_resubmit_user_mail.html",
+			TemplateRelativePath: "identity-access-review/templates/email/identity_review_campaign_workflow_resubmit_user_mail.html",
 			EmailData:            emailData,
 		}
 
@@ -1128,7 +1161,7 @@ func (ircrs *IdentityReviewCampaignReviewService) sendRevertNotification(current
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{submittedByUser.Email},
 		Subject:              fmt.Sprintf("Identity Review Campaign: %s - Reverted", campaign.CampaignName),
-		TemplateRelativePath: "identity_review/templates/email/identity_review_campaign_workflow_revert_user_mail.html",
+		TemplateRelativePath: "identity-access-review/templates/email/identity_review_campaign_workflow_revert_user_mail.html",
 		EmailData:            emailData,
 	}
 

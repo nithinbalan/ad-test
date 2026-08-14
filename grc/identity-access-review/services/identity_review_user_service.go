@@ -747,10 +747,11 @@ func (irus *IdentityReviewUserService) validateIdentityReviewUsers(input []map[s
 
 			case "account_type":
 				if !ok || strings.TrimSpace(value) == "" {
-					rowErrors[header] = "Account Type is required"
+					rowErrors[header] = "Account type is required"
 				} else if id, exists := accountTypeTitles[strings.TrimSpace(value)]; !exists {
 					rowErrors[header] = fmt.Sprintf("Invalid account type: %s", value)
 				} else {
+					identityReviewUserRecord[header] = strings.TrimSpace(value)
 					identityReviewUserRecord["account_type_id"] = id
 				}
 
@@ -760,6 +761,7 @@ func (irus *IdentityReviewUserService) validateIdentityReviewUsers(input []map[s
 				} else if id, exists := privilegeTitles[strings.TrimSpace(value)]; !exists {
 					rowErrors[header] = fmt.Sprintf("Invalid privilege: %s", value)
 				} else {
+					identityReviewUserRecord[header] = strings.TrimSpace(value)
 					identityReviewUserRecord["privilege_id"] = id
 				}
 
@@ -772,9 +774,18 @@ func (irus *IdentityReviewUserService) validateIdentityReviewUsers(input []map[s
 					identityReviewUserRecord["department_id"] = id
 				}
 
-			case "identifier", "last_login", "current_role":
-				if !ok {
+			case "identifier":
+				if !ok || strings.TrimSpace(value) == "" {
+					rowErrors[header] = "Identifier is required"
+				} else {
+					identityReviewUserRecord[header] = strings.TrimSpace(value)
+				}
+
+			case "last_login", "current_role":
+				if !ok || strings.TrimSpace(value) == "" {
 					identityReviewUserRecord[header] = ""
+				} else {
+					identityReviewUserRecord[header] = strings.TrimSpace(value)
 				}
 			}
 		}

@@ -18,6 +18,16 @@
     table.data td { padding:8px 6px; border:1px solid #e5e7eb; vertical-align:top; font-size:8px; word-wrap:break-word; }
     table.data tr { page-break-inside:avoid; }
     thead { display:table-header-group; }
+    .status-badge {
+      display:inline-block;
+      padding:3px 7px;
+      border-radius:6px;
+      border:1px solid #efb3b8;
+      background:#fdf0f2;
+      color:#df3f47;
+      font-size:11px;
+      font-weight:400;
+    }
   </style>
 </head>
 <body>
@@ -33,7 +43,7 @@
                 <td style="width:50%; padding:5px 0 14px 0;"><div class="label">Reference number</div><div class="value">{{.Data.ReferenceNumber}}</div></td>
               </tr>
               <tr>
-                <td style="padding:5px 12px 14px 0;"><div class="label">Status</div><div class="value"><span style="display:inline-block; padding:3px 8px; border-radius:5px; color:{{.Data.CampaignStatusColorCode}}; border:1px solid {{.Data.CampaignStatusColorCode}};">{{.Data.CampaignStatusTitleEn}}</span></div></td>
+                <td style="padding:5px 12px 14px 0;"><div class="label">Status</div><div class="value"><span class="status-badge" style="color:{{.Data.CampaignStatusTextColor}}; border-color:{{.Data.CampaignStatusBorderColor}}; background:{{.Data.CampaignStatusBackgroundColor}};">{{.Data.CampaignStatusTitleEn}}</span></div></td>
                 <td style="padding:5px 0 14px 0;"><div class="label">Review type</div><div class="value">{{.Data.ReviewTypeTitleEn}}</div></td>
               </tr>
               <tr>
@@ -90,7 +100,7 @@
           <td>{{$user.DepartmentTitleEn}}</td>
           <td>{{if $user.AccountTypeTitleEn}}{{$user.AccountTypeTitleEn}}{{else}}-{{end}}</td>
           <td>{{if $user.PrivilegeTitleEn}}{{$user.PrivilegeTitleEn}}{{else}}-{{end}}</td>
-          <td>{{if $user.AccountDecisionTitleEn}}<span style="display:inline-block; padding:2px 6px; border-radius:4px; color:{{if $user.AccountDecisionColorCode}}{{$user.AccountDecisionColorCode}}{{else}}#6b7280{{end}}; border:1px solid {{if $user.AccountDecisionColorCode}}{{$user.AccountDecisionColorCode}}{{else}}#d1d5db{{end}};">{{$user.AccountDecisionTitleEn}}</span>{{else}}Pending{{end}}</td>
+          <td><span class="status-badge" style="color:{{$user.AccountDecisionTextColor}}; border-color:{{$user.AccountDecisionBorderColor}}; background:{{$user.AccountDecisionBackgroundColor}};">{{if $user.AccountDecisionTitleEn}}{{$user.AccountDecisionTitleEn}}{{else}}Pending{{end}}</span></td>
           <td>{{if $user.CurrentRole}}{{$user.CurrentRole}}{{else}}-{{end}}</td>
           <td>{{if $user.LastLogin}}{{$user.LastLogin}}{{else}}-{{end}}</td>
         </tr>
@@ -121,7 +131,7 @@
           <td>Level {{$workflow.Level}}</td>
           <td>{{range $index, $user := $workflow.ApprovedUsers}}{{if $user}}{{if $index}}, {{end}}{{$user.FirstNameEN}} {{$user.LastNameEN}}{{end}}{{else}}-{{end}}</td>
           <td>{{if $workflow.ApprovedAtString}}{{$workflow.ApprovedAtString}}{{else}}-{{end}}</td>
-          <td><span style="display:inline-block; padding:2px 6px; border-radius:4px; color:{{$workflow.CurrentStatus.ColorCode}}; border:1px solid {{$workflow.CurrentStatus.ColorCode}};">{{$workflow.CurrentStatus.TitleEn}}</span></td>
+          <td><span class="status-badge" style="color:{{$workflow.StatusTextColor}}; border-color:{{$workflow.StatusBorderColor}}; background:{{$workflow.StatusBackgroundColor}};">{{$workflow.CurrentStatus.TitleEn}}</span></td>
         </tr>
         {{end}}
       </tbody>
