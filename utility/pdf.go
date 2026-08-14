@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
@@ -101,6 +102,109 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 	}
 
 	return renderedHTML.String(), nil
+}
+
+var statusBadgeHexColorPattern = regexp.MustCompile(`^[0-9A-Fa-f]{6}$`)
+
+func ResolveStatusBadgeColors(statusColorCode string, statusType string, statusLabel string) (string, string, string) {
+	baseColor := defaultStatusBadgeColor(statusType, statusLabel)
+	if normalizedColor, ok := normalizeStatusBadgeHexColor(statusColorCode); ok {
+		baseColor = normalizedColor
+	}
+
+	textColor := darkenStatusBadgeHexColor(baseColor, 20)
+	borderColor := darkenStatusBadgeHexColor(baseColor, 8)
+	backgroundColor := blendStatusBadgeHexColorWithWhite(baseColor, 88)
+
+	return textColor, borderColor, backgroundColor
+}
+
+func defaultStatusBadgeColor(statusType string, statusLabel string) string {
+	switch strings.ToLower(strings.TrimSpace(statusType)) {
+	case "new", "reopen":
+		return "#2563EB"
+	case "in_progress":
+		return "#D97706"
+	case "completed", "close":
+		return "#1F7D58"
+	case "on_hold":
+		return "#6B7280"
+	case "terminated":
+		return "#B91C1C"
+	}
+
+	if strings.Contains(strings.ToLower(strings.TrimSpace(statusLabel)), "overdue") {
+		return "#DF3F47"
+	}
+
+	return "#DF3F47"
+}
+
+func normalizeStatusBadgeHexColor(colorValue string) (string, bool) {
+	trimmedColor := strings.TrimPrefix(strings.TrimSpace(colorValue), "#")
+	if len(trimmedColor) == 3 {
+		trimmedColor = strings.Repeat(string(trimmedColor[0]), 2) +
+			strings.Repeat(string(trimmedColor[1]), 2) +
+			strings.Repeat(string(trimmedColor[2]), 2)
+	}
+
+	if len(trimmedColor) != 6 || !statusBadgeHexColorPattern.MatchString(trimmedColor) {
+		return "", false
+	}
+
+	return "#" + strings.ToUpper(trimmedColor), true
+}
+
+func parseStatusBadgeHexColor(colorValue string) (int, int, int, bool) {
+	normalizedColor, ok := normalizeStatusBadgeHexColor(colorValue)
+	if !ok {
+		return 0, 0, 0, false
+	}
+
+	parsedValue, err := strconv.ParseInt(strings.TrimPrefix(normalizedColor, "#"), 16, 32)
+	if err != nil {
+		return 0, 0, 0, false
+	}
+
+	return int((parsedValue >> 16) & 0xFF), int((parsedValue >> 8) & 0xFF), int(parsedValue & 0xFF), true
+}
+
+func darkenStatusBadgeHexColor(colorValue string, percentage int) string {
+	red, green, blue, ok := parseStatusBadgeHexColor(colorValue)
+	if !ok {
+		return "#DF3F47"
+	}
+
+	darkenPercent := clampStatusBadgeColorPercentage(percentage)
+	red = (red * (100 - darkenPercent)) / 100
+	green = (green * (100 - darkenPercent)) / 100
+	blue = (blue * (100 - darkenPercent)) / 100
+
+	return fmt.Sprintf("#%02X%02X%02X", red, green, blue)
+}
+
+func blendStatusBadgeHexColorWithWhite(colorValue string, whitePercentage int) string {
+	red, green, blue, ok := parseStatusBadgeHexColor(colorValue)
+	if !ok {
+		return "#FDF0F2"
+	}
+
+	whitePercent := clampStatusBadgeColorPercentage(whitePercentage)
+	red = ((100-whitePercent)*red + whitePercent*255) / 100
+	green = ((100-whitePercent)*green + whitePercent*255) / 100
+	blue = ((100-whitePercent)*blue + whitePercent*255) / 100
+
+	return fmt.Sprintf("#%02X%02X%02X", red, green, blue)
+}
+
+func clampStatusBadgeColorPercentage(value int) int {
+	if value < 0 {
+		return 0
+	}
+	if value > 100 {
+		return 100
+	}
+	return value
 }
 
 func ConvertHTMLContentToPDF(htmlContent, pdfFileName string) error {
