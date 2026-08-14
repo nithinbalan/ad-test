@@ -1,12 +1,17 @@
 package initializers
 
 import (
+	"jethur/grc/security-operations/controllers"
+	"jethur/grc/security-operations/repositories"
+	"jethur/grc/security-operations/services"
+
 	"gorm.io/gorm"
 )
 
 type SecurityOperationsModule struct {
-	// TODO: Add controllers here, e.g.:
-	// SomeController *controllers.SomeController
+	CSLogDataEntityTypeController         *controllers.CSLogDataEntityTypeController
+	CSLogDataReceptionMechanismController *controllers.CSLogDataReceptionMechanismController
+	CSLogCommunicationChannelController   *controllers.CSLogCommunicationChannelController
 }
 
 func NewSecurityOperationsModule(
@@ -18,12 +23,21 @@ func NewSecurityOperationsModule(
 	taskModule *TaskModule,
 	commonModule *CommonModule,
 ) *SecurityOperationsModule {
-	// TODO: Wire up repositories, services, and controllers here, e.g.:
-	// someRepo := repositories.NewSomeRepository(db)
-	// someSvc := services.NewSomeService(someRepo, sharedModule.ActivityLogService)
-	// someController := controllers.NewSomeController(someSvc)
+	csLogDataEntityTypeRepo := repositories.NewCSLogDataEntityTypeRepository(db)
+	csLogDataEntityTypeSvc := services.NewCSLogDataEntityTypeService(csLogDataEntityTypeRepo, sharedModule.ActivityLogService)
+	csLogDataEntityTypeController := controllers.NewCSLogDataEntityTypeController(csLogDataEntityTypeSvc)
+
+	csLogDataReceptionMechanismRepo := repositories.NewCSLogDataReceptionMechanismRepository(db)
+	csLogDataReceptionMechanismSvc := services.NewCSLogDataReceptionMechanismService(csLogDataReceptionMechanismRepo, sharedModule.ActivityLogService)
+	csLogDataReceptionMechanismController := controllers.NewCSLogDataReceptionMechanismController(csLogDataReceptionMechanismSvc)
+
+	csLogCommunicationChannelRepo := repositories.NewCSLogCommunicationChannelRepository(db)
+	csLogCommunicationChannelSvc := services.NewCSLogCommunicationChannelService(csLogCommunicationChannelRepo, sharedModule.ActivityLogService)
+	csLogCommunicationChannelController := controllers.NewCSLogCommunicationChannelController(csLogCommunicationChannelSvc)
 
 	return &SecurityOperationsModule{
-		// SomeController: someController,
+		CSLogDataEntityTypeController:         csLogDataEntityTypeController,
+		CSLogDataReceptionMechanismController: csLogDataReceptionMechanismController,
+		CSLogCommunicationChannelController:   csLogCommunicationChannelController,
 	}
 }
