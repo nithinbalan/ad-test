@@ -22,21 +22,21 @@ func NewCSLogDataEntityTypeController(service services.CSLogDataEntityTypeServic
 	}
 }
 
-func (c *CSLogDataEntityTypeController) GetAll(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) GetAll(ctx *gin.Context) {
 	sort := ctx.Query("sort_order")
 	sortBy := ctx.Query("sort_by")
 	keyword := ctx.Query("keyword")
 	status := ctx.Query("status")
 
-	entityTypes, err := c.service.GetAll(sort, sortBy, keyword, status)
+	entityTypes, err := cldetc.service.GetAll(sort, sortBy, keyword, status)
 	if err != nil {
-		utility.SendInternalErrResp(c.db, ctx, err.Error())
+		utility.SendInternalErrResp(cldetc.db, ctx, err.Error())
 		return
 	}
 	ctx.JSON(http.StatusOK, entityTypes)
 }
 
-func (c *CSLogDataEntityTypeController) GetDetails(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) GetDetails(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -44,7 +44,7 @@ func (c *CSLogDataEntityTypeController) GetDetails(ctx *gin.Context) {
 		return
 	}
 
-	entityType, err := c.service.GetByID(uint(id))
+	entityType, err := cldetc.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(ctx)
 		return
@@ -53,7 +53,7 @@ func (c *CSLogDataEntityTypeController) GetDetails(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, entityType)
 }
 
-func (c *CSLogDataEntityTypeController) Create(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) Create(ctx *gin.Context) {
 	var entityType *models.CSLogDataEntityType
 
 	if err := ctx.ShouldBindJSON(&entityType); err != nil {
@@ -63,18 +63,18 @@ func (c *CSLogDataEntityTypeController) Create(ctx *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(ctx)
 	if err != nil {
-		utility.SendInternalErrResp(c.db, ctx, err.Error())
+		utility.SendInternalErrResp(cldetc.db, ctx, err.Error())
 		return
 	}
 
-	created, err := c.service.Create(currentUserID, entityType)
+	created, err := cldetc.service.Create(currentUserID, entityType)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(ctx, e)
 			return
 		default:
-			utility.SendInternalErrResp(c.db, ctx, e.Error())
+			utility.SendInternalErrResp(cldetc.db, ctx, e.Error())
 			return
 		}
 	}
@@ -82,7 +82,7 @@ func (c *CSLogDataEntityTypeController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, created)
 }
 
-func (c *CSLogDataEntityTypeController) Update(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) Update(ctx *gin.Context) {
 	var updated *models.CSLogDataEntityType
 
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -98,11 +98,11 @@ func (c *CSLogDataEntityTypeController) Update(ctx *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(ctx)
 	if err != nil {
-		utility.SendInternalErrResp(c.db, ctx, err.Error())
+		utility.SendInternalErrResp(cldetc.db, ctx, err.Error())
 		return
 	}
 
-	updated, err = c.service.Update(uint(id), currentUserID, updated)
+	updated, err = cldetc.service.Update(uint(id), currentUserID, updated)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -112,7 +112,7 @@ func (c *CSLogDataEntityTypeController) Update(ctx *gin.Context) {
 			utility.SendInvalidErrResp(ctx, e)
 			return
 		default:
-			utility.SendInternalErrResp(c.db, ctx, e.Error())
+			utility.SendInternalErrResp(cldetc.db, ctx, e.Error())
 			return
 		}
 	}
@@ -120,7 +120,7 @@ func (c *CSLogDataEntityTypeController) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, updated)
 }
 
-func (c *CSLogDataEntityTypeController) Delete(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) Delete(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
@@ -132,20 +132,20 @@ func (c *CSLogDataEntityTypeController) Delete(ctx *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(ctx)
 	if err != nil {
-		utility.SendInternalErrResp(c.db, ctx, err.Error())
+		utility.SendInternalErrResp(cldetc.db, ctx, err.Error())
 		return
 	}
 
-	failedIDs, err := c.service.Delete(req.IDs, currentUserID)
+	failedIDs, err := cldetc.service.Delete(req.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(c.db, ctx, err.Error())
+		utility.SendInternalErrResp(cldetc.db, ctx, err.Error())
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (c *CSLogDataEntityTypeController) Activate(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) Activate(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
@@ -157,19 +157,19 @@ func (c *CSLogDataEntityTypeController) Activate(ctx *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(ctx)
 	if err != nil {
-		utility.SendInternalErrResp(c.db, ctx, err.Error())
+		utility.SendInternalErrResp(cldetc.db, ctx, err.Error())
 		return
 	}
 
-	if err := c.service.Activate(req.IDs, currentUserID); err != nil {
-		utility.SendInternalErrResp(c.db, ctx, err.Error())
+	if err := cldetc.service.Activate(req.IDs, currentUserID); err != nil {
+		utility.SendInternalErrResp(cldetc.db, ctx, err.Error())
 		return
 	}
 
 	ctx.Status(http.StatusOK)
 }
 
-func (c *CSLogDataEntityTypeController) Deactivate(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) Deactivate(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
@@ -181,12 +181,12 @@ func (c *CSLogDataEntityTypeController) Deactivate(ctx *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(ctx)
 	if err != nil {
-		utility.SendInternalErrResp(c.db, ctx, err.Error())
+		utility.SendInternalErrResp(cldetc.db, ctx, err.Error())
 		return
 	}
 
-	if err := c.service.Deactivate(req.IDs, currentUserID); err != nil {
-		utility.SendInternalErrResp(c.db, ctx, err.Error())
+	if err := cldetc.service.Deactivate(req.IDs, currentUserID); err != nil {
+		utility.SendInternalErrResp(cldetc.db, ctx, err.Error())
 		return
 	}
 

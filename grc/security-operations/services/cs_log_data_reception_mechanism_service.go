@@ -35,12 +35,12 @@ func NewCSLogDataReceptionMechanismService(repo repositories.CSLogDataReceptionM
 	}
 }
 
-func (s *CSLogDataReceptionMechanismService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.CSLogDataReceptionMechanism, error) {
-	return s.repo.GetAll(sort, sortBy, keyword, status)
+func (cldrms *CSLogDataReceptionMechanismService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.CSLogDataReceptionMechanism, error) {
+	return cldrms.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (s *CSLogDataReceptionMechanismService) GetByID(id uint) (*models.CSLogDataReceptionMechanism, error) {
-	mechanism, err := s.repo.GetByID(id)
+func (cldrms *CSLogDataReceptionMechanismService) GetByID(id uint) (*models.CSLogDataReceptionMechanism, error) {
+	mechanism, err := cldrms.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -50,20 +50,20 @@ func (s *CSLogDataReceptionMechanismService) GetByID(id uint) (*models.CSLogData
 	return mechanism, nil
 }
 
-func (s *CSLogDataReceptionMechanismService) Create(currentUserID uint, mechanism *models.CSLogDataReceptionMechanism) (*models.CSLogDataReceptionMechanism, error) {
-	if exists, err := s.repo.ExistsByTitle(mechanism.TitleEn, mechanism.TitleAr); err != nil {
+func (cldrms *CSLogDataReceptionMechanismService) Create(currentUserID uint, mechanism *models.CSLogDataReceptionMechanism) (*models.CSLogDataReceptionMechanism, error) {
+	if exists, err := cldrms.repo.ExistsByTitle(mechanism.TitleEn, mechanism.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	created, err := s.repo.Create(mechanism)
+	created, err := cldrms.repo.Create(mechanism)
 	if err != nil {
 		return nil, err
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := cldrms.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.CSLogDataReceptionMechanism{}.TableName(),
 			created.ID,
@@ -79,8 +79,8 @@ func (s *CSLogDataReceptionMechanismService) Create(currentUserID uint, mechanis
 	return created, nil
 }
 
-func (s *CSLogDataReceptionMechanismService) Update(id uint, currentUserID uint, updated *models.CSLogDataReceptionMechanism) (*models.CSLogDataReceptionMechanism, error) {
-	existing, err := s.repo.GetByID(id)
+func (cldrms *CSLogDataReceptionMechanismService) Update(id uint, currentUserID uint, updated *models.CSLogDataReceptionMechanism) (*models.CSLogDataReceptionMechanism, error) {
+	existing, err := cldrms.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -89,14 +89,14 @@ func (s *CSLogDataReceptionMechanismService) Update(id uint, currentUserID uint,
 	}
 
 	if updated.TitleEn != existing.TitleEn || updated.TitleAr != existing.TitleAr {
-		if exists, err := s.repo.ExistsByTitleExcludingID(id, updated.TitleEn, updated.TitleAr); err != nil {
+		if exists, err := cldrms.repo.ExistsByTitleExcludingID(id, updated.TitleEn, updated.TitleAr); err != nil {
 			return nil, err
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
 	}
 
-	result, err := s.repo.Update(id, updated)
+	result, err := cldrms.repo.Update(id, updated)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (s *CSLogDataReceptionMechanismService) Update(id uint, currentUserID uint,
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := cldrms.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.CSLogDataReceptionMechanism{}.TableName(),
 			result.ID,
@@ -128,18 +128,18 @@ func (s *CSLogDataReceptionMechanismService) Update(id uint, currentUserID uint,
 	return result, err
 }
 
-func (s *CSLogDataReceptionMechanismService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (cldrms *CSLogDataReceptionMechanismService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	var deleted []map[string]any
 	for _, id := range ids {
-		mechanism, err := s.repo.GetByID(id)
+		mechanism, err := cldrms.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
 		}
 
-		if err := s.repo.Delete(id); err != nil {
+		if err := cldrms.repo.Delete(id); err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
@@ -154,7 +154,7 @@ func (s *CSLogDataReceptionMechanismService) Delete(ids []uint, currentUserID ui
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := cldrms.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.CSLogDataReceptionMechanism{}.TableName(),
 				successfulIds,
@@ -171,12 +171,12 @@ func (s *CSLogDataReceptionMechanismService) Delete(ids []uint, currentUserID ui
 	return failedIds, nil
 }
 
-func (s *CSLogDataReceptionMechanismService) Activate(ids []uint, currentUserID uint) error {
-	successfulIds, err := s.repo.Activate(ids)
+func (cldrms *CSLogDataReceptionMechanismService) Activate(ids []uint, currentUserID uint) error {
+	successfulIds, err := cldrms.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := cldrms.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
 				models.CSLogDataReceptionMechanism{}.TableName(),
 				successfulIds,
@@ -193,12 +193,12 @@ func (s *CSLogDataReceptionMechanismService) Activate(ids []uint, currentUserID 
 	return err
 }
 
-func (s *CSLogDataReceptionMechanismService) Deactivate(ids []uint, currentUserID uint) error {
-	successfulIds, err := s.repo.Deactivate(ids)
+func (cldrms *CSLogDataReceptionMechanismService) Deactivate(ids []uint, currentUserID uint) error {
+	successfulIds, err := cldrms.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := cldrms.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
 				models.CSLogDataReceptionMechanism{}.TableName(),
 				successfulIds,

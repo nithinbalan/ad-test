@@ -35,12 +35,12 @@ func NewCSLogDataEntityTypeService(repo repositories.CSLogDataEntityTypeReposito
 	}
 }
 
-func (s *CSLogDataEntityTypeService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.CSLogDataEntityType, error) {
-	return s.repo.GetAll(sort, sortBy, keyword, status)
+func (cldets *CSLogDataEntityTypeService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.CSLogDataEntityType, error) {
+	return cldets.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (s *CSLogDataEntityTypeService) GetByID(id uint) (*models.CSLogDataEntityType, error) {
-	entityType, err := s.repo.GetByID(id)
+func (cldets *CSLogDataEntityTypeService) GetByID(id uint) (*models.CSLogDataEntityType, error) {
+	entityType, err := cldets.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -50,20 +50,20 @@ func (s *CSLogDataEntityTypeService) GetByID(id uint) (*models.CSLogDataEntityTy
 	return entityType, nil
 }
 
-func (s *CSLogDataEntityTypeService) Create(currentUserID uint, entityType *models.CSLogDataEntityType) (*models.CSLogDataEntityType, error) {
-	if exists, err := s.repo.ExistsByTitle(entityType.TitleEn, entityType.TitleAr); err != nil {
+func (cldets *CSLogDataEntityTypeService) Create(currentUserID uint, entityType *models.CSLogDataEntityType) (*models.CSLogDataEntityType, error) {
+	if exists, err := cldets.repo.ExistsByTitle(entityType.TitleEn, entityType.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	created, err := s.repo.Create(entityType)
+	created, err := cldets.repo.Create(entityType)
 	if err != nil {
 		return nil, err
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := cldets.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.CSLogDataEntityType{}.TableName(),
 			created.ID,
@@ -79,8 +79,8 @@ func (s *CSLogDataEntityTypeService) Create(currentUserID uint, entityType *mode
 	return created, nil
 }
 
-func (s *CSLogDataEntityTypeService) Update(id uint, currentUserID uint, updated *models.CSLogDataEntityType) (*models.CSLogDataEntityType, error) {
-	existing, err := s.repo.GetByID(id)
+func (cldets *CSLogDataEntityTypeService) Update(id uint, currentUserID uint, updated *models.CSLogDataEntityType) (*models.CSLogDataEntityType, error) {
+	existing, err := cldets.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -89,14 +89,14 @@ func (s *CSLogDataEntityTypeService) Update(id uint, currentUserID uint, updated
 	}
 
 	if updated.TitleEn != existing.TitleEn || updated.TitleAr != existing.TitleAr {
-		if exists, err := s.repo.ExistsByTitleExcludingID(id, updated.TitleEn, updated.TitleAr); err != nil {
+		if exists, err := cldets.repo.ExistsByTitleExcludingID(id, updated.TitleEn, updated.TitleAr); err != nil {
 			return nil, err
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
 	}
 
-	result, err := s.repo.Update(id, updated)
+	result, err := cldets.repo.Update(id, updated)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (s *CSLogDataEntityTypeService) Update(id uint, currentUserID uint, updated
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := cldets.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.CSLogDataEntityType{}.TableName(),
 			result.ID,
@@ -128,18 +128,18 @@ func (s *CSLogDataEntityTypeService) Update(id uint, currentUserID uint, updated
 	return result, err
 }
 
-func (s *CSLogDataEntityTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (cldets *CSLogDataEntityTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	var deleted []map[string]any
 	for _, id := range ids {
-		entityType, err := s.repo.GetByID(id)
+		entityType, err := cldets.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
 		}
 
-		if err := s.repo.Delete(id); err != nil {
+		if err := cldets.repo.Delete(id); err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
@@ -154,7 +154,7 @@ func (s *CSLogDataEntityTypeService) Delete(ids []uint, currentUserID uint) ([]u
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := cldets.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.CSLogDataEntityType{}.TableName(),
 				successfulIds,
@@ -171,12 +171,12 @@ func (s *CSLogDataEntityTypeService) Delete(ids []uint, currentUserID uint) ([]u
 	return failedIds, nil
 }
 
-func (s *CSLogDataEntityTypeService) Activate(ids []uint, currentUserID uint) error {
-	successfulIds, err := s.repo.Activate(ids)
+func (cldets *CSLogDataEntityTypeService) Activate(ids []uint, currentUserID uint) error {
+	successfulIds, err := cldets.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := cldets.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
 				models.CSLogDataEntityType{}.TableName(),
 				successfulIds,
@@ -193,12 +193,12 @@ func (s *CSLogDataEntityTypeService) Activate(ids []uint, currentUserID uint) er
 	return err
 }
 
-func (s *CSLogDataEntityTypeService) Deactivate(ids []uint, currentUserID uint) error {
-	successfulIds, err := s.repo.Deactivate(ids)
+func (cldets *CSLogDataEntityTypeService) Deactivate(ids []uint, currentUserID uint) error {
+	successfulIds, err := cldets.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := cldets.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
 				models.CSLogDataEntityType{}.TableName(),
 				successfulIds,

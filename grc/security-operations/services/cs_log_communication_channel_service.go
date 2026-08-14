@@ -35,12 +35,12 @@ func NewCSLogCommunicationChannelService(repo repositories.CSLogCommunicationCha
 	}
 }
 
-func (s *CSLogCommunicationChannelService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.CSLogCommunicationChannel, error) {
-	return s.repo.GetAll(sort, sortBy, keyword, status)
+func (clccs *CSLogCommunicationChannelService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.CSLogCommunicationChannel, error) {
+	return clccs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (s *CSLogCommunicationChannelService) GetByID(id uint) (*models.CSLogCommunicationChannel, error) {
-	channel, err := s.repo.GetByID(id)
+func (clccs *CSLogCommunicationChannelService) GetByID(id uint) (*models.CSLogCommunicationChannel, error) {
+	channel, err := clccs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -50,20 +50,20 @@ func (s *CSLogCommunicationChannelService) GetByID(id uint) (*models.CSLogCommun
 	return channel, nil
 }
 
-func (s *CSLogCommunicationChannelService) Create(currentUserID uint, channel *models.CSLogCommunicationChannel) (*models.CSLogCommunicationChannel, error) {
-	if exists, err := s.repo.ExistsByTitle(channel.TitleEn, channel.TitleAr); err != nil {
+func (clccs *CSLogCommunicationChannelService) Create(currentUserID uint, channel *models.CSLogCommunicationChannel) (*models.CSLogCommunicationChannel, error) {
+	if exists, err := clccs.repo.ExistsByTitle(channel.TitleEn, channel.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	created, err := s.repo.Create(channel)
+	created, err := clccs.repo.Create(channel)
 	if err != nil {
 		return nil, err
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := clccs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.CSLogCommunicationChannel{}.TableName(),
 			created.ID,
@@ -79,8 +79,8 @@ func (s *CSLogCommunicationChannelService) Create(currentUserID uint, channel *m
 	return created, nil
 }
 
-func (s *CSLogCommunicationChannelService) Update(id uint, currentUserID uint, updated *models.CSLogCommunicationChannel) (*models.CSLogCommunicationChannel, error) {
-	existing, err := s.repo.GetByID(id)
+func (clccs *CSLogCommunicationChannelService) Update(id uint, currentUserID uint, updated *models.CSLogCommunicationChannel) (*models.CSLogCommunicationChannel, error) {
+	existing, err := clccs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -89,14 +89,14 @@ func (s *CSLogCommunicationChannelService) Update(id uint, currentUserID uint, u
 	}
 
 	if updated.TitleEn != existing.TitleEn || updated.TitleAr != existing.TitleAr {
-		if exists, err := s.repo.ExistsByTitleExcludingID(id, updated.TitleEn, updated.TitleAr); err != nil {
+		if exists, err := clccs.repo.ExistsByTitleExcludingID(id, updated.TitleEn, updated.TitleAr); err != nil {
 			return nil, err
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
 	}
 
-	result, err := s.repo.Update(id, updated)
+	result, err := clccs.repo.Update(id, updated)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (s *CSLogCommunicationChannelService) Update(id uint, currentUserID uint, u
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := clccs.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.CSLogCommunicationChannel{}.TableName(),
 			result.ID,
@@ -128,18 +128,18 @@ func (s *CSLogCommunicationChannelService) Update(id uint, currentUserID uint, u
 	return result, err
 }
 
-func (s *CSLogCommunicationChannelService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (clccs *CSLogCommunicationChannelService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	var deleted []map[string]any
 	for _, id := range ids {
-		channel, err := s.repo.GetByID(id)
+		channel, err := clccs.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
 		}
 
-		if err := s.repo.Delete(id); err != nil {
+		if err := clccs.repo.Delete(id); err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
@@ -154,7 +154,7 @@ func (s *CSLogCommunicationChannelService) Delete(ids []uint, currentUserID uint
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := clccs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.CSLogCommunicationChannel{}.TableName(),
 				successfulIds,
@@ -171,12 +171,12 @@ func (s *CSLogCommunicationChannelService) Delete(ids []uint, currentUserID uint
 	return failedIds, nil
 }
 
-func (s *CSLogCommunicationChannelService) Activate(ids []uint, currentUserID uint) error {
-	successfulIds, err := s.repo.Activate(ids)
+func (clccs *CSLogCommunicationChannelService) Activate(ids []uint, currentUserID uint) error {
+	successfulIds, err := clccs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := clccs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
 				models.CSLogCommunicationChannel{}.TableName(),
 				successfulIds,
@@ -193,12 +193,12 @@ func (s *CSLogCommunicationChannelService) Activate(ids []uint, currentUserID ui
 	return err
 }
 
-func (s *CSLogCommunicationChannelService) Deactivate(ids []uint, currentUserID uint) error {
-	successfulIds, err := s.repo.Deactivate(ids)
+func (clccs *CSLogCommunicationChannelService) Deactivate(ids []uint, currentUserID uint) error {
+	successfulIds, err := clccs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := clccs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
 				models.CSLogCommunicationChannel{}.TableName(),
 				successfulIds,
