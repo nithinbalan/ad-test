@@ -747,7 +747,7 @@ func (irus *IdentityReviewUserService) validateIdentityReviewUsers(input []map[s
 
 			case "account_type":
 				if !ok || strings.TrimSpace(value) == "" {
-					identityReviewUserRecord[header] = ""
+					rowErrors[header] = "Account type is required"
 				} else if id, exists := accountTypeTitles[strings.TrimSpace(value)]; !exists {
 					rowErrors[header] = fmt.Sprintf("Invalid account type: %s", value)
 				} else {
@@ -757,7 +757,7 @@ func (irus *IdentityReviewUserService) validateIdentityReviewUsers(input []map[s
 
 			case "privilege":
 				if !ok || strings.TrimSpace(value) == "" {
-					identityReviewUserRecord[header] = ""
+					rowErrors[header] = "Privilege is required"
 				} else if id, exists := privilegeTitles[strings.TrimSpace(value)]; !exists {
 					rowErrors[header] = fmt.Sprintf("Invalid privilege: %s", value)
 				} else {

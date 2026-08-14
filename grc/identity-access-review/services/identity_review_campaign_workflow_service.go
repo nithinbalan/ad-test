@@ -348,13 +348,15 @@ func (ircws *IdentityReviewCampaignWorkflowService) mapOverallWorkflowStatus(cam
 	case "rejected":
 		statusType = "reject"
 	case "submitted":
-		if campaign.NextReviewLevel != nil && *campaign.NextReviewLevel == 1 {
-			statusType = "submit"
-		} else {
-			statusType = "pending"
-		}
+		statusType = "submit"
 	case "in_progress":
-		statusType = "revert"
+		statusType = "pending"
+		for _, workflow := range campaign.CampaignWorkflows {
+			if workflow.WorkflowStatus != nil && workflow.WorkflowStatus.Type == "revert" {
+				statusType = "revert"
+				break
+			}
+		}
 	default:
 		return nil, nil
 	}

@@ -210,6 +210,11 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 		return err
 	}
 
+	pendingStatus, err := ircrs.workflowStatusSvc.GetByType("pending")
+	if err != nil {
+		return err
+	}
+
 	switch currentWorkflow.WorkflowLevelType.Type {
 	case "individual", "hod":
 		if len(currentWorkflow.IdentityReviewCampaignWorkflowParticipants) == 0 ||
@@ -342,6 +347,16 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 		return nil
 	}
 
+	inProgressStatus, err := ircrs.campaignStatusSvc.GetByType("in_progress")
+	if err != nil {
+		return err
+	}
+
+	if err := ircrs.workflowSvc.UpdateWorkflowStatus(nextWorkflowLevel.ID, pendingStatus.ID, tx); err != nil {
+		return err
+	}
+
+	campaign.CampaignStatusID = inProgressStatus.ID
 	campaign.NextReviewLevel = &nextWorkflowLevel.Level
 	campaign.UpdatedByID = &currentUserID
 
@@ -653,6 +668,13 @@ func (ircrs *IdentityReviewCampaignReviewService) Revert(campaignID uint, curren
 		return err
 	}
 
+	inProgressStatus, err := ircrs.campaignStatusSvc.GetByType("in_progress")
+	if err != nil {
+		return err
+	}
+
+	campaign.CampaignStatusID = inProgressStatus.ID
+
 	if err := ircrs.createReviewWithHistory(
 		currentWorkflow.ID,
 		campaignID,
@@ -697,14 +719,8 @@ func (ircrs *IdentityReviewCampaignReviewService) Revert(campaignID uint, curren
 
 		campaign.NextReviewLevel = &previousLevel
 	} else {
-		inProgressStatus, err := ircrs.campaignStatusSvc.GetByType("in_progress")
-		if err != nil {
-			return err
-		}
-
 		submittedByID := campaign.SubmittedBy
 
-		campaign.CampaignStatusID = inProgressStatus.ID
 		campaign.SubmittedBy = nil
 		campaign.SubmittedAt = nil
 		campaign.NextReviewLevel = nil
