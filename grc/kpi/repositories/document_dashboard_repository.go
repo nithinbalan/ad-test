@@ -345,24 +345,15 @@ func (repo *DocumentDashboardRepository) GetDocumentStatusByType(params *kpiDTOs
 			dt.title_en,
 			dt.title_ar,
 			COALESCE(SUM(CASE
-				WHEN ds.type IN ('approved', 'published')
-					AND NOT (
-						ds.type = 'published'
-						AND d.next_review_date IS NOT NULL
-						AND d.next_review_date < CAST(GETDATE() AS date)
-					)
-				THEN 1 ELSE 0 END), 0) AS approved,
+				WHEN ds.type = 'draft' THEN 1 ELSE 0 END), 0) AS draft,
+			COALESCE(SUM(CASE WHEN ds.type = 'in-review' THEN 1 ELSE 0 END), 0) AS in_review,
+			COALESCE(SUM(CASE WHEN ds.type = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected,
+			COALESCE(SUM(CASE WHEN ds.type = 'approved' THEN 1 ELSE 0 END), 0) AS approved,
+			COALESCE(SUM(CASE WHEN ds.type = 'published' THEN 1 ELSE 0 END), 0) AS published,
+			COALESCE(SUM(CASE WHEN ds.type = 'archived' THEN 1 ELSE 0 END), 0) AS archived,
+			COALESCE(SUM(CASE WHEN ds.type = 'reverted' THEN 1 ELSE 0 END), 0) AS reverted,
 			COALESCE(SUM(CASE
-				WHEN ds.type = 'in-review' THEN 1 ELSE 0 END), 0) AS in_review,
-			COALESCE(SUM(CASE
-				WHEN ds.type IN ('draft', 'rejected', 'reverted') THEN 1 ELSE 0 END), 0) AS draft,
-			COALESCE(SUM(CASE
-				WHEN ds.type = 'published'
-					AND d.next_review_date IS NOT NULL
-					AND d.next_review_date < CAST(GETDATE() AS date)
-				THEN 1 ELSE 0 END), 0) AS overdue,
-			COALESCE(SUM(CASE
-				WHEN ds.type IN ('approved', 'published', 'in-review', 'draft', 'rejected', 'reverted')
+				WHEN ds.type IN ('draft', 'in-review', 'rejected', 'approved', 'published', 'archived', 'reverted')
 				THEN 1 ELSE 0 END), 0) AS total
 		`)
 	documentJoin := `LEFT JOIN documents d

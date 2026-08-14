@@ -170,7 +170,7 @@ func (ircs *IdentityReviewCampaignService) Create(currentUserID uint, formDTO *d
 		WorkflowID:         formDTO.WorkflowID,
 		CampaignStatusID:   plannedStatus.ID,
 		ReminderDaysOffset: formDTO.ReminderDaysOffset,
-		CreatedByID:        currentUserID,
+		CreatedBYID:        currentUserID,
 	}
 
 	id, err := ircs.repo.Create(campaign, tx)
@@ -338,7 +338,7 @@ func (ircs *IdentityReviewCampaignService) Update(id uint, currentUserID uint, f
 	campaign.ReviewerID = formDTO.ReviewerID
 	campaign.WorkflowID = formDTO.WorkflowID
 	campaign.ReminderDaysOffset = formDTO.ReminderDaysOffset
-	campaign.UpdatedByID = &currentUserID
+	campaign.UpdatedBYID = &currentUserID
 
 	if err := ircs.repo.Update(campaign, tx); err != nil {
 		tx.Rollback()
@@ -609,8 +609,8 @@ func (ircs *IdentityReviewCampaignService) parseIdentityReviewCampaignDates(form
 
 	if parsedDates.DueDate.Before(*parsedDates.StartDate) {
 		return nil, utility.NewValidationError(
-			fmt.Errorf("due date cannot be before start date"),
-			"invalid_date",
+			fmt.Errorf("Due Date must be on or after the Start Date."),
+			"due_date_before_start_date",
 			"due_date",
 		)
 	}

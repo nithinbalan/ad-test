@@ -19,8 +19,8 @@ type IdentityReviewCampaign struct {
 	CampaignStatusID     uint       `json:"campaign_status_id" gorm:"not null"`
 	ReminderDaysOffset   *int       `json:"reminder_days_offset"`
 	CompletionPercentage int        `json:"completion_percentage" gorm:"not null;default:0"`
-	CreatedByID          uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID          *uint      `json:"updated_by_id"`
+	CreatedBYID          uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID          *uint      `json:"updated_by_id"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime"`
 
@@ -31,8 +31,8 @@ type IdentityReviewCampaign struct {
 	SubmittedByUser   *User                             `json:"submitted_by_user" gorm:"foreignKey:SubmittedBy"`
 	ReviewedByUser    *User                             `json:"reviewed_by_user" gorm:"foreignKey:ReviewedBy"`
 	CampaignWorkflows []*IdentityReviewCampaignWorkflow `json:"campaign_workflows" gorm:"foreignKey:IdentityReviewCampaignID"`
-	CreatedByUser     *User                             `json:"created_by" gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser     *User                             `json:"updated_by" gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser     *User                             `json:"created_by" gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser     *User                             `json:"updated_by" gorm:"foreignKey:UpdatedBYID"`
 	Systems           []*IdentityReviewCampaignSystem   `json:"systems" gorm:"foreignKey:IdentityReviewCampaignID"`
 	Documents         []*IdentityReviewCampaignDocument `json:"documents" gorm:"foreignKey:IdentityReviewCampaignID"`
 }

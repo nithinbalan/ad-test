@@ -569,7 +569,9 @@ func (irus *IdentityReviewUserService) GenerateIdentityReviewUserTemplate(curren
 		"AccountType": accountTypeData,
 		"Privilege":   privilegeData,
 		"Department":  departmentData,
-	}, dropDownConfig)
+	}, dropDownConfig, map[string]string{
+		"LastLogin": "yyyy-mm-dd hh:mm",
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -745,6 +747,23 @@ func (irus *IdentityReviewUserService) validateIdentityReviewUsers(input []map[s
 					identityReviewUserRecord[header] = strings.TrimSpace(value)
 				}
 
+			case "identifier":
+				if !ok || strings.TrimSpace(value) == "" {
+					rowErrors[header] = "User Identifier is required"
+				} else {
+					identityReviewUserRecord[header] = strings.TrimSpace(value)
+				}
+
+			case "last_login":
+				trimmedValue := strings.TrimSpace(value)
+				if !ok || trimmedValue == "" {
+					identityReviewUserRecord[header] = ""
+				} else if _, err := time.Parse("2006-01-02 15:04", trimmedValue); err != nil {
+					rowErrors[header] = "Last Login must be a valid date and time in YYYY-MM-DD HH:mm format"
+				} else {
+					identityReviewUserRecord[header] = trimmedValue
+				}
+
 			case "account_type":
 				if !ok || strings.TrimSpace(value) == "" {
 					rowErrors[header] = "Account Type is required"
@@ -772,7 +791,7 @@ func (irus *IdentityReviewUserService) validateIdentityReviewUsers(input []map[s
 					identityReviewUserRecord["department_id"] = id
 				}
 
-			case "identifier", "last_login", "current_role":
+			case "current_role":
 				if !ok {
 					identityReviewUserRecord[header] = ""
 				}

@@ -23,10 +23,13 @@ type DocumentStatusByTypeDTO struct {
 	Type           string `json:"type"`
 	TitleEn        string `json:"title_en"`
 	TitleAr        string `json:"title_ar"`
-	Approved       int64  `json:"approved"`
-	InReview       int64  `json:"in_review"`
 	Draft          int64  `json:"draft"`
-	Overdue        int64  `json:"overdue"`
+	InReview       int64  `json:"in_review"`
+	Rejected       int64  `json:"rejected"`
+	Approved       int64  `json:"approved"`
+	Published      int64  `json:"published"`
+	Archived       int64  `json:"archived"`
+	Reverted       int64  `json:"reverted"`
 	Total          int64  `json:"total"`
 }
 

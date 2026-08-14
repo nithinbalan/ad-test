@@ -117,13 +117,17 @@ func GenerateExcelFileWithSheets(dataBySheet map[string][][]interface{}) (*os.Fi
 	return tempFile, nil
 }
 
-func GenerateExcelFileWithSheetsAndDropDown(dataBySheet map[string][][]interface{}, dropDownConfig map[string]bool) (*os.File, error) {
+func GenerateExcelFileWithSheetsAndDropDown(dataBySheet map[string][][]interface{}, dropDownConfig map[string]bool, dateColumnConfigs ...map[string]string) (*os.File, error) {
 	f := excelize.NewFile()
+	dateColumnConfig := map[string]string{}
+	if len(dateColumnConfigs) > 0 && dateColumnConfigs[0] != nil {
+		dateColumnConfig = dateColumnConfigs[0]
+	}
 
 	// Ensure Template is created and set as the first sheet
 	if data, exists := dataBySheet["Template"]; exists {
 		delete(dataBySheet, "Template") // Remove Template from the map to avoid duplicate processing
-		if err := createSheetWithDropDown(f, "Template", data, dataBySheet, dropDownConfig); err != nil {
+		if err := createSheetWithDropDown(f, "Template", data, dataBySheet, dropDownConfig, dateColumnConfig); err != nil {
 			return nil, err
 		}
 		sheetIndex, err := f.GetSheetIndex("Template")
@@ -170,7 +174,7 @@ func toAlphaString(colIndex int) string {
 	return result
 }
 
-func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interface{}, columnToSheet map[string][][]interface{}, dropDownConfig map[string]bool) error {
+func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interface{}, columnToSheet map[string][][]interface{}, dropDownConfig map[string]bool, dateColumnConfig map[string]string) error {
 	if _, err := f.NewSheet(sheetName); err != nil {
 		return fmt.Errorf("failed to create sheet %s: %v", sheetName, err)
 	}
@@ -245,6 +249,48 @@ func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interf
 
 		if err := f.AddDataValidation(sheetName, dv); err != nil {
 			return fmt.Errorf("failed to add dropdown to column %s: %v", headerStr, err)
+		}
+	}
+
+	for colIndex, header := range headers {
+		headerStr, ok := header.(string)
+		if !ok {
+			continue
+		}
+
+		dateFormat, apply := dateColumnConfig[headerStr]
+		if !apply {
+			continue
+		}
+
+		colLetter := toAlphaString(colIndex)
+		startCell := fmt.Sprintf("%s2", colLetter)
+		endCell := fmt.Sprintf("%s100", colLetter)
+
+		dateStyle, err := f.NewStyle(&excelize.Style{
+			CustomNumFmt: &dateFormat,
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create date style for column %s: %v", headerStr, err)
+		}
+		if err := f.SetColWidth(sheetName, colLetter, colLetter, 22); err != nil {
+			return fmt.Errorf("failed to set width for date column %s: %v", headerStr, err)
+		}
+		if err := f.SetCellStyle(sheetName, startCell, endCell, dateStyle); err != nil {
+			return fmt.Errorf("failed to apply date style to column %s: %v", headerStr, err)
+		}
+
+		dv := excelize.NewDataValidation(true)
+		dv.Sqref = fmt.Sprintf("%s:%s", startCell, endCell)
+		if err := dv.SetRange(1, 2958465, excelize.DataValidationTypeDate, excelize.DataValidationOperatorBetween); err != nil {
+			return fmt.Errorf("failed to configure date validation for column %s: %v", headerStr, err)
+		}
+		dv.SetError(excelize.DataValidationErrorStyleStop, "Invalid Date and Time", "Please enter a valid date and time in YYYY-MM-DD HH:mm format.")
+		if err := f.AddDataValidation(sheetName, dv); err != nil {
+			return fmt.Errorf("failed to add date validation to column %s: %v", headerStr, err)
 		}
 	}
 
