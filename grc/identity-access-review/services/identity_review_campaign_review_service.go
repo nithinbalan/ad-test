@@ -123,7 +123,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Submit(campaignID uint, curren
 	campaign.SubmittedBy = &currentUserID
 	campaign.SubmittedAt = &now
 	campaign.NextReviewLevel = &level
-	campaign.UpdatedByID = &currentUserID
+	campaign.UpdatedBYID = &currentUserID
 
 	if err := ircrs.repo.UpdateCampaign(campaign, tx); err != nil {
 		return err
@@ -256,7 +256,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 		}
 
 		notifications = append(notifications, func() {
-			ircrs.sendApprovalNotification(currentUserID, campaign.CreatedByID, campaign)
+			ircrs.sendApprovalNotification(currentUserID, campaign.CreatedBYID, campaign)
 		})
 
 	case "multiple-users", "role":
@@ -299,7 +299,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 		}
 
 		notifications = append(notifications, func() {
-			ircrs.sendApprovalNotification(currentUserID, campaign.CreatedByID, campaign)
+			ircrs.sendApprovalNotification(currentUserID, campaign.CreatedBYID, campaign)
 		})
 
 		if currentWorkflow.ApprovalTypes == "all" {
@@ -338,7 +338,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 		campaign.CampaignStatusID = approvedStatus.ID
 		campaign.NextReviewLevel = nil
 		campaign.ReviewedBy = &currentUserID
-		campaign.UpdatedByID = &currentUserID
+		campaign.UpdatedBYID = &currentUserID
 
 		if err := ircrs.repo.UpdateCampaign(campaign, tx); err != nil {
 			return err
@@ -358,7 +358,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Approve(campaignID uint, curre
 
 	campaign.CampaignStatusID = inProgressStatus.ID
 	campaign.NextReviewLevel = &nextWorkflowLevel.Level
-	campaign.UpdatedByID = &currentUserID
+	campaign.UpdatedBYID = &currentUserID
 
 	if err := ircrs.repo.UpdateCampaign(campaign, tx); err != nil {
 		return err
@@ -483,7 +483,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Reject(campaignID uint, curren
 	}
 
 	campaign.CampaignStatusID = rejectedStatus.ID
-	campaign.UpdatedByID = &currentUserID
+	campaign.UpdatedBYID = &currentUserID
 
 	if err := ircrs.repo.UpdateCampaign(campaign, tx); err != nil {
 		return err
@@ -565,7 +565,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Resubmit(campaignID uint, curr
 	campaign.SubmittedBy = &currentUserID
 	campaign.SubmittedAt = &now
 	campaign.NextReviewLevel = &level
-	campaign.UpdatedByID = &currentUserID
+	campaign.UpdatedBYID = &currentUserID
 
 	if err := ircrs.repo.UpdateCampaign(campaign, tx); err != nil {
 		return err
@@ -726,7 +726,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Revert(campaignID uint, curren
 		campaign.NextReviewLevel = nil
 		campaign.ReviewedBy = nil
 
-		campaign.UpdatedByID = &currentUserID
+		campaign.UpdatedBYID = &currentUserID
 
 		if err := ircrs.repo.UpdateCampaign(campaign, tx); err != nil {
 			return err
@@ -741,7 +741,7 @@ func (ircrs *IdentityReviewCampaignReviewService) Revert(campaignID uint, curren
 		return nil
 	}
 
-	campaign.UpdatedByID = &currentUserID
+	campaign.UpdatedBYID = &currentUserID
 
 	if err := ircrs.repo.UpdateCampaign(campaign, tx); err != nil {
 		return err
