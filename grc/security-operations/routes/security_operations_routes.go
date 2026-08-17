@@ -17,6 +17,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	csLogDataEntityTypeController := app.SecurityOperationsModule.CSLogDataEntityTypeController
 	csLogDataReceptionMechanismController := app.SecurityOperationsModule.CSLogDataReceptionMechanismController
 	csLogCommunicationChannelController := app.SecurityOperationsModule.CSLogCommunicationChannelController
+	csLogSourceDirectoryController := app.SecurityOperationsModule.CSLogSourceDirectoryController
 
 	// CS Log Data Entity Types
 	securityOperationsRoutes.GET("/security-operations/cs-log-data-entity-types", csLogDataEntityTypeController.GetAll)
@@ -44,4 +45,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	securityOperationsRoutes.POST("/security-operations/cs-log-communication-channels/delete", middlewares.RolePermissionMiddleware(db, "security_operations_setting", "modify"), csLogCommunicationChannelController.Delete)
 	securityOperationsRoutes.PUT("/security-operations/cs-log-communication-channels/activate", middlewares.RolePermissionMiddleware(db, "security_operations_setting", "modify"), csLogCommunicationChannelController.Activate)
 	securityOperationsRoutes.PUT("/security-operations/cs-log-communication-channels/deactivate", middlewares.RolePermissionMiddleware(db, "security_operations_setting", "modify"), csLogCommunicationChannelController.Deactivate)
+
+	// CS Log Source Directory
+	securityOperationsRoutes.GET("/security-operations/source-directory", csLogSourceDirectoryController.GetAll)
+	securityOperationsRoutes.GET("/security-operations/source-directory/:id", csLogSourceDirectoryController.GetDetails)
+	securityOperationsRoutes.POST("/security-operations/source-directory", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "modify"), csLogSourceDirectoryController.Create)
+	securityOperationsRoutes.PUT("/security-operations/source-directory/:id", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "modify"), csLogSourceDirectoryController.Update)
+	securityOperationsRoutes.POST("/security-operations/source-directory/delete", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "modify"), csLogSourceDirectoryController.Delete)
 }

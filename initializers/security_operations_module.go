@@ -12,6 +12,7 @@ type SecurityOperationsModule struct {
 	CSLogDataEntityTypeController         *controllers.CSLogDataEntityTypeController
 	CSLogDataReceptionMechanismController *controllers.CSLogDataReceptionMechanismController
 	CSLogCommunicationChannelController   *controllers.CSLogCommunicationChannelController
+	CSLogSourceDirectoryController        *controllers.CSLogSourceDirectoryController
 }
 
 func NewSecurityOperationsModule(
@@ -35,9 +36,14 @@ func NewSecurityOperationsModule(
 	csLogCommunicationChannelSvc := services.NewCSLogCommunicationChannelService(csLogCommunicationChannelRepo, sharedModule.ActivityLogService)
 	csLogCommunicationChannelController := controllers.NewCSLogCommunicationChannelController(csLogCommunicationChannelSvc)
 
+	csLogSourceDirectoryRepo := repositories.NewCSLogSourceDirectoryRepository(db)
+	csLogSourceDirectorySvc := services.NewCSLogSourceDirectoryService(csLogSourceDirectoryRepo, sharedModule.ActivityLogService)
+	csLogSourceDirectoryController := controllers.NewCSLogSourceDirectoryController(csLogSourceDirectorySvc)
+
 	return &SecurityOperationsModule{
 		CSLogDataEntityTypeController:         csLogDataEntityTypeController,
 		CSLogDataReceptionMechanismController: csLogDataReceptionMechanismController,
 		CSLogCommunicationChannelController:   csLogCommunicationChannelController,
+		CSLogSourceDirectoryController:        csLogSourceDirectoryController,
 	}
 }
