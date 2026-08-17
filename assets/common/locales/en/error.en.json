@@ -52,6 +52,10 @@
     "translation": "Invalid {{.Field}}. Please provide a valid date in YYYY-MM-DD format."
   },
   {
+    "id": "due_date_before_start_date",
+    "translation": "Due Date must be on or after the Start Date."
+  },
+  {
     "id": "resend_not_yet_allowed",
     "translation": "Please wait before requesting OTP resend again"
   },

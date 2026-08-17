@@ -52,6 +52,10 @@
     "translation": "تاريخ غير صالح لـ {{.Field}}. يرجى تقديم تاريخ صالح بتنسيق YYYY-MM-DD."
   },
   {
+    "id": "due_date_before_start_date",
+    "translation": "يجب أن يكون تاريخ الاستحقاق في تاريخ البدء أو بعده."
+  },
+  {
     "id": "resend_not_yet_allowed",
     "translation": "يرجى الانتظار قبل طلب إعادة إرسال كلمة المرور لمرة واحدة مرة أخرى"
   },
