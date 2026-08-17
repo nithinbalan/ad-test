@@ -13,16 +13,14 @@ type SecurityOperationsModule struct {
 	CSLogDataReceptionMechanismController *controllers.CSLogDataReceptionMechanismController
 	CSLogCommunicationChannelController   *controllers.CSLogCommunicationChannelController
 	CSLogSourceDirectoryController        *controllers.CSLogSourceDirectoryController
+
+	CSLogSourceDirectorySvc services.CSLogSourceDirectoryServiceInterface
 }
 
 func NewSecurityOperationsModule(
 	db *gorm.DB,
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
-	masterModule *MasterModule,
-	organizationModule *OrganizationModule,
-	taskModule *TaskModule,
-	commonModule *CommonModule,
 ) *SecurityOperationsModule {
 	csLogDataEntityTypeRepo := repositories.NewCSLogDataEntityTypeRepository(db)
 	csLogDataEntityTypeSvc := services.NewCSLogDataEntityTypeService(csLogDataEntityTypeRepo, sharedModule.ActivityLogService)
@@ -37,7 +35,14 @@ func NewSecurityOperationsModule(
 	csLogCommunicationChannelController := controllers.NewCSLogCommunicationChannelController(csLogCommunicationChannelSvc)
 
 	csLogSourceDirectoryRepo := repositories.NewCSLogSourceDirectoryRepository(db)
-	csLogSourceDirectorySvc := services.NewCSLogSourceDirectoryService(csLogSourceDirectoryRepo, sharedModule.ActivityLogService)
+	csLogSourceDirectorySvc := services.NewCSLogSourceDirectoryService(
+		csLogSourceDirectoryRepo,
+		sharedModule.ActivityLogService,
+		csLogDataEntityTypeSvc,
+		csLogDataReceptionMechanismSvc,
+		csLogCommunicationChannelSvc,
+		settingsModule.OrganizationUnitSvc,
+	)
 	csLogSourceDirectoryController := controllers.NewCSLogSourceDirectoryController(csLogSourceDirectorySvc)
 
 	return &SecurityOperationsModule{
@@ -45,5 +50,6 @@ func NewSecurityOperationsModule(
 		CSLogDataReceptionMechanismController: csLogDataReceptionMechanismController,
 		CSLogCommunicationChannelController:   csLogCommunicationChannelController,
 		CSLogSourceDirectoryController:        csLogSourceDirectoryController,
+		CSLogSourceDirectorySvc:               csLogSourceDirectorySvc,
 	}
 }

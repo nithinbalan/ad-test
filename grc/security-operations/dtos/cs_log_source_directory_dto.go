@@ -1,48 +1,55 @@
 package dtos
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 )
 
 type CSLogSourceDirectoryListDTO struct {
-	ID                       uint       `json:"id"`
-	ReferenceNumber          string     `json:"reference_number"`
-	EntityName               string     `json:"entity_name"`
-	DataEntityTypeID         *uint      `json:"data_entity_type_id"`
-	DataEntityTypeTitleEn    *string    `json:"data_entity_type_title_en"`
-	DataEntityTypeTitleAr    *string    `json:"data_entity_type_title_ar"`
-	ResponsibleEntityID      *uint      `json:"responsible_entity_id"`
-	ResponsibleEntityTitleEn *string    `json:"responsible_entity_title_en"`
-	ResponsibleEntityTitleAr *string    `json:"responsible_entity_title_ar"`
-	BeneficiaryEntityID      *uint      `json:"beneficiary_entity_id"`
-	BeneficiaryEntityTitleEn *string    `json:"beneficiary_entity_title_en"`
-	BeneficiaryEntityTitleAr *string    `json:"beneficiary_entity_title_ar"`
-	CreatedAt                time.Time  `json:"created_at"`
-	UpdatedAt                *time.Time `json:"updated_at"`
-	CreatedByID              uint       `json:"created_by_id"`
-	CreatedByFirstNameEn     string     `json:"created_by_first_name_en"`
-	CreatedByFirstNameAr     string     `json:"created_by_first_name_ar"`
-	CreatedByLastNameEn      string     `json:"created_by_last_name_en"`
-	CreatedByLastNameAr      string     `json:"created_by_last_name_ar"`
-	CreatedByEmail           string     `json:"created_by_email"`
-	UpdatedByID              *uint      `json:"updated_by_id"`
-	UpdatedByFirstNameEn     string     `json:"updated_by_first_name_en"`
-	UpdatedByFirstNameAr     string     `json:"updated_by_first_name_ar"`
-	UpdatedByLastNameEn      string     `json:"updated_by_last_name_en"`
-	UpdatedByLastNameAr      string     `json:"updated_by_last_name_ar"`
-	UpdatedByEmail           string     `json:"updated_by_email"`
+	ID                          uint    `json:"id"`
+	ReferenceNumber             string  `json:"reference_number"`
+	EntityName                  string  `json:"entity_name"`
+	DataEntityTypeID            *uint   `json:"data_entity_type_id"`
+	DataEntityTypeTitleEn       *string `json:"data_entity_type_title_en"`
+	DataEntityTypeTitleAr       *string `json:"data_entity_type_title_ar"`
+	ResponsibleEntityID         *uint   `json:"responsible_entity_id"`
+	ResponsibleEntityTitleEn    *string `json:"responsible_entity_title_en"`
+	ResponsibleEntityTitleAr    *string `json:"responsible_entity_title_ar"`
+	BeneficiaryEntityID         *uint   `json:"beneficiary_entity_id"`
+	BeneficiaryEntityTitleEn    *string `json:"beneficiary_entity_title_en"`
+	BeneficiaryEntityTitleAr    *string `json:"beneficiary_entity_title_ar"`
+	CreatedAt                   string  `json:"created_at"`
+	UpdatedAt                   string  `json:"updated_at"`
+	CreatedUserID               uint    `json:"created_user_id"`
+	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string  `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string  `json:"created_user_initial"`
+	CreatedUserColor            string  `json:"created_user_color"`
+	CreatedUserEmail            string  `json:"created_user_email"`
+	CreatedUserProfileImagePath string  `json:"created_user_profile_image_path"`
+	UpdatedUserID               *uint   `json:"updated_user_id"`
+	UpdatedUserFirstNameEn      string  `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      string  `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       string  `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       string  `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          string  `json:"updated_user_initial"`
+	UpdatedUserColor            string  `json:"updated_user_color"`
+	UpdatedUserEmail            string  `json:"updated_user_email"`
+	UpdatedUserProfileImagePath string  `json:"updated_user_profile_image_path"`
 }
 
 type CSLogSourceDirectoryListQueryParamsDTO struct {
-	Sort                string
-	SortBy              string
-	Keyword             string
-	Page                int
-	PageSize            int
-	DataEntityTypeID    *uint
-	ResponsibleEntityID *uint
-	BeneficiaryEntityID *uint
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Filters  map[string][]string
 }
 
 type CSLogSourceDirectoryListResponseDTO struct {
@@ -50,39 +57,18 @@ type CSLogSourceDirectoryListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO   `json:"pagination"`
 }
 
-type CSLogSourceDirectoryLookupDTO struct {
-	ID      uint   `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-}
-
-type CSLogSourceDirectoryOrganizationUnitDTO struct {
-	ID      uint   `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-}
-
-type CSLogSourceDirectoryUserDTO struct {
-	ID          uint   `json:"id"`
-	FirstNameEn string `json:"first_name_en"`
-	FirstNameAr string `json:"first_name_ar"`
-	LastNameEn  string `json:"last_name_en"`
-	LastNameAr  string `json:"last_name_ar"`
-	Email       string `json:"email"`
-}
-
 type CSLogSourceDirectoryReceptionMechanismDTO struct {
-	ID                   uint                           `json:"id"`
+	ID                   *uint                          `json:"id"`
 	SourceDirectoryID    uint                           `json:"source_directory_id"`
 	ReceptionMechanismID uint                           `json:"reception_mechanism_id"`
-	ReceptionMechanism   *CSLogSourceDirectoryLookupDTO `json:"reception_mechanism"`
+	ReceptionMechanism   CSLogDataReceptionMechanismDTO `json:"reception_mechanism"`
 }
 
 type CSLogSourceDirectoryCommunicationChannelDTO struct {
-	ID                     uint                           `json:"id"`
-	SourceDirectoryID      uint                           `json:"source_directory_id"`
-	CommunicationChannelID uint                           `json:"communication_channel_id"`
-	CommunicationChannel   *CSLogSourceDirectoryLookupDTO `json:"communication_channel"`
+	ID                     *uint                        `json:"id"`
+	SourceDirectoryID      uint                         `json:"source_directory_id"`
+	CommunicationChannelID uint                         `json:"communication_channel_id"`
+	CommunicationChannel   CSLogCommunicationChannelDTO `json:"communication_channel"`
 }
 
 type CSLogSourceDirectoryDetailDTO struct {
@@ -98,16 +84,14 @@ type CSLogSourceDirectoryDetailDTO struct {
 	ContactEmail        *string    `json:"contact_email"`
 	Website             *string    `json:"website"`
 	Notes               *string    `json:"notes"`
-	CreatedByID         uint       `json:"created_by_id"`
-	UpdatedByID         *uint      `json:"updated_by_id"`
 	CreatedAt           time.Time  `json:"created_at"`
 	UpdatedAt           *time.Time `json:"updated_at"`
 
-	DataEntityType    *CSLogSourceDirectoryLookupDTO           `json:"data_entity_type"`
-	ResponsibleEntity *CSLogSourceDirectoryOrganizationUnitDTO `json:"responsible_entity"`
-	BeneficiaryEntity *CSLogSourceDirectoryOrganizationUnitDTO `json:"beneficiary_entity"`
-	CreatedBy         *CSLogSourceDirectoryUserDTO             `json:"created_by"`
-	UpdatedBy         *CSLogSourceDirectoryUserDTO             `json:"updated_by"`
+	DataEntityType    *CSLogDataEntityTypeDTO           `json:"data_entity_type"`
+	ResponsibleEntity *settingsDTOs.OrganizationUnitDTO `json:"responsible_entity"`
+	BeneficiaryEntity *settingsDTOs.OrganizationUnitDTO `json:"beneficiary_entity"`
+	CreatedByUser     organizationDTOs.UserMinimalDTO   `json:"created_by"`
+	UpdatedByUser     *organizationDTOs.UserMinimalDTO  `json:"updated_by"`
 
 	ReceptionMechanisms   []*CSLogSourceDirectoryReceptionMechanismDTO   `json:"reception_mechanisms"`
 	CommunicationChannels []*CSLogSourceDirectoryCommunicationChannelDTO `json:"communication_channels"`
@@ -124,6 +108,6 @@ type CSLogSourceDirectoryFormDTO struct {
 	ContactEmail            *string `json:"contact_email"`
 	Website                 *string `json:"website"`
 	Notes                   *string `json:"notes"`
-	ReceptionMechanismIDs   []uint  `json:"reception_mechanism_ids" binding:"required,min=1"`
-	CommunicationChannelIDs []uint  `json:"communication_channel_ids" binding:"required,min=1"`
+	ReceptionMechanismIDs   []*uint `json:"reception_mechanism_ids" binding:"required,min=1"`
+	CommunicationChannelIDs []*uint `json:"communication_channel_ids" binding:"required,min=1"`
 }

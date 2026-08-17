@@ -20,29 +20,21 @@ type CSLogSourceDirectoryController struct {
 }
 
 func NewCSLogSourceDirectoryController(service services.CSLogSourceDirectoryServiceInterface) *CSLogSourceDirectoryController {
-	return &CSLogSourceDirectoryController{service: service}
+	return &CSLogSourceDirectoryController{
+		service: service,
+	}
 }
 
-func (csdc *CSLogSourceDirectoryController) GetAll(ctx *gin.Context) {
-	sort := ctx.Query("sort_order")
-	sortBy := ctx.Query("sort_by")
-	keyword := ctx.Query("keyword")
+func (csdc *CSLogSourceDirectoryController) GetAllCSLogSourceDirectories(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "id")
+	keyword := c.Query("keyword")
 
-	page, err := utility.ParseQueryParamToInt(ctx, "page", 1)
-	if err != nil {
-		utility.SendInvalidErrResp(ctx, errors.New("invalid page parameter"))
-		return
+	allowedParams := []string{
+		"data_entity_type_ids",
+		"responsible_entity_ids",
+		"beneficiary_entity_ids",
 	}
-	pageSize, err := utility.ParseQueryParamToInt(ctx, "page_size", 10)
-	if err != nil {
-		utility.SendInvalidErrResp(ctx, errors.New("invalid page_size parameter"))
-		return
-	}
-	if page < 1 || pageSize < 1 {
-		utility.SendInvalidErrResp(ctx, errors.New("page and page_size must be greater than zero"))
-		return
-	}
-
 	validSortFields := map[string]string{
 		"id":                          "sd.id",
 		"reference_number":            "sd.reference_number",
@@ -56,168 +48,166 @@ func (csdc *CSLogSourceDirectoryController) GetAll(ctx *gin.Context) {
 		"beneficiary_entity_title_en": "beneficiary_entity.title_en",
 		"beneficiary_entity_title_ar": "beneficiary_entity.title_ar",
 	}
-	if sortBy == "" {
-		sortBy = "id"
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid page parameter"))
+		return
 	}
-	sortField, valid := validSortFields[sortBy]
-	if !valid {
-		utility.SendInvalidErrResp(ctx, errors.New("invalid sort_by parameter"))
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid page_size parameter"))
+		return
+	}
+	if page < 1 || pageSize < 1 {
+		utility.SendInvalidErrResp(c, errors.New("page and page_size must be greater than zero"))
 		return
 	}
 	if sort != "asc" && sort != "desc" {
-		sort = "desc"
-	}
-
-	var dataEntityTypeID, responsibleEntityID, beneficiaryEntityID *uint
-	if v := ctx.Query("data_entity_type_id"); v != "" {
-		id, err := strconv.ParseUint(v, 10, 32)
-		if err != nil || id == 0 {
-			utility.SendInvalidErrResp(ctx, errors.New("invalid data_entity_type_id parameter"))
-			return
-		}
-		u := uint(id)
-		dataEntityTypeID = &u
-	}
-	if v := ctx.Query("responsible_entity_id"); v != "" {
-		id, err := strconv.ParseUint(v, 10, 32)
-		if err != nil || id == 0 {
-			utility.SendInvalidErrResp(ctx, errors.New("invalid responsible_entity_id parameter"))
-			return
-		}
-		u := uint(id)
-		responsibleEntityID = &u
-	}
-	if v := ctx.Query("beneficiary_entity_id"); v != "" {
-		id, err := strconv.ParseUint(v, 10, 32)
-		if err != nil || id == 0 {
-			utility.SendInvalidErrResp(ctx, errors.New("invalid beneficiary_entity_id parameter"))
-			return
-		}
-		u := uint(id)
-		beneficiaryEntityID = &u
-	}
-
-	entries, err := csdc.service.GetAll(&socDtos.CSLogSourceDirectoryListQueryParamsDTO{
-		Sort:                sort,
-		SortBy:              sortField,
-		Keyword:             keyword,
-		Page:                page,
-		PageSize:            pageSize,
-		DataEntityTypeID:    dataEntityTypeID,
-		ResponsibleEntityID: responsibleEntityID,
-		BeneficiaryEntityID: beneficiaryEntityID,
-	})
-	if err != nil {
-		utility.SendInternalErrResp(csdc.db, ctx, err.Error())
+		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_order' parameter"))
 		return
 	}
-	ctx.JSON(http.StatusOK, entries)
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	queryParams := socDtos.CSLogSourceDirectoryListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+	}
+	entries, err := csdc.service.GetAll(&queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(csdc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, entries)
 }
 
-func (csdc *CSLogSourceDirectoryController) GetDetails(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+func (csdc *CSLogSourceDirectoryController) GetCSLogSourceDirectoryDetails(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendNotFoundErrResp(ctx)
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
 	entry, err := csdc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
-		var notFoundErr *utility.ResourceNotFoundError
-		if errors.As(err, &notFoundErr) {
-			utility.SendNotFoundErrResp(ctx)
-		} else {
-			utility.SendInternalErrResp(csdc.db, ctx, err.Error())
-		}
-		return
-	}
-	ctx.JSON(http.StatusOK, entry)
-}
-
-func (csdc *CSLogSourceDirectoryController) Create(ctx *gin.Context) {
-	var form *socDtos.CSLogSourceDirectoryFormDTO
-	if err := ctx.ShouldBindJSON(&form); err != nil {
-		utility.SendInvalidErrResp(ctx, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(ctx)
-	if err != nil {
-		utility.SendInternalErrResp(csdc.db, ctx, err.Error())
-		return
-	}
-
-	createdID, err := csdc.service.Create(currentUserID, form)
-	if err != nil {
 		switch e := err.(type) {
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(ctx, e)
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(csdc.db, ctx, e.Error())
+			utility.SendInternalErrResp(csdc.db, c, e.Error())
 			return
 		}
 	}
-
-	ctx.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: createdID})
+	c.JSON(http.StatusOK, entry)
 }
 
-func (csdc *CSLogSourceDirectoryController) Update(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+func (csdc *CSLogSourceDirectoryController) CreateCSLogSourceDirectory(c *gin.Context) {
+	var sourceDirectoryFormDTO socDtos.CSLogSourceDirectoryFormDTO
+
+	if err := c.ShouldBindJSON(&sourceDirectoryFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendNotFoundErrResp(ctx)
+		utility.SendInternalErrResp(csdc.db, c, err.Error())
 		return
 	}
 
-	var form *socDtos.CSLogSourceDirectoryFormDTO
-	if err := ctx.ShouldBindJSON(&form); err != nil {
-		utility.SendInvalidErrResp(ctx, err)
-		return
-	}
+	id, err := csdc.service.Create(currentUserID, &sourceDirectoryFormDTO)
 
-	currentUserID, err := utility.GetCurrentUserID(ctx)
-	if err != nil {
-		utility.SendInternalErrResp(csdc.db, ctx, err.Error())
-		return
-	}
-
-	err = csdc.service.Update(uint(id), currentUserID, form)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(ctx)
+			utility.SendNotFoundErrResp(c)
 			return
 		case *utility.ValidationError:
-			utility.SendInvalidErrResp(ctx, e)
+			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(csdc.db, ctx, e.Error())
+			utility.SendInternalErrResp(csdc.db, c, e.Error())
 			return
 		}
 	}
 
-	ctx.Status(http.StatusOK)
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (csdc *CSLogSourceDirectoryController) Delete(ctx *gin.Context) {
-	var req struct {
+func (csdc *CSLogSourceDirectoryController) UpdateCSLogSourceDirectory(c *gin.Context) {
+	var sourceDirectoryFormDTO socDtos.CSLogSourceDirectoryFormDTO
+
+	sourceDirectoryID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&sourceDirectoryFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(csdc.db, c, err.Error())
+		return
+	}
+
+	err = csdc.service.Update(uint(sourceDirectoryID), currentUserID, &sourceDirectoryFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(csdc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (csdc *CSLogSourceDirectoryController) DeleteCSLogSourceDirectories(c *gin.Context) {
+	var request struct {
 		IDs []uint `json:"ids"`
 	}
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		utility.SendInvalidErrResp(ctx, err)
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	currentUserID, err := utility.GetCurrentUserID(ctx)
+	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(csdc.db, ctx, err.Error())
+		utility.SendInternalErrResp(csdc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := csdc.service.Delete(req.IDs, currentUserID)
+	failedIDs, err := csdc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(csdc.db, ctx, err.Error())
+		utility.SendInternalErrResp(csdc.db, c, err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
