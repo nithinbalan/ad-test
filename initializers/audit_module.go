@@ -485,6 +485,9 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		settingModule.AuditTemplateSettingSvc,
 		commonModule.NotificationService,
 		auditTimelineSvc,
+		masterModule.ActionPlanStatusSvc,
+		taskModule.TaskService,
+		commonModule.DelegateeUserService,
 	)
 	auditFinalReportController := controllers.NewAuditFinalReportController(auditFinalReportSvc)
 
