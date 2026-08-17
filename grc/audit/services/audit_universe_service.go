@@ -90,6 +90,9 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 			}
 
 			var orgUnitID, responsibleUserID uint
+			if auditUniverseFormDTO.ResponsibleUserID != nil {
+				responsibleUserID = *auditUniverseFormDTO.ResponsibleUserID
+			}
 
 			switch fieldName {
 			case "process":
@@ -101,7 +104,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 				}
 				if process != nil {
 					orgUnitID = process.ResponsibleUnitID
-					if process.ResponsibleUserID != nil {
+					if responsibleUserID == 0 && process.ResponsibleUserID != nil {
 						responsibleUserID = *process.ResponsibleUserID
 					}
 				}
@@ -115,7 +118,9 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 				}
 				if control != nil {
 					orgUnitID = control.ResponsibleUnitID
-					responsibleUserID = control.ResponsibleUserID
+					if responsibleUserID == 0 {
+						responsibleUserID = control.ResponsibleUserID
+					}
 				}
 
 			case "document":
@@ -129,7 +134,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					if document.ResponsibleUnitID != nil {
 						orgUnitID = *document.ResponsibleUnitID
 					}
-					if document.ResponsibleUserID != nil {
+					if responsibleUserID == 0 && document.ResponsibleUserID != nil {
 						responsibleUserID = *document.ResponsibleUserID
 					}
 				}
@@ -143,7 +148,9 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 				}
 				if incident != nil {
 					orgUnitID = incident.ResponsibleUnitID
-					responsibleUserID = incident.ResponsibleUserID
+					if responsibleUserID == 0 {
+						responsibleUserID = incident.ResponsibleUserID
+					}
 				}
 			// Commented -ToDo, Responsible User removed from Compliance req
 			// case "compliance":
@@ -173,7 +180,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					if risk.ResponsibleUnitID != nil {
 						orgUnitID = *risk.ResponsibleUnitID
 					}
-					if risk.ResponsibleUserID != nil {
+					if responsibleUserID == 0 && risk.ResponsibleUserID != nil {
 						responsibleUserID = *risk.ResponsibleUserID
 					}
 				}
@@ -186,16 +193,19 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					return fmt.Errorf("failed to get user primary unit ID: %w", err)
 				}
 				orgUnitID = userUnit
-				responsibleUserID = *id
+				if responsibleUserID == 0 {
+					responsibleUserID = *id
+				}
 			}
 
 			// Set the retrieved ResponsibleUnitID and ResponsibleUserID
 			if orgUnitID != 0 {
 				auditableItem.ResponsibleUnitID = orgUnitID
 			}
-			if responsibleUserID != 0 {
-				auditableItem.ResponsibleUserID = responsibleUserID
+			if responsibleUserID == 0 {
+				return utility.NewValidationError(fmt.Errorf("responsible user is required"), "required", "responsible user")
 			}
+			auditableItem.ResponsibleUserID = responsibleUserID
 
 			auditableItems = append(auditableItems, auditableItem)
 		}
