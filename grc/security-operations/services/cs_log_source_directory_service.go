@@ -128,7 +128,7 @@ func (csds *CSLogSourceDirectoryService) Create(currentUserID uint, form *socDto
 }
 
 func (csds *CSLogSourceDirectoryService) Update(id uint, currentUserID uint, form *socDtos.CSLogSourceDirectoryFormDTO) error {
-	_, err := csds.repo.GetByID(id)
+	existing, err := csds.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return utility.NewResourceNotFoundError(err, id)
@@ -146,25 +146,24 @@ func (csds *CSLogSourceDirectoryService) Update(id uint, currentUserID uint, for
 		return err
 	}
 
-	oldSnapshot := *oldEntry
 	oldReceptionMechanismIDs := receptionMechanismIDs(oldEntry)
 	oldCommunicationChannelIDs := communicationChannelIDs(oldEntry)
 
 	now := time.Now()
-	oldEntry.EntityName = form.EntityName
-	oldEntry.DataEntityTypeID = form.DataEntityTypeID
-	oldEntry.Location = form.Location
-	oldEntry.ResponsibleEntityID = form.ResponsibleEntityID
-	oldEntry.BeneficiaryEntityID = form.BeneficiaryEntityID
-	oldEntry.ContactName = form.ContactName
-	oldEntry.ContactMobile = form.ContactMobile
-	oldEntry.ContactEmail = form.ContactEmail
-	oldEntry.Website = form.Website
-	oldEntry.Notes = form.Notes
-	oldEntry.UpdatedBYID = &currentUserID
-	oldEntry.UpdatedAt = &now
+	existing.EntityName = form.EntityName
+	existing.DataEntityTypeID = form.DataEntityTypeID
+	existing.Location = form.Location
+	existing.ResponsibleEntityID = form.ResponsibleEntityID
+	existing.BeneficiaryEntityID = form.BeneficiaryEntityID
+	existing.ContactName = form.ContactName
+	existing.ContactMobile = form.ContactMobile
+	existing.ContactEmail = form.ContactEmail
+	existing.Website = form.Website
+	existing.Notes = form.Notes
+	existing.UpdatedBYID = &currentUserID
+	existing.UpdatedAt = &now
 
-	if err := csds.repo.Update(oldEntry, tx); err != nil {
+	if err := csds.repo.Update(existing, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -196,7 +195,7 @@ func (csds *CSLogSourceDirectoryService) Update(id uint, currentUserID uint, for
 		return utility.NewInternalServerError(err)
 	}
 
-	oldData := sourceDirectoryActivityData(&oldSnapshot, oldReceptionMechanismIDs, oldCommunicationChannelIDs)
+	oldData := sourceDirectoryActivityData(oldEntry, oldReceptionMechanismIDs, oldCommunicationChannelIDs)
 	newData := sourceDirectoryActivityData(updatedEntry, receptionMechanismIDs(updatedEntry), communicationChannelIDs(updatedEntry))
 	changedData := utility.CompareFieldChanges(oldData, newData)
 

@@ -70,22 +70,31 @@ func (csdc *CSLogSourceDirectoryController) GetAll(ctx *gin.Context) {
 
 	var dataEntityTypeID, responsibleEntityID, beneficiaryEntityID *uint
 	if v := ctx.Query("data_entity_type_id"); v != "" {
-		if id, err := strconv.ParseUint(v, 10, 32); err == nil {
-			u := uint(id)
-			dataEntityTypeID = &u
+		id, err := strconv.ParseUint(v, 10, 32)
+		if err != nil || id == 0 {
+			utility.SendInvalidErrResp(ctx, errors.New("invalid data_entity_type_id parameter"))
+			return
 		}
+		u := uint(id)
+		dataEntityTypeID = &u
 	}
 	if v := ctx.Query("responsible_entity_id"); v != "" {
-		if id, err := strconv.ParseUint(v, 10, 32); err == nil {
-			u := uint(id)
-			responsibleEntityID = &u
+		id, err := strconv.ParseUint(v, 10, 32)
+		if err != nil || id == 0 {
+			utility.SendInvalidErrResp(ctx, errors.New("invalid responsible_entity_id parameter"))
+			return
 		}
+		u := uint(id)
+		responsibleEntityID = &u
 	}
 	if v := ctx.Query("beneficiary_entity_id"); v != "" {
-		if id, err := strconv.ParseUint(v, 10, 32); err == nil {
-			u := uint(id)
-			beneficiaryEntityID = &u
+		id, err := strconv.ParseUint(v, 10, 32)
+		if err != nil || id == 0 {
+			utility.SendInvalidErrResp(ctx, errors.New("invalid beneficiary_entity_id parameter"))
+			return
 		}
+		u := uint(id)
+		beneficiaryEntityID = &u
 	}
 
 	entries, err := csdc.service.GetAll(&socDtos.CSLogSourceDirectoryListQueryParamsDTO{
