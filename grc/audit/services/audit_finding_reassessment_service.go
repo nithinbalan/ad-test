@@ -170,6 +170,12 @@ func (afrs *AuditFindingReassessmentService) Create(findingID uint, currentUserI
 		return 0, err
 	}
 
+	if formDTO.Outcome == "pass" {
+		if err = afrs.auditFindingSvc.UpdateStatus(findingID, "closed", currentUserID, tx); err != nil {
+			return 0, err
+		}
+	}
+
 	var documents []*models.AuditFindingReassessmentDocument
 
 	for _, doc := range formDTO.Documents {
@@ -279,6 +285,24 @@ func (afrs *AuditFindingReassessmentService) Update(findingID uint, id uint, cur
 
 	if err = afrs.repo.Update(existingAuditFindingReassessment, tx); err != nil {
 		return err
+	}
+
+	if formDTO.Outcome == "pass" {
+		if err = afrs.auditFindingSvc.UpdateStatus(findingID, "closed", currentUserID, tx); err != nil {
+			return err
+		}
+	}
+
+	if formDTO.Outcome == "fail" {
+		existingAuditFinding, getErr := afrs.auditFindingSvc.GetByID(findingID)
+		if getErr != nil {
+			return getErr
+		}
+		if existingAuditFinding.AuditFindingStatus != nil && existingAuditFinding.AuditFindingStatus.Type == "closed" {
+			if err = afrs.auditFindingSvc.UpdateStatus(findingID, "in-progress", currentUserID, tx); err != nil {
+				return err
+			}
+		}
 	}
 
 	var documents []*models.AuditFindingReassessmentDocument

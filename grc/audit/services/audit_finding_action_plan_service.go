@@ -32,6 +32,7 @@ type AuditFindingActionPlanServiceInterface interface {
 	StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 
 	GetAuditFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
+	AreAllActionPlansClosed(findingId uint, tx ...utility.DatabaseTransaction) (bool, error)
 	ExportAuditFindingActionPlans(data []*auditFindingDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
@@ -214,6 +215,13 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	if _, err := afaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	if audit.AuditFindingStatus != nil && audit.AuditFindingStatus.Type == "re-assessment-pending" {
+		if err := afaps.auditFindingSvc.UpdateStatus(findingID, "in-progress", currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	tx.Commit()
@@ -822,6 +830,14 @@ func (afaps *AuditFindingActionPlanService) GetAuditFindingActionPlanCountByStat
 	}
 
 	return response, nil
+}
+
+func (afaps *AuditFindingActionPlanService) AreAllActionPlansClosed(findingId uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	if _, err := afaps.auditFindingSvc.GetByID(findingId, tx...); err != nil {
+		return false, err
+	}
+
+	return afaps.repo.AreAllActionPlansClosed(findingId, tx...)
 }
 
 func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*auditFindingDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error) {

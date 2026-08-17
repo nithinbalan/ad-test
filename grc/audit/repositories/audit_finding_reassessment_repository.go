@@ -23,6 +23,8 @@ type AuditFindingReassessmentRepositoryInterface interface {
 	CreateDocuments(docs []*models.AuditFindingReassessmentDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.AuditFindingReassessmentDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetAuditFindingReassessmentActionPlanSummary(reassessmentID uint) ([]auditDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
 }
 
 type AuditFindingReassessmentRepository struct {
@@ -118,6 +120,17 @@ func (repo *AuditFindingReassessmentRepository) GetAll(findingID uint, params *a
 			Find(&documents)
 		reassessment.Documents = documents
 		reassessment.IsLatest = latestID != 0 && reassessment.ID == latestID
+
+		counts, err := repo.GetAuditFindingReassessmentActionPlanSummary(reassessment.ID)
+		if err != nil {
+			return nil, err
+		}
+		totalActionPlans := 0
+		for _, count := range counts {
+			totalActionPlans += count.Count
+		}
+		reassessment.TotalActionPlans = totalActionPlans
+		reassessment.ActionPlanSummary = counts
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
@@ -252,4 +265,37 @@ func (repo *AuditFindingReassessmentRepository) DeleteDocuments(docIds []*uint, 
 	}
 
 	return nil
+}
+
+func (repo *AuditFindingReassessmentRepository) GetAuditFindingReassessmentActionPlanSummary(reassessmentID uint) ([]auditDTOs.AuditFindingActionPlanStatusCountResponseDTO, error) {
+	actionPlanStatusCounts := []auditDTOs.AuditFindingActionPlanStatusCountResponseDTO{}
+
+	query := `
+        SELECT 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code,
+            COUNT(audit_finding_action_plans.id) AS count
+        FROM 
+            action_plan_statuses
+        LEFT JOIN 
+            audit_finding_action_plans 
+                ON audit_finding_action_plans.action_plan_status_id = action_plan_statuses.id
+                AND audit_finding_action_plans.audit_finding_reassessment_id = ?
+        GROUP BY 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code
+    `
+
+	err := repo.db.Raw(query, reassessmentID).Scan(&actionPlanStatusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return actionPlanStatusCounts, nil
 }
