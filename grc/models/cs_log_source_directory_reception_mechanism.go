@@ -6,8 +6,8 @@ type CSLogSourceDirectoryReceptionMechanism struct {
 	ReceptionMechanismID uint `json:"reception_mechanism_id" gorm:"not null"`
 
 	// Relationships
-	SourceDirectory    *CSLogSourceDirectory        `gorm:"foreignKey:SourceDirectoryID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE;"`
-	ReceptionMechanism *CSLogDataReceptionMechanism `gorm:"foreignKey:ReceptionMechanismID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	SourceDirectory    *CSLogSourceDirectory        `gorm:"foreignKey:SourceDirectoryID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
+	ReceptionMechanism *CSLogDataReceptionMechanism `gorm:"foreignKey:ReceptionMechanismID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (CSLogSourceDirectoryReceptionMechanism) TableName() string {

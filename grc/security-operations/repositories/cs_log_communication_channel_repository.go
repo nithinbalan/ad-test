@@ -37,10 +37,10 @@ func (repo *CSLogCommunicationChannelRepository) GetAll(sort string, sortBy stri
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	if sortBy == "" {
-		sortBy = "id"
+		sortBy = "title_en"
 	}
 	if sort != "asc" && sort != "desc" {
-		sort = "desc"
+		sort = "asc"
 	}
 
 	if status == "active" || status == "inactive" {

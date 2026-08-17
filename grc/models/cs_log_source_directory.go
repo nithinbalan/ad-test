@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type CSLogSourceDirectory struct {
 	ID                  uint    `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
@@ -22,11 +24,11 @@ type CSLogSourceDirectory struct {
 	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	DataEntityType    *CSLogDataEntityType `gorm:"foreignKey:DataEntityTypeID"`
-	ResponsibleEntity *OrganizationUnit    `gorm:"foreignKey:ResponsibleEntityID"`
-	BeneficiaryEntity *OrganizationUnit    `gorm:"foreignKey:BeneficiaryEntityID"`
-	CreatedByUser     *User                `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser     *User                `gorm:"foreignKey:UpdatedBYID"`
+	DataEntityType    *CSLogDataEntityType `gorm:"foreignKey:DataEntityTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ResponsibleEntity *OrganizationUnit    `gorm:"foreignKey:ResponsibleEntityID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	BeneficiaryEntity *OrganizationUnit    `gorm:"foreignKey:BeneficiaryEntityID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser     *User                `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser     *User                `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	ReceptionMechanisms   []*CSLogSourceDirectoryReceptionMechanism   `gorm:"foreignKey:SourceDirectoryID"`
 	CommunicationChannels []*CSLogSourceDirectoryCommunicationChannel `gorm:"foreignKey:SourceDirectoryID"`

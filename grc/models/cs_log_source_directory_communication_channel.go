@@ -6,8 +6,8 @@ type CSLogSourceDirectoryCommunicationChannel struct {
 	CommunicationChannelID uint `json:"communication_channel_id" gorm:"not null"`
 
 	// Relationships
-	SourceDirectory      *CSLogSourceDirectory      `gorm:"foreignKey:SourceDirectoryID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE;"`
-	CommunicationChannel *CSLogCommunicationChannel `gorm:"foreignKey:CommunicationChannelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	SourceDirectory      *CSLogSourceDirectory      `gorm:"foreignKey:SourceDirectoryID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
+	CommunicationChannel *CSLogCommunicationChannel `gorm:"foreignKey:CommunicationChannelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (CSLogSourceDirectoryCommunicationChannel) TableName() string {

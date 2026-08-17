@@ -22,7 +22,7 @@ func NewCSLogCommunicationChannelController(service services.CSLogCommunicationC
 	}
 }
 
-func (clccc *CSLogCommunicationChannelController) GetAll(ctx *gin.Context) {
+func (clccc *CSLogCommunicationChannelController) GetAllCSLogCommunicationChannels(ctx *gin.Context) {
 	sort := ctx.Query("sort_order")
 	sortBy := ctx.Query("sort_by")
 	keyword := ctx.Query("keyword")
@@ -36,7 +36,7 @@ func (clccc *CSLogCommunicationChannelController) GetAll(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, channels)
 }
 
-func (clccc *CSLogCommunicationChannelController) GetDetails(ctx *gin.Context) {
+func (clccc *CSLogCommunicationChannelController) GetCSLogCommunicationChannelDetails(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -53,7 +53,7 @@ func (clccc *CSLogCommunicationChannelController) GetDetails(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, channel)
 }
 
-func (clccc *CSLogCommunicationChannelController) Create(ctx *gin.Context) {
+func (clccc *CSLogCommunicationChannelController) CreateCSLogCommunicationChannel(ctx *gin.Context) {
 	var channel *models.CSLogCommunicationChannel
 
 	if err := ctx.ShouldBindJSON(&channel); err != nil {
@@ -82,7 +82,7 @@ func (clccc *CSLogCommunicationChannelController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, created)
 }
 
-func (clccc *CSLogCommunicationChannelController) Update(ctx *gin.Context) {
+func (clccc *CSLogCommunicationChannelController) UpdateCSLogCommunicationChannel(ctx *gin.Context) {
 	var updated *models.CSLogCommunicationChannel
 
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -120,7 +120,7 @@ func (clccc *CSLogCommunicationChannelController) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, updated)
 }
 
-func (clccc *CSLogCommunicationChannelController) Delete(ctx *gin.Context) {
+func (clccc *CSLogCommunicationChannelController) DeleteCSLogCommunicationChannels(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
@@ -145,7 +145,7 @@ func (clccc *CSLogCommunicationChannelController) Delete(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (clccc *CSLogCommunicationChannelController) Activate(ctx *gin.Context) {
+func (clccc *CSLogCommunicationChannelController) ActivateCSLogCommunicationChannels(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
@@ -169,7 +169,7 @@ func (clccc *CSLogCommunicationChannelController) Activate(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-func (clccc *CSLogCommunicationChannelController) Deactivate(ctx *gin.Context) {
+func (clccc *CSLogCommunicationChannelController) DeactivateCSLogCommunicationChannels(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
