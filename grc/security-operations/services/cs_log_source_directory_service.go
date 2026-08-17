@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"slices"
 	"time"
 
 	logServices "jethur/grc/logs/services"
@@ -117,7 +118,7 @@ func (csds *CSLogSourceDirectoryService) Create(currentUserID uint, form *socDto
 			createdID,
 			fullEntry,
 			currentUserID,
-			"security_operations", "cs_log_source_directory", "create source directory", nil,
+			"security_operations", "security_operations_source_directory", "create source directory", nil,
 		); err != nil {
 			log.Printf("Failed to log activity: %v", err)
 		}
@@ -145,24 +146,25 @@ func (csds *CSLogSourceDirectoryService) Update(id uint, currentUserID uint, for
 		return err
 	}
 
-	now := time.Now()
-	updated := &models.CSLogSourceDirectory{
-		ID:                  id,
-		EntityName:          form.EntityName,
-		DataEntityTypeID:    form.DataEntityTypeID,
-		Location:            form.Location,
-		ResponsibleEntityID: form.ResponsibleEntityID,
-		BeneficiaryEntityID: form.BeneficiaryEntityID,
-		ContactName:         form.ContactName,
-		ContactMobile:       form.ContactMobile,
-		ContactEmail:        form.ContactEmail,
-		Website:             form.Website,
-		Notes:               form.Notes,
-		UpdatedBYID:         &currentUserID,
-		UpdatedAt:           &now,
-	}
+	oldSnapshot := *oldEntry
+	oldReceptionMechanismIDs := receptionMechanismIDs(oldEntry)
+	oldCommunicationChannelIDs := communicationChannelIDs(oldEntry)
 
-	if err := csds.repo.Update(updated, tx); err != nil {
+	now := time.Now()
+	oldEntry.EntityName = form.EntityName
+	oldEntry.DataEntityTypeID = form.DataEntityTypeID
+	oldEntry.Location = form.Location
+	oldEntry.ResponsibleEntityID = form.ResponsibleEntityID
+	oldEntry.BeneficiaryEntityID = form.BeneficiaryEntityID
+	oldEntry.ContactName = form.ContactName
+	oldEntry.ContactMobile = form.ContactMobile
+	oldEntry.ContactEmail = form.ContactEmail
+	oldEntry.Website = form.Website
+	oldEntry.Notes = form.Notes
+	oldEntry.UpdatedBYID = &currentUserID
+	oldEntry.UpdatedAt = &now
+
+	if err := csds.repo.Update(oldEntry, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -194,28 +196,24 @@ func (csds *CSLogSourceDirectoryService) Update(id uint, currentUserID uint, for
 		return utility.NewInternalServerError(err)
 	}
 
-	fieldsToCompare := []string{"EntityName", "DataEntityTypeID", "Location", "ResponsibleEntityID", "BeneficiaryEntityID", "ContactName", "ContactMobile", "ContactEmail", "Website", "Notes"}
-	changes, err := utility.CompareFields(oldEntry, updatedEntry, fieldsToCompare)
-	if err != nil {
-		log.Println("error :", err.Error())
-	}
-	changedDataJSON, err := utility.ChangesToJSON(changes)
-	if err != nil {
-		log.Println("error :", err.Error())
-	}
+	oldData := sourceDirectoryActivityData(&oldSnapshot, oldReceptionMechanismIDs, oldCommunicationChannelIDs)
+	newData := sourceDirectoryActivityData(updatedEntry, receptionMechanismIDs(updatedEntry), communicationChannelIDs(updatedEntry))
+	changedData := utility.CompareFieldChanges(oldData, newData)
 
-	go func() {
-		if err := csds.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.CSLogSourceDirectory{}.TableName(),
-			id,
-			changedDataJSON,
-			currentUserID,
-			"security_operations", "cs_log_source_directory", "update source directory", nil,
-		); err != nil {
-			log.Printf("Failed to log update activity: %v", err)
-		}
-	}()
+	if len(changedData) > 0 {
+		go func() {
+			if err := csds.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.CSLogSourceDirectory{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				"security_operations", "security_operations_source_directory", "update source directory", nil,
+			); err != nil {
+				log.Printf("Failed to log update activity: %v", err)
+			}
+		}()
+	}
 
 	return nil
 }
@@ -292,13 +290,14 @@ func (csds *CSLogSourceDirectoryService) Delete(ids []uint, currentUserID uint) 
 		if err := csds.repo.Delete(id, tx); err != nil {
 			tx.Rollback()
 			failedIds = append(failedIds, id)
-		} else {
-			if err := tx.Commit(); err != nil {
-				failedIds = append(failedIds, id)
-				continue
-			}
-			successfulIds = append(successfulIds, id)
+			continue
 		}
+		if err := tx.Commit(); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		successfulIds = append(successfulIds, id)
 		deleted = append(deleted, map[string]any{
 			"id":               id,
 			"reference_number": entry.ReferenceNumber,
@@ -322,6 +321,55 @@ func (csds *CSLogSourceDirectoryService) Delete(ids []uint, currentUserID uint) 
 	}
 
 	return failedIds, nil
+}
+
+func sourceDirectoryActivityData(entry *models.CSLogSourceDirectory, receptionIDs, channelIDs []uint) map[string]any {
+	return map[string]any{
+		"entity_name":               entry.EntityName,
+		"data_entity_type_id":       dereferenceUint(entry.DataEntityTypeID),
+		"location":                  dereferenceString(entry.Location),
+		"responsible_entity_id":     dereferenceUint(entry.ResponsibleEntityID),
+		"beneficiary_entity_id":     dereferenceUint(entry.BeneficiaryEntityID),
+		"contact_name":              dereferenceString(entry.ContactName),
+		"contact_mobile":            dereferenceString(entry.ContactMobile),
+		"contact_email":             dereferenceString(entry.ContactEmail),
+		"website":                   dereferenceString(entry.Website),
+		"notes":                     dereferenceString(entry.Notes),
+		"reception_mechanism_ids":   receptionIDs,
+		"communication_channel_ids": channelIDs,
+	}
+}
+
+func dereferenceUint(value *uint) any {
+	if value == nil {
+		return nil
+	}
+	return *value
+}
+
+func dereferenceString(value *string) any {
+	if value == nil {
+		return nil
+	}
+	return *value
+}
+
+func receptionMechanismIDs(entry *models.CSLogSourceDirectory) []uint {
+	ids := make([]uint, 0, len(entry.ReceptionMechanisms))
+	for _, relation := range entry.ReceptionMechanisms {
+		ids = append(ids, relation.ReceptionMechanismID)
+	}
+	slices.Sort(ids)
+	return ids
+}
+
+func communicationChannelIDs(entry *models.CSLogSourceDirectory) []uint {
+	ids := make([]uint, 0, len(entry.CommunicationChannels))
+	for _, relation := range entry.CommunicationChannels {
+		ids = append(ids, relation.CommunicationChannelID)
+	}
+	slices.Sort(ids)
+	return ids
 }
 
 func (csds *CSLogSourceDirectoryService) syncReceptionMechanisms(sourceDirectoryID uint, ids []uint, tx utility.DatabaseTransaction) error {
