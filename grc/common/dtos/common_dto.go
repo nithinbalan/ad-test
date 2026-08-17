@@ -330,6 +330,49 @@ type AssociatedComplianceRegisterMapDTO struct {
 	ComplianceRegisterIDs []uint `json:"compliance_register_ids" binding:"required"`
 }
 
+type AssociatedVulnerabilityMapDTO struct {
+	VulnerabilityIDs []uint `json:"vulnerability_ids" binding:"required"`
+}
+
+type AssociatedVulnerabilityListDTO struct {
+	ID                              uint    `json:"id"`
+	VulnerabilityID                 uint    `json:"vulnerability_id"`
+	IncidentRegisterID              uint    `json:"incident_register_id"`
+	ReferenceNumber                 string  `json:"reference_number"`
+	TitleEn                         string  `json:"title_en"`
+	TitleAr                         string  `json:"title_ar"`
+	Description                     *string `json:"description"`
+	Source                          *string `json:"source"`
+	SeverityLevelID                 *uint   `json:"severity_level_id"`
+	SeverityLevelTitleEn            *string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            *string `json:"severity_level_title_ar"`
+	SeverityLevelColorCode          *string `json:"severity_level_color_code"`
+	VulnerabilityStatusID           uint    `json:"vulnerability_status_id"`
+	VulnerabilityStatusTitleEn      string  `json:"vulnerability_status_title_en"`
+	VulnerabilityStatusTitleAr      string  `json:"vulnerability_status_title_ar"`
+	VulnerabilityStatusColorCode    string  `json:"vulnerability_status_color_code"`
+	VulnerabilityStatusType         string  `json:"vulnerability_status_type"`
+	VulnerabilityTypeTitleEn        string  `json:"vulnerability_type_title_en"`
+	VulnerabilityTypeTitleAr        string  `json:"vulnerability_type_title_ar"`
+	ResponsibleUserID               uint    `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string  `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string  `json:"responsible_user_initial"`
+	ResponsibleUserColor            string  `json:"responsible_user_color"`
+	ResponsibleUserEmail            string  `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath *string `json:"responsible_user_profile_image_path"`
+	ResponsibleUnitTitleEn          string  `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          string  `json:"responsible_unit_title_ar"`
+	CreatedAt                       string  `json:"created_at"`
+}
+
+type AssociatedVulnerabilityListResponseDTO struct {
+	Items      []*AssociatedVulnerabilityListDTO `json:"items"`
+	Pagination PaginationInfoDTO                 `json:"pagination"`
+}
+
 type AssociatedDocumentListDTO struct {
 	ID                              uint       `json:"id"`
 	DocumentID                      uint       `json:"document_id"`

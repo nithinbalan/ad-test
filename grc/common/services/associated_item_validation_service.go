@@ -21,6 +21,7 @@ type AssociatedItemValidationServiceInterface interface {
 	ValidateComplianceMapping(masterID uint, complianceRegisterIDs []uint, tableName string, columnName string) error
 	ValidateProjectMapping(masterID uint, projectIds []uint, tableName string, columnName string) error
 	ValidateBCPMapping(masterID uint, bcppIds []uint, tableName string, columnName string) error
+	ValidateVulnerabilityMapping(masterID uint, vulnerabilityIDs []uint, tableName string, columnName string) error
 	ValidateClauseIDs(clauseIDs []uint) ([]*models.ComplianceClause, error)
 	ValidateComplianceRegisterIDs(complianceRegisterIDs []uint) ([]*models.ComplianceRegister, error)
 }
@@ -419,6 +420,38 @@ func (aivs *AssociatedItemValidationService) ValidateBCPMapping(masterID uint, b
 			return utility.NewValidationError(
 				fmt.Errorf("bcp ID %d already mapped to this %s", id, tableName),
 				"duplicate", "BCP")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateVulnerabilityMapping(masterID uint, vulnerabilityIDs []uint, tableName string, columnName string) error {
+	if len(vulnerabilityIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no vulnerabilities provided"), "required", "vulnerability_ids")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range vulnerabilityIDs {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate vulnerability ID: %d", id), "duplicate", "vulnerability_ids")
+		}
+
+		_, err := aivs.repo.VulnerabilityExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("vulnerability does not exist: %d", id), "not_exist", "vulnerability_ids")
+		}
+
+		alreadyMapped, err := aivs.repo.IsVulnerabilityMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("vulnerability ID %d already mapped to this %s", id, tableName),
+				"duplicate", "Vulnerability")
 		}
 
 		seen[id] = true

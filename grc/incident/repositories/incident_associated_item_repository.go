@@ -40,6 +40,9 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	DeleteIncidentKPI(incidentID uint, kpiRegisterID uint, tx ...utility.DatabaseTransaction) error
 	CreateIncidentAsset(kpis []*models.IncidentAsset, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentAsset(incidentID uint, assetID uint, tx ...utility.DatabaseTransaction) error
+	GetAllVulnerabilities(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedVulnerabilityListResponseDTO, error)
+	CreateIncidentVulnerability(vulnerabilities []*models.VulnerabilityIncident, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentVulnerability(incidentID uint, vulnerabilityID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentAssociatedItemRepository struct {
@@ -1504,5 +1507,136 @@ func (repo *IncidentAssociatedItemRepository) DeleteIncidentAsset(incidentID uin
 	return db.
 		Where("asset_register_id = ? AND incident_register_id = ?", assetID, incidentID).
 		Delete(&models.IncidentAsset{}).
+		Error
+}
+
+func (repo *IncidentAssociatedItemRepository) GetAllVulnerabilities(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedVulnerabilityListResponseDTO, error) {
+	var vulnerabilityList []*commonDTOs.AssociatedVulnerabilityListDTO
+	var totalCount int64
+
+	query := repo.db.Table("vulnerability_incidents").
+		Select(`
+			vulnerability_incidents.id,
+			vulnerability_incidents.vulnerability_id,
+			vulnerability_incidents.incident_register_id,
+			vulnerabilities.reference_number,
+			vulnerabilities.title_en,
+			vulnerabilities.title_ar,
+			vulnerabilities.description,
+			vulnerabilities.source,
+			vulnerabilities.severity_level_id,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			vulnerabilities.vulnerability_status_id,
+			vulnerability_statuses.title_en AS vulnerability_status_title_en,
+			vulnerability_statuses.title_ar AS vulnerability_status_title_ar,
+			vulnerability_statuses.color_code AS vulnerability_status_color_code,
+			vulnerability_statuses.type AS vulnerability_status_type,
+			vulnerability_types.title_en AS vulnerability_type_title_en,
+			vulnerability_types.title_ar AS vulnerability_type_title_ar,
+			vulnerabilities.responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			CONVERT(VARCHAR, vulnerability_incidents.created_at, 23) AS created_at
+		`).
+		Joins(`
+			LEFT JOIN vulnerabilities ON vulnerabilities.id = vulnerability_incidents.vulnerability_id
+			LEFT JOIN vulnerability_types ON vulnerability_types.id = vulnerabilities.vulnerability_type_id
+			LEFT JOIN severity_levels ON severity_levels.id = vulnerabilities.severity_level_id
+			LEFT JOIN vulnerability_statuses ON vulnerability_statuses.id = vulnerabilities.vulnerability_status_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = vulnerabilities.responsible_user_id
+			LEFT JOIN organization_units ON organization_units.id = vulnerabilities.responsible_unit_id
+		`).
+		Where("vulnerability_incidents.incident_register_id = ?", incidentID)
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(vulnerabilities.reference_number LIKE ? OR
+			vulnerabilities.title_en LIKE ? OR
+			vulnerabilities.title_ar LIKE ? OR
+			vulnerabilities.description LIKE ? OR
+			vulnerabilities.source LIKE ? OR
+			vulnerability_types.title_en LIKE ? OR
+			vulnerability_types.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			vulnerability_statuses.title_en LIKE ? OR
+			vulnerability_statuses.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			responsible_user.email LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "vulnerabilities.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	err := query.Offset(offset).Limit(params.PageSize).Find(&vulnerabilityList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedVulnerabilityListResponseDTO{
+		Items: vulnerabilityList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *IncidentAssociatedItemRepository) CreateIncidentVulnerability(vulnerabilities []*models.VulnerabilityIncident, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(vulnerabilities).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *IncidentAssociatedItemRepository) DeleteIncidentVulnerability(incidentID uint, vulnerabilityID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("vulnerability_id = ? AND incident_register_id = ?", vulnerabilityID, incidentID).
+		Delete(&models.VulnerabilityIncident{}).
 		Error
 }

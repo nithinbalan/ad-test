@@ -87,6 +87,7 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		"reported_user_last_name_en":     "reported_user.last_name_en",
 		"reported_user_last_name_ar":     "reported_user.last_name_ar",
 		"location":                       "incident_register.location",
+		"created_at":                     "incident_register.created_at",
 		"quick_action":                   "incident_register.quick_action",
 		"investigation_initiated_at":     "incident_investigations.initiated_at",
 		"investigation_description":      "incident_investigations.description",
@@ -376,4 +377,76 @@ func (irc *IncidentRegisterController) DeleteForceIncidentRegisters(c *gin.Conte
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (irc *IncidentRegisterController) UpdateIncidentStatus(c *gin.Context) {
+	incidentIDStr := c.Param("id")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var statusUpdateFormDTO incidentDTOs.IncidentRegisterStatusUpdateFormDTO
+	if err := c.ShouldBindJSON(&statusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	err = irc.service.UpdateIncidentStatus(uint(incidentID), currentUserID, statusUpdateFormDTO.IncidentStatusID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (irc *IncidentRegisterController) AcknowledgeIncidentRegister(c *gin.Context) {
+	incidentIDStr := c.Param("id")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	err = irc.service.AcknowledgeIncident(uint(incidentID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

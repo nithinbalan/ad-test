@@ -302,6 +302,10 @@
 {
   "id": "no_users_for_role",
   "translation": "No users found for the specified role."
+},
+{
+  "id": "incident_closure_submission",
+  "translation": "At least one {{.Field}} is required before submitting the incident closure."
 }
 
 

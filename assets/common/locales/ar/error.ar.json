@@ -296,7 +296,12 @@
 {
   "id": "no_users_for_role",
   "translation": "لا يوجد مستخدمون للدور المحدد."
+},
+{
+  "id": "incident_closure_submission",
+  "translation": "مطلوب {{.Field}} واحد على الأقل قبل تقديم إغلاق الحادث."
 }
+
 
 
 

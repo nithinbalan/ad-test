@@ -17,7 +17,9 @@ import (
 
 type IncidentClosureServiceInterface interface {
 	GetByID(incidentID uint) (*models.IncidentClosure, error)
+	GetByClosureID(closureID uint) (*models.IncidentClosure, error)
 	GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentClosureDetailDTO, error)
+	GetFullDetailsByClosureID(closureID uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentClosureDetailDTO, error)
 	Create(incidentID uint, currentUserID uint, IncidentClosureFormDTO *incidentDTOs.IncidentClosureFormDTO) (uint, error)
 	Update(incidentID uint, currentUserID uint, incident *incidentDTOs.IncidentClosureFormDTO) error
 	Delete(incidentID uint, currentUserID uint) (uint, error)
@@ -97,8 +99,7 @@ func (ics IncidentClosureService) GetFullDetailsByID(incidentID uint, tx ...util
 func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, incidentClosureFormDTO *incidentDTOs.IncidentClosureFormDTO) (uint, error) {
 	tx := ics.repo.BeginTransaction()
 
-	existingIncidentRegister, err := ics.incidentRegisterSvc.GetByID(incidentID)
-	if err != nil {
+	if _, err := ics.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return 0, err
 	}
 
@@ -112,7 +113,7 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 		CompletionDate:     dates.CompletionDate,
 		ResolutionSummary:  incidentClosureFormDTO.ResolutionSummary,
 		Notes:              incidentClosureFormDTO.Notes,
-		CreatedByID:        currentUserID,
+		CreatedBYID:        currentUserID,
 	}
 
 	id, err := ics.repo.Create(incidentClosure, tx)
@@ -135,16 +136,6 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 			tx.Rollback()
 			return 0, err
 		}
-	}
-	// update incident status as closed
-	incidentStatus, err := ics.incidentStatusSvc.GetByType("closed")
-	if err != nil {
-		return 0, err
-	}
-	err = ics.incidentRegisterSvc.StatusUpdate(existingIncidentRegister.ID, currentUserID, incidentStatus.ID, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
 	}
 	// Update timeline
 	// todo
@@ -229,7 +220,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, currentUserID uint, i
 	existingIncidentClosure.CompletionDate = dates.CompletionDate
 	existingIncidentClosure.ResolutionSummary = incidentClosureFormDTO.ResolutionSummary
 	existingIncidentClosure.Notes = incidentClosureFormDTO.Notes
-	existingIncidentClosure.UpdatedByID = &currentUserID
+	existingIncidentClosure.UpdatedBYID = &currentUserID
 
 	err = ics.repo.Update(existingIncidentClosure, tx)
 	if err != nil {
@@ -470,4 +461,42 @@ func (ics *IncidentClosureService) parseIncidentClosureDates(dto *incidentDTOs.I
 	}
 
 	return parsed, nil
+}
+
+func (ics IncidentClosureService) GetByClosureID(closureID uint) (*models.IncidentClosure, error) {
+	incidentClosure, err := ics.repo.GetByClosureID(closureID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, closureID)
+		}
+		return nil, err
+	}
+	return incidentClosure, nil
+}
+
+func (ics IncidentClosureService) GetFullDetailsByClosureID(closureID uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentClosureDetailDTO, error) {
+	var incidentClosureDTO incidentDTOs.IncidentClosureDetailDTO
+
+	incidentClosure, err := ics.repo.GetFullDetailsClosureID(closureID, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, closureID)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(incidentClosure, &incidentClosureDTO)
+	if err != nil {
+		return nil, err
+	}
+	if incidentClosure.CompletionDate != nil {
+		completionDate := incidentClosure.CompletionDate.Format("2006-01-02")
+		incidentClosureDTO.CompletionDateString = &completionDate
+	}
+
+	incidentClosureDTO.CreatedAt = incidentClosure.CreatedAt
+	incidentClosureDTO.UpdatedAt = incidentClosure.UpdatedAt
+
+	// todo :- also add extra fields which required in details screen
+	return &incidentClosureDTO, nil
 }
