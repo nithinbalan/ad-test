@@ -31,7 +31,7 @@ func (dwc *DocumentWorkflowLevelController) CreateWorkflowLevel(c *gin.Context) 
 		return
 	}
 
-	workflowIDStr := c.Param("workflowId")
+	workflowIDStr := c.Param("id")
 	workflowID, err := strconv.ParseUint(workflowIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid workflow level ID"})
