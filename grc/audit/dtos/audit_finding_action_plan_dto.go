@@ -65,19 +65,20 @@ type AuditFindingActionPlanListDTO struct {
 }
 
 type AuditFindingActionPlanListQueryParamsDTO struct {
-	Sort           string
-	SortBy         string
-	Keyword        string
-	Status         string
-	Page           int
-	PageSize       int
-	Filters        map[string][]string
-	QuickFilter    []string
-	TargetDateFrom string
-	TargetDateTo   string
-	Export         bool
-	DateFrom       string
-	DateTo         string
+	Sort                string
+	SortBy              string
+	Keyword             string
+	Status              string
+	Page                int
+	PageSize            int
+	Filters             map[string][]string
+	QuickFilter         []string
+	TargetDateFrom      string
+	TargetDateTo        string
+	Export              bool
+	DateFrom            string
+	DateTo              string
+	ExcludeReassessment bool
 }
 
 type AuditFindingActionPlanListResponseDTO struct {

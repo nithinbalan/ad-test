@@ -44,6 +44,11 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	excludeReassessment, err := strconv.ParseBool(c.DefaultQuery("exclude_reassessment", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(afapc.db, c, "Invalid exclude_reassessment parameter")
+		return
+	}
 
 	// Convert the export parameter to a boolean
 	exportFromContext, exists := c.Get("export")
@@ -124,19 +129,20 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 	}
 
 	queryParams := auditFindingDTOs.AuditFindingActionPlanListQueryParamsDTO{
-		Sort:           sort,
-		SortBy:         sortField,
-		Keyword:        keyword,
-		Status:         status,
-		Page:           page,
-		PageSize:       pageSize,
-		Filters:        filters,
-		QuickFilter:    quickFilter,
-		TargetDateFrom: targetDateFrom,
-		TargetDateTo:   targetDateTo,
-		Export:         export,
-		DateFrom:       dateFrom,
-		DateTo:         dateTo,
+		Sort:                sort,
+		SortBy:              sortField,
+		Keyword:             keyword,
+		Status:              status,
+		Page:                page,
+		PageSize:            pageSize,
+		Filters:             filters,
+		QuickFilter:         quickFilter,
+		TargetDateFrom:      targetDateFrom,
+		TargetDateTo:        targetDateTo,
+		Export:              export,
+		DateFrom:            dateFrom,
+		DateTo:              dateTo,
+		ExcludeReassessment: excludeReassessment,
 	}
 
 	// Handle the optional findingID

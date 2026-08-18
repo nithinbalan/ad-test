@@ -137,6 +137,11 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
 		}
 	}
 
+	// Exclude action plans added through re-assessment
+	if params.ExcludeReassessment {
+		query = query.Where("audit_finding_action_plans.audit_finding_reassessment_id IS NULL")
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
