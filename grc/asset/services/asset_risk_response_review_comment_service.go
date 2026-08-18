@@ -155,8 +155,6 @@ func (arrcs *AssetRiskResponseReviewCommentService) Create(riskID uint, currentU
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskResponse, err := arrcs.riskResponseSvc.GetByRiskRegisterID(riskID, tx)
@@ -217,6 +215,10 @@ func (arrcs *AssetRiskResponseReviewCommentService) Create(riskID uint, currentU
 		}
 	}
 
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+
 	go func() {
 		existingComment, logErr := arrcs.GetFullDetailsByID(riskID, id)
 		if logErr != nil {
@@ -259,8 +261,6 @@ func (arrcs *AssetRiskResponseReviewCommentService) Update(riskID uint, id uint,
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = arrcs.riskResponseSvc.GetByRiskRegisterID(riskID, tx); err != nil {
@@ -355,6 +355,10 @@ func (arrcs *AssetRiskResponseReviewCommentService) Update(riskID uint, id uint,
 		}
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	go func() {
 		newComment, logErr := arrcs.repo.GetFullDetailsByID(id)
 		if logErr != nil {
@@ -400,8 +404,6 @@ func (arrcs *AssetRiskResponseReviewCommentService) Delete(riskID uint, ids []ui
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = arrcs.riskResponseSvc.GetByRiskRegisterID(riskID, tx); err != nil {
@@ -447,6 +449,10 @@ func (arrcs *AssetRiskResponseReviewCommentService) Delete(riskID uint, ids []ui
 		}
 	}
 
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
 	if len(successfulIDs) > 0 {
 		go func() {
 			if logErr := arrcs.activityLogSvc.LogBulkActivities(
@@ -480,8 +486,6 @@ func (arrcs *AssetRiskResponseReviewCommentService) Resolve(riskID uint, comment
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = arrcs.riskResponseSvc.GetByRiskRegisterID(riskID, tx); err != nil {
@@ -503,7 +507,15 @@ func (arrcs *AssetRiskResponseReviewCommentService) Resolve(riskID uint, comment
 	existingComment.UpdatedBYID = &currentUserID
 	existingComment.UpdatedAt = now
 
-	return arrcs.repo.Update(existingComment, tx)
+	if err = arrcs.repo.Update(existingComment, tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return
 }
 
 func (arrcs *AssetRiskResponseReviewCommentService) GetDocumentPath(riskID uint, commentID uint, token string) (string, error) {

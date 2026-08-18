@@ -99,8 +99,6 @@ func (ares *AssetRiskResidualEvaluationService) Create(riskID uint, currentUserI
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := ares.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -189,6 +187,10 @@ func (ares *AssetRiskResidualEvaluationService) Create(riskID uint, currentUserI
 		return 0, err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+
 	go func() {
 		existingEvaluation, logErr := ares.GetFullDetailsByID(riskID)
 		if logErr != nil {
@@ -237,8 +239,6 @@ func (ares *AssetRiskResidualEvaluationService) Update(riskID uint, id uint, cur
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := ares.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -305,6 +305,10 @@ func (ares *AssetRiskResidualEvaluationService) Update(riskID uint, id uint, cur
 	riskRegister.UpdatedAt = &now
 
 	if err = ares.assetRiskRegisterSvc.UpdateRiskRegister(riskRegister, tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return err
 	}
 
@@ -375,8 +379,6 @@ func (ares *AssetRiskResidualEvaluationService) Delete(riskID uint, id uint, cur
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := ares.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -422,6 +424,10 @@ func (ares *AssetRiskResidualEvaluationService) Delete(riskID uint, id uint, cur
 
 	if err = ares.assetRiskRegisterSvc.UpdateRiskTimeline(riskTimeline, tx); err != nil {
 		return id, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
 	}
 
 	go func() {

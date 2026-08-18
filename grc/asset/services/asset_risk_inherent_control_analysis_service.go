@@ -132,8 +132,6 @@ func (svc *AssetRiskInherentControlAnalysisService) Create(riskID uint, currentU
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = svc.assetRiskRegisterSvc.GetByID(riskID, tx); err != nil {
@@ -190,6 +188,10 @@ func (svc *AssetRiskInherentControlAnalysisService) Create(riskID uint, currentU
 		return err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	go func() {
 		logErr := svc.activityLogSvc.LogBulkActivities(
 			models.CreateAction,
@@ -229,8 +231,6 @@ func (svc *AssetRiskInherentControlAnalysisService) Update(riskID uint, id uint,
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = svc.assetRiskRegisterSvc.GetByID(riskID, tx); err != nil {
@@ -269,6 +269,10 @@ func (svc *AssetRiskInherentControlAnalysisService) Update(riskID uint, id uint,
 	existingRiskControlAnalysis.CreatedAt = time.Now()
 
 	if err = svc.repo.Update(existingRiskControlAnalysis, tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return err
 	}
 
@@ -339,8 +343,6 @@ func (svc *AssetRiskInherentControlAnalysisService) Delete(riskID uint, ids []ui
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	var successfulIds []uint
@@ -386,6 +388,10 @@ func (svc *AssetRiskInherentControlAnalysisService) Delete(riskID uint, ids []ui
 	riskTimeline.PerformedByID = nil
 	riskTimeline.PerformedAt = nil
 	if err = svc.assetRiskRegisterSvc.UpdateRiskTimeline(riskTimeline, tx); err != nil {
+		return nil, err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return nil, err
 	}
 

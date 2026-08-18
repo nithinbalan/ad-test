@@ -154,8 +154,6 @@ func (afrs *AuditFindingReassessmentService) Create(findingID uint, currentUserI
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	auditFindingReassessment := &models.AuditFindingReassessment{
@@ -213,6 +211,10 @@ func (afrs *AuditFindingReassessmentService) Create(findingID uint, currentUserI
 				return 0, err
 			}
 		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
 	}
 
 	go func() {
@@ -275,8 +277,6 @@ func (afrs *AuditFindingReassessmentService) Update(findingID uint, id uint, cur
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	existingAuditFindingReassessment.Outcome = &formDTO.Outcome
@@ -375,6 +375,10 @@ func (afrs *AuditFindingReassessmentService) Update(findingID uint, id uint, cur
 		}
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	go func() {
 		newAuditFindingReassessment, logErr := afrs.GetFullDetailsByID(findingID, id)
 		if logErr != nil {
@@ -439,8 +443,6 @@ func (afrs *AuditFindingReassessmentService) Delete(findingID uint, id uint, cur
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if len(existingAuditFindingReassessment.Documents) > 0 {
@@ -470,6 +472,10 @@ func (afrs *AuditFindingReassessmentService) Delete(findingID uint, id uint, cur
 				"file":  doc.Name,
 			})
 		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	go func() {

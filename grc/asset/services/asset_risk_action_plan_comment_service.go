@@ -129,8 +129,6 @@ func (rapcs *AssetRiskActionPlanCommentService) Create(riskID uint, actionPlanID
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	comment := &models.RiskActionPlanComment{
@@ -191,6 +189,10 @@ func (rapcs *AssetRiskActionPlanCommentService) Create(riskID uint, actionPlanID
 				return 0, err
 			}
 		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
 	}
 
 	go func() {
@@ -348,8 +350,6 @@ func (rapcs *AssetRiskActionPlanCommentService) Update(riskID uint, actionPlanID
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	existingComment.Comment = formDTO.Comment
@@ -428,6 +428,10 @@ func (rapcs *AssetRiskActionPlanCommentService) Update(riskID uint, actionPlanID
 		}
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	go func() {
 		existingComment, logErr := rapcs.GetFullDetailsByID(riskID, actionPlanID, id)
 		if logErr != nil {
@@ -487,12 +491,10 @@ func (s *AssetRiskActionPlanCommentService) Delete(riskID uint, actionPlanID uin
 			panic(p)
 		}
 
-		if len(failedIDs) > 0 {
+		if err != nil || len(failedIDs) > 0 {
 			tx.Rollback()
 			return
 		}
-
-		tx.Commit()
 	}()
 
 	var successfulIDs []uint
@@ -514,6 +516,14 @@ func (s *AssetRiskActionPlanCommentService) Delete(riskID uint, actionPlanID uin
 		}
 
 		successfulIDs = append(successfulIDs, id)
+	}
+
+	if len(failedIDs) > 0 {
+		return failedIDs, nil
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	if len(successfulIDs) > 0 {

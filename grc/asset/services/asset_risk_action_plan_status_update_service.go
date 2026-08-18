@@ -123,8 +123,6 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Create(riskID uint, riskAc
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskActionPlanUpdate := &models.RiskActionPlanStatusUpdate{
@@ -200,6 +198,10 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Create(riskID uint, riskAc
 		}
 	}
 
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+
 	go func() {
 		logErr := arasus.activityLogSvc.LogActivity(
 			models.CreateAction,
@@ -260,8 +262,6 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Update(riskID uint, riskAc
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	// Update Risk StatusUpdate -- only comments and percentage
@@ -340,6 +340,10 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Update(riskID uint, riskAc
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			return err
 		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	go func() {
@@ -477,8 +481,6 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Approve(riskID uint, riskA
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	existingRiskActionPlan.ActionPlanStatusID = riskActionPlanClosedStatus.ID
@@ -508,6 +510,10 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Approve(riskID uint, riskA
 
 	_, err = arasus.taskSvc.UpdateActionPlanTaskStatus("risk_action_plan_id", riskActionPlanID, *existingRiskActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return err
 	}
 
@@ -649,8 +655,6 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Revert(riskID uint, riskAc
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	existingRiskActionPlan.ActionPlanStatusID = riskActionPlanReopenStatus.ID
@@ -680,6 +684,10 @@ func (arasus *AssetRiskActionPlanStatusUpdateService) Revert(riskID uint, riskAc
 
 	_, err = arasus.taskSvc.UpdateActionPlanTaskStatus("risk_action_plan_id", riskActionPlanID, *existingRiskActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return err
 	}
 

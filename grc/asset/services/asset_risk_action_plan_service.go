@@ -191,8 +191,6 @@ func (araps *AssetRiskActionPlanService) Create(riskID uint, currentUserID uint,
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	risk, err := araps.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -324,6 +322,10 @@ func (araps *AssetRiskActionPlanService) Create(riskID uint, currentUserID uint,
 			return 0, err
 		}
 
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
 	}
 
 	go func() {
@@ -472,8 +474,6 @@ func (araps *AssetRiskActionPlanService) Update(riskID uint, id uint, currentUse
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	// Update Risk ActionPlan
@@ -610,6 +610,10 @@ func (araps *AssetRiskActionPlanService) Update(riskID uint, id uint, currentUse
 				return err
 			}
 		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	go func() {
@@ -823,12 +827,10 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 			panic(p)
 		}
 
-		if len(failedIds) > 0 {
+		if err != nil || len(failedIds) > 0 {
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	var successfulIds []uint
@@ -953,6 +955,14 @@ func (araps *AssetRiskActionPlanService) Delete(riskID uint, ids []uint, current
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
+	}
+
+	if err = tx.Commit(); err != nil {
+		return failedIds, err
 	}
 
 	if len(successfulIds) > 0 {
