@@ -18,12 +18,14 @@ import (
 	incidentDTOs "jethur/grc/incident/dtos"
 	logServices "jethur/grc/logs/services"
 	masterDTOs "jethur/grc/masters/dtos"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	settingsServices "jethur/grc/settings/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -58,7 +60,10 @@ type AuditFinalReportService struct {
 	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
 	settingSvc                settingsServices.AuditTemplateSettingServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
-	auditTimelineSvc 		  AuditTimelineServiceInterface
+	auditTimelineSvc          AuditTimelineServiceInterface
+	actionPlanStatusSvc       masterServices.ActionPlanStatusServiceInterface
+	taskSvc                   taskServices.TaskServiceInterface
+	delegateeUserSvc          commonServices.DelegateeUserserviceInterface
 }
 
 func NewAuditFinalReportService(
@@ -75,6 +80,9 @@ func NewAuditFinalReportService(
 	settingSvc settingsServices.AuditTemplateSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	auditTimelineSvc AuditTimelineServiceInterface,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) AuditFinalReportServiceInterface {
 	return &AuditFinalReportService{
 		repo:                      repo,
@@ -90,6 +98,9 @@ func NewAuditFinalReportService(
 		settingSvc:                settingSvc,
 		notificationSvc:           notificationSvc,
 		auditTimelineSvc:          auditTimelineSvc,
+		actionPlanStatusSvc:       actionPlanStatusSvc,
+		taskSvc:                   taskSvc,
+		delegateeUserSvc:          delegateeUserSvc,
 	}
 }
 
@@ -632,6 +643,17 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	}
 
 	tx := afrs.repo.BeginTransaction()
+
+	actionPlanStatus, err := afrs.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	findingDetailsMap := make(map[uint]struct {
+		ReferenceNumber string
+		Title           string
+	})
 	// validate workflow structure
 	err = afrs.auditReportWorkflowSvc.ValidateWorkflowBeforeCreate("final-report", tx)
 	if err != nil {
@@ -897,6 +919,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				DepartmentResponse:     latestComment,
 				DepartmentResponseBYID: latestCreatedByID,
 				DepartmentResponseAt:   latestCreatedAt,
+				AuditChecklistID:       draftFinding.AuditChecklistID,
 			}
 
 			findingID, err := afrs.auditFindingSvc.Create(currentUserID, findingDTO, tx)
@@ -934,17 +957,40 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 
 			}
 
+			finding, err := afrs.auditFindingSvc.GetByID(findingID, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+			findingDetailsMap[findingID] = struct {
+				ReferenceNumber string
+				Title           string
+			}{
+				ReferenceNumber: finding.ReferenceNumber,
+				Title:           finding.Title,
+			}
+
 			// Copy action plans from draft findings to final findings
 			for _, draftActionPlan := range draftFinding.AuditDraftFindingActionPlans {
+
 				actionPlan := &models.AuditFindingActionPlan{
-					Title:             draftActionPlan.Title,
-					AuditFindingID:    findingID,
-					Description:       draftActionPlan.Description,
-					ResponsibleUserID: *draftActionPlan.ResponsibleUserID,
-					TargetDate:        draftActionPlan.TargetDate,
-					CreatedBYID:       currentUserID,
-					// SeverityLevelID:    draftActionPlan.SeverityLevelID,
-					ActionPlanStatusID: 1, // todo -- add ActionPlanStatusID
+					Title:              draftActionPlan.Title,
+					AuditFindingID:     findingID,
+					Description:        draftActionPlan.Description,
+					ResponsibleUserID:  *draftActionPlan.ResponsibleUserID,
+					TargetDate:         draftActionPlan.TargetDate,
+					CreatedBYID:        draftActionPlan.CreatedBYID,
+					ActionPlanStatusID: actionPlanStatus.ID,
+				}
+				if draftActionPlan.ResponsibleUserID != nil {
+					delegateeID, err := afrs.delegateeUserSvc.AssignDelegateeIfPermitted(*draftActionPlan.ResponsibleUserID, "audits")
+					if err != nil {
+						tx.Rollback()
+						return 0, err
+					}
+					if delegateeID != nil {
+						actionPlan.DelegateeUserID = delegateeID
+					}
 				}
 				// Attach action plan to its respective AuditFinding
 				actionPlans = append(actionPlans, actionPlan)
@@ -965,6 +1011,27 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		if err := afrs.repo.CreateAuditFindingActionPlans(actionPlans, tx); err != nil {
 			tx.Rollback()
 			return 0, err
+		}
+
+		// Create tasks for action plans
+		for _, actionPlan := range actionPlans {
+			urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, auditID, actionPlan.AuditFindingID, actionPlan.ID)
+			taskDTO := commonDTOs.TaskFormDTO{
+				ModuleIdentifier:         "audits",
+				AuditFindingActionPlanID: &actionPlan.ID,
+				Title:                    actionPlan.Title,
+				Description:              actionPlan.Description,
+				TargetDate:               actionPlan.TargetDate,
+				URLParam:                 &urlParam,
+				QueryParam:               nil,
+				SeverityLevelID:          actionPlan.SeverityLevelID,
+				ResponsibleUserID:        actionPlan.ResponsibleUserID,
+			}
+
+			if _, err := afrs.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
 		}
 	}
 	// Bulk insert AuditFinalReportSection
@@ -994,6 +1061,98 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		return 0, err
 	}
 	tx.Commit()
+
+	if len(actionPlans) > 0 {
+		go func() {
+			for _, actionPlan := range actionPlans {
+				if actionPlan.ResponsibleUserID == 0 {
+					continue
+				}
+
+				// prepare notification
+				urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, auditID, actionPlan.AuditFindingID, actionPlan.ID)
+				queryParam := ""
+				entity := "audit-finding-action-plan"
+				action := "responsible-user-assign"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{actionPlan.ResponsibleUserID},
+					ModuleIdentifier:     "audit",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					HeadingEn:            "Audit Finding Action Plan Responsiblity Assigned",
+					HeadingAr:            "تم تعيين مسؤولية خطة العمل الخاصة بالتدقيق",
+					TitleEn:              actionPlan.Title,
+					TitleAr:              actionPlan.Title,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				responsibleUser, err := afrs.userSvc.GetByID(actionPlan.ResponsibleUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+				assignedBy, err := afrs.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				fd := findingDetailsMap[actionPlan.AuditFindingID]
+
+				emailTo := []string{responsibleUser.Email}
+				subject := fmt.Sprintf("Audit Finding Action Plan/%s: Responsibility Assigned", actionPlan.Title)
+				appURL := utility.GetAppURL()
+
+				actionPlanDesc := ""
+				if actionPlan.Description != nil {
+					actionPlanDesc = *actionPlan.Description
+				}
+
+				targetDateStr := ""
+				if actionPlan.TargetDate != nil {
+					targetDateStr = actionPlan.TargetDate.Format("2006-01-02")
+				}
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":                 responsibleUser.FirstNameEn,
+					"LastNameEn":                  responsibleUser.LastNameEn,
+					"AuditFindingReferenceNumber": fd.ReferenceNumber,
+					"AuditFindingTitle":           fd.Title,
+					"ActionPlanTitle":             actionPlan.Title,
+					"ActionPlanDescription":       actionPlanDesc,
+					"TargetDate":                  targetDateStr,
+					"AssignedByFirstNameEn":       assignedBy.FirstNameEn,
+					"AssignedByLastNameEn":        assignedBy.LastNameEn,
+					"AssignedOn":                  time.Now().Format("2006-01-02"),
+					"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans", appURL, actionPlan.AuditFindingID),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "audit/templates/email/audit_finding_action_plan_create_responsible_user_mail.html",
+					EmailData:            emailData,
+				}
+
+				// send notification and mail
+				err = afrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit_finding_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		}()
+	}
 
 	go func() {
 		existingAuditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID)

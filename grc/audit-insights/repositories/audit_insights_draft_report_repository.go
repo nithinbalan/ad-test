@@ -198,6 +198,16 @@ func (repo *AuditInsightsDraftReportRepository) GetAll(params *auditDTOs.AuditDr
 		query = query.Where("audits.report_date = ?", params.ReportDate)
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "completed_audit":
+			query = query.Where("audit_statuses.type = ?", "completed")
+		case "in_progress_audit":
+			query = query.Where("audit_statuses.type = ?", "in-progress")
+		}
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err

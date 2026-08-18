@@ -138,8 +138,6 @@ func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskD
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	referenceNumber, err := arrs.repo.GenerateReferenceNumber(tx)
@@ -279,6 +277,10 @@ func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskD
 		return 0, err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+
 	go func() {
 		existingRisk, logErr := arrs.GetFullDetailsByID(id)
 		if logErr != nil {
@@ -334,8 +336,6 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	existingRiskRegister, err := arrs.repo.GetByID(id, tx)
@@ -460,6 +460,10 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			return err
 		}
 	}
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	go func() {
 		newRisk, logErr := arrs.GetFullDetailsByID(id)
 		if logErr != nil {
@@ -702,8 +706,6 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	var successfulIDs []uint
@@ -761,6 +763,10 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 	}
 
 	if len(failedIDs) > 0 {
+		return failedIDs, err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return failedIDs, err
 	}
 

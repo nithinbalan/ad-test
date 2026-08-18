@@ -60,6 +60,7 @@ type AuditFindingFormDTO struct {
 	DepartmentResponse     *string                        `json:"department_response,omitempty"`
 	DepartmentResponseBYID *uint                          `json:"department_response_by_id,omitempty"`
 	DepartmentResponseAt   *time.Time                     `json:"department_response_at,omitempty"`
+	AuditChecklistID       *uint                          `json:"audit_checklist_id,omitempty"`
 }
 
 type AuditFindingDocumentFormDTO struct {
@@ -84,10 +85,12 @@ type AuditFindingDetailDTO struct {
 	SeverityLevelID        uint                             `json:"severity_level_id"`
 	Recommendations        *string                          `json:"recommendations,omitempty"`
 	AuditFindingStatusID   uint                             `json:"audit_finding_status_id"`
+	AuditChecklistID       *uint                            `json:"audit_checklist_id"`
 	AuditableItem          AuditableItemDetailDTO           `json:"auditable_item"`
 	AuditFindingCategory   AuditFindingCategoryDTO          `json:"audit_finding_category"`
 	SeverityLevel          masterDTOs.SeverityLevelDTO      `json:"severity_level"`
 	AuditFindingStatus     AuditFindingStatusDTO            `json:"audit_finding_status"`
+	AuditChecklist         *AuditChecklistDetailDTO         `json:"audit_checklist"`
 	CreatedAt              time.Time                        `json:"created_at"`
 	UpdatedAt              *time.Time                       `json:"updated_at"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`

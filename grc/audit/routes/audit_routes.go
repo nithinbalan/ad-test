@@ -46,6 +46,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditFindingActionPlanCommentController := app.AuditModule.AuditFindingActionPlanCommentController
 	auditDocumentRequestConversationController := app.AuditModule.AuditDocumentRequestConversationController
 	auditFindingActionPlanStatusUpdateController := app.AuditModule.AuditFindingActionPlanStatusUpdateController
+	auditFindingReassessmentController := app.AuditModule.AuditFindingReassessmentController
 	auditChecklistController := app.AuditModule.AuditChecklistController
 	auditScheduleController := app.AuditModule.AuditScheduleController
 	auditDraftFindingStatusController := app.AuditModule.AuditDraftFindingStatusController
@@ -249,7 +250,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	auditRoutes.GET("/audits/:auditId/findings", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAllAuditFindingsByAudit)
 	auditRoutes.GET("/audits/:auditId/findings/export", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAuditFindingExportByAudit)
-	
+
 	auditRoutes.GET("/audit-findings/:findingId/documents", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingDocuments)
 	auditRoutes.POST("/audit-findings/:findingId/documents", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingDocument)
 	auditRoutes.DELETE("/audit-findings/:findingId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingDocument)
@@ -334,6 +335,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanCommentController.CreateComment)
 	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanCommentController.UpdateComment)
 	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanCommentController.DeleteComment)
+
+	// Audit Finding Reassessment
+	unauthenticatedRoutes.GET("/audit-findings/:findingId/reassessments/:reassessmentId/document-preview", auditFindingReassessmentController.GetAuditFindingReassessmentDocumentPreview)
+	unauthenticatedRoutes.GET("/audit-findings/:findingId/reassessments/:reassessmentId/document-download", auditFindingReassessmentController.DownloadAuditFindingReassessmentDocument)
+
+	auditRoutes.GET("/audit-findings/:findingId/reassessments", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingReassessmentController.GetAllAuditFindingReassessments)
+	auditRoutes.GET("/audit-findings/:findingId/reassessments/:reassessmentId", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingReassessmentController.GetAuditFindingReassessmentDetails)
+	auditRoutes.POST("/audit-findings/:findingId/reassessments", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingReassessmentController.CreateAuditFindingReassessment)
+	auditRoutes.PUT("/audit-findings/:findingId/reassessments/:reassessmentId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingReassessmentController.UpdateAuditFindingReassessment)
+	auditRoutes.DELETE("/audit-findings/:findingId/reassessments/:reassessmentId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingReassessmentController.DeleteAuditFindingReassessment)
+
+	auditRoutes.GET("/audit-findings/:findingId/reassessments/:reassessmentId/action-plans", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingReassessmentController.GetAllAuditFindingReassessmentActionPlans)
+	auditRoutes.POST("/audit-findings/:findingId/reassessments/:reassessmentId/action-plans", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingReassessmentController.CreateAuditFindingReassessmentActionPlan)
 
 	// Audit Checklist
 	auditRoutes.GET("/audits/:auditId/checklists", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditChecklistController.GetAllAuditChecklists)

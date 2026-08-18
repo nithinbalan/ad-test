@@ -175,6 +175,24 @@ func (repo *AuditInsightsFinalReportRepository) GetAll(params *auditDTOs.AuditFi
 		query = query.Where("audit_final_reports.submitted_at = ?", params.ReportDate)
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "latest":
+			// Published within the current calendar month
+			query = query.Where(`
+				audit_final_reports.published_at >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0) AND
+				audit_final_reports.published_at < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) + 1, 0)
+			`)
+		case "last_month":
+			// Published within the previous calendar month
+			query = query.Where(`
+				audit_final_reports.published_at >= DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0) AND
+				audit_final_reports.published_at < DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0)
+			`)
+		}
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err

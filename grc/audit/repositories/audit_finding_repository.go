@@ -15,10 +15,11 @@ import (
 type AuditFindingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error)
-	GetByID(id uint) (*models.AuditFinding, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditFinding, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditFinding, error)
 	Create(auditFinding *models.AuditFinding, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditFinding *models.AuditFinding, tx ...utility.DatabaseTransaction) error
+	UpdateFields(id uint, fields map[string]interface{}, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
 
@@ -167,10 +168,15 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 	return response, nil
 }
 
-func (repo *AuditFindingRepository) GetByID(id uint) (*models.AuditFinding, error) {
+func (repo *AuditFindingRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditFinding, error) {
 	var auditFinding *models.AuditFinding
 
-	result := repo.db.Preload("Documents").First(&auditFinding, id)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Preload("AuditFindingStatus").Preload("Documents").First(&auditFinding, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -199,6 +205,10 @@ func (repo *AuditFindingRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("AuditFindingCategory").
 		Preload("SeverityLevel").
 		Preload("AuditFindingStatus").
+		Preload("AuditChecklist").
+		Preload("AuditChecklist.Conformance").
+		Preload("AuditChecklist.AnsweredByUser").
+		Preload("AuditChecklist.CreatedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Documents").
@@ -229,6 +239,18 @@ func (repo *AuditFindingRepository) Update(auditFinding *models.AuditFinding, tx
 		db = tx[0].DB()
 	}
 	if err := db.Save(auditFinding).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFindingRepository) UpdateFields(id uint, fields map[string]interface{}, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Model(&models.AuditFinding{}).Where("id = ?", id).Updates(fields).Error; err != nil {
 		return err
 	}
 
