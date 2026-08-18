@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+
 	assetRiskDTOs "jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	masterDTOs "jethur/grc/masters/dtos"
@@ -167,6 +169,7 @@ func (arrws *AssetRiskResponseWorkflowService) CreateRiskResponseWorkflow(riskRe
 			return err
 		}
 
+		participantCount := 0
 		for _, participant := range level.Participants {
 			if participant.Role != nil {
 				userIds, err := arrws.userSvc.GetUserIdsByRoleExcludingSystemUsers(participant.Role.ID, tx...)
@@ -178,13 +181,19 @@ func (arrws *AssetRiskResponseWorkflowService) CreateRiskResponseWorkflow(riskRe
 					if err := arrws.createWorkflowParticipant(userId, riskResponseWorkflowID, &participant, currentUserID, tx...); err != nil {
 						return err
 					}
+					participantCount++
 				}
 			} else if participant.User != nil {
 				userId := uint(participant.User.ID)
 				if err := arrws.createWorkflowParticipant(userId, riskResponseWorkflowID, &participant, currentUserID, tx...); err != nil {
 					return err
 				}
+				participantCount++
 			}
+		}
+
+		if participantCount == 0 {
+			return utility.NewForbiddenError(fmt.Sprintf("no approver found for workflow level %d", level.Level))
 		}
 	}
 	return nil
