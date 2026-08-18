@@ -137,6 +137,18 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 		return 0, err
 	}
 
+	auditFindingActionPlanClosedStatus, err := afs.actionPlanStatusSvc.GetByType("close")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID == auditFindingActionPlanClosedStatus.ID {
+		if err := afs.updateAuditFindingStatusBasedOnActionPlans(auditFindingID, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	var documents []*models.AuditFindingActionPlanStatusUpdateDocument
 
 	for _, doc := range auditFindingActionPlanStatusUpdateFormDTO.Documents {
@@ -589,6 +601,11 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Approve(AuditFindingID uin
 		return err
 	}
 
+	if err := afs.updateAuditFindingStatusBasedOnActionPlans(AuditFindingID, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return err
 	}
@@ -852,4 +869,16 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Revert(AuditFindingID uint
 	}()
 
 	return nil
+}
+
+func (afs *AuditFindingActionPlanStatusUpdateService) updateAuditFindingStatusBasedOnActionPlans(auditFindingID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
+	allClosed, err := afs.auditFindingActionPlanSvc.AreAllActionPlansClosed(auditFindingID, tx)
+	if err != nil {
+		return err
+	}
+	if !allClosed {
+		return nil
+	}
+
+	return afs.auditFindingSvc.UpdateStatus(auditFindingID, "re-assessment-pending", currentUserID, tx)
 }

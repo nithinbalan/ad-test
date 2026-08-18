@@ -80,8 +80,6 @@ func (aries *AssetRiskInherentEvaluationService) Create(riskID uint, currentUser
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := aries.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -169,6 +167,10 @@ func (aries *AssetRiskInherentEvaluationService) Create(riskID uint, currentUser
 		return 0, err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+
 	go func() {
 		existingEvaluation, logErr := aries.GetFullDetailsByID(riskID)
 		if logErr != nil {
@@ -215,8 +217,6 @@ func (aries *AssetRiskInherentEvaluationService) Update(riskID uint, id uint, cu
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := aries.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -289,6 +289,10 @@ func (aries *AssetRiskInherentEvaluationService) Update(riskID uint, id uint, cu
 		return err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	go func() {
 		newEvaluation, logErr := aries.GetFullDetailsByID(riskID)
 		if logErr != nil {
@@ -354,8 +358,6 @@ func (aries *AssetRiskInherentEvaluationService) Delete(riskID uint, id uint, cu
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := aries.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -405,6 +407,10 @@ func (aries *AssetRiskInherentEvaluationService) Delete(riskID uint, id uint, cu
 
 	if err = aries.assetRiskRegisterSvc.UpdateRiskTimeline(riskTimeline, tx); err != nil {
 		return id, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
 	}
 
 	go func() {

@@ -32,6 +32,7 @@ type AuditFindingActionPlanServiceInterface interface {
 	StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 
 	GetAuditFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
+	AreAllActionPlansClosed(findingId uint, tx ...utility.DatabaseTransaction) (bool, error)
 	ExportAuditFindingActionPlans(data []*auditFindingDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
@@ -152,17 +153,18 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	tx := afaps.repo.BeginTransaction()
 
 	auditFindingActionPlan := &models.AuditFindingActionPlan{
-		AuditFindingID:     findingID,
-		Title:              AuditFindingActionPlanFormDTO.Title,
-		Description:        AuditFindingActionPlanFormDTO.Description,
-		SeverityLevelID:    AuditFindingActionPlanFormDTO.SeverityLevelID,
-		ResponsibleUserID:  AuditFindingActionPlanFormDTO.ResponsibleUserID,
-		ReviewUserID:       AuditFindingActionPlanFormDTO.ReviewUserID,
-		TargetDate:         dates.TargetDate,
-		Percentage:         AuditFindingActionPlanFormDTO.Percentage,
-		Comments:           AuditFindingActionPlanFormDTO.Comments,
-		ActionPlanStatusID: actionPlanStatus.ID,
-		CreatedBYID:        currentUserID,
+		AuditFindingID:             findingID,
+		Title:                      AuditFindingActionPlanFormDTO.Title,
+		Description:                AuditFindingActionPlanFormDTO.Description,
+		SeverityLevelID:            AuditFindingActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:          AuditFindingActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:               AuditFindingActionPlanFormDTO.ReviewUserID,
+		TargetDate:                 dates.TargetDate,
+		Percentage:                 AuditFindingActionPlanFormDTO.Percentage,
+		Comments:                   AuditFindingActionPlanFormDTO.Comments,
+		ActionPlanStatusID:         actionPlanStatus.ID,
+		AuditFindingReassessmentID: AuditFindingActionPlanFormDTO.AuditFindingReassessmentID,
+		CreatedBYID:                currentUserID,
 	}
 
 	if AuditFindingActionPlanFormDTO.ResponsibleUserID != 0 {
@@ -175,7 +177,6 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 			auditFindingActionPlan.DelegateeUserID = delegateeID
 		}
 	}
-
 
 	id, err := afaps.repo.Create(auditFindingActionPlan, tx)
 	if err != nil {
@@ -214,6 +215,13 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	if _, err := afaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	if audit.AuditFindingStatus != nil && audit.AuditFindingStatus.Type == "re-assessment-pending" {
+		if err := afaps.auditFindingSvc.UpdateStatus(findingID, "in-progress", currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	tx.Commit()
@@ -358,6 +366,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.ReviewUserID = AuditFindingActionPlanFormDTO.ReviewUserID
 	existingAuditFindingActionPlan.TargetDate = dates.TargetDate
 	existingAuditFindingActionPlan.Comments = AuditFindingActionPlanFormDTO.Comments
+	existingAuditFindingActionPlan.AuditFindingReassessmentID = AuditFindingActionPlanFormDTO.AuditFindingReassessmentID
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	if AuditFindingActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != AuditFindingActionPlanFormDTO.ResponsibleUserID {
@@ -675,7 +684,7 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 		tx.Rollback()
 		return failedIds, nil
 	}
-	
+
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
@@ -821,6 +830,14 @@ func (afaps *AuditFindingActionPlanService) GetAuditFindingActionPlanCountByStat
 	}
 
 	return response, nil
+}
+
+func (afaps *AuditFindingActionPlanService) AreAllActionPlansClosed(findingId uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	if _, err := afaps.auditFindingSvc.GetByID(findingId, tx...); err != nil {
+		return false, err
+	}
+
+	return afaps.repo.AreAllActionPlansClosed(findingId, tx...)
 }
 
 func (afs *AuditFindingActionPlanService) ExportAuditFindingActionPlans(data []*auditFindingDTOs.AuditFindingActionPlanListDTO, currentUserID uint) (*os.File, error) {

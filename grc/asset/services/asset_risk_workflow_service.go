@@ -204,6 +204,7 @@ func (arws *AssetRiskWorkflowService) CreateRiskWorkflow(riskRegisterID uint, co
 			return err
 		}
 
+		participantCount := 0
 		for _, participant := range level.Participants {
 			if participant.Role != nil {
 				userIds, err := arws.userSvc.GetUserIdsByRoleExcludingSystemUsers(participant.Role.ID, tx...)
@@ -215,12 +216,14 @@ func (arws *AssetRiskWorkflowService) CreateRiskWorkflow(riskRegisterID uint, co
 					if err := arws.createWorkflowParticipant(userId, riskWorkflowID, &participant, currentUserID, tx...); err != nil {
 						return err
 					}
+					participantCount++
 				}
 			} else if participant.User != nil {
 				userId := uint(participant.User.ID)
 				if err := arws.createWorkflowParticipant(userId, riskWorkflowID, &participant, currentUserID, tx...); err != nil {
 					return err
 				}
+				participantCount++
 			} else if participant.WorkflowCustomRole != nil {
 				switch participant.WorkflowCustomRole.Type {
 				case "department_head":
@@ -242,6 +245,7 @@ func (arws *AssetRiskWorkflowService) CreateRiskWorkflow(riskRegisterID uint, co
 					if err := arws.createWorkflowParticipant(userId, riskWorkflowID, &participant, currentUserID, tx...); err != nil {
 						return err
 					}
+					participantCount++
 				case "risk_responsible_user":
 					riskRegister, err := arws.riskSvc.GetByID(riskRegisterID, tx...)
 					if err != nil {
@@ -254,6 +258,7 @@ func (arws *AssetRiskWorkflowService) CreateRiskWorkflow(riskRegisterID uint, co
 					if err := arws.createWorkflowParticipant(userId, riskWorkflowID, &participant, currentUserID, tx...); err != nil {
 						return err
 					}
+					participantCount++
 				}
 			} else if participant.Unit != nil {
 				unitDetails, err := arws.settingsOrgUnitSvc.GetFullDetailsByID(uint(participant.Unit.ID))
@@ -280,7 +285,12 @@ func (arws *AssetRiskWorkflowService) CreateRiskWorkflow(riskRegisterID uint, co
 				if err := arws.createWorkflowParticipant(userId, riskWorkflowID, &participant, currentUserID, tx...); err != nil {
 					return err
 				}
+				participantCount++
 			}
+		}
+
+		if participantCount == 0 {
+			return utility.NewForbiddenError(fmt.Sprintf("no approver found for workflow level %d", level.Level))
 		}
 	}
 	return nil

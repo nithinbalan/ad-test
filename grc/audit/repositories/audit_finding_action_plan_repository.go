@@ -24,6 +24,7 @@ type AuditFindingActionPlanRepositoryInterface interface {
 	DeleteAuditFindingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetAuditFindingActionPlanCountByStatus(findingID uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
+	AreAllActionPlansClosed(findingID uint, tx ...utility.DatabaseTransaction) (bool, error)
 }
 
 type AuditFindingActionPlanRepository struct {
@@ -134,6 +135,11 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
 		case "in_progress":
 			query = query.Where("action_plan_statuses.type = ?", "in_progress")
 		}
+	}
+
+	// Exclude action plans added through re-assessment
+	if params.ExcludeReassessment {
+		query = query.Where("audit_finding_action_plans.audit_finding_reassessment_id IS NULL")
 	}
 
 	// Calculate total count for pagination
@@ -333,4 +339,29 @@ func (repo *AuditFindingActionPlanRepository) GetAuditFindingActionPlanCountBySt
 	}
 
 	return actionPlanStatusCounts, nil
+}
+
+func (repo *AuditFindingActionPlanRepository) AreAllActionPlansClosed(findingID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var total int64
+	if err := db.Model(&models.AuditFindingActionPlan{}).Where("audit_finding_id = ?", findingID).Count(&total).Error; err != nil {
+		return false, err
+	}
+	if total == 0 {
+		return false, nil
+	}
+
+	var closed int64
+	if err := db.Model(&models.AuditFindingActionPlan{}).
+		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id").
+		Where("audit_finding_action_plans.audit_finding_id = ? AND action_plan_statuses.type = ?", findingID, "close").
+		Count(&closed).Error; err != nil {
+		return false, err
+	}
+
+	return closed == total, nil
 }

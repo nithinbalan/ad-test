@@ -25,7 +25,8 @@ type AuditFindingServiceInterface interface {
 	GetAll(params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error)
 	GetAllByAudit(auditID uint, params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingDetailDTO, error)
-	GetByID(id uint) (*models.AuditFinding, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditFinding, error)
+	UpdateStatus(id uint, statusType string, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	Create(currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(id uint, currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -89,8 +90,8 @@ func (afs *AuditFindingService) GetAllByAudit(auditID uint, params *auditDTOs.Au
 	return afs.repo.GetAll(params)
 }
 
-func (afs *AuditFindingService) GetByID(id uint) (*models.AuditFinding, error) {
-	auditFinding, err := afs.repo.GetByID(id)
+func (afs *AuditFindingService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditFinding, error) {
+	auditFinding, err := afs.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -98,6 +99,20 @@ func (afs *AuditFindingService) GetByID(id uint) (*models.AuditFinding, error) {
 		return nil, err
 	}
 	return auditFinding, nil
+}
+
+func (afs *AuditFindingService) UpdateStatus(id uint, statusType string, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	auditFindingStatus, err := afs.auditFindingStatusSvc.GetByType(statusType)
+	if err != nil {
+		return err
+	}
+
+	fields := map[string]interface{}{
+		"audit_finding_status_id": auditFindingStatus.ID,
+		"updated_by_id":           currentUserID,
+	}
+
+	return afs.repo.UpdateFields(id, fields, tx...)
 }
 
 func (afs *AuditFindingService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingDetailDTO, error) {
@@ -158,6 +173,7 @@ func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *
 		DepartmentResponse:     auditFindingFormDTO.DepartmentResponse,
 		DepartmentResponseBYID: auditFindingFormDTO.DepartmentResponseBYID,
 		DepartmentResponseAt:   auditFindingFormDTO.DepartmentResponseAt,
+		AuditChecklistID:       auditFindingFormDTO.AuditChecklistID,
 		CreatedAt:              time.Now(),
 		CreatedBYID:            currentUserID,
 	}

@@ -306,6 +306,14 @@
 {
   "id": "incident_closure_submission",
   "translation": "At least one {{.Field}} is required before submitting the incident closure."
+},
+{
+  "id": "modify_requires_latest",
+  "translation": "Only the latest {{.Field}} can be edited or deleted."
+},
+{
+  "id": "latest_must_be_failed",
+  "translation": "A new {{.Field}} can only be created if none exists or the latest has failed."
 }
 
 

@@ -152,8 +152,6 @@ func (ircrcs *IdentityReviewCampaignReviewCommentService) Create(campaignID uint
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	campaign, err := ircrcs.identityReviewCampaignSvc.GetByID(campaignID, tx)
@@ -183,6 +181,10 @@ func (ircrcs *IdentityReviewCampaignReviewCommentService) Create(campaignID uint
 	id, err = ircrcs.repo.Create(comment, tx)
 	if err != nil {
 		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
 	}
 
 	go func() {
@@ -227,8 +229,6 @@ func (ircrcs *IdentityReviewCampaignReviewCommentService) Update(campaignID uint
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = ircrcs.identityReviewCampaignSvc.GetByID(campaignID, tx); err != nil {
@@ -248,6 +248,10 @@ func (ircrcs *IdentityReviewCampaignReviewCommentService) Update(campaignID uint
 	existingComment.Comment = commentFormDTO.Comment
 	if err = ircrcs.repo.Update(existingComment, tx); err != nil {
 		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	go func() {
@@ -296,8 +300,6 @@ func (ircrcs *IdentityReviewCampaignReviewCommentService) Delete(campaignID uint
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = ircrcs.identityReviewCampaignSvc.GetByID(campaignID, tx); err != nil {
@@ -328,6 +330,10 @@ func (ircrcs *IdentityReviewCampaignReviewCommentService) Delete(campaignID uint
 
 	if len(failedIDs) > 0 {
 		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	if len(successfulIDs) > 0 {
@@ -364,8 +370,6 @@ func (ircrcs *IdentityReviewCampaignReviewCommentService) Resolve(campaignID uin
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = ircrcs.identityReviewCampaignSvc.GetByID(campaignID, tx); err != nil {
@@ -387,6 +391,13 @@ func (ircrcs *IdentityReviewCampaignReviewCommentService) Resolve(campaignID uin
 	existingComment.UpdatedBYID = &currentUserID
 	existingComment.UpdatedAt = &now
 
-	err = ircrcs.repo.Update(existingComment, tx)
+	if err = ircrcs.repo.Update(existingComment, tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	return
 }

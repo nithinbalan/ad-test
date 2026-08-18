@@ -152,8 +152,6 @@ func (arrcs *AssetRiskReviewCommentService) Create(riskID uint, currentUserID ui
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := arrcs.riskSvc.GetByID(riskID, tx)
@@ -183,6 +181,10 @@ func (arrcs *AssetRiskReviewCommentService) Create(riskID uint, currentUserID ui
 	id, err = arrcs.repo.Create(comment, tx)
 	if err != nil {
 		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
 	}
 
 	go func() {
@@ -227,8 +229,6 @@ func (arrcs *AssetRiskReviewCommentService) Update(riskID uint, id uint, current
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = arrcs.riskSvc.GetByID(riskID, tx); err != nil {
@@ -248,6 +248,10 @@ func (arrcs *AssetRiskReviewCommentService) Update(riskID uint, id uint, current
 	existingComment.Comment = commentFormDTO.Comment
 	if err = arrcs.repo.Update(existingComment, tx); err != nil {
 		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
 	}
 
 	go func() {
@@ -296,8 +300,6 @@ func (arrcs *AssetRiskReviewCommentService) Delete(riskID uint, ids []uint, curr
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = arrcs.riskSvc.GetByID(riskID, tx); err != nil {
@@ -328,6 +330,10 @@ func (arrcs *AssetRiskReviewCommentService) Delete(riskID uint, ids []uint, curr
 
 	if len(failedIDs) > 0 {
 		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	if len(successfulIDs) > 0 {
@@ -364,8 +370,6 @@ func (arrcs *AssetRiskReviewCommentService) Resolve(riskID uint, commentID uint,
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	if _, err = arrcs.riskSvc.GetByID(riskID, tx); err != nil {
@@ -388,5 +392,13 @@ func (arrcs *AssetRiskReviewCommentService) Resolve(riskID uint, commentID uint,
 	existingComment.UpdatedAt = &now
 
 	err = arrcs.repo.Update(existingComment, tx)
+	if err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
 	return
 }

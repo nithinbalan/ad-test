@@ -86,8 +86,6 @@ func (arrs *AssetRiskResponseService) Create(riskID uint, currentUserID uint, fo
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := arrs.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -143,6 +141,10 @@ func (arrs *AssetRiskResponseService) Create(riskID uint, currentUserID uint, fo
 		return 0, err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+
 	go func() {
 		newResponse, logErr := arrs.GetFullDetailsByID(riskID)
 		if logErr != nil {
@@ -189,8 +191,6 @@ func (arrs *AssetRiskResponseService) Update(riskID uint, id uint, currentUserID
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := arrs.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -221,6 +221,10 @@ func (arrs *AssetRiskResponseService) Update(riskID uint, id uint, currentUserID
 	riskRegister.UpdatedAt = &now
 
 	if err = arrs.assetRiskRegisterSvc.UpdateRiskRegister(riskRegister, tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return err
 	}
 
@@ -284,8 +288,6 @@ func (arrs *AssetRiskResponseService) Delete(riskID uint, id uint, currentUserID
 			tx.Rollback()
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	riskRegister, err := arrs.assetRiskRegisterSvc.GetByID(riskID, tx)
@@ -328,6 +330,10 @@ func (arrs *AssetRiskResponseService) Delete(riskID uint, id uint, currentUserID
 
 	if err = arrs.assetRiskRegisterSvc.UpdateRiskTimeline(riskTimeline, tx); err != nil {
 		return id, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
 	}
 
 	go func() {

@@ -22,7 +22,7 @@ func NewCSLogDataReceptionMechanismController(service services.CSLogDataReceptio
 	}
 }
 
-func (cldrmc *CSLogDataReceptionMechanismController) GetAll(ctx *gin.Context) {
+func (cldrmc *CSLogDataReceptionMechanismController) GetAllCSLogDataReceptionMechanisms(ctx *gin.Context) {
 	sort := ctx.Query("sort_order")
 	sortBy := ctx.Query("sort_by")
 	keyword := ctx.Query("keyword")
@@ -36,7 +36,7 @@ func (cldrmc *CSLogDataReceptionMechanismController) GetAll(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, mechanisms)
 }
 
-func (cldrmc *CSLogDataReceptionMechanismController) GetDetails(ctx *gin.Context) {
+func (cldrmc *CSLogDataReceptionMechanismController) GetCSLogDataReceptionMechanismDetails(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -53,7 +53,7 @@ func (cldrmc *CSLogDataReceptionMechanismController) GetDetails(ctx *gin.Context
 	ctx.JSON(http.StatusOK, mechanism)
 }
 
-func (cldrmc *CSLogDataReceptionMechanismController) Create(ctx *gin.Context) {
+func (cldrmc *CSLogDataReceptionMechanismController) CreateCSLogDataReceptionMechanism(ctx *gin.Context) {
 	var mechanism *models.CSLogDataReceptionMechanism
 
 	if err := ctx.ShouldBindJSON(&mechanism); err != nil {
@@ -82,7 +82,7 @@ func (cldrmc *CSLogDataReceptionMechanismController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, created)
 }
 
-func (cldrmc *CSLogDataReceptionMechanismController) Update(ctx *gin.Context) {
+func (cldrmc *CSLogDataReceptionMechanismController) UpdateCSLogDataReceptionMechanism(ctx *gin.Context) {
 	var updated *models.CSLogDataReceptionMechanism
 
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -120,7 +120,7 @@ func (cldrmc *CSLogDataReceptionMechanismController) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, updated)
 }
 
-func (cldrmc *CSLogDataReceptionMechanismController) Delete(ctx *gin.Context) {
+func (cldrmc *CSLogDataReceptionMechanismController) DeleteCSLogDataReceptionMechanisms(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
@@ -145,7 +145,7 @@ func (cldrmc *CSLogDataReceptionMechanismController) Delete(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (cldrmc *CSLogDataReceptionMechanismController) Activate(ctx *gin.Context) {
+func (cldrmc *CSLogDataReceptionMechanismController) ActivateCSLogDataReceptionMechanisms(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
@@ -169,7 +169,7 @@ func (cldrmc *CSLogDataReceptionMechanismController) Activate(ctx *gin.Context) 
 	ctx.Status(http.StatusOK)
 }
 
-func (cldrmc *CSLogDataReceptionMechanismController) Deactivate(ctx *gin.Context) {
+func (cldrmc *CSLogDataReceptionMechanismController) DeactivateCSLogDataReceptionMechanisms(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}

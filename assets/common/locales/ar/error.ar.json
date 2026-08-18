@@ -300,6 +300,14 @@
 {
   "id": "incident_closure_submission",
   "translation": "مطلوب {{.Field}} واحد على الأقل قبل تقديم إغلاق الحادث."
+},
+{
+  "id": "modify_requires_latest",
+  "translation": "يمكن تعديل أو حذف أحدث {{.Field}} فقط."
+},
+{
+  "id": "latest_must_be_failed",
+  "translation": "لا يمكن إنشاء {{.Field}} جديد إلا إذا لم يكن هناك {{.Field}} حالي أو كانت نتيجة الأحدث 'راسب'."
 }
 
 

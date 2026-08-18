@@ -22,7 +22,7 @@ func NewCSLogDataEntityTypeController(service services.CSLogDataEntityTypeServic
 	}
 }
 
-func (cldetc *CSLogDataEntityTypeController) GetAll(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) GetAllCSLogDataEntityTypes(ctx *gin.Context) {
 	sort := ctx.Query("sort_order")
 	sortBy := ctx.Query("sort_by")
 	keyword := ctx.Query("keyword")
@@ -36,7 +36,7 @@ func (cldetc *CSLogDataEntityTypeController) GetAll(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, entityTypes)
 }
 
-func (cldetc *CSLogDataEntityTypeController) GetDetails(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) GetCSLogDataEntityTypeDetails(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -53,7 +53,7 @@ func (cldetc *CSLogDataEntityTypeController) GetDetails(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, entityType)
 }
 
-func (cldetc *CSLogDataEntityTypeController) Create(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) CreateCSLogDataEntityType(ctx *gin.Context) {
 	var entityType *models.CSLogDataEntityType
 
 	if err := ctx.ShouldBindJSON(&entityType); err != nil {
@@ -82,7 +82,7 @@ func (cldetc *CSLogDataEntityTypeController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, created)
 }
 
-func (cldetc *CSLogDataEntityTypeController) Update(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) UpdateCSLogDataEntityType(ctx *gin.Context) {
 	var updated *models.CSLogDataEntityType
 
 	id, err := strconv.Atoi(ctx.Param("id"))
@@ -120,7 +120,7 @@ func (cldetc *CSLogDataEntityTypeController) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, updated)
 }
 
-func (cldetc *CSLogDataEntityTypeController) Delete(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) DeleteCSLogDataEntityTypes(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
@@ -145,7 +145,7 @@ func (cldetc *CSLogDataEntityTypeController) Delete(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (cldetc *CSLogDataEntityTypeController) Activate(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) ActivateCSLogDataEntityTypes(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
@@ -169,7 +169,7 @@ func (cldetc *CSLogDataEntityTypeController) Activate(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-func (cldetc *CSLogDataEntityTypeController) Deactivate(ctx *gin.Context) {
+func (cldetc *CSLogDataEntityTypeController) DeactivateCSLogDataEntityTypes(ctx *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
