@@ -115,19 +115,13 @@ func (iec *IncidentEvidenceController) UpdateIncidentEvidence(c *gin.Context) {
 		return
 	}
 
-	evidenceID, err := strconv.ParseUint(c.Param("evidenceId"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(iec.db, c, err.Error())
 		return
 	}
 
-	err = iec.service.Update(uint(incidentID), uint(evidenceID), &form, currentUserID)
+	err = iec.service.Update(uint(incidentID), &form, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -227,9 +221,11 @@ func (iec *IncidentEvidenceController) DownloadIncidentEvidence(c *gin.Context) 
 		return
 	}
 
-	// This is an unauthenticated route (accessed via token), so the current user
-	// may not be available. History is only recorded when a user id is present.
-	currentUserID, _ := utility.GetCurrentUserID(c)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(iec.db, c, err.Error())
+		return
+	}
 
 	filePath, err := iec.service.GetIncidentEvidencePath(uint(incidentID), uint(evidenceID), token, currentUserID)
 	if err != nil {

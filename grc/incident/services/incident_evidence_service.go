@@ -23,7 +23,7 @@ type IncidentEvidenceServiceInterface interface {
 	GetByID(incidentRegisterID, id uint) (*models.IncidentEvidence, error)
 	GetFullDetailsByID(incidentRegisterID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.IncidentEvidenceDetailDTO, error)
 	Create(incidentRegisterID uint, form *dtos.IncidentEvidenceFormDTO, currentUserID uint) ([]uint, error)
-	Update(incidentRegisterID uint, id uint, form *dtos.IncidentEvidenceFormDTO, currentUserID uint) error
+	Update(incidentRegisterID uint, form *dtos.IncidentEvidenceFormDTO, currentUserID uint) error
 	Delete(incidentRegisterID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetIncidentEvidencePath(incidentRegisterID, evidenceID uint, token string, currentUserID uint) (string, error)
 	GetDownloadHistories(incidentRegisterID, evidenceID uint) ([]*dtos.IncidentEvidenceDownloadHistoryListDTO, error)
@@ -66,65 +66,7 @@ func (ies *IncidentEvidenceService) GetAll(incidentRegisterID uint, keyword stri
 		evidences = []*dtos.IncidentEvidenceListDTO{}
 	}
 
-	groupMap := make(map[uint][]*dtos.IncidentEvidenceListDTO)
-	for _, evidence := range evidences {
-		groupMap[evidence.IncidentEvidenceSourceID] = append(groupMap[evidence.IncidentEvidenceSourceID], evidence)
-	}
-
-	var result []*dtos.IncidentEvidenceListDTO
-	for _, group := range groupMap {
-		parent := group[0]
-
-		var cleanedEvidences []*dtos.IncidentEvidenceListDTO
-		for _, evidence := range group {
-			cleanedEvidences = append(cleanedEvidences, &dtos.IncidentEvidenceListDTO{
-				ID:                        evidence.ID,
-				IncidentRegisterID:        evidence.IncidentRegisterID,
-				IncidentEvidenceSourceID:  evidence.IncidentEvidenceSourceID,
-				IncidentEvidenceTypeID:    evidence.IncidentEvidenceTypeID,
-				IncidentEvidenceTypeEn:    evidence.IncidentEvidenceTypeEn,
-				IncidentEvidenceTypeAr:    evidence.IncidentEvidenceTypeAr,
-				URL:                       evidence.URL,
-				Name:                      evidence.Name,
-				Size:                      evidence.Size,
-				Token:                     evidence.Token,
-				OriginalName:              evidence.OriginalName,
-				Type:                      evidence.Type,
-				IsReadOnly:                evidence.IsReadOnly,
-				IsDownload:                evidence.IsDownload,
-				CreatedAt:                 evidence.CreatedAt,
-				CreatedByID:               evidence.CreatedByID,
-				CreatedByFirstNameEn:      evidence.CreatedByFirstNameEn,
-				CreatedByFirstNameAr:      evidence.CreatedByFirstNameAr,
-				CreatedByLastNameEn:       evidence.CreatedByLastNameEn,
-				CreatedByLastNameAr:       evidence.CreatedByLastNameAr,
-				CreatedByInitial:          evidence.CreatedByInitial,
-				CreatedByColor:            evidence.CreatedByColor,
-				CreatedByEmail:            evidence.CreatedByEmail,
-				CreatedByProfileImagePath: evidence.CreatedByProfileImagePath,
-				UpdatedAt:                 evidence.UpdatedAt,
-				UpdatedByID:               evidence.UpdatedByID,
-				UpdatedByFirstNameEn:      evidence.UpdatedByFirstNameEn,
-				UpdatedByFirstNameAr:      evidence.UpdatedByFirstNameAr,
-				UpdatedByLastNameEn:       evidence.UpdatedByLastNameEn,
-				UpdatedByLastNameAr:       evidence.UpdatedByLastNameAr,
-				UpdatedByInitial:          evidence.UpdatedByInitial,
-				UpdatedByColor:            evidence.UpdatedByColor,
-				UpdatedByEmail:            evidence.UpdatedByEmail,
-				UpdatedByProfileImagePath: evidence.UpdatedByProfileImagePath,
-			})
-		}
-
-		parentCopy := *parent
-		parentCopy.Documents = cleanedEvidences
-		result = append(result, &parentCopy)
-	}
-
-	if result == nil {
-		result = []*dtos.IncidentEvidenceListDTO{}
-	}
-
-	return result, nil
+	return evidences, nil
 }
 
 func (ies *IncidentEvidenceService) GetByID(incidentRegisterID uint, id uint) (*models.IncidentEvidence, error) {
@@ -200,13 +142,13 @@ func (ies *IncidentEvidenceService) Create(incidentRegisterID uint, form *dtos.I
 			Token:                    &encryptedToken,
 			OriginalName:             &doc.OriginalName,
 			Type:                     &doc.Type,
-			IsReadOnly:               form.IsReadOnly,
-			IsDownload:               form.IsDownload,
 			CreatedBYID:              currentUserID,
 		}
 
 		evidences = append(evidences, evidence)
 	}
+	var createdItems []map[string]interface{}
+
 	if len(evidences) > 0 {
 		if err := ies.repo.CreateIncidentEvidences(evidences, tx); err != nil {
 			tx.Rollback()
@@ -219,15 +161,34 @@ func (ies *IncidentEvidenceService) Create(incidentRegisterID uint, form *dtos.I
 				return nil, err
 			}
 			createdIDs = append(createdIDs, evidence.ID)
+			createdItems = append(createdItems, map[string]interface{}{
+				"id":            evidence.ID,
+				"name":          evidence.Name,
+				"original_name": evidence.OriginalName,
+				"type":          evidence.Type,
+			})
 		}
 	}
 
 	tx.Commit()
 
+	if len(createdIDs) > 0 {
+		go func() {
+			_ = ies.activityLogSvc.LogBulkActivities(
+				models.CreateAction,
+				models.IncidentEvidence{}.TableName(),
+				createdIDs,
+				createdItems,
+				currentUserID,
+				nil,
+			)
+		}()
+	}
+
 	return createdIDs, nil
 }
 
-func (ies *IncidentEvidenceService) Update(incidentRegisterID uint, id uint, form *dtos.IncidentEvidenceFormDTO, currentUserID uint) error {
+func (ies *IncidentEvidenceService) Update(incidentRegisterID uint, form *dtos.IncidentEvidenceFormDTO, currentUserID uint) error {
 	if _, err := ies.incidentRegisterSvc.GetByID(incidentRegisterID); err != nil {
 		return err
 	}
@@ -245,6 +206,8 @@ func (ies *IncidentEvidenceService) Update(incidentRegisterID uint, id uint, for
 	var newEvidences []*models.IncidentEvidence
 	var deleteEvidenceIds []*uint
 	var evidencesToDelete []*models.IncidentEvidence
+	var updatedEvidenceIDs []uint
+	var updatedItems []map[string]interface{}
 
 	for _, doc := range form.Documents {
 		if doc.IsNewFile != nil && *doc.IsNewFile {
@@ -267,8 +230,6 @@ func (ies *IncidentEvidenceService) Update(incidentRegisterID uint, id uint, for
 				Token:                    &encryptedFileName,
 				OriginalName:             &doc.OriginalName,
 				Type:                     &doc.Type,
-				IsReadOnly:               form.IsReadOnly,
-				IsDownload:               form.IsDownload,
 				CreatedBYID:              currentUserID,
 			}
 			newEvidences = append(newEvidences, evidence)
@@ -292,19 +253,27 @@ func (ies *IncidentEvidenceService) Update(incidentRegisterID uint, id uint, for
 				}
 
 				if existingEvidence.IncidentEvidenceSourceID != form.IncidentEvidenceSourceID ||
-					existingEvidence.IncidentEvidenceTypeID != form.IncidentEvidenceTypeID ||
-					existingEvidence.IsReadOnly != form.IsReadOnly ||
-					existingEvidence.IsDownload != form.IsDownload {
+					existingEvidence.IncidentEvidenceTypeID != form.IncidentEvidenceTypeID {
+					oldSourceID := existingEvidence.IncidentEvidenceSourceID
+					oldTypeID := existingEvidence.IncidentEvidenceTypeID
+
 					existingEvidence.IncidentEvidenceSourceID = form.IncidentEvidenceSourceID
 					existingEvidence.IncidentEvidenceTypeID = form.IncidentEvidenceTypeID
-					existingEvidence.IsReadOnly = form.IsReadOnly
-					existingEvidence.IsDownload = form.IsDownload
 					existingEvidence.UpdatedBYID = &currentUserID
 
 					if err := ies.repo.Update(existingEvidence); err != nil {
 						tx.Rollback()
 						return err
 					}
+
+					updatedEvidenceIDs = append(updatedEvidenceIDs, existingEvidence.ID)
+					updatedItems = append(updatedItems, map[string]interface{}{
+						"id":                              existingEvidence.ID,
+						"old_incident_evidence_source_id": oldSourceID,
+						"new_incident_evidence_source_id": form.IncidentEvidenceSourceID,
+						"old_incident_evidence_type_id":   oldTypeID,
+						"new_incident_evidence_type_id":   form.IncidentEvidenceTypeID,
+					})
 				}
 			}
 		}
@@ -341,6 +310,42 @@ func (ies *IncidentEvidenceService) Update(incidentRegisterID uint, id uint, for
 	}
 
 	tx.Commit()
+
+	var createdIDs []uint
+	var createdItems []map[string]interface{}
+	for _, evidence := range newEvidences {
+		createdIDs = append(createdIDs, evidence.ID)
+		createdItems = append(createdItems, map[string]interface{}{
+			"id":            evidence.ID,
+			"name":          evidence.Name,
+			"original_name": evidence.OriginalName,
+			"type":          evidence.Type,
+		})
+	}
+
+	var deletedIDs []uint
+	var deletedItems []map[string]interface{}
+	for _, evidence := range evidencesToDelete {
+		deletedIDs = append(deletedIDs, evidence.ID)
+		deletedItems = append(deletedItems, map[string]interface{}{
+			"id":   evidence.ID,
+			"name": evidence.Name,
+			"type": evidence.Type,
+		})
+	}
+
+	go func() {
+		if len(createdIDs) > 0 {
+			_ = ies.activityLogSvc.LogBulkActivities(models.CreateAction, models.IncidentEvidence{}.TableName(), createdIDs, createdItems, currentUserID, nil)
+		}
+		if len(updatedEvidenceIDs) > 0 {
+			_ = ies.activityLogSvc.LogBulkActivities(models.UpdateAction, models.IncidentEvidence{}.TableName(), updatedEvidenceIDs, updatedItems, currentUserID, nil)
+		}
+		if len(deletedIDs) > 0 {
+			_ = ies.activityLogSvc.LogBulkActivities(models.DeleteAction, models.IncidentEvidence{}.TableName(), deletedIDs, deletedItems, currentUserID, nil)
+		}
+	}()
+
 	return nil
 }
 

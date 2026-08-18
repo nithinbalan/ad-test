@@ -82,7 +82,7 @@ func (repo *IncidentEvidenceRepository) GetAll(incidentRegisterID uint, keyword 
 		Joins("LEFT JOIN incident_evidence_types ON incident_evidence_types.id = incident_evidences.incident_evidence_type_id").
 		Joins("LEFT JOIN users AS created_by ON created_by.id = incident_evidences.created_by_id").
 		Joins("LEFT JOIN users AS updated_by ON updated_by.id = incident_evidences.updated_by_id").
-		Order("incident_evidence_sources.title_en ASC")
+		Order("incident_evidences.created_at DESC")
 
 	if keyword != "" {
 		query = query.Where(`
@@ -144,8 +144,12 @@ func (repo *IncidentEvidenceRepository) CreateIncidentEvidences(evidences []*mod
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Create(&evidences).Error; err != nil {
-		return err
+	// Insert one row at a time so each evidence's generated ID is returned correctly.
+	// SQL Server's driver does not reliably populate IDs for multi-row batch inserts.
+	for _, evidence := range evidences {
+		if err := db.Create(evidence).Error; err != nil {
+			return err
+		}
 	}
 	return nil
 }
