@@ -1224,6 +1224,7 @@ func (irs *IncidentRegisterService) AcknowledgeIncident(id uint, currentUserID u
 
 	now := time.Now()
 	existingIncident.IsAcknowledge = true
+	existingIncident.IsSLATimeAchieved = true
 	existingIncident.AcknowledgedAt = &now
 	existingIncident.AcknowledgedByID = &currentUserID
 	existingIncident.UpdatedBYID = &currentUserID
@@ -1239,9 +1240,10 @@ func (irs *IncidentRegisterService) AcknowledgeIncident(id uint, currentUserID u
 
 	go func() {
 		changedData := map[string]interface{}{
-			"is_acknowledge":     true,
-			"acknowledged_at":    now,
-			"acknowledged_by_id": currentUserID,
+			"is_acknowledge":       true,
+			"is_sla_time_achieved": true,
+			"acknowledged_at":      now,
+			"acknowledged_by_id":   currentUserID,
 		}
 
 		err := irs.activityLogSvc.LogActivity(

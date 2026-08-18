@@ -32,6 +32,9 @@ type IncidentRegister struct {
 	IsAcknowledge                       bool       `json:"is_acknowledge" gorm:"default:false" binding:"-"`
 	AcknowledgedAt                      *time.Time `json:"acknowledged_at" gorm:"type:datetime"`
 	AcknowledgedByID                    *uint      `json:"acknowledged_by_id"`
+	SchedulerLastRunAt                  *time.Time `json:"scheduler_last_run_at" gorm:"type:datetime"`
+	IsSLATimeAchieved                   bool       `json:"is_sla_time_achieved" gorm:"default:false" binding:"-"`
+	IsSLATimeExceeded                   bool       `json:"is_sla_time_exceeded" gorm:"default:false" binding:"-"`
 	CreatedBYID                         uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID                         *uint      `json:"updated_by_id"`
 	CreatedAt                           time.Time  `json:"created_at" gorm:"type:datetime;not null"`

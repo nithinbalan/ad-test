@@ -228,6 +228,8 @@ type IncidentRegisterDetailDTO struct {
 	UpdatedAt                           *time.Time                               `json:"updated_at"`
 	CreatedByUser                       organizationDTOs.UserMinimalDTO          `json:"created_by"`
 	UpdatedByUser                       organizationDTOs.UserMinimalDTO          `json:"updated_by"`
+	IsSLATimeAchieved                   bool                                     `json:"is_sla_time_achieved"`
+	IsSLATimeExceeded                   bool                                     `json:"is_sla_time_exceeded"`
 }
 
 type IncidentRegisterResponseTeamMemberDTO struct {
