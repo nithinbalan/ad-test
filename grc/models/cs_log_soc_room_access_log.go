@@ -16,16 +16,16 @@ type CSLogSocRoomAccessLog struct {
 	PurposeOfEntry       string     `json:"purpose_of_entry" binding:"required" gorm:"type:nvarchar(max);not null"`
 	AuthorizingOfficerID uint       `json:"authorizing_officer_id" binding:"required" gorm:"not null"`
 	Notes                *string    `json:"notes" gorm:"type:nvarchar(max)"`
-	CreatedByID          uint       `json:"created_by_id" binding:"required"`
-	UpdatedByID          *uint      `json:"updated_by_id"`
+	CreatedBYID          uint       `json:"created_by_id" binding:"required" gorm:"column:created_by_id;not null"`
+	UpdatedBYID          *uint      `json:"updated_by_id" gorm:"column:updated_by_id"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
 	Department         *OrganizationUnit                `gorm:"foreignKey:DepartmentID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	AuthorizingOfficer *User                            `gorm:"foreignKey:AuthorizingOfficerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser      *User                            `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	UpdatedByUser      *User                            `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser      *User                            `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser      *User                            `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Documents          []*CSLogSocRoomAccessLogDocument `gorm:"foreignKey:SocRoomAccessLogID"`
 }
 

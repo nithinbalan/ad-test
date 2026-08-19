@@ -13,15 +13,15 @@ type CSLogSocRoomAccessLogDocument struct {
 	Token              *string   `json:"token" gorm:"type:varchar(255);default:null"`
 	OriginalName       *string   `json:"original_name" gorm:"type:nvarchar(255);default:null"`
 	Type               *string   `json:"type" gorm:"type:varchar(255);default:null"`
-	CreatedByID        *uint     `json:"created_by_id" gorm:"default:null"`
-	UpdatedByID        *uint     `json:"updated_by_id" gorm:"default:null"`
+	CreatedBYID        *uint     `json:"created_by_id" gorm:"column:created_by_id;default:null"`
+	UpdatedBYID        *uint     `json:"updated_by_id" gorm:"column:updated_by_id;default:null"`
 	CreatedAt          time.Time `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          time.Time `json:"updated_at" gorm:"type:datetime;not null"`
 
 	// Relationships
 	CSLogSocRoomAccessLog *CSLogSocRoomAccessLog `gorm:"foreignKey:SocRoomAccessLogID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
-	CreatedByUser         *User                  `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
 }
 
 func (CSLogSocRoomAccessLogDocument) TableName() string {

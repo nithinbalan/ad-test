@@ -122,7 +122,7 @@ func (csrals *CSLogSocRoomAccessLogService) Create(currentUserID uint, form *soc
 		PurposeOfEntry:       form.PurposeOfEntry,
 		AuthorizingOfficerID: form.AuthorizingOfficerID,
 		Notes:                form.Notes,
-		CreatedByID:          currentUserID,
+		CreatedBYID:          currentUserID,
 	}
 
 	id, err := csrals.repo.Create(entry, tx)
@@ -151,7 +151,7 @@ func (csrals *CSLogSocRoomAccessLogService) Create(currentUserID uint, form *soc
 			Token:              &encryptedFilename,
 			OriginalName:       &doc.OriginalName,
 			Type:               &doc.Type,
-			CreatedByID:        &currentUserID,
+			CreatedBYID:        &currentUserID,
 		}
 		documents = append(documents, document)
 	}
@@ -241,7 +241,7 @@ func (csrals *CSLogSocRoomAccessLogService) Update(id uint, currentUserID uint, 
 	existingEntry.PurposeOfEntry = form.PurposeOfEntry
 	existingEntry.AuthorizingOfficerID = form.AuthorizingOfficerID
 	existingEntry.Notes = form.Notes
-	existingEntry.UpdatedByID = &currentUserID
+	existingEntry.UpdatedBYID = &currentUserID
 
 	if err := csrals.repo.Update(existingEntry, tx); err != nil {
 		tx.Rollback()
@@ -270,7 +270,7 @@ func (csrals *CSLogSocRoomAccessLogService) Update(id uint, currentUserID uint, 
 				Token:              &encryptedFilename,
 				OriginalName:       &doc.OriginalName,
 				Type:               &doc.Type,
-				CreatedByID:        &currentUserID,
+				CreatedBYID:        &currentUserID,
 			}
 			documents = append(documents, document)
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
