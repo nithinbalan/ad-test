@@ -425,6 +425,10 @@ func (csrals *CSLogSocRoomAccessLogService) parseCSLogSocRoomAccessLogDates(form
 	}
 	parsed.ExitTime = exitTime
 
+	if entryTime != nil && exitTime != nil && !exitTime.After(*entryTime) {
+		return nil, utility.NewValidationError(fmt.Errorf("exit time must be after entry time"), "invalid_date", "exit time")
+	}
+
 	return parsed, nil
 }
 

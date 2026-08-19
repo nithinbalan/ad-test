@@ -29,7 +29,7 @@ type CSLogSocRoomAccessLogListDTO struct {
 	AuthorizingOfficerColor            string    `json:"authorizing_officer_color"`
 	AuthorizingOfficerProfileImagePath string    `json:"authorizing_officer_profile_image_path"`
 	CreatedAt                          string    `json:"created_at"`
-	UpdatedAt                          string    `json:"updated_at"`
+	UpdatedAt                          *string   `json:"updated_at"`
 	CreatedUserID                      uint      `json:"created_user_id"`
 	CreatedUserFirstNameEn             string    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr             string    `json:"created_user_first_name_ar"`
@@ -40,38 +40,27 @@ type CSLogSocRoomAccessLogListDTO struct {
 	CreatedUserEmail                   string    `json:"created_user_email"`
 	CreatedUserProfileImagePath        string    `json:"created_user_profile_image_path"`
 	UpdatedUserID                      *uint     `json:"updated_user_id"`
-	UpdatedUserFirstNameEn             string    `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr             string    `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn              string    `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr              string    `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial                 string    `json:"updated_user_initial"`
-	UpdatedUserColor                   string    `json:"updated_user_color"`
-	UpdatedUserEmail                   string    `json:"updated_user_email"`
-	UpdatedUserProfileImagePath        string    `json:"updated_user_profile_image_path"`
+	UpdatedUserFirstNameEn             *string   `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr             *string   `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn              *string   `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr              *string   `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial                 *string   `json:"updated_user_initial"`
+	UpdatedUserColor                   *string   `json:"updated_user_color"`
+	UpdatedUserEmail                   *string   `json:"updated_user_email"`
+	UpdatedUserProfileImagePath        *string   `json:"updated_user_profile_image_path"`
 }
 
 type CSLogSocRoomAccessLogFormDTO struct {
-	VisitorFullName      string                                  `json:"visitor_full_name" binding:"required,max=255"`
-	EntryTime            string                                  `json:"entry_time" binding:"required"`
-	ExitTime             string                                  `json:"exit_time" binding:"required"`
-	VisitorIDNumber      string                                  `json:"visitor_id_number" binding:"required,max=100"`
-	DepartmentID         uint                                    `json:"department_id" binding:"required"`
-	ExternalPartyName    string                                  `json:"external_party_name" binding:"required,max=255"`
-	PurposeOfEntry       string                                  `json:"purpose_of_entry" binding:"required"`
-	AuthorizingOfficerID uint                                    `json:"authorizing_officer_id" binding:"required"`
-	Notes                *string                                 `json:"notes"`
-	Documents            []*CSLogSocRoomAccessLogDocumentFormDTO `json:"documents"`
-}
-
-type CSLogSocRoomAccessLogDocumentFormDTO struct {
-	ID            *uint  `json:"id,omitempty"`
-	URL           string `json:"url"`
-	FileName      string `json:"file_name"`
-	OriginalName  string `json:"original_name"`
-	Type          string `json:"type"`
-	Size          int    `json:"size"`
-	IsNewFile     *bool  `json:"is_new_file,omitempty"`
-	IsDeletedFile *bool  `json:"is_deleted_file,omitempty"`
+	VisitorFullName      string                        `json:"visitor_full_name" binding:"required,max=255"`
+	EntryTime            string                        `json:"entry_time" binding:"required"`
+	ExitTime             string                        `json:"exit_time" binding:"required"`
+	VisitorIDNumber      string                        `json:"visitor_id_number" binding:"required,max=100"`
+	DepartmentID         uint                          `json:"department_id" binding:"required"`
+	ExternalPartyName    string                        `json:"external_party_name" binding:"required,max=255"`
+	PurposeOfEntry       string                        `json:"purpose_of_entry" binding:"required"`
+	AuthorizingOfficerID uint                          `json:"authorizing_officer_id" binding:"required"`
+	Notes                *string                       `json:"notes"`
+	Documents            []*commonDTOs.DocumentFormDTO `json:"documents"`
 }
 
 type CSLogSocRoomAccessLogDocumentDTO struct {
@@ -117,7 +106,7 @@ type CSLogSocRoomAccessLogDetailDTO struct {
 	CreatedAt          time.Time                           `json:"created_at"`
 	UpdatedAt          *time.Time                          `json:"updated_at"`
 	CreatedByUser      organizationDTOs.UserMinimalDTO     `json:"created_by"`
-	UpdatedByUser      organizationDTOs.UserMinimalDTO     `json:"updated_by"`
+	UpdatedByUser      *organizationDTOs.UserMinimalDTO    `json:"updated_by"`
 }
 
 type CSLogSocRoomAccessLogParsedDates struct {
