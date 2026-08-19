@@ -19,7 +19,7 @@ type CSLogSocRoomAccessLog struct {
 	CreatedBYID          uint       `json:"created_by_id" binding:"required" gorm:"column:created_by_id;not null"`
 	UpdatedBYID          *uint      `json:"updated_by_id" gorm:"column:updated_by_id"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime"`
+	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
 	Department         *OrganizationUnit                `gorm:"foreignKey:DepartmentID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`

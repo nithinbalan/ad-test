@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
 	logServices "jethur/grc/logs/services"
@@ -241,6 +242,8 @@ func (csrals *CSLogSocRoomAccessLogService) Update(id uint, currentUserID uint, 
 	existingEntry.PurposeOfEntry = form.PurposeOfEntry
 	existingEntry.AuthorizingOfficerID = form.AuthorizingOfficerID
 	existingEntry.Notes = form.Notes
+	now := time.Now()
+	existingEntry.UpdatedAt = &now
 	existingEntry.UpdatedBYID = &currentUserID
 
 	if err := csrals.repo.Update(existingEntry, tx); err != nil {
@@ -518,17 +521,17 @@ func (csrals *CSLogSocRoomAccessLogService) GetDocumentPath(id uint, token strin
 	}
 
 	if len(existingEntry.Documents) == 0 {
-		return "", fmt.Errorf("no documents found for the soc room access log")
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("no documents found for the soc room access log"), id)
 	}
 
 	decryptedFilenameBytes, err := utility.DecryptData(token)
 	if err != nil {
-		return "", fmt.Errorf("resource not found")
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("resource not found"), token)
 	}
 
 	decryptedFilename := string(decryptedFilenameBytes)
 	if decryptedFilename == "" {
-		return "", fmt.Errorf("resource not found")
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("resource not found"), token)
 	}
 
 	storagePath := filepath.Join("security-operations", "soc-room-access-log", strconv.FormatUint(uint64(id), 10), "documents")
@@ -538,7 +541,7 @@ func (csrals *CSLogSocRoomAccessLogService) GetDocumentPath(id uint, token strin
 
 	// Check if the file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("file not found")
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("file not found"), token)
 	} else if err != nil {
 		return "", fmt.Errorf("error accessing file: %w", err)
 	}
