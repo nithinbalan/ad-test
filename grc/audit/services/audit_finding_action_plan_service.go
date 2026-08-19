@@ -25,6 +25,7 @@ import (
 type AuditFindingActionPlanServiceInterface interface {
 	GetAll(findingID uint, params *auditFindingDTOs.AuditFindingActionPlanListQueryParamsDTO) (*auditFindingDTOs.AuditFindingActionPlanListResponseDTO, error)
 	GetByID(findingID uint, id uint) (*models.AuditFindingActionPlan, error)
+	GetFindingIDByActionPlan(actionPlanID uint) (uint, error)
 	GetFullDetailsByID(findingID uint, id uint) (*auditFindingDTOs.AuditFindingActionPlanDetailDTO, error)
 	Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error)
 	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditFindingActionPlanFormDTO) error
@@ -96,6 +97,17 @@ func (afaps AuditFindingActionPlanService) GetByID(findingID uint, id uint) (*mo
 		return nil, err
 	}
 	return auditFindingActionPlan, nil
+}
+
+func (afaps *AuditFindingActionPlanService) GetFindingIDByActionPlan(actionPlanID uint) (uint, error) {
+	auditFindingActionPlan, err := afaps.repo.GetByID(actionPlanID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, utility.NewResourceNotFoundError(err, actionPlanID)
+		}
+		return 0, err
+	}
+	return auditFindingActionPlan.AuditFindingID, nil
 }
 
 func (afaps AuditFindingActionPlanService) GetFullDetailsByID(findingID uint, id uint) (*auditFindingDTOs.AuditFindingActionPlanDetailDTO, error) {

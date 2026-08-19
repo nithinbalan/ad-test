@@ -26,10 +26,14 @@ func NewAuditInsightsFindingActionPlanCommentController(service services.AuditFi
 
 func (afapc *AuditInsightsFindingActionPlanCommentController) GetAllComments(c *gin.Context) {
 	findingIDStr := c.Param("findingId")
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	findingID := uint(0)
+	if findingIDStr != "" {
+		parsedFindingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = uint(parsedFindingID)
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -39,7 +43,7 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) GetAllComments(c *
 		return
 	}
 
-	comments, err := afapc.service.GetAll(uint(findingID), uint(actionPlanID))
+	comments, err := afapc.service.GetAll(findingID, uint(actionPlanID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -56,10 +60,14 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) GetAllComments(c *
 
 func (afapc *AuditInsightsFindingActionPlanCommentController) GetCommentDetails(c *gin.Context) {
 	findingIDStr := c.Param("findingId")
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	findingID := uint(0)
+	if findingIDStr != "" {
+		parsedFindingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = uint(parsedFindingID)
 	}
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
@@ -75,7 +83,7 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) GetCommentDetails(
 		return
 	}
 
-	comment, err := afapc.service.GetFullDetailsByID(uint(findingID), uint(actionPlanID), uint(commentID))
+	comment, err := afapc.service.GetFullDetailsByID(findingID, uint(actionPlanID), uint(commentID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -92,10 +100,14 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) GetCommentDetails(
 
 func (afapc *AuditInsightsFindingActionPlanCommentController) CreateComment(c *gin.Context) {
 	findingIDStr := c.Param("findingId")
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	findingID := uint(0)
+	if findingIDStr != "" {
+		parsedFindingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = uint(parsedFindingID)
 	}
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
@@ -116,7 +128,7 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) CreateComment(c *g
 		return
 	}
 
-	id, err := afapc.service.Create(uint(findingID), uint(actionPlanID), currentUserID, &formDTO)
+	id, err := afapc.service.Create(findingID, uint(actionPlanID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -133,10 +145,14 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) CreateComment(c *g
 
 func (afapc *AuditInsightsFindingActionPlanCommentController) UpdateComment(c *gin.Context) {
 	findingIDStr := c.Param("findingId")
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	findingID := uint(0)
+	if findingIDStr != "" {
+		parsedFindingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = uint(parsedFindingID)
 	}
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
@@ -164,7 +180,7 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) UpdateComment(c *g
 		return
 	}
 
-	err = afapc.service.Update(uint(findingID), uint(actionPlanID), uint(commentID), currentUserID, &formDTO)
+	err = afapc.service.Update(findingID, uint(actionPlanID), uint(commentID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -181,10 +197,14 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) UpdateComment(c *g
 
 func (afapc *AuditInsightsFindingActionPlanCommentController) DeleteComment(c *gin.Context) {
 	findingIDStr := c.Param("findingId")
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	findingID := uint(0)
+	if findingIDStr != "" {
+		parsedFindingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = uint(parsedFindingID)
 	}
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
@@ -208,7 +228,7 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) DeleteComment(c *g
 		return
 	}
 
-	failedIDs, err := afapc.service.Delete(uint(findingID), uint(actionPlanID), request.IDs, currentUserID)
+	failedIDs, err := afapc.service.Delete(findingID, uint(actionPlanID), request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -228,10 +248,14 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) DeleteComment(c *g
 
 func (afapc *AuditInsightsFindingActionPlanCommentController) GetAuditFindingActionPlanCommentDocumentPreview(c *gin.Context) {
 	findingIDStr := c.Param("findingId")
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	findingID := uint(0)
+	if findingIDStr != "" {
+		parsedFindingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = uint(parsedFindingID)
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -255,7 +279,7 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) GetAuditFindingAct
 		return
 	}
 
-	complianceActionPlanCommentDocumentPath, err := afapc.service.GetDocumentPath(uint(findingID), uint(actionPlanID), uint(id), token)
+	complianceActionPlanCommentDocumentPath, err := afapc.service.GetDocumentPath(findingID, uint(actionPlanID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -270,10 +294,14 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) GetAuditFindingAct
 
 func (afapc *AuditInsightsFindingActionPlanCommentController) DownloadAuditFindingActionPlanCommentDocument(c *gin.Context) {
 	findingIDStr := c.Param("findingId")
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	findingID := uint(0)
+	if findingIDStr != "" {
+		parsedFindingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = uint(parsedFindingID)
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -296,7 +324,7 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) DownloadAuditFindi
 		return
 	}
 
-	complianceActionPlanCommentDocumentPath, err := afapc.service.GetDocumentPath(uint(findingID), uint(actionPlanID), uint(id), token)
+	complianceActionPlanCommentDocumentPath, err := afapc.service.GetDocumentPath(findingID, uint(actionPlanID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:

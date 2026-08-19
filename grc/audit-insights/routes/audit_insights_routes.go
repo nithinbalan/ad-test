@@ -84,9 +84,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes.DELETE("/audit-insights/audit-findings/:findingId/root-cause-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingRootCauseAnalysisController.DeleteAuditInsightsFindingRootCauseAnalyses)
 
 	// Audit Insights action plans
-	auditInsightsRoutes.GET("/audit-insights/action-plans", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanController.GetAllAuditInsightsFindingActionPlans)
-	auditInsightsRoutes.GET("/audit-insights/action-plans/export", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanController.GetAuditInsightsFindingActionPlansExport)
-	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanController.GetAuditInsightsFindingActionPlanDetails)
+	auditInsightsRoutes.GET("/audit-insights/action-plans", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "view"), auditInsightsFindingActionPlanController.GetAllAuditInsightsFindingActionPlans)
+	auditInsightsRoutes.GET("/audit-insights/action-plans/export", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "view"), auditInsightsFindingActionPlanController.GetAuditInsightsFindingActionPlansExport)
+	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "view"), auditInsightsFindingActionPlanController.GetAuditInsightsFindingActionPlanDetails)
+
 	auditInsightsRoutes.POST("/audit-insights/action-plans", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingActionPlanController.CreateAuditInsightsFindingActionPlan)
 	auditInsightsRoutes.PUT("/audit-insights/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingActionPlanController.UpdateAuditInsightsFindingActionPlan)
 	auditInsightsRoutes.POST("/audit-insights/action-plans/delete", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingActionPlanController.DeleteAuditInsightsFindingActionPlans)
@@ -99,10 +100,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	auditInsightsRoutes.GET("/audit-insights/audit-findings/:findingId/action-plan-summary", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanController.GetAuditInsightsFindingActionPlanCountByStatus)
 
-	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanStatusUpdateController.GetAllAuditInsightsFindingActionPlanStatusUpdates)
-	auditInsightsRoutes.POST("/audit-insights/action-plans/:actionPlanId/status-updates", auditInsightsFindingActionPlanStatusUpdateController.CreateAuditInsightsFindingActionPlanStatusUpdate)
-	auditInsightsRoutes.PUT("/audit-insights/action-plans/:actionPlanId/status-updates/:id", auditInsightsFindingActionPlanStatusUpdateController.UpdateAuditInsightsFindingActionPlanStatusUpdate)
-	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanStatusUpdateController.GetLatestAuditInsightsFindingActionPlanStatusUpdate)
+	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "view"), auditInsightsFindingActionPlanStatusUpdateController.GetAllAuditInsightsFindingActionPlanStatusUpdates)
+	auditInsightsRoutes.POST("/audit-insights/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "modify"), auditInsightsFindingActionPlanStatusUpdateController.CreateAuditInsightsFindingActionPlanStatusUpdate)
+	auditInsightsRoutes.PUT("/audit-insights/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "modify"), auditInsightsFindingActionPlanStatusUpdateController.UpdateAuditInsightsFindingActionPlanStatusUpdate)
+	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "view"), auditInsightsFindingActionPlanStatusUpdateController.GetLatestAuditInsightsFindingActionPlanStatusUpdate)
 
 	auditInsightsRoutes.GET("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingActionPlanStatusUpdateController.GetAllAuditInsightsFindingActionPlanStatusUpdates)
 	auditInsightsRoutes.POST("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditInsightsFindingActionPlanStatusUpdateController.CreateAuditInsightsFindingActionPlanStatusUpdate)
@@ -125,4 +126,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes.POST("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightFindingActionPlanCommentController.CreateComment)
 	auditInsightsRoutes.PUT("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightFindingActionPlanCommentController.UpdateComment)
 	auditInsightsRoutes.POST("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightFindingActionPlanCommentController.DeleteComment)
+
+	unauthenticatedRoutes.GET("/audit-insights/action-plans/:actionPlanId/comments/:commentId/document-download", auditInsightFindingActionPlanCommentController.DownloadAuditFindingActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/audit-insights/action-plans/:actionPlanId/comments/:commentId/document-preview", auditInsightFindingActionPlanCommentController.GetAuditFindingActionPlanCommentDocumentPreview)
+	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "view"), auditInsightFindingActionPlanCommentController.GetAllComments)
+	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "view"), auditInsightFindingActionPlanCommentController.GetCommentDetails)
+	auditInsightsRoutes.POST("/audit-insights/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "modify"), auditInsightFindingActionPlanCommentController.CreateComment)
+	auditInsightsRoutes.PUT("/audit-insights/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "modify"), auditInsightFindingActionPlanCommentController.UpdateComment)
+	auditInsightsRoutes.POST("/audit-insights/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "modify"), auditInsightFindingActionPlanCommentController.DeleteComment)
 }
