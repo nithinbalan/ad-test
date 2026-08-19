@@ -38,6 +38,7 @@ type IncidentModule struct {
 	IncidentEvidenceSourceController            *controllers.IncidentEvidenceSourceController
 	IncidentEvidenceController                  *controllers.IncidentEvidenceController
 	IncidentSLAEscalationMatrixController       *controllers.IncidentSLAEscalationMatrixController
+	IncidentWorkflowLevelController             *controllers.IncidentWorkflowLevelController
 
 	IncidentRegisterSvc   services.IncidentRegisterServiceInterface
 	IncidentActionPlanSvc services.IncidentActionPlanServiceInterface
@@ -242,6 +243,8 @@ func NewIncidentModule(db *gorm.DB,
 	incidentSLAEscalationMatrixSvc := services.NewIncidentSLAEscalationMatrixService(incidentSLAEscalationMatrixRepo, sharedModule.ActivityLogService)
 	incidentSLAEscalationMatrixController := controllers.NewIncidentSLAEscalationMatrixController(incidentSLAEscalationMatrixSvc)
 
+	incidentWorkflowLevelController := controllers.NewIncidentWorkflowLevelController(settingsModule.WorkflowSvc)
+
 	return &IncidentModule{
 		IncidentCategoryController:                  incidentCategoryController,
 		IncidentSubCategoryController:               incidentSubCategoryController,
@@ -272,6 +275,7 @@ func NewIncidentModule(db *gorm.DB,
 		IncidentEvidenceSourceController:            incidentEvidenceSourceController,
 		IncidentEvidenceController:                  incidentEvidenceController,
 		IncidentSLAEscalationMatrixController:       incidentSLAEscalationMatrixController,
+		IncidentWorkflowLevelController:             incidentWorkflowLevelController,
 
 		IncidentRegisterSvc:   incidentRegisterSvc,
 		IncidentActionPlanSvc: incidentActionPlanSvc,

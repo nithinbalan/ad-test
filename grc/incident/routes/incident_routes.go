@@ -45,6 +45,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentEvidenceSourceController := app.IncidentModule.IncidentEvidenceSourceController
 	incidentEvidenceController := app.IncidentModule.IncidentEvidenceController
 	incidentSLAEscalationMatrixController := app.IncidentModule.IncidentSLAEscalationMatrixController
+	incidentWorkflowLevelController := app.IncidentModule.IncidentWorkflowLevelController
 
 	// Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -297,4 +298,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incident-closures/:closureId/review-comments/delete", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentClosureReviewCommentController.DeleteComments)
 	incidentRoutes.PUT("/incident-closures/:closureId/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentClosureReviewCommentController.ResolveComment)
 
+	// Incident Workflow Levels
+	incidentRoutes.POST("/incident-workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentWorkflowLevelController.CreateWorkflowLevel)
+	incidentRoutes.DELETE("/incident-workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentWorkflowLevelController.DeleteWorkflowLevel)
 }
