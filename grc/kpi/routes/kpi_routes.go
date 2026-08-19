@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessDashboardController := app.KPIModule.AwarenessDashboardController
 	vulnerabilityDashboardController := app.KPIModule.VulnerabilityDashboardController
 	documentDashboardController := app.KPIModule.DocumentDashboardController
+	identityAccessReviewDashboardController := app.KPIModule.IdentityAccessReviewDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -141,4 +142,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/document/by-confidentiality-classification", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentsByConfidentialityClassification)
 	kpiRoutes.GET("/kpis/document/by-responsible-unit", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentsByResponsibleUnit)
 	kpiRoutes.GET("/kpis/document/review-count-trend", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentReviewCountTrend)
+
+	// Identity Access Review Dashboard
+	kpiRoutes.GET("/kpis/identity-access-review/summary", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetIdentityAccessReviewSummary)
+	kpiRoutes.GET("/kpis/identity-access-review/campaign-by-lifecycle", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetCampaignsByLifecycle)
+	kpiRoutes.GET("/kpis/identity-access-review/completion-by-system", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetCompletionBySystem)
+	kpiRoutes.GET("/kpis/identity-access-review/active-recent-campaigns", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetActiveAndRecentCampaigns)
 }
