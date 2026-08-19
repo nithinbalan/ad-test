@@ -38,6 +38,8 @@ type IncidentRegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, incidentStatusID uint, tx utility.DatabaseTransaction) error
+	UpdateIncidentStatus(id uint, currentUserID uint, incidentStatusID uint) error
+	AcknowledgeIncident(id uint, currentUserID uint) error
 	GetDocumentPath(id uint, token string) (string, error)
 	ExportIncidentRegister(data []*incidentDTOs.IncidentRegisterListDTO, currentUserID uint) (*os.File, error)
 }
@@ -49,6 +51,7 @@ type IncidentRegisterService struct {
 	incidentCategorySvc      IncidentCategoryServiceInterface
 	incidentTypeSvc          IncidentTypeServiceInterface
 	incidentStatusSvc        IncidentStatusServiceInterface
+	incidentResponseTeamSvc  IncidentResponseTeamServiceInterface
 	severityLevelSvc         masterServices.SeverityLevelServiceInterface
 	controlSvc               organizationServices.ControlServiceInterface
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
@@ -69,6 +72,7 @@ func NewIncidentRegisterService(
 	incidentCategorySvc IncidentCategoryServiceInterface,
 	incidentTypeSvc IncidentTypeServiceInterface,
 	incidentStatusSvc IncidentStatusServiceInterface,
+	incidentResponseTeamSvc IncidentResponseTeamServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	controlSvc organizationServices.ControlServiceInterface,
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
@@ -88,6 +92,7 @@ func NewIncidentRegisterService(
 		incidentCategorySvc:      incidentCategorySvc,
 		incidentTypeSvc:          incidentTypeSvc,
 		incidentStatusSvc:        incidentStatusSvc,
+		incidentResponseTeamSvc:  incidentResponseTeamSvc,
 		severityLevelSvc:         severityLevelSvc,
 		controlSvc:               controlSvc,
 		complianceRequirementSvc: complianceRequirementSvc,
@@ -148,6 +153,28 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		return 0, err
 	}
 
+	if incidentRegisterFormDTO.IncidentResponseTeamID == nil {
+		return 0, utility.NewValidationError(fmt.Errorf("incident response team is required"), "required", "incident_response_team_id")
+	}
+
+	// Derive the response team lead and member users automatically from the selected master response team.
+	selectedResponseTeam, err := irs.incidentResponseTeamSvc.GetFullDetailsByID(*incidentRegisterFormDTO.IncidentResponseTeamID)
+	if err != nil {
+		return 0, err
+	}
+
+	var responseTeamLeadID *uint
+	if selectedResponseTeam.TeamLeadUser != nil {
+		leadID := uint(selectedResponseTeam.TeamLeadUser.ID)
+		responseTeamLeadID = &leadID
+	}
+
+	var responseTeamMemberUserIDs []*uint
+	for _, member := range selectedResponseTeam.IncidentResponseTeamMembers {
+		userID := member.UserID
+		responseTeamMemberUserIDs = append(responseTeamMemberUserIDs, &userID)
+	}
+
 	dates, err := irs.parseIncidentRegisterDates(incidentRegisterFormDTO, currentUserID)
 	if err != nil {
 		return 0, err
@@ -158,8 +185,8 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		return 0, err
 	}
 
-	// update incident status as open
-	incidentStatus, err := irs.incidentStatusSvc.GetByType("open")
+	// update incident status as new
+	incidentStatus, err := irs.incidentStatusSvc.GetByType("new")
 	if err != nil {
 		return 0, err
 	}
@@ -170,21 +197,29 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 	organizationUnitID = unitID
 	incidentRegister := &models.IncidentRegister{
-		ReferenceNumber:    referenceNumber,
-		IncidentCategoryID: incidentRegisterFormDTO.IncidentCategoryID,
-		IncidentTypeID:     incidentRegisterFormDTO.IncidentTypeID,
-		SeverityLevelID:    *incidentRegisterFormDTO.SeverityLevelID,
-		IncidentStatusID:   &incidentStatus.ID,
-		ResponsibleUserID:  incidentRegisterFormDTO.ResponsibleUserID,
-		ResponsibleUnitID:  organizationUnitID,
-		Title:              incidentRegisterFormDTO.Title,
-		Description:        incidentRegisterFormDTO.Description,
-		IncidentAt:         dates.IncidentAt,
-		Location:           incidentRegisterFormDTO.Location,
-		ReportedBy:         incidentRegisterFormDTO.ReportedBy,
-		ReportedAt:         dates.ReportedAt,
-		QuickAction:        incidentRegisterFormDTO.QuickAction,
-		CreatedByID:        currentUserID,
+		ReferenceNumber:                     referenceNumber,
+		IncidentCategoryID:                  incidentRegisterFormDTO.IncidentCategoryID,
+		IncidentTypeID:                      incidentRegisterFormDTO.IncidentTypeID,
+		SeverityLevelID:                     *incidentRegisterFormDTO.SeverityLevelID,
+		IncidentStatusID:                    &incidentStatus.ID,
+		BusinessOwnerID:                     incidentRegisterFormDTO.BusinessOwnerID,
+		IncidentResponseTeamID:              incidentRegisterFormDTO.IncidentResponseTeamID,
+		ResponseTeamLeadID:                  responseTeamLeadID,
+		IncidentScopeID:                     incidentRegisterFormDTO.IncidentScopeID,
+		IncidentSensitivityClassificationID: incidentRegisterFormDTO.IncidentSensitivityClassificationID,
+		ConfidentialitySeverityLevelID:      incidentRegisterFormDTO.ConfidentialitySeverityLevelID,
+		IntegritySeverityLevelID:            incidentRegisterFormDTO.IntegritySeverityLevelID,
+		AvailabilitySeverityLevelID:         incidentRegisterFormDTO.AvailabilitySeverityLevelID,
+		ResponsibleUserID:                   incidentRegisterFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:                   organizationUnitID,
+		Title:                               incidentRegisterFormDTO.Title,
+		Description:                         incidentRegisterFormDTO.Description,
+		IncidentAt:                          dates.IncidentAt,
+		Location:                            incidentRegisterFormDTO.Location,
+		ReportedBy:                          incidentRegisterFormDTO.ReportedBy,
+		ReportedAt:                          dates.ReportedAt,
+		QuickAction:                         incidentRegisterFormDTO.QuickAction,
+		CreatedBYID:                         currentUserID,
 	}
 
 	id, err := irs.repo.Create(incidentRegister, tx)
@@ -206,6 +241,25 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 
 	if len(slaRegisters) > 0 {
 		if err := irs.repo.CreateIncidentSLAs(slaRegisters, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	// Add response team members (derived automatically from the selected master response team)
+	var responseTeamMembers []*models.IncidentRegisterResponseTeam
+	for _, userID := range responseTeamMemberUserIDs {
+		responseTeamMember := &models.IncidentRegisterResponseTeam{
+			IncidentRegisterID: id,
+			UserID:             *userID,
+			CreatedByID:        currentUserID,
+			CreatedAt:          time.Now(),
+		}
+		responseTeamMembers = append(responseTeamMembers, responseTeamMember)
+	}
+
+	if len(responseTeamMembers) > 0 {
+		if err := irs.repo.CreateResponseTeamMembers(responseTeamMembers, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -448,6 +502,14 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	existingIncidentRegister.IncidentCategoryID = incidentRegisterFormDTO.IncidentCategoryID
 	existingIncidentRegister.IncidentTypeID = incidentRegisterFormDTO.IncidentTypeID
 	existingIncidentRegister.SeverityLevelID = *incidentRegisterFormDTO.SeverityLevelID
+	existingIncidentRegister.BusinessOwnerID = incidentRegisterFormDTO.BusinessOwnerID
+	// IncidentResponseTeamID is intentionally not updated here; it is locked after creation.
+	existingIncidentRegister.ResponseTeamLeadID = incidentRegisterFormDTO.ResponseTeamLeadID
+	existingIncidentRegister.IncidentScopeID = incidentRegisterFormDTO.IncidentScopeID
+	existingIncidentRegister.IncidentSensitivityClassificationID = incidentRegisterFormDTO.IncidentSensitivityClassificationID
+	existingIncidentRegister.ConfidentialitySeverityLevelID = incidentRegisterFormDTO.ConfidentialitySeverityLevelID
+	existingIncidentRegister.IntegritySeverityLevelID = incidentRegisterFormDTO.IntegritySeverityLevelID
+	existingIncidentRegister.AvailabilitySeverityLevelID = incidentRegisterFormDTO.AvailabilitySeverityLevelID
 	existingIncidentRegister.ResponsibleUserID = incidentRegisterFormDTO.ResponsibleUserID
 	existingIncidentRegister.Title = incidentRegisterFormDTO.Title
 	existingIncidentRegister.Description = incidentRegisterFormDTO.Description
@@ -456,7 +518,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	existingIncidentRegister.ReportedBy = incidentRegisterFormDTO.ReportedBy
 	existingIncidentRegister.ReportedAt = dates.ReportedAt
 	existingIncidentRegister.QuickAction = incidentRegisterFormDTO.QuickAction
-	existingIncidentRegister.UpdatedByID = &currentUserID
+	existingIncidentRegister.UpdatedBYID = &currentUserID
 
 	err = irs.repo.Update(existingIncidentRegister, tx)
 	if err != nil {
@@ -516,6 +578,51 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	// Delete slaRegisters not in the new list
 	if len(deleteSLARegisterIDs) > 0 {
 		if err := irs.repo.DeleteIncidentSLAs(deleteSLARegisterIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Sync response team members
+	existingResponseTeamMemberUserIDs := make(map[uint]bool)
+	for _, responseTeamMember := range existingIncident.ResponseTeamMembers {
+		existingResponseTeamMemberUserIDs[responseTeamMember.UserID] = true
+	}
+
+	newResponseTeamMemberUserIDs := make(map[uint]bool)
+	for _, userID := range incidentRegisterFormDTO.ResponseTeamMemberUserIDs {
+		newResponseTeamMemberUserIDs[*userID] = true
+	}
+
+	var responseTeamMembersToAdd []*models.IncidentRegisterResponseTeam
+	for _, newUserID := range incidentRegisterFormDTO.ResponseTeamMemberUserIDs {
+		if _, exists := existingResponseTeamMemberUserIDs[*newUserID]; !exists {
+			responseTeamMember := &models.IncidentRegisterResponseTeam{
+				IncidentRegisterID: id,
+				UserID:             *newUserID,
+				CreatedByID:        currentUserID,
+				CreatedAt:          time.Now(),
+			}
+			responseTeamMembersToAdd = append(responseTeamMembersToAdd, responseTeamMember)
+		}
+	}
+
+	if len(responseTeamMembersToAdd) > 0 {
+		if err := irs.repo.CreateResponseTeamMembers(responseTeamMembersToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteResponseTeamMemberIDs []*uint
+	for _, existingResponseTeamMember := range existingIncident.ResponseTeamMembers {
+		if _, exists := newResponseTeamMemberUserIDs[existingResponseTeamMember.UserID]; !exists {
+			deleteResponseTeamMemberIDs = append(deleteResponseTeamMemberIDs, &existingResponseTeamMember.ID)
+		}
+	}
+
+	if len(deleteResponseTeamMemberIDs) > 0 {
+		if err := irs.repo.DeleteResponseTeamMembers(deleteResponseTeamMemberIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -885,6 +992,18 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			}
 		}
 
+		// Delete response team members
+		if len(incident.ResponseTeamMembers) > 0 {
+			var deleteResponseTeamMemberIDs []*uint
+			for _, responseTeamMember := range incident.ResponseTeamMembers {
+				deleteResponseTeamMemberIDs = append(deleteResponseTeamMemberIDs, &responseTeamMember.ID)
+			}
+			if err := irs.repo.DeleteResponseTeamMembers(deleteResponseTeamMemberIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		// Delete timeline
 		// todo
 		if err := irs.incidentTimelineSvc.Delete(id, tx); err != nil {
@@ -1027,12 +1146,123 @@ func (irs *IncidentRegisterService) StatusUpdate(id uint, currentUserID uint, in
 	}
 
 	existingIncident.IncidentStatusID = &incidentStatusID
-	existingIncident.UpdatedByID = &currentUserID
+	existingIncident.UpdatedBYID = &currentUserID
 
 	err = irs.repo.Update(existingIncident, tx)
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (irs *IncidentRegisterService) UpdateIncidentStatus(id uint, currentUserID uint, incidentStatusID uint) error {
+	newIncidentStatus, err := irs.incidentStatusSvc.GetByID(incidentStatusID)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident status does not exist"), "not_exist", "incident_status_id")
+	}
+
+	existingIncident, err := irs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	if existingIncident.IncidentStatusID != nil && *existingIncident.IncidentStatusID == newIncidentStatus.ID {
+		return utility.NewValidationError(fmt.Errorf("incident is already in %s status", newIncidentStatus.Type), "already_in_status", "incident_status_id")
+	}
+
+	tx := irs.repo.BeginTransaction()
+
+	if err := irs.StatusUpdate(id, currentUserID, newIncidentStatus.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	go func() {
+		changedData := map[string]interface{}{
+			"incident_status_id":    newIncidentStatus.ID,
+			"incident_status_type":  newIncidentStatus.Type,
+			"incident_status_title": newIncidentStatus.TitleEn,
+		}
+
+		err := irs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.IncidentRegister{}.TableName(),
+			id,
+			changedData,
+			currentUserID,
+			"incident", "incident_register", "incident_status",
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log incident status activity", map[string]interface{}{
+				"incident_id": id,
+				"user_id":     currentUserID,
+				"error":       err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (irs *IncidentRegisterService) AcknowledgeIncident(id uint, currentUserID uint) error {
+	existingIncident, err := irs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	if existingIncident.IsAcknowledge {
+		return utility.NewValidationError(fmt.Errorf("incident is already acknowledged"), "already_acknowledged", "is_acknowledge")
+	}
+
+	tx := irs.repo.BeginTransaction()
+
+	now := time.Now()
+	existingIncident.IsAcknowledge = true
+	existingIncident.IsSLATimeAchieved = true
+	existingIncident.AcknowledgedAt = &now
+	existingIncident.AcknowledgedByID = &currentUserID
+	existingIncident.UpdatedBYID = &currentUserID
+
+	if err := irs.repo.Update(existingIncident, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	go func() {
+		changedData := map[string]interface{}{
+			"is_acknowledge":       true,
+			"is_sla_time_achieved": true,
+			"acknowledged_at":      now,
+			"acknowledged_by_id":   currentUserID,
+		}
+
+		err := irs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.IncidentRegister{}.TableName(),
+			id,
+			changedData,
+			currentUserID,
+			"incident", "incident_register", "acknowledge",
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log incident acknowledge activity", map[string]interface{}{
+				"incident_id": id,
+				"user_id":     currentUserID,
+				"error":       err.Error(),
+			})
+		}
+	}()
 
 	return nil
 }
@@ -1055,6 +1285,27 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	if _, err := irs.userSvc.GetByID(uint(incidentRegisterFormDTO.ResponsibleUserID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
+	if incidentRegisterFormDTO.BusinessOwnerID != nil {
+		if _, err := irs.userSvc.GetByID(*incidentRegisterFormDTO.BusinessOwnerID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("business owner does not exist"), "not_exist", "business owner")
+		}
+	}
+	if incidentRegisterFormDTO.ConfidentialitySeverityLevelID != nil {
+		if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.ConfidentialitySeverityLevelID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("confidentiality severity level does not exist"), "not_exist", "confidentiality severity level")
+		}
+	}
+	if incidentRegisterFormDTO.IntegritySeverityLevelID != nil {
+		if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.IntegritySeverityLevelID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("integrity severity level does not exist"), "not_exist", "integrity severity level")
+		}
+	}
+	if incidentRegisterFormDTO.AvailabilitySeverityLevelID != nil {
+		if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.AvailabilitySeverityLevelID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("availability severity level does not exist"), "not_exist", "availability severity level")
+		}
+	}
+
 	// Controls exist
 	controls := incidentRegisterFormDTO.ControlIds
 
@@ -1091,6 +1342,34 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		}
 
 		slaRegisterIDs[*slaRegisterId] = true
+	}
+
+	// Response team
+	if incidentRegisterFormDTO.IncidentResponseTeamID != nil {
+		if _, err := irs.incidentResponseTeamSvc.GetByID(*incidentRegisterFormDTO.IncidentResponseTeamID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("incident response team does not exist for ID: %d", *incidentRegisterFormDTO.IncidentResponseTeamID), "not_exist", "incident response team")
+		}
+	}
+
+	// Response team lead
+	if incidentRegisterFormDTO.ResponseTeamLeadID != nil {
+		if _, err := irs.userSvc.GetByID(*incidentRegisterFormDTO.ResponseTeamLeadID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("response team lead does not exist for ID: %d", *incidentRegisterFormDTO.ResponseTeamLeadID), "not_exist", "response team lead")
+		}
+	}
+
+	// Response team members
+	responseTeamMemberUserIDs := make(map[uint]bool)
+	for _, userID := range incidentRegisterFormDTO.ResponseTeamMemberUserIDs {
+		if responseTeamMemberUserIDs[*userID] {
+			return utility.NewValidationError(fmt.Errorf("duplicate response team member user ID: %d", *userID), "duplicate", "response team member")
+		}
+
+		if _, err := irs.userSvc.GetByID(*userID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("response team member does not exist for ID: %d", *userID), "not_exist", "response team member")
+		}
+
+		responseTeamMemberUserIDs[*userID] = true
 	}
 
 	return nil

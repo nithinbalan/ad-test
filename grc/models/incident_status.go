@@ -7,7 +7,7 @@ type IncidentStatus struct {
 	DescriptionEn string `json:"description_en" binding:"required" gorm:"type:text"`
 	DescriptionAr string `json:"description_ar" binding:"required" gorm:"type:text"`
 	ColorCode     string `json:"color_code" binding:"required,max=25" gorm:"type:varchar(25);not null"`
-	Type          string `json:"type" binding:"required,max=25,oneof=open investigating in_progress resolved closed pending_review escalated re_opened deferred mitigated" gorm:"type:varchar(25);not null"`
+	Type          string `json:"type" binding:"required,max=25,oneof=open investigating in_progress resolved closed pending_review escalated re_opened deferred mitigated new triage containment eradication recovery closure_preparation cybersecurity_approval" gorm:"type:varchar(25);not null"`
 	Status        string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 }
 

@@ -30,6 +30,9 @@ type IncidentRegisterRepositoryInterface interface {
 
 	CreateIncidentSLAs(slaRegisters []*models.IncidentSLA, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateResponseTeamMembers(responseTeamMembers []*models.IncidentRegisterResponseTeam, tx ...utility.DatabaseTransaction) error
+	DeleteResponseTeamMembers(responseTeamMemberIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentRegisterRepository struct {
@@ -103,7 +106,34 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			updated_user.initial AS updated_user_initial,
             updated_user.color AS updated_user_color,
             updated_user.email AS updated_user_email,
-            updated_user.profile_image_path AS updated_user_profile_image_path  
+            updated_user.profile_image_path AS updated_user_profile_image_path,
+			business_owner.id AS business_owner_id,
+			business_owner.first_name_en AS business_owner_first_name_en,
+            business_owner.first_name_ar AS business_owner_first_name_ar,
+            business_owner.last_name_en AS business_owner_last_name_en,
+            business_owner.last_name_ar AS business_owner_last_name_ar,
+			business_owner.initial AS business_owner_initial,
+            business_owner.color AS business_owner_color,
+            business_owner.email AS business_owner_email,
+            business_owner.profile_image_path AS business_owner_profile_image_path,
+			incident_scopes.id AS incident_scope_id,
+			incident_scopes.title_en AS incident_scope_title_en,
+			incident_scopes.title_ar AS incident_scope_title_ar,
+			incident_sensitivity_classifications.id AS incident_sensitivity_classification_id,
+			incident_sensitivity_classifications.title_en AS incident_sensitivity_classification_title_en,
+			incident_sensitivity_classifications.title_ar AS incident_sensitivity_classification_title_ar,
+			confidentiality_severity_level.id AS confidentiality_severity_level_id,
+			confidentiality_severity_level.title_en AS confidentiality_severity_level_title_en,
+			confidentiality_severity_level.title_ar AS confidentiality_severity_level_title_ar,
+			confidentiality_severity_level.color_code AS confidentiality_severity_level_color_code,
+			integrity_severity_level.id AS integrity_severity_level_id,
+			integrity_severity_level.title_en AS integrity_severity_level_title_en,
+			integrity_severity_level.title_ar AS integrity_severity_level_title_ar,
+			integrity_severity_level.color_code AS integrity_severity_level_color_code,
+			availability_severity_level.id AS availability_severity_level_id,
+			availability_severity_level.title_en AS availability_severity_level_title_en,
+			availability_severity_level.title_ar AS availability_severity_level_title_ar,
+			availability_severity_level.color_code AS availability_severity_level_color_code
         `).
 		Joins(`
             LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
@@ -117,6 +147,12 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id
 			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
+			LEFT JOIN users AS business_owner ON business_owner.id = incident_register.business_owner_id
+			LEFT JOIN incident_scopes ON incident_scopes.id = incident_register.incident_scope_id
+			LEFT JOIN incident_sensitivity_classifications ON incident_sensitivity_classifications.id = incident_register.incident_sensitivity_classification_id
+			LEFT JOIN severity_levels AS confidentiality_severity_level ON confidentiality_severity_level.id = incident_register.confidentiality_severity_level_id
+			LEFT JOIN severity_levels AS integrity_severity_level ON integrity_severity_level.id = incident_register.integrity_severity_level_id
+			LEFT JOIN severity_levels AS availability_severity_level ON availability_severity_level.id = incident_register.availability_severity_level_id
         `)
 
 	// Apply dynamic filters to the query
@@ -238,17 +274,31 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("IncidentCategory").
 		Preload("IncidentType").
 		Preload("IncidentStatus").
+		Preload("BusinessOwner").
+		Preload("IncidentScope").
+		Preload("IncidentSensitivityClassification").
+		Preload("ConfidentialitySeverityLevel").
+		Preload("IntegritySeverityLevel").
+		Preload("AvailabilitySeverityLevel").
 		Preload("ReportedByUser").
 		Preload("SeverityLevel").
 		Preload("Documents").
 		Preload("ComplianceRequirements").
 		Preload("SLARegisters").
 		Preload("AssociatedDocuments").
+		Preload("IncidentResponseTeam").
+		Preload("IncidentResponseTeam.TeamLeadUser").
+		Preload("IncidentResponseTeam.IncidentResponseTeamMembers").
+		Preload("IncidentResponseTeam.IncidentResponseTeamMembers.User").
+		Preload("ResponseTeamLead").
+		Preload("ResponseTeamMembers").
+		Preload("ResponseTeamMembers.User").
 		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("AcknowledgedByUser").
 		First(&incident, id)
 
 	if result.Error != nil {
@@ -364,7 +414,7 @@ func (repo *IncidentRegisterRepository) CreateIncidentSLAs(slaRegisters []*model
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Create(&slaRegisters).Error; err != nil {
+	if err := db.Create(slaRegisters).Error; err != nil {
 		return err
 	}
 	return nil
@@ -378,6 +428,32 @@ func (repo *IncidentRegisterRepository) DeleteIncidentSLAs(slaRegisterIds []*uin
 
 	// Delete SLARegister by IDs
 	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.IncidentSLA{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) CreateResponseTeamMembers(responseTeamMembers []*models.IncidentRegisterResponseTeam, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(responseTeamMembers).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) DeleteResponseTeamMembers(responseTeamMemberIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", responseTeamMemberIds).Delete(&models.IncidentRegisterResponseTeam{}).Error; err != nil {
 		return err
 	}
 
@@ -654,6 +730,39 @@ func (repo *IncidentRegisterRepository) ForceDelete(id uint, tx ...utility.Datab
 		JOIN incident_closures ON incident_closures.id = incident_closure_lessons.incident_closure_id
 		WHERE incident_closures.incident_register_id = ?`,
 
+		`DELETE incident_closure_workflow_participants
+		FROM incident_closure_workflow_participants
+		JOIN incident_closure_workflows ON incident_closure_workflows.id = incident_closure_workflow_participants.incident_closure_workflow_id
+		JOIN incident_closures ON incident_closures.id = incident_closure_workflows.incident_closure_id
+		WHERE incident_closures.incident_register_id = ?`,
+
+		`DELETE incident_closure_workflow_reviews
+		FROM incident_closure_workflow_reviews
+		JOIN incident_closure_workflows ON incident_closure_workflows.id = incident_closure_workflow_reviews.incident_closure_workflow_id
+		JOIN incident_closures ON incident_closures.id = incident_closure_workflows.incident_closure_id
+		WHERE incident_closures.incident_register_id = ?`,
+
+		`DELETE incident_closure_workflows
+		FROM incident_closure_workflows
+		JOIN incident_closures ON incident_closures.id = incident_closure_workflows.incident_closure_id
+		WHERE incident_closures.incident_register_id = ?`,
+
+		`DELETE incident_closure_workflow_histories
+		FROM incident_closure_workflow_histories
+		JOIN incident_closures ON incident_closures.id = incident_closure_workflow_histories.incident_closure_id
+		WHERE incident_closures.incident_register_id = ?`,
+
+		`DELETE incident_closure_review_comment_documents
+		FROM incident_closure_review_comment_documents
+		JOIN incident_closure_review_comments ON incident_closure_review_comments.id = incident_closure_review_comment_documents.incident_closure_review_comment_id
+		JOIN incident_closures ON incident_closures.id = incident_closure_review_comments.incident_closure_id
+		WHERE incident_closures.incident_register_id = ?`,
+
+		`DELETE incident_closure_review_comments
+		FROM incident_closure_review_comments
+		JOIN incident_closures ON incident_closures.id = incident_closure_review_comments.incident_closure_id
+		WHERE incident_closures.incident_register_id = ?`,
+
 		`DELETE tasks
 		FROM tasks
 		JOIN incident_action_plans ON incident_action_plans.id = tasks.incident_action_plan_id
@@ -701,6 +810,7 @@ func (repo *IncidentRegisterRepository) ForceDelete(id uint, tx ...utility.Datab
 		`DELETE FROM incident_timelines WHERE incident_timelines.incident_register_id = ?`,
 		`DELETE FROM incident_strategic_objectives WHERE incident_strategic_objectives.incident_register_id = ?`,
 		`DELETE FROM incident_slas WHERE incident_slas.incident_register_id = ?`,
+		`DELETE FROM incident_register_response_teams WHERE incident_register_response_teams.incident_register_id = ?`,
 		`DELETE FROM incident_root_cause_analyses WHERE incident_root_cause_analyses.incident_register_id = ?`,
 		`DELETE FROM incident_risks WHERE incident_risks.incident_register_id = ?`,
 		`DELETE FROM incident_processes WHERE incident_processes.incident_register_id = ?`,

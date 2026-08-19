@@ -38,6 +38,9 @@ type IncidentAssociatedItemServiceInterface interface {
 	DeleteIncidentKPI(incidentID uint, kpiRegisterID uint) error
 	CreateIncidentAsset(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteIncidentAsset(incidentID uint, assetID uint) error
+	GetAllVulnerabilities(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedVulnerabilityListResponseDTO, error)
+	CreateIncidentVulnerability(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedVulnerabilityMapDTO) error
+	DeleteIncidentVulnerability(incidentID uint, vulnerabilityID uint) error
 }
 
 // Service and implementations
@@ -531,6 +534,56 @@ func (iais *IncidentAssociatedItemService) DeleteIncidentAsset(incidentID uint, 
 	tx := iais.repo.BeginTransaction()
 
 	if err := iais.repo.DeleteIncidentAsset(incidentID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) GetAllVulnerabilities(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedVulnerabilityListResponseDTO, error) {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iais.repo.GetAllVulnerabilities(incidentID, params)
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentVulnerability(incidentID, currentUserID uint, dto *commonDTOs.AssociatedVulnerabilityMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+	if err := iais.validationSvc.ValidateVulnerabilityMapping(incidentID, dto.VulnerabilityIDs, "vulnerability_incidents", "incident_register_id"); err != nil {
+		return err
+	}
+
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.VulnerabilityIncident
+	currentTime := time.Now()
+
+	for _, vulnerabilityID := range dto.VulnerabilityIDs {
+		mappings = append(mappings, &models.VulnerabilityIncident{
+			VulnerabilityID:    vulnerabilityID,
+			IncidentRegisterID: incidentID,
+			CreatedByID:        currentUserID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentVulnerability(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentVulnerability(incidentID uint, vulnerabilityID uint) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentVulnerability(incidentID, vulnerabilityID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

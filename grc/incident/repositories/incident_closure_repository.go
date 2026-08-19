@@ -10,6 +10,8 @@ import (
 type IncidentClosureRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetByID(incidentID uint) (*models.IncidentClosure, error)
+	GetByClosureID(closureID uint) (*models.IncidentClosure, error)
+	GetFullDetailsClosureID(closureID uint, tx ...utility.DatabaseTransaction) (*models.IncidentClosure, error)
 	GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*models.IncidentClosure, error)
 	Create(incidentClosure *models.IncidentClosure, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentClosure *models.IncidentClosure, tx ...utility.DatabaseTransaction) error
@@ -54,6 +56,11 @@ func (repo *IncidentClosureRepository) GetFullDetailsByID(incidentID uint, tx ..
 	result := db.Where("incident_register_id = ?", incidentID).
 		Preload("IncidentRegister").
 		Preload("Lessons").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		Preload("SubmittedByUser").
+		Preload("ApprovedByUser").
+		Preload("WorkflowStatus").
 		First(&incidentClosure)
 
 	if result.Error != nil {
@@ -126,4 +133,40 @@ func (repo *IncidentClosureRepository) DeleteLessons(lessonsIDs []*uint, tx ...u
 	}
 
 	return nil
+}
+
+func (repo *IncidentClosureRepository) GetByClosureID(closureID uint) (*models.IncidentClosure, error) {
+	var incidentClosure *models.IncidentClosure
+	result := repo.db.Where("id = ?", closureID).First(&incidentClosure)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return incidentClosure, nil
+}
+
+func (repo *IncidentClosureRepository) GetFullDetailsClosureID(closureID uint, tx ...utility.DatabaseTransaction) (*models.IncidentClosure, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var incidentClosure *models.IncidentClosure
+
+	result := db.Where("id = ?", closureID).
+		Preload("IncidentRegister").
+		Preload("Lessons").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		Preload("SubmittedByUser").
+		Preload("ApprovedByUser").
+		Preload("WorkflowStatus").
+		First(&incidentClosure)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return incidentClosure, nil
 }

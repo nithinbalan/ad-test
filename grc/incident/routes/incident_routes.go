@@ -28,6 +28,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRootCauseAnalysisController := app.IncidentModule.IncidentRootCauseAnalysisController
 	incidentCommunicationLogController := app.IncidentModule.IncidentCommunicationLogController
 	incidentClosureController := app.IncidentModule.IncidentClosureController
+	incidentClosureWorkflowController := app.IncidentModule.IncidentClosureWorkflowController
+	incidentClosureReviewController := app.IncidentModule.IncidentClosureReviewController
+	incidentClosureReviewCommentController := app.IncidentModule.IncidentClosureReviewCommentController
 	incidentPostReviewEffectivenessController := app.IncidentModule.IncidentPostReviewEffectivenessController
 	incidentPostReviewController := app.IncidentModule.IncidentPostReviewController
 	incidentAssociatedItemController := app.IncidentModule.IncidentAssociatedItemController
@@ -38,6 +41,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentImpactController := app.IncidentModule.IncidentImpactController
 	incidentScopeController := app.IncidentModule.IncidentScopeController
 	incidentSensitivityClassificationController := app.IncidentModule.IncidentSensitivityClassificationController
+	incidentEvidenceTypeController := app.IncidentModule.IncidentEvidenceTypeController
+	incidentEvidenceSourceController := app.IncidentModule.IncidentEvidenceSourceController
+	incidentEvidenceController := app.IncidentModule.IncidentEvidenceController
+	incidentSLAEscalationMatrixController := app.IncidentModule.IncidentSLAEscalationMatrixController
+	incidentWorkflowLevelController := app.IncidentModule.IncidentWorkflowLevelController
 
 	// Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -78,6 +86,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incident-register/:id", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentRegisterController.GetIncidentRegisterDetails)
 	incidentRoutes.POST("/incident-register", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.CreateIncidentRegister)
 	incidentRoutes.PUT("/incident-register/:id", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.UpdateIncidentRegister)
+	incidentRoutes.PUT("/incident-register/:id/status", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.UpdateIncidentStatus)
+	incidentRoutes.PUT("/incident-register/:id/acknowledge", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.AcknowledgeIncidentRegister)
 	incidentRoutes.POST("/incident-register/delete", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.DeleteIncidentRegisters)
 	incidentRoutes.POST("/incident-register/force-delete", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.DeleteForceIncidentRegisters)
 
@@ -185,6 +195,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incidents/:incidentID/kpis", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.CreateIncidentKPI)
 	incidentRoutes.DELETE("/incidents/:incidentID/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.DeleteIncidentKPI)
 
+	incidentRoutes.GET("/incidents/:incidentID/vulnerabilities", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.GetAllIncidentVulnerabilities)
+	incidentRoutes.POST("/incidents/:incidentID/vulnerabilities", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.CreateIncidentVulnerability)
+	incidentRoutes.DELETE("/incidents/:incidentID/vulnerabilities/:vulnerabilityId", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.DeleteIncidentVulnerability)
+
 	// Incident timelines
 	incidentRoutes.GET("/incidents/:incidentID/timelines", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentTimelineController.GetAllIncidentTimelines)
 
@@ -234,4 +248,57 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.PUT("/incident-sensitivity-classifications/activate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentSensitivityClassificationController.ActivateIncidentSensitivityClassifications)
 	incidentRoutes.PUT("/incident-sensitivity-classifications/deactivate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentSensitivityClassificationController.DeactivateIncidentSensitivityClassifications)
 
+	// Incident Evidence Type
+	incidentRoutes.GET("/incident-evidence-types", incidentEvidenceTypeController.GetAllIncidentEvidenceTypes)
+	incidentRoutes.GET("/incident-evidence-types/:id", incidentEvidenceTypeController.GetIncidentEvidenceTypeDetails)
+	incidentRoutes.POST("/incident-evidence-types", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceTypeController.CreateIncidentEvidenceType)
+	incidentRoutes.PUT("/incident-evidence-types/:id", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceTypeController.UpdateIncidentEvidenceType)
+	incidentRoutes.POST("/incident-evidence-types/delete", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceTypeController.DeleteIncidentEvidenceTypes)
+	incidentRoutes.PUT("/incident-evidence-types/activate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceTypeController.ActivateIncidentEvidenceTypes)
+	incidentRoutes.PUT("/incident-evidence-types/deactivate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceTypeController.DeactivateIncidentEvidenceTypes)
+
+	// Incident Evidence Source
+	incidentRoutes.GET("/incident-evidence-sources", incidentEvidenceSourceController.GetAllIncidentEvidenceSources)
+	incidentRoutes.GET("/incident-evidence-sources/:id", incidentEvidenceSourceController.GetIncidentEvidenceSourceDetails)
+	incidentRoutes.POST("/incident-evidence-sources", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceSourceController.CreateIncidentEvidenceSource)
+	incidentRoutes.PUT("/incident-evidence-sources/:id", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceSourceController.UpdateIncidentEvidenceSource)
+	incidentRoutes.POST("/incident-evidence-sources/delete", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceSourceController.DeleteIncidentEvidenceSources)
+	incidentRoutes.PUT("/incident-evidence-sources/activate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceSourceController.ActivateIncidentEvidenceSources)
+	incidentRoutes.PUT("/incident-evidence-sources/deactivate", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentEvidenceSourceController.DeactivateIncidentEvidenceSources)
+
+	// Incident Evidence
+	unauthenticatedRoutes.GET("/incidents/:incidentID/evidences/:evidenceId/document-preview", incidentEvidenceController.GetIncidentEvidenceDocumentPreview)
+	incidentRoutes.GET("/incidents/:incidentID/evidences/:evidenceId/download", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentEvidenceController.DownloadIncidentEvidence)
+	incidentRoutes.GET("/incidents/:incidentID/evidences", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentEvidenceController.GetAllIncidentEvidences)
+	incidentRoutes.GET("/incidents/:incidentID/evidences/:evidenceId", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentEvidenceController.GetIncidentEvidenceDetails)
+	incidentRoutes.POST("/incidents/:incidentID/evidences", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentEvidenceController.CreateIncidentEvidence)
+	incidentRoutes.PUT("/incidents/:incidentID/evidences-update", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentEvidenceController.UpdateIncidentEvidence)
+	incidentRoutes.POST("/incidents/:incidentID/evidences/delete", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentEvidenceController.DeleteIncidentEvidences)
+	incidentRoutes.GET("/incidents/:incidentID/evidences/:evidenceId/download-histories", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentEvidenceController.GetIncidentEvidenceDownloadHistories)
+
+	// Incident SLA Escalation Matrix
+	incidentRoutes.GET("/incident-sla-escalation-matrix/escalation", incidentSLAEscalationMatrixController.GetAllEscalationMatrices)
+	incidentRoutes.PUT("/incident-sla-escalation-matrix/update-escalation", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentSLAEscalationMatrixController.UpdateEscalationMatrix)
+	incidentRoutes.GET("/incident-sla-escalation-matrix/resolution", incidentSLAEscalationMatrixController.GetAllResolutionMatrices)
+	incidentRoutes.PUT("/incident-sla-escalation-matrix/update-resolution", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentSLAEscalationMatrixController.UpdateResolutionMatrix)
+
+	// Incident Closure Workflow / Review
+	incidentRoutes.GET("/incident-closures/:closureId/workflow-list", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentClosureWorkflowController.GetWorkflowList)
+	incidentRoutes.POST("/incident-closures/:closureId/submit", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentClosureReviewController.SubmitIncidentClosure)
+	incidentRoutes.POST("/incident-closures/:closureId/approve", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentClosureReviewController.ApproveIncidentClosure)
+	incidentRoutes.POST("/incident-closures/:closureId/revert", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentClosureReviewController.RevertIncidentClosure)
+
+	// Incident Closure Review Comments
+	unauthenticatedRoutes.GET("/incident-closures/:closureId/review-comments/:commentId/document-download", incidentClosureReviewCommentController.DownloadDocument)
+	unauthenticatedRoutes.GET("/incident-closures/:closureId/review-comments/:commentId/document-preview", incidentClosureReviewCommentController.GetDocumentPreview)
+	incidentRoutes.GET("/incident-closures/:closureId/review-comments", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentClosureReviewCommentController.GetAllComments)
+	incidentRoutes.GET("/incident-closures/:closureId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentClosureReviewCommentController.GetCommentDetails)
+	incidentRoutes.POST("/incident-closures/:closureId/review-comments", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentClosureReviewCommentController.CreateComment)
+	incidentRoutes.PUT("/incident-closures/:closureId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentClosureReviewCommentController.UpdateComment)
+	incidentRoutes.POST("/incident-closures/:closureId/review-comments/delete", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentClosureReviewCommentController.DeleteComments)
+	incidentRoutes.PUT("/incident-closures/:closureId/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentClosureReviewCommentController.ResolveComment)
+
+	// Incident Workflow Levels
+	incidentRoutes.POST("/incident-workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentWorkflowLevelController.CreateWorkflowLevel)
+	incidentRoutes.DELETE("/incident-workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "incident_setting", "modify"), incidentWorkflowLevelController.DeleteWorkflowLevel)
 }

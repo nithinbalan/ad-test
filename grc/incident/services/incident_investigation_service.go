@@ -36,6 +36,7 @@ type IncidentInvestigationService struct {
 	repo                incidentRepositories.IncidentInvestigationRepositoryInterface
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	incidentRegisterSvc IncidentRegisterServiceInterface
+	incidentStatusSvc   IncidentStatusServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	incidentTimelineSvc IncidentTimelineServiceInterface
 }
@@ -44,6 +45,7 @@ func NewIncidentInvestigationService(
 	repo incidentRepositories.IncidentInvestigationRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
+	incidentStatusSvc IncidentStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
 ) IncidentInvestigationServiceInterface {
@@ -51,6 +53,7 @@ func NewIncidentInvestigationService(
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		incidentRegisterSvc: incidentRegisterSvc,
+		incidentStatusSvc:   incidentStatusSvc,
 		userSvc:             userSvc,
 		incidentTimelineSvc: incidentTimelineSvc,
 	}
@@ -213,6 +216,17 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			}
 		}
 	}
+
+	// // Update incident status to investigating
+	// investigatingStatus, err := iis.incidentStatusSvc.GetByType("investigating")
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
+	// if err := iis.incidentRegisterSvc.StatusUpdate(incidentID, currentUserID, investigatingStatus.ID, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	// Update timeline
 	// todo

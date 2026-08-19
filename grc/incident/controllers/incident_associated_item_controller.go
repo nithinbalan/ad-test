@@ -922,11 +922,145 @@ func (iaic *IncidentAssociatedItemController) DeleteIncidentAsset(c *gin.Context
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+
 	err = iaic.service.DeleteIncidentAsset(uint(incidentID), uint(assetID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from incident successfully"})
+}
+
+func (iaic *IncidentAssociatedItemController) GetAllIncidentVulnerabilities(c *gin.Context) {
+
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	vulnerabilities, err := iaic.service.GetAllVulnerabilities(uint(incidentID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, vulnerabilities)
+}
+
+func (iaic *IncidentAssociatedItemController) CreateIncidentVulnerability(c *gin.Context) {
+	var input commonDTOs.AssociatedVulnerabilityMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(c.Param("incidentID"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(iaic.db, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from incident successfully"})
+	err = iaic.service.CreateIncidentVulnerability(uint(incidentID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (iaic *IncidentAssociatedItemController) DeleteIncidentVulnerability(c *gin.Context) {
+
+	incidentIDStr := c.Param("incidentID")
+	vulnerabilityIDStr := c.Param("vulnerabilityId")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	vulnerabilityID, err := strconv.ParseUint(vulnerabilityIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = iaic.service.DeleteIncidentVulnerability(uint(incidentID), uint(vulnerabilityID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Vulnerability unmapped from incident successfully"})
 }

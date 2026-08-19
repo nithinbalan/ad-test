@@ -21,6 +21,9 @@ type IncidentModule struct {
 	IncidentRootCauseAnalysisController         *controllers.IncidentRootCauseAnalysisController
 	IncidentCommunicationLogController          *controllers.IncidentCommunicationLogController
 	IncidentClosureController                   *controllers.IncidentClosureController
+	IncidentClosureWorkflowController           *controllers.IncidentClosureWorkflowController
+	IncidentClosureReviewController             *controllers.IncidentClosureReviewController
+	IncidentClosureReviewCommentController      *controllers.IncidentClosureReviewCommentController
 	IncidentPostReviewEffectivenessController   *controllers.IncidentPostReviewEffectivenessController
 	IncidentPostReviewController                *controllers.IncidentPostReviewController
 	IncidentAssociatedItemController            *controllers.IncidentAssociatedItemController
@@ -31,6 +34,11 @@ type IncidentModule struct {
 	IncidentImpactController                    *controllers.IncidentImpactController
 	IncidentScopeController                     *controllers.IncidentScopeController
 	IncidentSensitivityClassificationController *controllers.IncidentSensitivityClassificationController
+	IncidentEvidenceTypeController              *controllers.IncidentEvidenceTypeController
+	IncidentEvidenceSourceController            *controllers.IncidentEvidenceSourceController
+	IncidentEvidenceController                  *controllers.IncidentEvidenceController
+	IncidentSLAEscalationMatrixController       *controllers.IncidentSLAEscalationMatrixController
+	IncidentWorkflowLevelController             *controllers.IncidentWorkflowLevelController
 
 	IncidentRegisterSvc   services.IncidentRegisterServiceInterface
 	IncidentActionPlanSvc services.IncidentActionPlanServiceInterface
@@ -65,6 +73,9 @@ func NewIncidentModule(db *gorm.DB,
 
 	incidentRegisterRepo := repositories.NewIncidentRegisterRepository(db)
 
+	incidentResponseTeamRepo := repositories.NewIncidentResponseTeamRepository(db)
+	incidentResponseTeamSvc := services.NewIncidentResponseTeamService(incidentResponseTeamRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
+
 	incidentTimelineRepo := repositories.NewIncidentTimelineRepository(db)
 	incidentTimelineSvc := services.NewIncidentTimelineService(incidentTimelineRepo, incidentRegisterRepo)
 	incidentTimelineController := controllers.NewIncidentTimelineController(incidentTimelineSvc)
@@ -74,6 +85,7 @@ func NewIncidentModule(db *gorm.DB,
 		incidentCategorySvc,
 		incidentTypeSvc,
 		incidentStatusSvc,
+		incidentResponseTeamSvc,
 		masterModule.SeverityLevelSvc,
 		organizationModule.ControlSvc,
 		complianceModule.ComplianceRequirementSvc,
@@ -98,6 +110,7 @@ func NewIncidentModule(db *gorm.DB,
 		incidentInvestigationRepo,
 		sharedModule.ActivityLogService,
 		incidentRegisterSvc,
+		incidentStatusSvc,
 		organizationModule.UserSvc,
 		incidentTimelineSvc,
 	)
@@ -137,6 +150,46 @@ func NewIncidentModule(db *gorm.DB,
 	incidentClosureSvc := services.NewIncidentClosureService(incidentClosureRepo, sharedModule.ActivityLogService, incidentRegisterSvc, incidentTimelineSvc, incidentStatusSvc)
 	incidentClosureController := controllers.NewIncidentClosureController(incidentClosureSvc)
 
+	incidentClosureWorkflowRepo := repositories.NewIncidentClosureWorkflowRepository(db)
+	incidentClosureWorkflowSvc := services.NewIncidentClosureWorkflowService(
+		incidentClosureWorkflowRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+		commonModule.NotificationService,
+		organizationModule.OrganizationUnitsSvc,
+	)
+	incidentClosureWorkflowSvc.SetIncidentClosureService(incidentClosureSvc)
+	incidentClosureWorkflowController := controllers.NewIncidentClosureWorkflowController(incidentClosureWorkflowSvc)
+
+	incidentClosureReviewRepo := repositories.NewIncidentClosureReviewRepository(db)
+	incidentClosureReviewSvc := services.NewIncidentClosureReviewService(
+		incidentClosureReviewRepo,
+		sharedModule.ActivityLogService,
+		incidentClosureSvc,
+		incidentClosureWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		incidentRegisterSvc,
+		incidentStatusSvc,
+		incidentActionPlanSvc,
+		incidentRootCauseAnalysisSvc,
+	)
+	incidentClosureReviewController := controllers.NewIncidentClosureReviewController(incidentClosureReviewSvc)
+
+	incidentClosureReviewCommentRepo := repositories.NewIncidentClosureReviewCommentRepository(db)
+	incidentClosureReviewCommentSvc := services.NewIncidentClosureReviewCommentService(
+		incidentClosureReviewCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		incidentClosureSvc,
+		masterModule.CommentStatusSvc,
+	)
+	incidentClosureReviewCommentController := controllers.NewIncidentClosureReviewCommentController(incidentClosureReviewCommentSvc)
+
 	incidentPostReviewEffectivenessRepo := repositories.NewIncidentPostReviewEffectivenessRepository(db)
 	incidentPostReviewEffectivenessSvc := services.NewIncidentPostReviewEffectivenessService(incidentPostReviewEffectivenessRepo)
 	incidentPostReviewEffectivenessController := controllers.NewIncidentPostReviewEffectivenessController(incidentPostReviewEffectivenessSvc)
@@ -160,8 +213,6 @@ func NewIncidentModule(db *gorm.DB,
 	incidentReportSvc := services.NewIncidentReportService(incidentReportrepo, settingsModule.ReportTemplateSettingSvc, incidentRootCauseAnalysisSvc, incidentActionPlanSvc, sharedModule.ActivityLogService)
 	incidentReportController := controllers.NewIncidentReportController(incidentReportSvc)
 
-	incidentResponseTeamRepo := repositories.NewIncidentResponseTeamRepository(db)
-	incidentResponseTeamSvc := services.NewIncidentResponseTeamService(incidentResponseTeamRepo, sharedModule.ActivityLogService, organizationModule.UserSvc)
 	incidentResponseTeamController := controllers.NewIncidentResponseTeamController(incidentResponseTeamSvc)
 
 	incidentImpactRepo := repositories.NewIncidentImpactRepository(db)
@@ -176,6 +227,24 @@ func NewIncidentModule(db *gorm.DB,
 	incidentSensitivityClassificationSvc := services.NewIncidentSensitivityClassificationService(incidentSensitivityClassificationRepo, sharedModule.ActivityLogService)
 	incidentSensitivityClassificationController := controllers.NewIncidentSensitivityClassificationController(incidentSensitivityClassificationSvc)
 
+	incidentEvidenceTypeRepo := repositories.NewIncidentEvidenceTypeRepository(db)
+	incidentEvidenceTypeSvc := services.NewIncidentEvidenceTypeService(incidentEvidenceTypeRepo, sharedModule.ActivityLogService)
+	incidentEvidenceTypeController := controllers.NewIncidentEvidenceTypeController(incidentEvidenceTypeSvc)
+
+	incidentEvidenceSourceRepo := repositories.NewIncidentEvidenceSourceRepository(db)
+	incidentEvidenceSourceSvc := services.NewIncidentEvidenceSourceService(incidentEvidenceSourceRepo, sharedModule.ActivityLogService)
+	incidentEvidenceSourceController := controllers.NewIncidentEvidenceSourceController(incidentEvidenceSourceSvc)
+
+	incidentEvidenceRepo := repositories.NewIncidentEvidenceRepository(db)
+	incidentEvidenceSvc := services.NewIncidentEvidenceService(incidentEvidenceRepo, sharedModule.ActivityLogService, incidentRegisterSvc, incidentEvidenceSourceSvc, incidentEvidenceTypeSvc)
+	incidentEvidenceController := controllers.NewIncidentEvidenceController(incidentEvidenceSvc)
+
+	incidentSLAEscalationMatrixRepo := repositories.NewIncidentSLAEscalationMatrixRepository(db)
+	incidentSLAEscalationMatrixSvc := services.NewIncidentSLAEscalationMatrixService(incidentSLAEscalationMatrixRepo, sharedModule.ActivityLogService)
+	incidentSLAEscalationMatrixController := controllers.NewIncidentSLAEscalationMatrixController(incidentSLAEscalationMatrixSvc)
+
+	incidentWorkflowLevelController := controllers.NewIncidentWorkflowLevelController(settingsModule.WorkflowSvc)
+
 	return &IncidentModule{
 		IncidentCategoryController:                  incidentCategoryController,
 		IncidentSubCategoryController:               incidentSubCategoryController,
@@ -189,6 +258,9 @@ func NewIncidentModule(db *gorm.DB,
 		IncidentRootCauseAnalysisController:         incidentRootCauseAnalysisController,
 		IncidentCommunicationLogController:          incidentCommunicationLogController,
 		IncidentClosureController:                   incidentClosureController,
+		IncidentClosureWorkflowController:           incidentClosureWorkflowController,
+		IncidentClosureReviewController:             incidentClosureReviewController,
+		IncidentClosureReviewCommentController:      incidentClosureReviewCommentController,
 		IncidentPostReviewEffectivenessController:   incidentPostReviewEffectivenessController,
 		IncidentPostReviewController:                incidentPostReviewController,
 		IncidentAssociatedItemController:            incidentAssociatedItemController,
@@ -199,6 +271,11 @@ func NewIncidentModule(db *gorm.DB,
 		IncidentImpactController:                    incidentImpactController,
 		IncidentScopeController:                     incidentScopeController,
 		IncidentSensitivityClassificationController: incidentSensitivityClassificationController,
+		IncidentEvidenceTypeController:              incidentEvidenceTypeController,
+		IncidentEvidenceSourceController:            incidentEvidenceSourceController,
+		IncidentEvidenceController:                  incidentEvidenceController,
+		IncidentSLAEscalationMatrixController:       incidentSLAEscalationMatrixController,
+		IncidentWorkflowLevelController:             incidentWorkflowLevelController,
 
 		IncidentRegisterSvc:   incidentRegisterSvc,
 		IncidentActionPlanSvc: incidentActionPlanSvc,

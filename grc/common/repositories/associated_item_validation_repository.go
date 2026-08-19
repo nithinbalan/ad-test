@@ -33,6 +33,8 @@ type AssociatedItemValidationRepositoryInterface interface {
 	BCPExists(id uint) (*models.BusinessContinuityPlan, error)
 	GetClausesByIDs(ids []uint) ([]*models.ComplianceClause, error)
 	GetComplianceRegistersByIDs(ids []uint) ([]*models.ComplianceRegister, error)
+	IsVulnerabilityMapped(masterName string, columnName string, vulnerabilityID, masterID uint) (bool, error)
+	VulnerabilityExists(id uint) (*models.Vulnerability, error)
 }
 
 type AssociatedItemValidationRepository struct {
@@ -426,4 +428,31 @@ func (repo *AssociatedItemValidationRepository) GetComplianceRegistersByIDs(ids 
 	}
 
 	return complianceRegisters, nil
+}
+
+func (repo *AssociatedItemValidationRepository) IsVulnerabilityMapped(masterName string, columnName string, vulnerabilityID, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("vulnerability_id = ? AND "+columnName+" = ?", vulnerabilityID, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) VulnerabilityExists(id uint) (*models.Vulnerability, error) {
+	db := repo.db
+
+	var vulnerability *models.Vulnerability
+
+	result := db.
+		First(&vulnerability, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return vulnerability, nil
 }
