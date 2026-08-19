@@ -91,16 +91,20 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAllAuditInsightsFindi
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
+	isPassiveUser := utility.IsPassiveAccess(c)
+
 	queryParams := auditDTOs.AuditFindingActionPlanListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortField,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
-		Export:      export,
+		Sort:          sort,
+		SortBy:        sortField,
+		Keyword:       keyword,
+		Status:        status,
+		Page:          page,
+		PageSize:      pageSize,
+		Filters:       filters,
+		QuickFilter:   quickFilter,
+		Export:        export,
+		IsPassiveUser: isPassiveUser,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -146,11 +150,22 @@ func (aifapc *AuditInsightsFindingActionPlanController) GetAuditInsightsFindingA
 		return
 	}
 
-	audit, err := aifapc.service.GetFullDetailsByID(uint(id))
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aifapc.db, c, err.Error())
+		return
+	}
+
+	isPassiveUser := utility.IsPassiveAccess(c)
+
+	audit, err := aifapc.service.GetFullDetailsByID(uint(id), currentUserID, isPassiveUser)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(aifapc.db, c, e.Error())

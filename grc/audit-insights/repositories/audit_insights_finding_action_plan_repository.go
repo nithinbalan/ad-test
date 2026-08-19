@@ -10,7 +10,7 @@ import (
 )
 
 type AuditInsightsFindingActionPlanRepositoryInterface interface {
-	GetAll(params *auditDTOs.AuditFindingActionPlanListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditFindingActionPlanListResponseDTO, error)
+	GetAll(params *auditDTOs.AuditFindingActionPlanListQueryParamsDTO) (*auditDTOs.AuditFindingActionPlanListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*models.AuditFindingActionPlan, error)
 }
 
@@ -24,7 +24,7 @@ func NewAuditInsightsFindingActionPlanRepository(db *gorm.DB) *AuditInsightsFind
 	}
 }
 
-func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.AuditFindingActionPlanListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditFindingActionPlanListResponseDTO, error) {
+func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.AuditFindingActionPlanListQueryParamsDTO) (*auditDTOs.AuditFindingActionPlanListResponseDTO, error) {
 	var auditFindingActionPlans []*auditDTOs.AuditFindingActionPlanListDTO
 	var totalCount int64
 
@@ -105,9 +105,11 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.A
         LEFT JOIN severity_levels ON severity_levels.id = audit_finding_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = audit_finding_action_plans.responsible_user_id
 		LEFT JOIN users AS review_user ON review_user.id = audit_finding_action_plans.review_user_id
-    `).
-		Where("auditable_items.responsible_unit_id = ? AND audit_final_report_statuses.type = ?", currentUserResponsibleUnitID, "published").
-		Group(`
+    `)
+
+		// Base filter: only action plans from approved (published) final reports
+	query = query.Where("audit_final_report_statuses.type = ?", "published")
+	query = query.Group(`
 			audit_finding_action_plans.id,
 			audit_finding_action_plans.audit_finding_id,
 			audit_finding_action_plans.action_plan_status_id,
@@ -168,7 +170,28 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.A
 			updated_user.color,
 			updated_user.email,
 			updated_user.profile_image_path`,
-		)
+	)
+
+	// Access control
+	if _, isFindingScoped := params.Filters["audit_finding_id"]; !isFindingScoped {
+		if params.IsPassiveUser {
+			query = query.Where(`
+			(
+			audit_finding_action_plans.responsible_user_id = ?
+			OR audit_finding_action_plans.delegatee_user_id = ?
+			)
+			`, params.AccessUserID, params.AccessUserID)
+		} else if !params.IsAllAccess {
+			query = query.Where(`
+			(
+			audit_finding_action_plans.responsible_user_id = ?
+			OR audit_finding_action_plans.delegatee_user_id = ?
+			OR audit_finding_action_plans.created_by_id = ?
+			OR audit_finding_action_plans.review_user_id = ?
+			)
+			`, params.AccessUserID, params.AccessUserID, params.AccessUserID, params.AccessUserID)
+		}
+	}
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -269,6 +292,7 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetFullDetailsByID(id uint
 		Preload("UpdatedByUser").
 		Preload("ActionPlanStatusUpdates").
 		Preload("ReviewUser").
+		Preload("DelegateeUser").
 		First(&auditFindingActionPlan, id)
 
 	if result.Error != nil {

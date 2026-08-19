@@ -79,6 +79,9 @@ type AuditFindingActionPlanListQueryParamsDTO struct {
 	DateFrom            string
 	DateTo              string
 	ExcludeReassessment bool
+	IsAllAccess         bool
+	AccessUserID        uint
+	IsPassiveUser       bool
 }
 
 type AuditFindingActionPlanListResponseDTO struct {
