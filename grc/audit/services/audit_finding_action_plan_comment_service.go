@@ -616,7 +616,7 @@ func (afaps *AuditFindingActionPlanCommentService) Update(findingID uint, action
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("audit", "audit-finding", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -731,6 +731,11 @@ func (afaps *AuditFindingActionPlanCommentService) Delete(findingID uint, action
 }
 
 func (afaps *AuditFindingActionPlanCommentService) GetDocumentPath(findingID, actionPlanID, id uint, token string) (string, error) {
+	findingID, err := afaps.resolveFindingID(findingID, actionPlanID)
+	if err != nil {
+		return "", err
+	}
+
 	existingComment, err := afaps.GetByID(findingID, actionPlanID, id)
 	if err != nil {
 		return "", err
@@ -749,7 +754,7 @@ func (afaps *AuditFindingActionPlanCommentService) GetDocumentPath(findingID, ac
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("audit", "audit-finding", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)

@@ -248,10 +248,14 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) DeleteComment(c *g
 
 func (afapc *AuditInsightsFindingActionPlanCommentController) GetAuditFindingActionPlanCommentDocumentPreview(c *gin.Context) {
 	findingIDStr := c.Param("findingId")
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	findingID := uint(0)
+	if findingIDStr != "" {
+		parsedFindingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = uint(parsedFindingID)
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -275,7 +279,7 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) GetAuditFindingAct
 		return
 	}
 
-	complianceActionPlanCommentDocumentPath, err := afapc.service.GetDocumentPath(uint(findingID), uint(actionPlanID), uint(id), token)
+	complianceActionPlanCommentDocumentPath, err := afapc.service.GetDocumentPath(findingID, uint(actionPlanID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -290,10 +294,14 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) GetAuditFindingAct
 
 func (afapc *AuditInsightsFindingActionPlanCommentController) DownloadAuditFindingActionPlanCommentDocument(c *gin.Context) {
 	findingIDStr := c.Param("findingId")
-	findingID, err := strconv.ParseUint(findingIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	findingID := uint(0)
+	if findingIDStr != "" {
+		parsedFindingID, err := strconv.ParseUint(findingIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+		findingID = uint(parsedFindingID)
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -316,7 +324,7 @@ func (afapc *AuditInsightsFindingActionPlanCommentController) DownloadAuditFindi
 		return
 	}
 
-	complianceActionPlanCommentDocumentPath, err := afapc.service.GetDocumentPath(uint(findingID), uint(actionPlanID), uint(id), token)
+	complianceActionPlanCommentDocumentPath, err := afapc.service.GetDocumentPath(findingID, uint(actionPlanID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:

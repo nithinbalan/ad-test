@@ -127,6 +127,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes.PUT("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightFindingActionPlanCommentController.UpdateComment)
 	auditInsightsRoutes.POST("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightFindingActionPlanCommentController.DeleteComment)
 
+	unauthenticatedRoutes.GET("/audit-insights/action-plans/:actionPlanId/comments/:commentId/document-download", auditInsightFindingActionPlanCommentController.DownloadAuditFindingActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/audit-insights/action-plans/:actionPlanId/comments/:commentId/document-preview", auditInsightFindingActionPlanCommentController.GetAuditFindingActionPlanCommentDocumentPreview)
 	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "view"), auditInsightFindingActionPlanCommentController.GetAllComments)
 	auditInsightsRoutes.GET("/audit-insights/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "view"), auditInsightFindingActionPlanCommentController.GetCommentDetails)
 	auditInsightsRoutes.POST("/audit-insights/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddlewareWithPassive(db, "audit_insight_action_plans", "modify"), auditInsightFindingActionPlanCommentController.CreateComment)
