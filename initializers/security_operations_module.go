@@ -13,14 +13,17 @@ type SecurityOperationsModule struct {
 	CSLogDataReceptionMechanismController *controllers.CSLogDataReceptionMechanismController
 	CSLogCommunicationChannelController   *controllers.CSLogCommunicationChannelController
 	CSLogSourceDirectoryController        *controllers.CSLogSourceDirectoryController
+	CSLogSocRoomAccessLogController       *controllers.CSLogSocRoomAccessLogController
 
-	CSLogSourceDirectorySvc services.CSLogSourceDirectoryServiceInterface
+	CSLogSourceDirectorySvc  services.CSLogSourceDirectoryServiceInterface
+	CSLogSocRoomAccessLogSvc services.CSLogSocRoomAccessLogServiceInterface
 }
 
 func NewSecurityOperationsModule(
 	db *gorm.DB,
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
+	organizationModule *OrganizationModule,
 ) *SecurityOperationsModule {
 	csLogDataEntityTypeRepo := repositories.NewCSLogDataEntityTypeRepository(db)
 	csLogDataEntityTypeSvc := services.NewCSLogDataEntityTypeService(csLogDataEntityTypeRepo, sharedModule.ActivityLogService)
@@ -45,11 +48,23 @@ func NewSecurityOperationsModule(
 	)
 	csLogSourceDirectoryController := controllers.NewCSLogSourceDirectoryController(csLogSourceDirectorySvc)
 
+	csLogSocRoomAccessLogRepo := repositories.NewCSLogSocRoomAccessLogRepository(db)
+	csLogSocRoomAccessLogSvc := services.NewCSLogSocRoomAccessLogService(
+		csLogSocRoomAccessLogRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.OrganizationUnitSvc,
+		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
+	)
+	csLogSocRoomAccessLogController := controllers.NewCSLogSocRoomAccessLogController(csLogSocRoomAccessLogSvc)
+
 	return &SecurityOperationsModule{
 		CSLogDataEntityTypeController:         csLogDataEntityTypeController,
 		CSLogDataReceptionMechanismController: csLogDataReceptionMechanismController,
 		CSLogCommunicationChannelController:   csLogCommunicationChannelController,
 		CSLogSourceDirectoryController:        csLogSourceDirectoryController,
+		CSLogSocRoomAccessLogController:       csLogSocRoomAccessLogController,
 		CSLogSourceDirectorySvc:               csLogSourceDirectorySvc,
+		CSLogSocRoomAccessLogSvc:              csLogSocRoomAccessLogSvc,
 	}
 }
