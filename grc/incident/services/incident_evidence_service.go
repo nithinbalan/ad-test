@@ -354,8 +354,6 @@ func (ies *IncidentEvidenceService) Delete(incidentRegisterID uint, ids []uint, 
 	var deletedItems []map[string]interface{}
 	evidencesToDelete := make([]*models.IncidentEvidence, 0)
 
-	tx := ies.repo.BeginTransaction()
-
 	for _, id := range ids {
 		evidence, err := ies.repo.GetByID(id)
 		if err != nil {
@@ -363,14 +361,15 @@ func (ies *IncidentEvidenceService) Delete(incidentRegisterID uint, ids []uint, 
 			continue
 		}
 
-		evidencesToDelete = append(evidencesToDelete, evidence)
-
+		tx := ies.repo.BeginTransaction()
 		if err := ies.repo.Delete(id, tx); err != nil {
 			tx.Rollback()
 			failedIds = append(failedIds, id)
 			continue
 		}
+		tx.Commit()
 
+		evidencesToDelete = append(evidencesToDelete, evidence)
 		successIds = append(successIds, id)
 		deletedItems = append(deletedItems, map[string]interface{}{
 			"id":   evidence.ID,
@@ -380,11 +379,8 @@ func (ies *IncidentEvidenceService) Delete(incidentRegisterID uint, ids []uint, 
 	}
 
 	if len(successIds) == 0 {
-		tx.Rollback()
 		return failedIds, nil
 	}
-
-	tx.Commit()
 
 	for _, evidence := range evidencesToDelete {
 		storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentRegisterID), 10), "evidences")

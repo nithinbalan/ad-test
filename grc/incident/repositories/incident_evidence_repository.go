@@ -187,7 +187,7 @@ func (repo *IncidentEvidenceRepository) Delete(id uint, tx ...utility.DatabaseTr
 		}
 		return err
 	}
-	return repo.db.Delete(&models.IncidentEvidence{}, id).Error
+	return db.Delete(&models.IncidentEvidence{}, id).Error
 }
 
 func (repo *IncidentEvidenceRepository) GetDownloadHistories(incidentEvidenceID uint) ([]*dtos.IncidentEvidenceDownloadHistoryListDTO, error) {

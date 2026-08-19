@@ -149,7 +149,7 @@ func (icws *IncidentClosureWorkflowService) CreateIncidentClosureWorkflow(incide
 		return err
 	}
 
-	workflow, err := icws.workflowSvc.GetWorkflowByContext(workflowContext.ID)
+	workflow, err := icws.workflowSvc.GetWorkflowByContext(workflowContext.ID, tx...)
 	if err != nil {
 		return err
 	}
@@ -179,6 +179,7 @@ func (icws *IncidentClosureWorkflowService) CreateIncidentClosureWorkflow(incide
 			return err
 		}
 
+		participantCount := 0
 		for _, participant := range level.Participants {
 			if participant.Role != nil {
 				userIDs, err := icws.userSvc.GetUserIdsByRole(participant.Role.ID, tx...)
@@ -186,11 +187,16 @@ func (icws *IncidentClosureWorkflowService) CreateIncidentClosureWorkflow(incide
 					return err
 				}
 
+				if len(userIDs) == 0 {
+					return utility.NewForbiddenError(fmt.Sprintf("No users found for role '%s' at workflow level %d.", participant.Role.TitleEn, level.Level))
+				}
+
 				for _, userID := range userIDs {
 					err = icws.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...)
 					if err != nil {
 						return err
 					}
+					participantCount++
 				}
 			} else if participant.User != nil {
 				userID := uint(participant.User.ID)
@@ -198,6 +204,7 @@ func (icws *IncidentClosureWorkflowService) CreateIncidentClosureWorkflow(incide
 				if err != nil {
 					return err
 				}
+				participantCount++
 			} else if participant.Unit != nil {
 				deptHead, err := icws.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(participant.Unit.ID))
 				if err != nil {
@@ -211,7 +218,12 @@ func (icws *IncidentClosureWorkflowService) CreateIncidentClosureWorkflow(incide
 				if err != nil {
 					return err
 				}
+				participantCount++
 			}
+		}
+
+		if participantCount == 0 {
+			return utility.NewForbiddenError(fmt.Sprintf("No participants configured for workflow level %d.", level.Level))
 		}
 	}
 	return nil
