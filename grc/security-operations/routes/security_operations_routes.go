@@ -12,12 +12,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	securityOperationsRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
+	unauthenticatedRoutes := router.Group("/")
+
 	db := app.DB
 
 	csLogDataEntityTypeController := app.SecurityOperationsModule.CSLogDataEntityTypeController
 	csLogDataReceptionMechanismController := app.SecurityOperationsModule.CSLogDataReceptionMechanismController
 	csLogCommunicationChannelController := app.SecurityOperationsModule.CSLogCommunicationChannelController
 	csLogSourceDirectoryController := app.SecurityOperationsModule.CSLogSourceDirectoryController
+	csLogSocRoomAccessLogController := app.SecurityOperationsModule.CSLogSocRoomAccessLogController
 
 	// CS Log Data Entity Types
 	securityOperationsRoutes.GET("/security-operations/cs-log-data-entity-types", csLogDataEntityTypeController.GetAllCSLogDataEntityTypes)
@@ -52,4 +55,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	securityOperationsRoutes.POST("/security-operations/source-directory", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "modify"), csLogSourceDirectoryController.CreateCSLogSourceDirectory)
 	securityOperationsRoutes.PUT("/security-operations/source-directory/:id", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "modify"), csLogSourceDirectoryController.UpdateCSLogSourceDirectory)
 	securityOperationsRoutes.POST("/security-operations/source-directory/delete", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "modify"), csLogSourceDirectoryController.DeleteCSLogSourceDirectories)
+
+	// CS Log SOC Room Access Log
+	securityOperationsRoutes.GET("/security-operations/soc-room-access-log", middlewares.RolePermissionMiddleware(db, "security_operations_soc_room_access_log", "view"), csLogSocRoomAccessLogController.GetAllCSLogSocRoomAccessLogs)
+	securityOperationsRoutes.GET("/security-operations/soc-room-access-log/export", middlewares.RolePermissionMiddleware(db, "security_operations_soc_room_access_log", "view"), csLogSocRoomAccessLogController.GetCSLogSocRoomAccessLogExport)
+	securityOperationsRoutes.GET("/security-operations/soc-room-access-log/:id", middlewares.RolePermissionMiddleware(db, "security_operations_soc_room_access_log", "view"), csLogSocRoomAccessLogController.GetCSLogSocRoomAccessLogDetails)
+	securityOperationsRoutes.POST("/security-operations/soc-room-access-log", middlewares.RolePermissionMiddleware(db, "security_operations_soc_room_access_log", "modify"), csLogSocRoomAccessLogController.CreateCSLogSocRoomAccessLog)
+	securityOperationsRoutes.PUT("/security-operations/soc-room-access-log/:id", middlewares.RolePermissionMiddleware(db, "security_operations_soc_room_access_log", "modify"), csLogSocRoomAccessLogController.UpdateCSLogSocRoomAccessLog)
+	securityOperationsRoutes.POST("/security-operations/soc-room-access-log/delete", middlewares.RolePermissionMiddleware(db, "security_operations_soc_room_access_log", "modify"), csLogSocRoomAccessLogController.DeleteCSLogSocRoomAccessLogs)
+
+	unauthenticatedRoutes.GET("/security-operations/soc-room-access-log/:id/document-preview", csLogSocRoomAccessLogController.GetCSLogSocRoomAccessLogDocumentPreview)
+	unauthenticatedRoutes.GET("/security-operations/soc-room-access-log/:id/document-download", csLogSocRoomAccessLogController.DownloadCSLogSocRoomAccessLogDocument)
 }
