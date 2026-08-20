@@ -17,7 +17,7 @@ import (
 
 type AuditInsightsFindingActionPlanServiceInterface interface {
 	GetAll(params *auditDTOs.AuditFindingActionPlanListQueryParamsDTO, currentUserID uint) (*auditDTOs.AuditFindingActionPlanListResponseDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingActionPlanDetailDTO, error)
+	GetFullDetailsByID(id uint, currentUserID uint, isPassiveUser bool, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingActionPlanDetailDTO, error)
 	Create(findingID uint, currentUserID uint, AuditInsightsFindingActionPlanFormDTO *auditDTOs.AuditFindingActionPlanFormDTO) (uint, error)
 	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditDTOs.AuditFindingActionPlanFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -50,14 +50,21 @@ func NewAuditInsightsFindingActionPlanService(
 }
 
 func (aifaps *AuditInsightsFindingActionPlanService) GetAll(params *auditDTOs.AuditFindingActionPlanListQueryParamsDTO, currentUserID uint) (*auditDTOs.AuditFindingActionPlanListResponseDTO, error) {
-	orgUnitID, err := aifaps.userSvc.GetUserPrimaryUnitID(currentUserID)
+	params.AccessUserID = currentUserID
+
+	isSuperAdmin, err := aifaps.userSvc.IsSuperAdmin(currentUserID)
 	if err != nil {
 		return nil, err
 	}
-	return aifaps.repo.GetAll(params, orgUnitID)
+
+	if isSuperAdmin {
+		params.IsAllAccess = true
+	}
+
+	return aifaps.repo.GetAll(params)
 }
 
-func (aifaps *AuditInsightsFindingActionPlanService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingActionPlanDetailDTO, error) {
+func (aifaps *AuditInsightsFindingActionPlanService) GetFullDetailsByID(id uint, currentUserID uint, isPassiveUser bool, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingActionPlanDetailDTO, error) {
 	var auditFindingActionPlanDTO auditDTOs.AuditFindingActionPlanDetailDTO
 	auditFindingActionPlan, err := aifaps.repo.GetFullDetailsByID(id)
 
@@ -66,6 +73,15 @@ func (aifaps *AuditInsightsFindingActionPlanService) GetFullDetailsByID(id uint,
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
+	}
+
+	if isPassiveUser {
+		isResponsibleUser := auditFindingActionPlan.ResponsibleUserID == currentUserID
+		isDelegateeUser := auditFindingActionPlan.DelegateeUserID != nil && *auditFindingActionPlan.DelegateeUserID == currentUserID
+
+		if !isResponsibleUser && !isDelegateeUser {
+			return nil, utility.NewForbiddenError("Permission denied.")
+		}
 	}
 
 	err = mapstructure.Decode(auditFindingActionPlan, &auditFindingActionPlanDTO)

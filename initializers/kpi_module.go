@@ -9,14 +9,15 @@ import (
 )
 
 type KPIModule struct {
-	GRCDashboardController           *controllers.GRCDashboardController
-	ERMDashboardController           *controllers.ERMDashboardController
-	ComplianceDashboardController    *controllers.ComplianceDashboardController
-	KRIDashboardController           *controllers.KRIDashboardController
-	AwarenessDashboardController     *controllers.AwarenessDashboardController
-	VulnerabilityDashboardController *controllers.VulnerabilityDashboardController
-	DocumentDashboardController      *controllers.DocumentDashboardController
-	IncidentDashboardController      *controllers.IncidentDashboardController
+	GRCDashboardController                  *controllers.GRCDashboardController
+	ERMDashboardController                  *controllers.ERMDashboardController
+	ComplianceDashboardController           *controllers.ComplianceDashboardController
+	KRIDashboardController                  *controllers.KRIDashboardController
+	AwarenessDashboardController            *controllers.AwarenessDashboardController
+	VulnerabilityDashboardController        *controllers.VulnerabilityDashboardController
+	DocumentDashboardController             *controllers.DocumentDashboardController
+	IncidentDashboardController             *controllers.IncidentDashboardController
+	IdentityAccessReviewDashboardController *controllers.IdentityAccessReviewDashboardController
 
 	GrcDashboardSvc services.GRCDashboardServiceInterface
 }
@@ -55,15 +56,20 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *Organ
 	incidentDashboardSvc := services.NewIncidentDashboardService(incidentDashboardRepo)
 	incidentDashboardController := controllers.NewIncidentDashboardController(incidentDashboardSvc, db)
 
+	identityAccessReviewDashboardRepo := repositories.NewIdentityAccessReviewDashboardRepository(db)
+	identityAccessReviewDashboardSvc := services.NewIdentityAccessReviewDashboardService(identityAccessReviewDashboardRepo)
+	identityAccessReviewDashboardController := controllers.NewIdentityAccessReviewDashboardController(identityAccessReviewDashboardSvc, db)
+
 	return &KPIModule{
-		GRCDashboardController:           grcDashboardController,
-		ERMDashboardController:           ermDashboardController,
-		ComplianceDashboardController:    complianceDashboardController,
-		KRIDashboardController:           kriDashboardController,
-		AwarenessDashboardController:     awarenessDashboardController,
-		VulnerabilityDashboardController: vulnerabilityDashboardController,
-		DocumentDashboardController:      documentDashboardController,
-		IncidentDashboardController:      incidentDashboardController,
+		GRCDashboardController:                  grcDashboardController,
+		ERMDashboardController:                  ermDashboardController,
+		ComplianceDashboardController:           complianceDashboardController,
+		KRIDashboardController:                  kriDashboardController,
+		AwarenessDashboardController:            awarenessDashboardController,
+		VulnerabilityDashboardController:        vulnerabilityDashboardController,
+		DocumentDashboardController:             documentDashboardController,
+		IncidentDashboardController:             incidentDashboardController,
+		IdentityAccessReviewDashboardController: identityAccessReviewDashboardController,
 
 		GrcDashboardSvc: grcDashboardSvc,
 	}

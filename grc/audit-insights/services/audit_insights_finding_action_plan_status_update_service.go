@@ -62,7 +62,7 @@ func (aifapsus *AuditInsightsFindingActionPlanStatusUpdateService) GetLatestAudi
 }
 
 func (aifapsus *AuditInsightsFindingActionPlanStatusUpdateService) GetFindingIDByActionPlan(actionPlanID uint) (uint, error) {
-	auditInsightsFindingActionPlan, err := aifapsus.auditInsightsFindingActionPlanSvc.GetFullDetailsByID(actionPlanID)
+	auditInsightsFindingActionPlan, err := aifapsus.auditInsightsFindingActionPlanSvc.GetFullDetailsByID(actionPlanID, 0, false)
 	if err != nil {
 		return 0, err
 	}

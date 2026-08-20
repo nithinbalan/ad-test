@@ -54,7 +54,19 @@ func NewAuditFindingActionPlanCommentService(repo repositories.AuditFindingActio
 	}
 }
 
+func (afaps *AuditFindingActionPlanCommentService) resolveFindingID(findingID uint, actionPlanID uint) (uint, error) {
+	if findingID != 0 {
+		return findingID, nil
+	}
+	return afaps.auditFindingActionPlanSvc.GetFindingIDByActionPlan(actionPlanID)
+}
+
 func (afaps *AuditFindingActionPlanCommentService) GetAll(findingID uint, actionPlanID uint) ([]*auditDTOs.AuditFindingActionPlanCommentListDTO, error) {
+	findingID, err := afaps.resolveFindingID(findingID, actionPlanID)
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := afaps.auditFindingActionPlanSvc.GetByID(findingID, actionPlanID); err != nil {
 		return nil, err
 	}
@@ -63,6 +75,11 @@ func (afaps *AuditFindingActionPlanCommentService) GetAll(findingID uint, action
 }
 
 func (afaps *AuditFindingActionPlanCommentService) GetByID(findingID uint, actionPlanID uint, id uint) (*models.AuditFindingActionPlanComment, error) {
+	findingID, err := afaps.resolveFindingID(findingID, actionPlanID)
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := afaps.auditFindingActionPlanSvc.GetByID(findingID, actionPlanID); err != nil {
 		return nil, err
 	}
@@ -79,6 +96,11 @@ func (afaps *AuditFindingActionPlanCommentService) GetByID(findingID uint, actio
 }
 
 func (afaps *AuditFindingActionPlanCommentService) GetFullDetailsByID(findingID uint, actionplanID uint, id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingActionPlanCommentDetailDTO, error) {
+	findingID, err := afaps.resolveFindingID(findingID, actionplanID)
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := afaps.auditFindingActionPlanSvc.GetByID(findingID, actionplanID); err != nil {
 		fmt.Printf("auditFindingActionPlan for findingID %d, actionPlanID %d\n", findingID, actionplanID)
 		return nil, err
@@ -105,6 +127,11 @@ func (afaps *AuditFindingActionPlanCommentService) GetFullDetailsByID(findingID 
 
 func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, actionPlanID uint, currentUserID uint, auditFindingActionPlanCommentFromDTO *auditDTOs.AuditFindingActionPlanCommentFormDTO) (uint, error) {
 	tx := afaps.repo.BeginTransaction()
+
+	findingID, err := afaps.resolveFindingID(findingID, actionPlanID)
+	if err != nil {
+		return 0, err
+	}
 
 	if _, err := afaps.auditFindingActionPlanSvc.GetByID(findingID, actionPlanID); err != nil {
 		return 0, err
@@ -279,7 +306,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 					})
 				}
 			}
-		} else if *auditFindingActionPlan.ReviewUserID == currentUserID {
+		} else if auditFindingActionPlan.ReviewUserID != nil && *auditFindingActionPlan.ReviewUserID == currentUserID {
 			// prepare notification
 			urlParam := fmt.Sprintf(`{"audit_finding_id":%d, "action_plan_id":%d}`, findingID, actionPlanID)
 			queryParam := ""
@@ -494,6 +521,11 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 func (afaps *AuditFindingActionPlanCommentService) Update(findingID uint, actionPlanID uint, id uint, currentUserID uint, AuditFindingActionPlanCommentFormDTO *auditDTOs.AuditFindingActionPlanCommentFormDTO) error {
 	tx := afaps.repo.BeginTransaction()
 
+	findingID, err := afaps.resolveFindingID(findingID, actionPlanID)
+	if err != nil {
+		return err
+	}
+
 	if _, err := afaps.auditFindingActionPlanSvc.GetByID(findingID, actionPlanID); err != nil {
 		return err
 	}
@@ -584,7 +616,7 @@ func (afaps *AuditFindingActionPlanCommentService) Update(findingID uint, action
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("audit", "audit-finding", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -644,6 +676,12 @@ func (afaps *AuditFindingActionPlanCommentService) Update(findingID uint, action
 
 func (afaps *AuditFindingActionPlanCommentService) Delete(findingID uint, actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := afaps.repo.BeginTransaction()
+
+	findingID, err := afaps.resolveFindingID(findingID, actionPlanID)
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := afaps.auditFindingActionPlanSvc.GetByID(findingID, actionPlanID); err != nil {
 		return nil, err
 	}
@@ -693,6 +731,11 @@ func (afaps *AuditFindingActionPlanCommentService) Delete(findingID uint, action
 }
 
 func (afaps *AuditFindingActionPlanCommentService) GetDocumentPath(findingID, actionPlanID, id uint, token string) (string, error) {
+	findingID, err := afaps.resolveFindingID(findingID, actionPlanID)
+	if err != nil {
+		return "", err
+	}
+
 	existingComment, err := afaps.GetByID(findingID, actionPlanID, id)
 	if err != nil {
 		return "", err
@@ -711,7 +754,7 @@ func (afaps *AuditFindingActionPlanCommentService) GetDocumentPath(findingID, ac
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("audit", "audit-finding", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)

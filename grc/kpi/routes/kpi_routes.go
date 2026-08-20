@@ -23,6 +23,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityDashboardController := app.KPIModule.VulnerabilityDashboardController
 	documentDashboardController := app.KPIModule.DocumentDashboardController
 	incidentDashboardController := app.KPIModule.IncidentDashboardController
+	identityAccessReviewDashboardController := app.KPIModule.IdentityAccessReviewDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -153,4 +154,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/incident/trend", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentTrend)
 	kpiRoutes.GET("/kpis/incident/action-plan-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentActionPlanSummary)
 	kpiRoutes.GET("/kpis/incident/overdue-action-plans", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetOverdueActionPlans)
+	// Identity Access Review Dashboard
+	kpiRoutes.GET("/kpis/identity-access-review/summary", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetIdentityAccessReviewSummary)
+	kpiRoutes.GET("/kpis/identity-access-review/campaign-by-lifecycle", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetCampaignsByLifecycle)
+	kpiRoutes.GET("/kpis/identity-access-review/completion-by-system", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetCompletionBySystem)
+	kpiRoutes.GET("/kpis/identity-access-review/active-recent-campaigns", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetActiveAndRecentCampaigns)
 }
