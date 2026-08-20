@@ -99,7 +99,7 @@ type CSLogSocRoomAccessLogDetailDTO struct {
 	VisitorIDNumber    string                              `json:"visitor_id_number"`
 	ExternalPartyName  string                              `json:"external_party_name"`
 	PurposeOfEntry     string                              `json:"purpose_of_entry"`
-	Notes              string                              `json:"notes"`
+	Notes              *string                             `json:"notes"`
 	Department         settingsDTOs.OrganizationUnitDTO    `json:"department"`
 	AuthorizingOfficer organizationDTOs.UserMinimalDTO     `json:"authorizing_officer"`
 	Documents          []*CSLogSocRoomAccessLogDocumentDTO `json:"documents"`

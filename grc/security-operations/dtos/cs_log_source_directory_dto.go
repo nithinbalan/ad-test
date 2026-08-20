@@ -22,7 +22,7 @@ type CSLogSourceDirectoryListDTO struct {
 	BeneficiaryEntityTitleEn    *string `json:"beneficiary_entity_title_en"`
 	BeneficiaryEntityTitleAr    *string `json:"beneficiary_entity_title_ar"`
 	CreatedAt                   string  `json:"created_at"`
-	UpdatedAt                   string  `json:"updated_at"`
+	UpdatedAt                   *string `json:"updated_at"`
 	CreatedUserID               uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`
@@ -33,14 +33,14 @@ type CSLogSourceDirectoryListDTO struct {
 	CreatedUserEmail            string  `json:"created_user_email"`
 	CreatedUserProfileImagePath string  `json:"created_user_profile_image_path"`
 	UpdatedUserID               *uint   `json:"updated_user_id"`
-	UpdatedUserFirstNameEn      string  `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr      string  `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn       string  `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr       string  `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial          string  `json:"updated_user_initial"`
-	UpdatedUserColor            string  `json:"updated_user_color"`
-	UpdatedUserEmail            string  `json:"updated_user_email"`
-	UpdatedUserProfileImagePath string  `json:"updated_user_profile_image_path"`
+	UpdatedUserFirstNameEn      *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          *string `json:"updated_user_initial"`
+	UpdatedUserColor            *string `json:"updated_user_color"`
+	UpdatedUserEmail            *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
 }
 
 type CSLogSourceDirectoryListQueryParamsDTO struct {
