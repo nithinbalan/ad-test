@@ -8,6 +8,7 @@ type IncidentRegister struct {
 	ID                                  uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ReferenceNumber                     string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
 	IncidentCategoryID                  uint       `json:"incident_category_id" binding:"required"`
+	IncidentSubCategoryID               *uint      `json:"incident_sub_category_id"`
 	IncidentTypeID                      *uint      `json:"incident_type_id"`
 	SeverityLevelID                     uint       `json:"severity_level_id" binding:"required"`
 	IncidentStatusID                    *uint      `json:"incident_status_id"`
@@ -42,6 +43,7 @@ type IncidentRegister struct {
 
 	// Relationships
 	IncidentCategory                  *IncidentCategory                  `gorm:"foreignKey:IncidentCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IncidentSubCategory               *IncidentSubCategory               `gorm:"foreignKey:IncidentSubCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	IncidentType                      *IncidentType                      `gorm:"foreignKey:IncidentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel                     *SeverityLevel                     `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	IncidentStatus                    *IncidentStatus                    `gorm:"foreignKey:IncidentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

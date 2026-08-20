@@ -38,6 +38,8 @@ type IncidentRegisterListDTO struct {
 	ResponsibleUserProfileImagePath          string     `json:"responsible_user_profile_image_path"`
 	IncidentCategoryTitleEn                  string     `json:"incident_category_title_en"`
 	IncidentCategoryTitleAr                  string     `json:"incident_category_title_ar"`
+	IncidentSubCategoryTitleEn               string     `json:"incident_sub_category_title_en"`
+	IncidentSubCategoryTitleAr               string     `json:"incident_sub_category_title_ar"`
 	IncidentTypeTitleEn                      string     `json:"incident_type_title_en"`
 	IncidentTypeTitleAr                      string     `json:"incident_type_title_ar"`
 	SeverityLevelTitleEn                     string     `json:"severity_level_title_en"`
@@ -108,6 +110,7 @@ type IncidentRegisterListDTO struct {
 
 type IncidentRegisterFormDTO struct {
 	IncidentCategoryID                  uint                       `json:"incident_category_id" binding:"required"`
+	IncidentSubCategoryID               *uint                      `json:"incident_sub_category_id"`
 	IncidentTypeID                      *uint                      `json:"incident_type_id"`
 	SeverityLevelID                     *uint                      `json:"severity_level_id"`
 	IncidentStatusID                    *uint                      `json:"incident_status_id"`
@@ -189,6 +192,7 @@ type IncidentRegisterDetailDTO struct {
 	ReportedAt                          time.Time                                `json:"reported_at"`
 	QuickAction                         *string                                  `json:"quick_action"`
 	IncidentCategory                    IncidentCategoryDTO                      `json:"incident_category"`
+	IncidentSubCategory                 *IncidentSubCategoryDTO                  `json:"incident_sub_category"`
 	IncidentType                        IncidentTypeDTO                          `json:"incident_type"`
 	SeverityLevel                       *masterDTOs.SeverityLevelDTO             `json:"severity_level"`
 	IncidentStatus                      IncidentStatusDTO                        `json:"incident_status"`

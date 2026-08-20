@@ -28,9 +28,58 @@ type IncidentReportIncident struct {
 	UpdatedAt                  *time.Time `json:"updated_at" gorm:"type:datetime"`
 	ClosedDate                 *time.Time `json:"closed_date" gorm:"type:datetime"`
 
+	// Incident Register - additional descriptive and related fields
+	Description                              *string    `json:"description" gorm:"type:nvarchar(max)"`
+	QuickAction                              *string    `json:"quick_action" gorm:"type:nvarchar(max)"`
+	IncidentTypeTitleEn                      *string    `json:"incident_type_title_en" gorm:"type:nvarchar(255)"`
+	IncidentTypeTitleAr                      *string    `json:"incident_type_title_ar" gorm:"type:nvarchar(255)"`
+	IncidentStatusColorCode                  *string    `json:"incident_status_color_code" gorm:"type:nvarchar(255)"`
+	ResponsibleUnitTitleEn                   *string    `json:"responsible_unit_title_en" gorm:"type:nvarchar(255)"`
+	ResponsibleUnitTitleAr                   *string    `json:"responsible_unit_title_ar" gorm:"type:nvarchar(255)"`
+	ResponsibleUnitColorCode                 *string    `json:"responsible_unit_color_code" gorm:"type:nvarchar(255)"`
+	BusinessOwnerNameEn                      *string    `json:"business_owner_name_en" gorm:"type:nvarchar(255)"`
+	BusinessOwnerNameAr                      *string    `json:"business_owner_name_ar" gorm:"type:nvarchar(255)"`
+	ResponseTeamLeadNameEn                   *string    `json:"response_team_lead_name_en" gorm:"type:nvarchar(255)"`
+	ResponseTeamLeadNameAr                   *string    `json:"response_team_lead_name_ar" gorm:"type:nvarchar(255)"`
+	ResponseTeamMembersEn                    *string    `json:"response_team_members_en" gorm:"type:nvarchar(max)"`
+	ResponseTeamMembersAr                    *string    `json:"response_team_members_ar" gorm:"type:nvarchar(max)"`
+	IncidentScopeTitleEn                     *string    `json:"incident_scope_title_en" gorm:"type:nvarchar(255)"`
+	IncidentScopeTitleAr                     *string    `json:"incident_scope_title_ar" gorm:"type:nvarchar(255)"`
+	IncidentSensitivityClassificationTitleEn *string    `json:"incident_sensitivity_classification_title_en" gorm:"type:nvarchar(255)"`
+	IncidentSensitivityClassificationTitleAr *string    `json:"incident_sensitivity_classification_title_ar" gorm:"type:nvarchar(255)"`
+	ConfidentialitySeverityLevelTitleEn      *string    `json:"confidentiality_severity_level_title_en" gorm:"type:nvarchar(255)"`
+	ConfidentialitySeverityLevelTitleAr      *string    `json:"confidentiality_severity_level_title_ar" gorm:"type:nvarchar(255)"`
+	ConfidentialitySeverityLevelColorCode    *string    `json:"confidentiality_severity_level_color_code" gorm:"type:nvarchar(255)"`
+	IntegritySeverityLevelTitleEn            *string    `json:"integrity_severity_level_title_en" gorm:"type:nvarchar(255)"`
+	IntegritySeverityLevelTitleAr            *string    `json:"integrity_severity_level_title_ar" gorm:"type:nvarchar(255)"`
+	IntegritySeverityLevelColorCode          *string    `json:"integrity_severity_level_color_code" gorm:"type:nvarchar(255)"`
+	AvailabilitySeverityLevelTitleEn         *string    `json:"availability_severity_level_title_en" gorm:"type:nvarchar(255)"`
+	AvailabilitySeverityLevelTitleAr         *string    `json:"availability_severity_level_title_ar" gorm:"type:nvarchar(255)"`
+	AvailabilitySeverityLevelColorCode       *string    `json:"availability_severity_level_color_code" gorm:"type:nvarchar(255)"`
+	IsAcknowledge                            bool       `json:"is_acknowledge"`
+	AcknowledgedAt                           *time.Time `json:"acknowledged_at" gorm:"type:datetime"`
+	AcknowledgedByNameEn                     *string    `json:"acknowledged_by_name_en" gorm:"type:nvarchar(255)"`
+	AcknowledgedByNameAr                     *string    `json:"acknowledged_by_name_ar" gorm:"type:nvarchar(255)"`
+	IsSLATimeAchieved                        bool       `json:"is_sla_time_achieved"`
+	IsSLATimeExceeded                        bool       `json:"is_sla_time_exceeded"`
+
+	// Incident Closure details
+	ClosureResolutionSummary       *string    `json:"closure_resolution_summary" gorm:"type:nvarchar(max)"`
+	ClosureNotes                   *string    `json:"closure_notes" gorm:"type:nvarchar(max)"`
+	ClosureSubmittedAt             *time.Time `json:"closure_submitted_at" gorm:"type:datetime"`
+	ClosureSubmittedByNameEn       *string    `json:"closure_submitted_by_name_en" gorm:"type:nvarchar(255)"`
+	ClosureSubmittedByNameAr       *string    `json:"closure_submitted_by_name_ar" gorm:"type:nvarchar(255)"`
+	ClosureApprovedAt              *time.Time `json:"closure_approved_at" gorm:"type:datetime"`
+	ClosureApprovedByNameEn        *string    `json:"closure_approved_by_name_en" gorm:"type:nvarchar(255)"`
+	ClosureApprovedByNameAr        *string    `json:"closure_approved_by_name_ar" gorm:"type:nvarchar(255)"`
+	ClosureWorkflowStatusTitleEn   *string    `json:"closure_workflow_status_title_en" gorm:"type:nvarchar(255)"`
+	ClosureWorkflowStatusTitleAr   *string    `json:"closure_workflow_status_title_ar" gorm:"type:nvarchar(255)"`
+	ClosureWorkflowStatusColorCode *string    `json:"closure_workflow_status_color_code" gorm:"type:nvarchar(255)"`
+
 	IncidentReport    *IncidentReport                    `gorm:"foreignKey:IncidentReportID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	IncidentRegister  *IncidentRegister                  `gorm:"foreignKey:IncidentRegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Documents         []*IncidentReportDocument          `gorm:"foreignKey:IncidentReportIncidentID"`
+	Evidences         []*IncidentReportEvidence          `gorm:"foreignKey:IncidentReportIncidentID"`
 	RootCauseAnalyses []*IncidentReportRootCauseAnalysis `gorm:"foreignKey:IncidentReportIncidentID"`
 	ActionPlans       []*IncidentReportActionPlan        `gorm:"foreignKey:IncidentReportIncidentID"`
 }

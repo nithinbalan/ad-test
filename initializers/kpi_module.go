@@ -16,6 +16,7 @@ type KPIModule struct {
 	AwarenessDashboardController     *controllers.AwarenessDashboardController
 	VulnerabilityDashboardController *controllers.VulnerabilityDashboardController
 	DocumentDashboardController      *controllers.DocumentDashboardController
+	IncidentDashboardController      *controllers.IncidentDashboardController
 
 	GrcDashboardSvc services.GRCDashboardServiceInterface
 }
@@ -50,6 +51,10 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *Organ
 	documentDashboardSvc := services.NewDocumentDashboardService(documentDashboardRepo)
 	documentDashboardController := controllers.NewDocumentDashboardController(documentDashboardSvc, db)
 
+	incidentDashboardRepo := repositories.NewIncidentDashboardRepository(db)
+	incidentDashboardSvc := services.NewIncidentDashboardService(incidentDashboardRepo)
+	incidentDashboardController := controllers.NewIncidentDashboardController(incidentDashboardSvc, db)
+
 	return &KPIModule{
 		GRCDashboardController:           grcDashboardController,
 		ERMDashboardController:           ermDashboardController,
@@ -58,6 +63,7 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *Organ
 		AwarenessDashboardController:     awarenessDashboardController,
 		VulnerabilityDashboardController: vulnerabilityDashboardController,
 		DocumentDashboardController:      documentDashboardController,
+		IncidentDashboardController:      incidentDashboardController,
 
 		GrcDashboardSvc: grcDashboardSvc,
 	}

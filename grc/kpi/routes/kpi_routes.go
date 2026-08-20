@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessDashboardController := app.KPIModule.AwarenessDashboardController
 	vulnerabilityDashboardController := app.KPIModule.VulnerabilityDashboardController
 	documentDashboardController := app.KPIModule.DocumentDashboardController
+	incidentDashboardController := app.KPIModule.IncidentDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -141,4 +142,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/document/by-confidentiality-classification", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentsByConfidentialityClassification)
 	kpiRoutes.GET("/kpis/document/by-responsible-unit", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentsByResponsibleUnit)
 	kpiRoutes.GET("/kpis/document/review-count-trend", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentReviewCountTrend)
+
+	// Incident Dashboard
+	kpiRoutes.GET("/kpis/incident/status-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentStatusSummary)
+	kpiRoutes.GET("/kpis/incident/severity-breakdown", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentSeverityBreakdown)
+	kpiRoutes.GET("/kpis/incident/acknowledgement-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentAcknowledgementSummary)
+	kpiRoutes.GET("/kpis/incident/sla-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentSLASummary)
+	kpiRoutes.GET("/kpis/incident/category-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentCategorySummary)
+	kpiRoutes.GET("/kpis/incident/type-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentTypeSummary)
+	kpiRoutes.GET("/kpis/incident/trend", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentTrend)
+	kpiRoutes.GET("/kpis/incident/action-plan-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentActionPlanSummary)
+	kpiRoutes.GET("/kpis/incident/overdue-action-plans", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetOverdueActionPlans)
 }
