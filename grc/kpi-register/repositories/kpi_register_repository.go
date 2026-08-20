@@ -266,6 +266,10 @@ func (repo *KPIRegisterRepository) GetAll(params *kpiDTOs.KPIRegisterListQueryPa
 
 		case "automated":
 			query = query.Where("kpi_register.type = ?", "automated")
+		case "kpi":
+			query = query.Where("kpi_register.is_kri = ?", false)
+		case "kri":
+			query = query.Where("kpi_register.is_kri = ?", true)
 
 		}
 	}
