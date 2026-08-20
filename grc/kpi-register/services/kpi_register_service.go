@@ -219,6 +219,7 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *kp
 	kpiRegister := &models.KPIRegister{
 		ReferenceNumber:       &referenceNumber,
 		Title:                 kpiRegisterFormDTO.Title,
+		IsKRI:                 kpiRegisterFormDTO.IsKRI,
 		Description:           kpiRegisterFormDTO.Description,
 		KPICategoryID:         kpiRegisterFormDTO.KPICategoryID,
 		ResponsibleUserID:     kpiRegisterFormDTO.ResponsibleUserID,
@@ -492,6 +493,7 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 	}
 
 	existingKPIRegister.Title = kpiRegisterFormDTO.Title
+	existingKPIRegister.IsKRI = kpiRegisterFormDTO.IsKRI
 	existingKPIRegister.Description = kpiRegisterFormDTO.Description
 	existingKPIRegister.KPICategoryID = kpiRegisterFormDTO.KPICategoryID
 	existingKPIRegister.ResponsibleUserID = kpiRegisterFormDTO.ResponsibleUserID
@@ -640,6 +642,7 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 
 		oldData := map[string]interface{}{
 			"title":            oldKPIRegister.Title,
+			"is_kri":           oldKPIRegister.IsKRI,
 			"description":      oldKPIRegister.Description,
 			"kpi_category":     oldKPIRegister.KPICategory.TitleEn,
 			"responsible_user": utility.GetFieldValue(oldKPIRegister.ResponsibleUser),
@@ -656,6 +659,7 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 
 		newData := map[string]interface{}{
 			"title":            updatedKPIRegister.Title,
+			"is_kri":           updatedKPIRegister.IsKRI,
 			"description":      updatedKPIRegister.Description,
 			"kpi_category":     updatedKPIRegister.KPICategory.TitleEn,
 			"responsible_user": utility.GetFieldValue(updatedKPIRegister.ResponsibleUser),

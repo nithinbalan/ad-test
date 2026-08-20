@@ -12,6 +12,7 @@ type KPIRegisterListDTO struct {
 	ReferenceNumber                 *string  `json:"reference_number"`
 	Title                           string   `json:"title"`
 	Type                            string   `json:"type"`
+	IsKRI                           bool     `json:"is_kri"`
 	Description                     *string  `json:"description"`
 	KPICategoryID                   uint     `json:"kpi_category_id"`
 	KPICategoryTitleEn              string   `json:"kpi_category_title_en"`
@@ -96,6 +97,7 @@ type KPIRegisterListDTO struct {
 
 type KPIRegisterFormDTO struct {
 	Title             string              `json:"title" binding:"required"`
+	IsKRI             bool                `json:"is_kri"`
 	Description       *string             `json:"description"`
 	KPICategoryID     uint                `json:"kpi_category_id" binding:"required"`
 	ResponsibleUserID *uint               `json:"responsible_user_id" binding:"required"`
@@ -142,6 +144,7 @@ type KPIRegisterDetailDTO struct {
 	ReferenceNumber      *string                          `json:"reference_number"`
 	Title                string                           `json:"title"`
 	Type                 string                           `json:"type"`
+	IsKRI                bool                             `json:"is_kri"`
 	Description          *string                          `json:"description"`
 	KPICategoryID        uint                             `json:"kpi_category_id"`
 	KPICategory          *KPICategoryDTO                  `json:"kpi_category"`

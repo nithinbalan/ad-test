@@ -8,6 +8,7 @@ type KPIRegister struct {
 	ID                    uint    `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	Identifier            *string `json:"identifier" gorm:"type:varchar(100);default:null"`
 	Type                  string  `json:"type" gorm:"type:varchar(20);not null;default:'manual'" binding:"oneof=automated manual"`
+	IsKRI                 bool    `json:"is_kri" gorm:"column:is_kri;type:bit;not null;default:false"`
 	ReferenceNumber       *string `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
 	Title                 string  `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	Description           *string `json:"description" gorm:"type:nvarchar(max)"`
