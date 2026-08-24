@@ -5,6 +5,7 @@ go 1.24.0
 toolchain go1.24.5
 
 require (
+	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/avct/uasurfer v0.0.0-20240501094946-ca0c4d1e541b
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/denisenkom/go-mssqldb v0.12.3

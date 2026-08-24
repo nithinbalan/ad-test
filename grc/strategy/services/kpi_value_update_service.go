@@ -97,11 +97,11 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 		KPIRegisterID: kpiRegisterID,
 		ReviewUserID:  kpiValueUpdateFormDTO.ReviewUserID,
 		UnitID:        *existingKPIRegister.UnitID,
-		ReviewedDate:  *dates.ReviewedDate,
+		ReviewedDate:  dates.ReviewedDate,
 		Value:         &kpiValueUpdateFormDTO.Value,
 		Remarks:       kpiValueUpdateFormDTO.Remarks,
 		IsLatest:      true, // Always set to true (1) when creating
-		CreatedByID:   currentUserID,
+		CreatedBYID:   currentUserID,
 	}
 
 	// Set all previous value updates for this KPIRegister to IsLatest = false
@@ -189,11 +189,12 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 	var inputs []*models.KPIValueUpdateDataInput
 	for _, input := range kpiValueUpdateFormDTO.DataInputs {
 		if input != nil {
+			value := float64(input.Value)
 			inputData := &models.KPIValueUpdateDataInput{
 				KPIValueUpdateID: id,
 				Input:            input.Input,
 				Variable:         input.Variable,
-				Value:            input.Value,
+				Value:            &value,
 				CreatedBYID:      currentUserID,
 			}
 			inputs = append(inputs, inputData)
@@ -295,7 +296,7 @@ func (kvus *KPIValueUpdateService) Update(kpiRegisterID, updateId uint, currentU
 
 	// Update KPI Value Update
 	existingKPIUpdate.KPIRegisterID = kpiRegisterID
-	existingKPIUpdate.ReviewedDate = *dates.ReviewedDate
+	existingKPIUpdate.ReviewedDate = dates.ReviewedDate
 	existingKPIUpdate.UnitID = *existingKPIRegister.UnitID
 	existingKPIUpdate.Value = &kpiValueUpdateFormDTO.Value
 	existingKPIUpdate.Remarks = kpiValueUpdateFormDTO.Remarks
@@ -414,11 +415,12 @@ func (kvus *KPIValueUpdateService) Update(kpiRegisterID, updateId uint, currentU
 	var inputs []*models.KPIValueUpdateDataInput
 	for _, input := range kpiValueUpdateFormDTO.DataInputs {
 		if input != nil {
+			value := float64(input.Value)
 			inputData := &models.KPIValueUpdateDataInput{
 				KPIValueUpdateID: updateId,
 				Input:            input.Input,
 				Variable:         input.Variable,
-				Value:            input.Value,
+				Value:            &value,
 				CreatedBYID:      currentUserID,
 			}
 			inputs = append(inputs, inputData)
@@ -566,7 +568,7 @@ func (kvus *KPIValueUpdateService) Delete(kpiRegisterID uint, ids []uint, curren
 		if nextValueUpdate != nil && nextValueUpdate.ID != 0 {
 			existingKPIRegister.ActualValue = nextValueUpdate.Value
 			existingKPIRegister.LastReviewNote = nextValueUpdate.Remarks
-			existingKPIRegister.LastReviewedDate = &nextValueUpdate.ReviewedDate
+			existingKPIRegister.LastReviewedDate = nextValueUpdate.ReviewedDate
 			existingKPIRegister.NextReviewDate = &nextReviewDate
 		} else {
 			nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type)

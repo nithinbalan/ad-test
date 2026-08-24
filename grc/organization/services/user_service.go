@@ -84,6 +84,7 @@ type UserServiceInterface interface {
 
 	GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error)
 	IsSuperAdmin(userID uint) (bool, error)
+	IsPassiveUser(userID uint) (bool, error)
 	GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models.User, error)
 	IsCyberUser(userID uint) (bool, error)
 }
@@ -2869,6 +2870,10 @@ func (us *UserService) SyncAzureGroups() ([]map[string]interface{}, error) {
 
 func (us *UserService) IsSuperAdmin(userID uint) (bool, error) {
 	return us.repo.IsSuperAdmin(userID)
+}
+
+func (us *UserService) IsPassiveUser(userID uint) (bool, error) {
+	return us.repo.IsPassiveUser(userID)
 }
 
 func (us *UserService) GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models.User, error) {

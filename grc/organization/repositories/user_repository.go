@@ -65,6 +65,7 @@ type UserRepositoryInterface interface {
 
 	GetUsersByOrganizationUnit(primaryOrgUnitField string, departmentUnitID uint) ([]*models.User, error)
 	IsSuperAdmin(userID uint) (bool, error)
+	IsPassiveUser(userID uint) (bool, error)
 	GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models.User, error)
 	IsCyberUser(userID uint) (bool, error)
 }
@@ -1117,6 +1118,17 @@ func (repo *UserRepository) IsSuperAdmin(userID uint) (bool, error) {
 		Joins("JOIN roles ON user_roles.role_id = roles.id").
 		Where("user_roles.user_id = ? AND roles.is_super_admin = ?", userID, true).
 		Count(&count).Error
+	return count > 0, err
+}
+
+func (repo *UserRepository) IsPassiveUser(userID uint) (bool, error) {
+	var count int64
+	err := repo.db.Table("user_roles").
+		Joins("JOIN roles ON roles.id = user_roles.role_id").
+		Joins("JOIN license_types ON license_types.id = roles.license_type_id").
+		Where("user_roles.user_id = ? AND license_types.type = ?", userID, "passive").
+		Count(&count).Error
+
 	return count > 0, err
 }
 

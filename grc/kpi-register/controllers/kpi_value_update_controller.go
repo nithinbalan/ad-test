@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
-	strategyDTOs "jethur/grc/kpi-register/dtos"
+	"errors"
+	kpiDTOs "jethur/grc/kpi-register/dtos"
 	"jethur/grc/kpi-register/services"
 	"jethur/utility"
 	"net/http"
@@ -25,19 +25,50 @@ func NewKPIValueUpdateController(service services.KPIValueUpdateServiceInterface
 }
 
 func (kvuc *KPIValueUpdateController) GetAllKPIValueUpdates(c *gin.Context) {
-	kpiRegisterID, err := strconv.Atoi(c.Param("kpiRegisterId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "reviewed_date")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	var export bool
+	if val, exists := c.Get("export"); exists {
+		export = val.(bool)
+	} else {
+		export, _ = strconv.ParseBool(c.DefaultQuery("export", "false"))
 	}
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
-	status := c.Query("status")
+	allowedParams := []string{
+		"kpi_register_ids",
+		"kpi_category_ids",
+		"review_user_ids",
+		"kpi_review_status_ids",
+		"created_by_ids",
+		"updated_by_ids",
+		"responsible_user_ids",
+	}
 
-	reviewedDateFrom := c.Query("reviewed_date_from")
-	reviewedDateTO := c.Query("reviewed_date_to")
+	validSortFields := map[string]string{
+		"id":                         "kpi_value_updates.id",
+		"reviewed_date":              "kpi_value_updates.reviewed_date",
+		"value":                      "kpi_value_updates.value",
+		"start_date":                 "kpi_value_updates.start_date",
+		"end_date":                   "kpi_value_updates.end_date",
+		"period_label":               "kpi_value_updates.period_label",
+		"remarks":                    "kpi_value_updates.remarks",
+		"kpi_register_title":         "kpi_register.title",
+		"kpi_category_title_en":      "kpi_categories.title_en",
+		"kpi_category_title_ar":      "kpi_categories.title_ar",
+		"review_user_first_name_en":  "review_user.first_name_en",
+		"review_user_first_name_ar":  "review_user.first_name_ar",
+		"review_user_last_name_en":   "review_user.last_name_en",
+		"review_user_last_name_ar":   "review_user.last_name_ar",
+		"kpi_review_status_title_en": "kpi_review_statuses.title_en",
+		"kpi_review_status_title_ar": "kpi_review_statuses.title_ar",
+		"created_at":                 "kpi_value_updates.created_at",
+		"updated_at":                 "kpi_value_updates.updated_at",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -51,18 +82,31 @@ func (kvuc *KPIValueUpdateController) GetAllKPIValueUpdates(c *gin.Context) {
 		return
 	}
 
-	queryParams := strategyDTOs.KPIValueUpdateListQueryParamsDTO{
-		Sort:             sort,
-		SortBy:           sortBy,
-		Keyword:          keyword,
-		Status:           status,
-		Page:             page,
-		PageSize:         pageSize,
-		ReviewedDateFrom: reviewedDateFrom,
-		ReviewedDateTo:   reviewedDateTO,
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
 	}
-	kpiRegisterUpdates, err := kvuc.service.GetAll(uint(kpiRegisterID), &queryParams)
 
+	queryParams := kpiDTOs.KPIValueUpdateListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(kvuc.db, c, err.Error())
+		return
+	}
+
+	kpiValueUpdates, err := kvuc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -74,11 +118,37 @@ func (kvuc *KPIValueUpdateController) GetAllKPIValueUpdates(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, kpiRegisterUpdates)
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(kvuc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := kvuc.service.ExportKPIValueUpdate(kpiValueUpdates.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(kvuc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="KPI value updates.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
+	c.JSON(http.StatusOK, kpiValueUpdates)
 }
 
+func (kvuc *KPIValueUpdateController) GetKPIValueUpdateExport(c *gin.Context) {
+	c.Set("export", true)
+	kvuc.GetAllKPIValueUpdates(c)
+}
 func (kvuc *KPIValueUpdateController) GetKPIValueUpdateDetails(c *gin.Context) {
-	idStr := c.Param("updateId")
+	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -100,57 +170,14 @@ func (kvuc *KPIValueUpdateController) GetKPIValueUpdateDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, kpiRegisterUpdates)
 }
 
-func (kvuc *KPIValueUpdateController) CreateKPIValueUpdate(c *gin.Context) {
-	kpiRegisterID, err := strconv.Atoi(c.Param("kpiRegisterId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	var kpiValueUpdateFormDTO strategyDTOs.KPIValueUpdateFormDTO
-	if err := c.ShouldBindJSON(&kpiValueUpdateFormDTO); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(kvuc.db, c, err.Error())
-		return
-	}
-
-	id, err := kvuc.service.Create(uint(kpiRegisterID), currentUserID, &kpiValueUpdateFormDTO)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(kvuc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
-}
-
 func (kvuc *KPIValueUpdateController) UpdateKPIValueUpdate(c *gin.Context) {
-	kpiRegisterID, err := strconv.Atoi(c.Param("kpiRegisterId"))
+	kpiValueUpdateID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	kpiValueUpdateID, err := strconv.Atoi(c.Param("updateId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	var kpiValueUpdateFormDTO strategyDTOs.KPIValueUpdateFormDTO
+	var kpiValueUpdateFormDTO kpiDTOs.KPIValueUpdateFormDTO
 	if err := c.ShouldBindJSON(&kpiValueUpdateFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -162,7 +189,7 @@ func (kvuc *KPIValueUpdateController) UpdateKPIValueUpdate(c *gin.Context) {
 		return
 	}
 
-	err = kvuc.service.Update(uint(kpiRegisterID), uint(kpiValueUpdateID), currentUserID, &kpiValueUpdateFormDTO)
+	err = kvuc.service.Update(uint(kpiValueUpdateID), currentUserID, &kpiValueUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -180,52 +207,8 @@ func (kvuc *KPIValueUpdateController) UpdateKPIValueUpdate(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (kvuc *KPIValueUpdateController) DeleteKPIValueUpdates(c *gin.Context) {
-	kpiRegisterID, err := strconv.Atoi(c.Param("kpiRegisterId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(kvuc.db, c, err.Error())
-		return
-	}
-
-	failedIDs, err := kvuc.service.Delete(uint(kpiRegisterID), request.IDs, currentUserID)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(kvuc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
-}
-
 func (kvuc *KPIValueUpdateController) GetKPIValueUpdateDocumentPreview(c *gin.Context) {
-	idStr := c.Param("kpiRegisterId")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	kpiValueUpdateID, err := strconv.Atoi(c.Param("updateId"))
+	kpiValueUpdateID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -237,7 +220,7 @@ func (kvuc *KPIValueUpdateController) GetKPIValueUpdateDocumentPreview(c *gin.Co
 		return
 	}
 
-	documentPath, err := kvuc.service.GetDocumentPath(uint(id), uint(kpiValueUpdateID), token)
+	documentPath, err := kvuc.service.GetDocumentPath(uint(kpiValueUpdateID), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -251,14 +234,7 @@ func (kvuc *KPIValueUpdateController) GetKPIValueUpdateDocumentPreview(c *gin.Co
 }
 
 func (kvuc *KPIValueUpdateController) DownloadKPIValueUpdateDocument(c *gin.Context) {
-	idStr := c.Param("kpiRegisterId")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	kpiValueUpdateID, err := strconv.Atoi(c.Param("updateId"))
+	kpiValueUpdateID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -270,7 +246,7 @@ func (kvuc *KPIValueUpdateController) DownloadKPIValueUpdateDocument(c *gin.Cont
 		return
 	}
 
-	documentPath, err := kvuc.service.GetDocumentPath(uint(id), uint(kpiValueUpdateID), token)
+	documentPath, err := kvuc.service.GetDocumentPath(uint(kpiValueUpdateID), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -293,4 +269,128 @@ func (kvuc *KPIValueUpdateController) DownloadKPIValueUpdateDocument(c *gin.Cont
 
 	// Serve the file
 	c.File(documentPath)
+}
+
+func (kvuc *KPIValueUpdateController) EvaluateKPIValueUpdateInputs(c *gin.Context) {
+	kpiValueUpdateID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var kpiValueUpdateEvaluationFormDTO kpiDTOs.KPIValueUpdateEvaluationFormDTO
+	if err := c.ShouldBindJSON(&kpiValueUpdateEvaluationFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	response, err := kvuc.service.EvaluateKPIValueUpdateInputs(uint(kpiValueUpdateID), &kpiValueUpdateEvaluationFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(kvuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (kvuc *KPIValueUpdateController) SubmitKPIValueUpdate(c *gin.Context) {
+	kpiValueUpdateID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(kvuc.db, c, err.Error())
+		return
+	}
+
+	if err := kvuc.service.Submit(uint(kpiValueUpdateID), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(kvuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (kvuc *KPIValueUpdateController) ApproveKPIValueUpdate(c *gin.Context) {
+	kpiValueUpdateID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var form kpiDTOs.KPIValueUpdateCommentFormDTO
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(kvuc.db, c, err.Error())
+		return
+	}
+
+	if err := kvuc.service.Approve(uint(kpiValueUpdateID), currentUserID, &form); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(kvuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (kvuc *KPIValueUpdateController) RevertKPIValueUpdate(c *gin.Context) {
+	kpiValueUpdateID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var form kpiDTOs.KPIValueUpdateCommentFormDTO
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(kvuc.db, c, err.Error())
+		return
+	}
+
+	if err := kvuc.service.Revert(uint(kpiValueUpdateID), currentUserID, &form); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(kvuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }
