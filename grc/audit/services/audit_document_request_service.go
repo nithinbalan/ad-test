@@ -299,6 +299,12 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 		}(id, formDTO)
 	}
 
+	// Move the audit into fieldwork once the first document request has been raised
+	if err := adrs.auditSvc.AdvanceAuditStatus(auditID, currentUserID, "fieldwork", tx); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
 	tx.Commit()
 	return requestIDs, nil
 }

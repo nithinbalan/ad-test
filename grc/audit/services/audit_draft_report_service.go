@@ -701,6 +701,12 @@ func (adrs *AuditDraftReportService) Create(auditID uint, currentUserID uint, au
 		return 0, err
 	}
 
+	// Move the audit into reporting once the draft report has been started
+	if err := adrs.auditSvc.AdvanceAuditStatus(auditID, currentUserID, "reporting", tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
