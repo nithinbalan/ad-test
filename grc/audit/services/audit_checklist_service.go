@@ -524,6 +524,12 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 		}
 	}
 
+	// Move the audit into fieldwork once the first checklist item has been performed
+	if err := acs.auditSvc.AdvanceAuditStatus(auditId, currentUserID, "fieldwork", tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
 		return err

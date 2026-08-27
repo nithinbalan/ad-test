@@ -151,9 +151,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/identity-access-review/active-recent-campaigns", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetActiveAndRecentCampaigns)
 
 	// Audit Dashboard
+	kpiRoutes.GET("/kpis/audit/summary", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditSummary)
 	kpiRoutes.GET("/kpis/audit/status-breakdown", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditStatusBreakdown)
-	kpiRoutes.GET("/kpis/audit/status/:statusType", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditsByStatus)
-	kpiRoutes.GET("/kpis/audit/status/:statusType/export", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditsByStatusExport)
+	kpiRoutes.GET("/kpis/audit/status/:statusId", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditsByStatus)
+	kpiRoutes.GET("/kpis/audit/status/:statusId/export", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditsByStatusExport)
 
 	kpiRoutes.GET("/kpis/audit/findings/summary", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditFindingsSummary)
 	kpiRoutes.GET("/kpis/audit/findings/severity-breakdown", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditFindingsSeverityBreakdown)

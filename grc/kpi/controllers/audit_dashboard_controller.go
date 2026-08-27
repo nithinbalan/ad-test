@@ -39,15 +39,28 @@ func (adc *AuditDashboardController) GetAuditStatusBreakdown(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (adc *AuditDashboardController) GetAuditSummary(c *gin.Context) {
+	result, err := adc.service.GetAuditSummary(adc.buildParams(c))
+	if err != nil {
+		utility.SendInternalErrResp(adc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 func (adc *AuditDashboardController) GetAuditsByStatus(c *gin.Context) {
-	statusType := c.Param("statusType")
+	statusIDStr := c.Param("statusId")
+	statusID, err := strconv.ParseUint(statusIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid statusId parameter"))
+		return
+	}
 	sortOrder := c.DefaultQuery("sort_order", "desc")
 	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 
 	exportFromContext, exists := c.Get("export")
 	var export bool
-	var err error
 	if exists {
 		export = exportFromContext.(bool)
 	} else {
@@ -98,7 +111,7 @@ func (adc *AuditDashboardController) GetAuditsByStatus(c *gin.Context) {
 		Export:   export,
 	}
 
-	audits, err := adc.service.GetAuditsByStatus(statusType, &queryParams)
+	audits, err := adc.service.GetAuditsByStatus(uint(statusID), &queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(adc.db, c, err.Error())
 		return
@@ -117,7 +130,7 @@ func (adc *AuditDashboardController) GetAuditsByStatus(c *gin.Context) {
 		}
 		defer excelFile.Close()
 
-		fileName := adc.service.GetAuditsByStatusExportFilename(statusType)
+		fileName := adc.service.GetAuditsByStatusExportFilename(uint(statusID))
 		c.Header("Content-Description", "File Transfer")
 		c.Header("Content-Disposition", `attachment; filename="`+fileName+`"`)
 		c.Header("Content-Type", "application/octet-stream")

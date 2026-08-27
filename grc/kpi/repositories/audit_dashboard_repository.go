@@ -14,7 +14,8 @@ import (
 
 type AuditDashboardRepositoryInterface interface {
 	GetAuditStatusBreakdown(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditStatusBreakdownDTO, error)
-	GetAuditsByStatus(statusType string, params *dtos.AuditDashboardListQueryParamsDTO) (*auditDTOs.AuditListResponseDTO, error)
+	GetAuditSummary(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditSummaryDTO, error)
+	GetAuditsByStatus(statusID uint, params *dtos.AuditDashboardListQueryParamsDTO) (*auditDTOs.AuditListResponseDTO, error)
 	GetAuditFindingsSummary(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditFindingsSummaryDTO, error)
 	GetAuditFindingsSeverityBreakdown() (*dtos.AuditFindingsSeverityBreakdownDTO, error)
 	GetAuditFindingsBySeverityLevel(severityLevelID uint, params *dtos.AuditDashboardListQueryParamsDTO) (*dtos.AuditFindingsBySeverityLevelListResponseDTO, error)
@@ -23,6 +24,7 @@ type AuditDashboardRepositoryInterface interface {
 
 	// Helpers
 	GetSeverityLevelTitle(severityLevelID uint) (string, error)
+	GetAuditStatusTitle(statusID uint) (string, error)
 }
 
 type AuditDashboardRepository struct {
@@ -45,26 +47,14 @@ func (repo *AuditDashboardRepository) applyDateFilter(query *gorm.DB, params *dt
 func (repo *AuditDashboardRepository) GetAuditStatusBreakdown(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditStatusBreakdownDTO, error) {
 	summary := &dtos.AuditStatusBreakdownDTO{}
 
+	excludedStatusTypes := []string{"draft", "in-review", "published", "in-progress"}
+
 	totalQuery := repo.db.Model(&models.Audit{})
 	totalQuery = repo.applyDateFilter(totalQuery, params, "audits")
-	totalQuery = totalQuery.Where("audits.audit_status_id NOT IN (SELECT id FROM audit_statuses WHERE type IN ('draft', 'in-review', 'published'))")
+	totalQuery = totalQuery.Where("audits.audit_status_id NOT IN (SELECT id FROM audit_statuses WHERE type IN ?)", excludedStatusTypes)
 	if err := totalQuery.Count(&summary.Total).Error; err != nil {
 		return nil, err
 	}
-
-	initiatedCompleted := `EXISTS (
-		SELECT 1 FROM audit_timelines at1
-		JOIN audit_timeline_types att1 ON att1.id = at1.audit_timeline_type_id
-		JOIN timeline_statuses ts1 ON ts1.id = at1.timeline_status_id
-		WHERE at1.audit_id = audits.id AND att1.type = 'initiated' AND ts1.type = 'completed'
-	)`
-
-	otherCompleted := `EXISTS (
-		SELECT 1 FROM audit_timelines at2
-		JOIN audit_timeline_types att2 ON att2.id = at2.audit_timeline_type_id
-		JOIN timeline_statuses ts2 ON ts2.id = at2.timeline_status_id
-		WHERE at2.audit_id = audits.id AND att2.type <> 'initiated' AND ts2.type = 'completed'
-	)`
 
 	percentage := func(count int64) float64 {
 		if summary.Total == 0 {
@@ -73,9 +63,9 @@ func (repo *AuditDashboardRepository) GetAuditStatusBreakdown(params *dtos.Audit
 		return math.Round((float64(count)/float64(summary.Total))*100*100) / 100
 	}
 
-	// Breakdown by each real audit status (excluding draft, in-review, published)
+	// Breakdown by each real, currently-used audit status
 	var auditStatuses []models.AuditStatus
-	if err := repo.db.Where("type NOT IN ?", []string{"draft", "in-review", "published"}).Find(&auditStatuses).Error; err != nil {
+	if err := repo.db.Where("type NOT IN ?", excludedStatusTypes).Find(&auditStatuses).Error; err != nil {
 		return nil, err
 	}
 
@@ -100,74 +90,53 @@ func (repo *AuditDashboardRepository) GetAuditStatusBreakdown(params *dtos.Audit
 		})
 	}
 
-	// not-started (manual): in-progress audits where only the initiated timeline is completed
-	var notStarted int64
-	notStartedQuery := repo.db.Model(&models.Audit{}).
-		Joins("JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id").
-		Where("audit_statuses.type = ?", "in-progress").
-		Where(initiatedCompleted).
-		Where("NOT " + otherCompleted)
-	notStartedQuery = repo.applyDateFilter(notStartedQuery, params, "audits")
-	if err := notStartedQuery.Count(&notStarted).Error; err != nil {
-		return nil, err
-	}
-
-	// overdue (manual): past end date and not completed
-	var overdue int64
-	overdueQuery := repo.db.Model(&models.Audit{}).
-		Joins("JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id").
-		Where("audits.end_date < ?", time.Now()).
-		Where("audit_statuses.type <> ?", "completed")
-	overdueQuery = repo.applyDateFilter(overdueQuery, params, "audits")
-	if err := overdueQuery.Count(&overdue).Error; err != nil {
-		return nil, err
-	}
-
-	summary.Statuses = append(statusItems,
-		dtos.AuditStatusBreakdownItemDTO{
-			Status: dtos.BreakdownReferenceDTO{
-				ID:        0,
-				Type:      "not-started",
-				TitleEn:   "Not Started",
-				TitleAr:   "لم يبدأ",
-				ColorCode: "#A79E9F",
-			},
-			Count:      notStarted,
-			Percentage: percentage(notStarted),
-		},
-		dtos.AuditStatusBreakdownItemDTO{
-			Status: dtos.BreakdownReferenceDTO{
-				ID:        0,
-				Type:      "overdue",
-				TitleEn:   "Overdue",
-				TitleAr:   "متأخر",
-				ColorCode: "#DB0015",
-			},
-			Count:      overdue,
-			Percentage: percentage(overdue),
-		},
-	)
+	summary.Statuses = statusItems
 
 	return summary, nil
 }
 
-func (repo *AuditDashboardRepository) GetAuditsByStatus(statusType string, params *dtos.AuditDashboardListQueryParamsDTO) (*auditDTOs.AuditListResponseDTO, error) {
+func (repo *AuditDashboardRepository) GetAuditSummary(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditSummaryDTO, error) {
+	summary := &dtos.AuditSummaryDTO{}
+
+	totalQuery := repo.db.Model(&models.Audit{})
+	totalQuery = repo.applyDateFilter(totalQuery, params, "audits")
+	totalQuery = totalQuery.Where("audits.audit_status_id NOT IN (SELECT id FROM audit_statuses WHERE type IN ('draft', 'in-review', 'published'))")
+	if err := totalQuery.Count(&summary.TotalAudits).Error; err != nil {
+		return nil, err
+	}
+
+	completedQuery := repo.db.Model(&models.Audit{}).
+		Joins("JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id").
+		Where("audit_statuses.type = ?", "completed")
+	completedQuery = repo.applyDateFilter(completedQuery, params, "audits")
+	if err := completedQuery.Count(&summary.CompletedAudits).Error; err != nil {
+		return nil, err
+	}
+
+	// in-progress: any audit that has started but isn't completed yet.
+	inProgressQuery := repo.db.Model(&models.Audit{}).
+		Joins("JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id").
+		Where("audit_statuses.type IN ?", []string{"planning", "fieldwork", "reporting"})
+	inProgressQuery = repo.applyDateFilter(inProgressQuery, params, "audits")
+	if err := inProgressQuery.Count(&summary.InProgressAudits).Error; err != nil {
+		return nil, err
+	}
+
+	// not-started: an audit plan has been created and published, but no audit has been started for it yet
+	notStartedQuery := repo.db.Model(&models.AuditPlan{}).
+		Joins("JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id").
+		Where("audit_statuses.type = ?", "published")
+	notStartedQuery = repo.applyDateFilter(notStartedQuery, params, "audit_plans")
+	if err := notStartedQuery.Count(&summary.NotStartedAudits).Error; err != nil {
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (repo *AuditDashboardRepository) GetAuditsByStatus(statusID uint, params *dtos.AuditDashboardListQueryParamsDTO) (*auditDTOs.AuditListResponseDTO, error) {
 	var audits []*auditDTOs.AuditListDTO
 	var totalCount int64
-
-	initiatedCompleted := `EXISTS (
-		SELECT 1 FROM audit_timelines at1
-		JOIN audit_timeline_types att1 ON att1.id = at1.audit_timeline_type_id
-		JOIN timeline_statuses ts1 ON ts1.id = at1.timeline_status_id
-		WHERE at1.audit_id = audits.id AND att1.type = 'initiated' AND ts1.type = 'completed'
-	)`
-
-	otherCompleted := `EXISTS (
-		SELECT 1 FROM audit_timelines at2
-		JOIN audit_timeline_types att2 ON att2.id = at2.audit_timeline_type_id
-		JOIN timeline_statuses ts2 ON ts2.id = at2.timeline_status_id
-		WHERE at2.audit_id = audits.id AND att2.type <> 'initiated' AND ts2.type = 'completed'
-	)`
 
 	query := repo.db.Table("audits").
 		Select(`
@@ -221,21 +190,9 @@ func (repo *AuditDashboardRepository) GetAuditsByStatus(statusType string, param
 			LEFT JOIN users AS updated_user ON updated_user.id = audits.updated_by_id
 		`)
 
-	// Apply status filter
-	if statusType != "" {
-		switch statusType {
-		case "not-started":
-			query = query.Where("audit_statuses.type = ?", "in-progress").
-				Where(initiatedCompleted).
-				Where("NOT " + otherCompleted)
-		case "overdue":
-			query = query.Where("audits.end_date < ?", time.Now()).
-				Where("audit_statuses.type <> ?", "completed")
-		case "draft", "in-review", "published":
-			query = query.Where("1 = 0")
-		default:
-			query = query.Where("audit_statuses.type = ?", statusType)
-		}
+	// Apply status filter.
+	if statusID > 0 {
+		query = query.Where("audits.audit_status_id = ?", statusID)
 	} else {
 		query = query.Where("audit_statuses.type NOT IN ?", []string{"draft", "in-review", "published"})
 	}
@@ -756,6 +713,18 @@ func (repo *AuditDashboardRepository) GetSeverityLevelTitle(severityLevelID uint
 		Table("severity_levels").
 		Select("title_en").
 		Where("id = ?", severityLevelID).
+		Scan(&title).Error; err != nil {
+		return "", err
+	}
+	return title, nil
+}
+
+func (repo *AuditDashboardRepository) GetAuditStatusTitle(statusID uint) (string, error) {
+	var title string
+	if err := repo.db.
+		Table("audit_statuses").
+		Select("title_en").
+		Where("id = ?", statusID).
 		Scan(&title).Error; err != nil {
 		return "", err
 	}

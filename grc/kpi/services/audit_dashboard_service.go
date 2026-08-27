@@ -14,9 +14,10 @@ import (
 
 type AuditDashboardServiceInterface interface {
 	GetAuditStatusBreakdown(params *auditDTOs.AuditDashboardQueryParamsDTO) (*auditDTOs.AuditStatusBreakdownDTO, error)
-	GetAuditsByStatus(statusType string, params *auditDTOs.AuditDashboardListQueryParamsDTO) (*auditListDTOs.AuditListResponseDTO, error)
+	GetAuditSummary(params *auditDTOs.AuditDashboardQueryParamsDTO) (*auditDTOs.AuditSummaryDTO, error)
+	GetAuditsByStatus(statusID uint, params *auditDTOs.AuditDashboardListQueryParamsDTO) (*auditListDTOs.AuditListResponseDTO, error)
 	ExportAuditsByStatus(data []*auditListDTOs.AuditListDTO, currentUserID uint) (*os.File, error)
-	GetAuditsByStatusExportFilename(statusType string) string
+	GetAuditsByStatusExportFilename(statusID uint) string
 	GetAuditFindingsSummary(params *auditDTOs.AuditDashboardQueryParamsDTO) (*auditDTOs.AuditFindingsSummaryDTO, error)
 	GetAuditFindingsSeverityBreakdown() (*auditDTOs.AuditFindingsSeverityBreakdownDTO, error)
 	GetAuditFindingsBySeverityLevel(severityLevelID uint, params *auditDTOs.AuditDashboardListQueryParamsDTO) (*auditDTOs.AuditFindingsBySeverityLevelListResponseDTO, error)
@@ -40,8 +41,12 @@ func (ads *AuditDashboardService) GetAuditStatusBreakdown(params *auditDTOs.Audi
 	return ads.repo.GetAuditStatusBreakdown(params)
 }
 
-func (ads *AuditDashboardService) GetAuditsByStatus(statusType string, params *auditDTOs.AuditDashboardListQueryParamsDTO) (*auditListDTOs.AuditListResponseDTO, error) {
-	return ads.repo.GetAuditsByStatus(statusType, params)
+func (ads *AuditDashboardService) GetAuditSummary(params *auditDTOs.AuditDashboardQueryParamsDTO) (*auditDTOs.AuditSummaryDTO, error) {
+	return ads.repo.GetAuditSummary(params)
+}
+
+func (ads *AuditDashboardService) GetAuditsByStatus(statusID uint, params *auditDTOs.AuditDashboardListQueryParamsDTO) (*auditListDTOs.AuditListResponseDTO, error) {
+	return ads.repo.GetAuditsByStatus(statusID, params)
 }
 
 func (ads *AuditDashboardService) ExportAuditsByStatus(data []*auditListDTOs.AuditListDTO, currentUserID uint) (*os.File, error) {
@@ -104,8 +109,14 @@ func (ads *AuditDashboardService) ExportAuditsByStatus(data []*auditListDTOs.Aud
 	return file, nil
 }
 
-func (ads *AuditDashboardService) GetAuditsByStatusExportFilename(statusType string) string {
-	return sanitizeFilename(auditStatusExportLabel(statusType) + ".xlsx")
+func (ads *AuditDashboardService) GetAuditsByStatusExportFilename(statusID uint) string {
+	title, err := ads.repo.GetAuditStatusTitle(statusID)
+	if err != nil || title == "" {
+		title = "Audits"
+	} else {
+		title += " Audits"
+	}
+	return sanitizeFilename(title + ".xlsx")
 }
 
 func (ads *AuditDashboardService) GetAuditFindingsSummary(params *auditDTOs.AuditDashboardQueryParamsDTO) (*auditDTOs.AuditFindingsSummaryDTO, error) {
@@ -262,19 +273,6 @@ func (ads *AuditDashboardService) ExportOverdueAuditActionPlans(data []*auditDTO
 		return nil, errors.New("failed to generate export file: " + err.Error())
 	}
 	return file, nil
-}
-
-func auditStatusExportLabel(statusType string) string {
-	labels := map[string]string{
-		"in-progress": "In Progress",
-		"completed":   "Completed",
-		"not-started": "Not Started",
-		"overdue":     "Overdue",
-	}
-	if label, ok := labels[statusType]; ok {
-		return label + " Audits"
-	}
-	return "Audits"
 }
 
 func sanitizeFilename(name string) string {

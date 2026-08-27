@@ -201,6 +201,12 @@ func (aws *AuditWorkpaperService) Create(auditID uint, currentUserID uint, formD
 		}
 	}
 
+	// Move the audit into fieldwork once the first workpaper has been added
+	if err := aws.auditSvc.AdvanceAuditStatus(auditID, currentUserID, "fieldwork", tx); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
 	tx.Commit()
 	// Log activity asynchronously
 	go func() {

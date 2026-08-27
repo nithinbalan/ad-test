@@ -38,6 +38,13 @@ type AuditStatusBreakdownDTO struct {
 	Statuses []AuditStatusBreakdownItemDTO `json:"statuses"`
 }
 
+type AuditSummaryDTO struct {
+	TotalAudits      int64 `json:"total_audits"`
+	CompletedAudits  int64 `json:"completed_audits"`
+	InProgressAudits int64 `json:"in_progress_audits"`
+	NotStartedAudits int64 `json:"not_started_audits"`
+}
+
 type AuditFindingsSummaryDTO struct {
 	FindingsTotal        int64   `json:"findings_total"`
 	FindingsOpen         int64   `json:"findings_open"`

@@ -707,6 +707,13 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		tx.Rollback()
 		return 0, err
 	}
+
+	// Move the audit into reporting once the final report has been started
+	// (normally already reached via the draft report, but kept here as a direct guarantee)
+	if err := afrs.auditSvc.AdvanceAuditStatus(auditID, currentUserID, "reporting", tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	// Mapping main section titles to types
 	mainSections := []struct {
 		Title string

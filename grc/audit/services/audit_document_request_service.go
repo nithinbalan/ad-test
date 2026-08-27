@@ -421,6 +421,12 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 		return err
 	}
 
+	// Move the audit into fieldwork once the first document request has actually been sent out
+	if err := adrs.auditSvc.AdvanceAuditStatus(auditID, currentUserID, "fieldwork", tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	// Create a task for the document submission
 	urlParam := fmt.Sprintf(`{"audit_id":%d,"document_request_id":%d}`, auditID, id)
 
