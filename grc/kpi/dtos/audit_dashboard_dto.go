@@ -17,6 +17,9 @@ type AuditDashboardListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Export   bool
+	DateFrom string
+	DateTo   string
+	Year     int
 }
 
 type BreakdownReferenceDTO struct {
@@ -141,6 +144,14 @@ type AuditOverdueActionPlanListDTO struct {
 	ActionPlanStatusTitleEn          string `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr          string `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode        string `json:"action_plan_status_color_code"`
+	CreatedUserFirstNameEn           string `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr           string `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn            string `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr            string `json:"created_user_last_name_ar"`
+	CreatedUserInitial               string `json:"created_user_initial"`
+	CreatedUserColor                 string `json:"created_user_color"`
+	CreatedUserEmail                 string `json:"created_user_email"`
+	CreatedUserProfileImagePath      string `json:"created_user_profile_image_path"`
 	CreatedAt                        string `json:"created_at"`
 }
 

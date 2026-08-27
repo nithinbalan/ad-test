@@ -12,7 +12,7 @@ import (
 type AuditRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *auditDTOs.AuditListQueryParamsDTO) (*auditDTOs.AuditListResponseDTO, error)
-	GetByID(id uint) (*models.Audit, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Audit, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Audit, error)
 	Create(audit *models.Audit, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(audit *models.Audit, tx ...utility.DatabaseTransaction) error
@@ -196,10 +196,15 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 	return response, nil
 }
 
-func (repo *AuditRepository) GetByID(id uint) (*models.Audit, error) {
+func (repo *AuditRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Audit, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var audit *models.Audit
 
-	result := repo.db.First(&audit, id)
+	result := db.First(&audit, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}

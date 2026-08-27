@@ -17,7 +17,7 @@ type AuditDashboardRepositoryInterface interface {
 	GetAuditSummary(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditSummaryDTO, error)
 	GetAuditsByStatus(statusID uint, params *dtos.AuditDashboardListQueryParamsDTO) (*auditDTOs.AuditListResponseDTO, error)
 	GetAuditFindingsSummary(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditFindingsSummaryDTO, error)
-	GetAuditFindingsSeverityBreakdown() (*dtos.AuditFindingsSeverityBreakdownDTO, error)
+	GetAuditFindingsSeverityBreakdown(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditFindingsSeverityBreakdownDTO, error)
 	GetAuditFindingsBySeverityLevel(severityLevelID uint, params *dtos.AuditDashboardListQueryParamsDTO) (*dtos.AuditFindingsBySeverityLevelListResponseDTO, error)
 	GetAuditFindingsTrend() ([]dtos.AuditFindingsTrendMonthDTO, error)
 	GetOverdueAuditActionPlans(params *dtos.AuditDashboardListQueryParamsDTO) (*dtos.AuditOverdueActionPlanListResponseDTO, error)
@@ -31,7 +31,7 @@ type AuditDashboardRepository struct {
 	db *gorm.DB
 }
 
-func NewAuditDashboardRepository(db *gorm.DB) *AuditDashboardRepository {
+func NewAuditDashboardRepository(db *gorm.DB) AuditDashboardRepositoryInterface {
 	return &AuditDashboardRepository{db: db}
 }
 
@@ -42,6 +42,14 @@ func (repo *AuditDashboardRepository) applyDateFilter(query *gorm.DB, params *dt
 		query = query.Where("YEAR("+table+".created_at) = ?", params.Year)
 	}
 	return query
+}
+
+func dateFilterParams(dateFrom, dateTo string, year int) *dtos.AuditDashboardQueryParamsDTO {
+	return &dtos.AuditDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+		Year:     year,
+	}
 }
 
 func (repo *AuditDashboardRepository) GetAuditStatusBreakdown(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditStatusBreakdownDTO, error) {
@@ -69,14 +77,27 @@ func (repo *AuditDashboardRepository) GetAuditStatusBreakdown(params *dtos.Audit
 		return nil, err
 	}
 
+	// One grouped query for all per-status counts.
+	type statusCountRow struct {
+		AuditStatusID uint
+		Cnt           int64
+	}
+	countQuery := repo.db.Model(&models.Audit{}).
+		Select("audits.audit_status_id AS audit_status_id, COUNT(*) AS cnt").
+		Group("audits.audit_status_id")
+	countQuery = repo.applyDateFilter(countQuery, params, "audits")
+	var countRows []statusCountRow
+	if err := countQuery.Scan(&countRows).Error; err != nil {
+		return nil, err
+	}
+	countByStatusID := make(map[uint]int64, len(countRows))
+	for _, r := range countRows {
+		countByStatusID[r.AuditStatusID] = r.Cnt
+	}
+
 	statusItems := make([]dtos.AuditStatusBreakdownItemDTO, 0, len(auditStatuses))
 	for _, s := range auditStatuses {
-		var c int64
-		q := repo.db.Model(&models.Audit{}).Where("audits.audit_status_id = ?", s.ID)
-		q = repo.applyDateFilter(q, params, "audits")
-		if err := q.Count(&c).Error; err != nil {
-			return nil, err
-		}
+		c := countByStatusID[uint(s.ID)]
 		statusItems = append(statusItems, dtos.AuditStatusBreakdownItemDTO{
 			Status: dtos.BreakdownReferenceDTO{
 				ID:        uint(s.ID),
@@ -116,7 +137,7 @@ func (repo *AuditDashboardRepository) GetAuditSummary(params *dtos.AuditDashboar
 	// in-progress: any audit that has started but isn't completed yet.
 	inProgressQuery := repo.db.Model(&models.Audit{}).
 		Joins("JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id").
-		Where("audit_statuses.type IN ?", []string{"planning", "fieldwork", "reporting"})
+		Where("audit_statuses.type IN ?", []string{"in-progress", "planning", "fieldwork", "reporting"})
 	inProgressQuery = repo.applyDateFilter(inProgressQuery, params, "audits")
 	if err := inProgressQuery.Count(&summary.InProgressAudits).Error; err != nil {
 		return nil, err
@@ -143,6 +164,7 @@ func (repo *AuditDashboardRepository) GetAuditsByStatus(statusID uint, params *d
 			audits.*,
 			CONVERT(VARCHAR, audits.start_date, 23) AS start_date,
 			CONVERT(VARCHAR, audits.end_date, 23) AS end_date,
+			CONVERT(VARCHAR, audits.created_at, 23) AS created_at,
 			audit_plans.title AS audit_plan_title,
 			audit_plans.description AS audit_plan_description,
 			audit_plans.purpose AS audit_plan_purpose,
@@ -197,10 +219,7 @@ func (repo *AuditDashboardRepository) GetAuditsByStatus(statusID uint, params *d
 		query = query.Where("audit_statuses.type NOT IN ?", []string{"draft", "in-review", "published"})
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
+	query = repo.applyDateFilter(query, dateFilterParams(params.DateFrom, params.DateTo, params.Year), "audits")
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
@@ -225,6 +244,11 @@ func (repo *AuditDashboardRepository) GetAuditsByStatus(statusID uint, params *d
 			updated_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	// Sort by the specified column and order
@@ -312,56 +336,54 @@ func (repo *AuditDashboardRepository) GetAuditFindingsSummary(params *dtos.Audit
 	return summary, nil
 }
 
-func (repo *AuditDashboardRepository) GetAuditFindingsSeverityBreakdown() (*dtos.AuditFindingsSeverityBreakdownDTO, error) {
-	type severityCountRow struct {
-		SeverityLevelID        uint
-		SeverityLevelType      string
-		SeverityLevelTitleEn   string
-		SeverityLevelTitleAr   string
-		SeverityLevelColorCode string
-		FindingsCount          int64
-	}
+func (repo *AuditDashboardRepository) GetAuditFindingsSeverityBreakdown(params *dtos.AuditDashboardQueryParamsDTO) (*dtos.AuditFindingsSeverityBreakdownDTO, error) {
+	result := &dtos.AuditFindingsSeverityBreakdownDTO{}
 
-	var rows []severityCountRow
-	query := repo.db.Table("severity_levels").
-		Select(`
-			severity_levels.id AS severity_level_id,
-			severity_levels.type AS severity_level_type,
-			severity_levels.title_en AS severity_level_title_en,
-			severity_levels.title_ar AS severity_level_title_ar,
-			severity_levels.color_code AS severity_level_color_code,
-			COUNT(audit_findings.id) AS findings_count
-		`).
-		Joins("LEFT JOIN audit_findings ON audit_findings.severity_level_id = severity_levels.id").
-		Group("severity_levels.id, severity_levels.type, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code, severity_levels.weight").
-		Order("severity_levels.weight")
-
-	if err := query.Scan(&rows).Error; err != nil {
+	// Breakdown by each severity level
+	var severityLevels []models.SeverityLevel
+	if err := repo.db.Order("weight").Find(&severityLevels).Error; err != nil {
 		return nil, err
 	}
 
-	result := &dtos.AuditFindingsSeverityBreakdownDTO{
-		SeverityLevels: make([]dtos.AuditFindingsSeverityBreakdownItemDTO, 0, len(rows)),
+	// One grouped query for all per-severity counts
+	type severityCountRow struct {
+		SeverityLevelID uint
+		Cnt             int64
 	}
-	for _, r := range rows {
-		result.Total += r.FindingsCount
+	countQuery := repo.db.Model(&models.AuditFinding{}).
+		Select("audit_findings.severity_level_id AS severity_level_id, COUNT(*) AS cnt").
+		Group("audit_findings.severity_level_id")
+	countQuery = repo.applyDateFilter(countQuery, params, "audit_findings")
+	var countRows []severityCountRow
+	if err := countQuery.Scan(&countRows).Error; err != nil {
+		return nil, err
+	}
+	countBySeverityID := make(map[uint]int64, len(countRows))
+	for _, r := range countRows {
+		countBySeverityID[r.SeverityLevelID] = r.Cnt
+		result.Total += r.Cnt
 	}
 
-	for _, r := range rows {
-		var percentage float64
-		if result.Total > 0 {
-			percentage = math.Round((float64(r.FindingsCount)/float64(result.Total))*100*100) / 100
+	percentage := func(count int64) float64 {
+		if result.Total == 0 {
+			return 0
 		}
+		return math.Round((float64(count)/float64(result.Total))*100*100) / 100
+	}
+
+	result.SeverityLevels = make([]dtos.AuditFindingsSeverityBreakdownItemDTO, 0, len(severityLevels))
+	for _, s := range severityLevels {
+		c := countBySeverityID[s.ID]
 		result.SeverityLevels = append(result.SeverityLevels, dtos.AuditFindingsSeverityBreakdownItemDTO{
 			SeverityLevel: dtos.BreakdownReferenceDTO{
-				ID:        r.SeverityLevelID,
-				Type:      r.SeverityLevelType,
-				TitleEn:   r.SeverityLevelTitleEn,
-				TitleAr:   r.SeverityLevelTitleAr,
-				ColorCode: r.SeverityLevelColorCode,
+				ID:        s.ID,
+				Type:      s.Type,
+				TitleEn:   s.TitleEn,
+				TitleAr:   s.TitleAr,
+				ColorCode: s.ColorCode,
 			},
-			Count:      r.FindingsCount,
-			Percentage: percentage,
+			Count:      c,
+			Percentage: percentage(c),
 		})
 	}
 	return result, nil
@@ -381,8 +403,8 @@ func (repo *AuditDashboardRepository) GetAuditFindingsBySeverityLevel(severityLe
 			audit_findings.audit_finding_category_id,
 			audit_findings.severity_level_id,
 			audit_findings.audit_finding_status_id,
-			CONVERT(VARCHAR, audit_findings.created_at, 120) AS created_at,
-			CONVERT(VARCHAR, audit_findings.updated_at, 120) AS updated_at,
+			CONVERT(VARCHAR, audit_findings.created_at, 23) AS created_at,
+			CONVERT(VARCHAR, audit_findings.updated_at, 23) AS updated_at,
 			audit_findings.created_by_id,
 			audit_findings.updated_by_id,
 			audit_plans.title AS audit_title,
@@ -430,10 +452,7 @@ func (repo *AuditDashboardRepository) GetAuditFindingsBySeverityLevel(severityLe
 		query = query.Where("audit_findings.severity_level_id = ?", severityLevelID)
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
+	query = repo.applyDateFilter(query, dateFilterParams(params.DateFrom, params.DateTo, params.Year), "audit_findings")
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
@@ -451,6 +470,11 @@ func (repo *AuditDashboardRepository) GetAuditFindingsBySeverityLevel(severityLe
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	// Sort by the specified column and order
 	if params.SortBy == "" {
 		params.SortBy = "audit_findings.created_at"
@@ -460,14 +484,20 @@ func (repo *AuditDashboardRepository) GetAuditFindingsBySeverityLevel(severityLe
 	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
 	// Execute the query
-	if err := query.Offset(offset).Limit(params.PageSize).Find(&items).Error; err != nil {
+	if err := query.Find(&items).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 
 	response := &dtos.AuditFindingsBySeverityLevelListResponseDTO{
 		Items: items,
@@ -579,12 +609,12 @@ func (repo *AuditDashboardRepository) GetOverdueAuditActionPlans(params *dtos.Au
 		audit_finding_action_plans.updated_by_id,
 		audit_finding_action_plans.title,
 		audit_finding_action_plans.target_date,
-		audit_finding_action_plans.created_at,
 		audit_finding_action_plans.updated_at,
 		audit_findings.title AS audit_finding_title,
 		audit_findings.reference_number AS audit_finding_reference_number,
 		audit_findings.description AS audit_finding_description,
 		CONVERT(VARCHAR, audit_finding_action_plans.target_date, 23) AS target_date,
+		CONVERT(VARCHAR, audit_finding_action_plans.created_at, 23) AS created_at,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
 		action_plan_statuses.color_code AS action_plan_status_color_code,
@@ -602,13 +632,22 @@ func (repo *AuditDashboardRepository) GetOverdueAuditActionPlans(params *dtos.Au
         responsible_user.profile_image_path AS responsible_user_profile_image_path,
 		` + departmentSubqueryEn + ` AS responsible_user_department_title_en,
 		` + departmentSubqueryAr + ` AS responsible_user_department_title_ar,
-		CASE WHEN audit_finding_action_plans.target_date < GETDATE() THEN DATEDIFF(day, audit_finding_action_plans.target_date, GETDATE()) ELSE 0 END AS overdue_days
+		CASE WHEN audit_finding_action_plans.target_date < GETDATE() THEN DATEDIFF(day, audit_finding_action_plans.target_date, GETDATE()) ELSE 0 END AS overdue_days,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path
     `).
 		Joins(`
         LEFT JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = audit_finding_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = audit_finding_action_plans.responsible_user_id
+        LEFT JOIN users AS created_user ON created_user.id = audit_finding_action_plans.created_by_id
     `)
 
 	// Base filter: only overdue action plans (not closed and past target date)
@@ -616,48 +655,7 @@ func (repo *AuditDashboardRepository) GetOverdueAuditActionPlans(params *dtos.Au
 	query = query.Where("audit_finding_action_plans.target_date IS NOT NULL")
 	query = query.Where("audit_finding_action_plans.target_date < ?", time.Now())
 
-	query = query.Group(`
-			audit_finding_action_plans.id,
-			audit_finding_action_plans.audit_finding_id,
-			audit_finding_action_plans.action_plan_status_id,
-			audit_finding_action_plans.severity_level_id,
-			audit_finding_action_plans.responsible_user_id,
-			audit_finding_action_plans.review_user_id,
-			audit_finding_action_plans.created_by_id,
-			audit_finding_action_plans.updated_by_id,
-			audit_finding_action_plans.title,
-			audit_finding_action_plans.target_date,
-			audit_finding_action_plans.created_at,
-			audit_finding_action_plans.updated_at,
-			audit_findings.title,
-			audit_findings.reference_number,
-			audit_findings.description,
-			action_plan_statuses.title_en,
-			action_plan_statuses.title_ar,
-			action_plan_statuses.color_code,
-			severity_levels.title_en,
-			severity_levels.title_ar,
-			severity_levels.color_code,
-			responsible_user.id,
-			responsible_user.first_name_en,
-			responsible_user.first_name_ar,
-			responsible_user.last_name_en,
-			responsible_user.last_name_ar,
-			responsible_user.initial,
-			responsible_user.color,
-			responsible_user.email,
-			responsible_user.profile_image_path,
-			responsible_user.organization_unit_1_id,
-			responsible_user.organization_unit_2_id,
-			responsible_user.organization_unit_3_id,
-			responsible_user.organization_unit_4_id,
-			responsible_user.organization_unit_5_id
-    `)
-
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
+	query = repo.applyDateFilter(query, dateFilterParams(params.DateFrom, params.DateTo, params.Year), "audit_finding_action_plans")
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
@@ -676,6 +674,11 @@ func (repo *AuditDashboardRepository) GetOverdueAuditActionPlans(params *dtos.Au
 		)
 	}
 
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	// Sort by the specified column and order
 	if params.SortBy == "" {
 		params.SortBy = "audit_finding_action_plans.title"
@@ -686,14 +689,20 @@ func (repo *AuditDashboardRepository) GetOverdueAuditActionPlans(params *dtos.Au
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
 	// Execute the query
-	if err := query.Offset(offset).Limit(params.PageSize).Find(&items).Error; err != nil {
+	if err := query.Find(&items).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 
 	response := &dtos.AuditOverdueActionPlanListResponseDTO{
 		Items: items,

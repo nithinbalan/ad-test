@@ -24,7 +24,7 @@ import (
 type AuditServiceInterface interface {
 	GetAll(params *auditDTOs.AuditListQueryParamsDTO) (*auditDTOs.AuditListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDetailDTO, error)
-	GetByID(id uint) (*models.Audit, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Audit, error)
 	Create(currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -79,8 +79,8 @@ func (as *AuditService) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (*audi
 	return as.repo.GetAll(params)
 }
 
-func (as *AuditService) GetByID(id uint) (*models.Audit, error) {
-	audit, err := as.repo.GetByID(id)
+func (as *AuditService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Audit, error) {
+	audit, err := as.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -673,7 +673,7 @@ func (as *AuditService) GetAllAuditableItems(auditID uint, params *auditDTOs.Aud
 }
 
 func (as *AuditService) StatusUpdate(id uint, currentUserID uint, auditStatusID uint, tx utility.DatabaseTransaction) error {
-	existingAudit, err := as.GetByID(id)
+	existingAudit, err := as.GetByID(id, tx)
 	if err != nil {
 		return err
 	}
@@ -711,7 +711,7 @@ func (as *AuditService) AdvanceAuditStatus(auditID uint, currentUserID uint, tar
 		return fmt.Errorf("unknown audit status stage: %s", targetType)
 	}
 
-	audit, err := as.GetByID(auditID)
+	audit, err := as.GetByID(auditID, tx)
 	if err != nil {
 		return err
 	}

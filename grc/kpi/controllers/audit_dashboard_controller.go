@@ -102,6 +102,7 @@ func (adc *AuditDashboardController) GetAuditsByStatus(c *gin.Context) {
 		return
 	}
 
+	year, _ := strconv.Atoi(c.Query("year"))
 	queryParams := auditDTOs.AuditDashboardListQueryParamsDTO{
 		Sort:     sortOrder,
 		SortBy:   sortField,
@@ -109,6 +110,9 @@ func (adc *AuditDashboardController) GetAuditsByStatus(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 		Export:   export,
+		DateFrom: c.Query("date_from"),
+		DateTo:   c.Query("date_to"),
+		Year:     year,
 	}
 
 	audits, err := adc.service.GetAuditsByStatus(uint(statusID), &queryParams)
@@ -155,7 +159,7 @@ func (adc *AuditDashboardController) GetAuditFindingsSummary(c *gin.Context) {
 }
 
 func (adc *AuditDashboardController) GetAuditFindingsSeverityBreakdown(c *gin.Context) {
-	result, err := adc.service.GetAuditFindingsSeverityBreakdown()
+	result, err := adc.service.GetAuditFindingsSeverityBreakdown(adc.buildParams(c))
 	if err != nil {
 		utility.SendInternalErrResp(adc.db, c, err.Error())
 		return
@@ -216,6 +220,7 @@ func (adc *AuditDashboardController) GetAuditFindingsListBySeverityLevel(c *gin.
 		return
 	}
 
+	year, _ := strconv.Atoi(c.Query("year"))
 	queryParams := auditDTOs.AuditDashboardListQueryParamsDTO{
 		Sort:     sortOrder,
 		SortBy:   sortField,
@@ -223,6 +228,9 @@ func (adc *AuditDashboardController) GetAuditFindingsListBySeverityLevel(c *gin.
 		Page:     page,
 		PageSize: pageSize,
 		Export:   export,
+		DateFrom: c.Query("date_from"),
+		DateTo:   c.Query("date_to"),
+		Year:     year,
 	}
 
 	audits, err := adc.service.GetAuditFindingsBySeverityLevel(uint(severityLevelID), &queryParams)
@@ -319,6 +327,7 @@ func (adc *AuditDashboardController) GetOverdueAuditActionPlans(c *gin.Context) 
 		return
 	}
 
+	year, _ := strconv.Atoi(c.Query("year"))
 	queryParams := auditDTOs.AuditDashboardListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortField,
@@ -326,6 +335,9 @@ func (adc *AuditDashboardController) GetOverdueAuditActionPlans(c *gin.Context) 
 		Page:     page,
 		PageSize: pageSize,
 		Export:   export,
+		DateFrom: c.Query("date_from"),
+		DateTo:   c.Query("date_to"),
+		Year:     year,
 	}
 
 	audits, err := adc.service.GetOverdueAuditActionPlans(&queryParams)

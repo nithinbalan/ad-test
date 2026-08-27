@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"os"
-	"strings"
 
 	auditListDTOs "jethur/grc/audit/dtos"
 	auditDTOs "jethur/grc/kpi/dtos"
@@ -19,7 +18,7 @@ type AuditDashboardServiceInterface interface {
 	ExportAuditsByStatus(data []*auditListDTOs.AuditListDTO, currentUserID uint) (*os.File, error)
 	GetAuditsByStatusExportFilename(statusID uint) string
 	GetAuditFindingsSummary(params *auditDTOs.AuditDashboardQueryParamsDTO) (*auditDTOs.AuditFindingsSummaryDTO, error)
-	GetAuditFindingsSeverityBreakdown() (*auditDTOs.AuditFindingsSeverityBreakdownDTO, error)
+	GetAuditFindingsSeverityBreakdown(params *auditDTOs.AuditDashboardQueryParamsDTO) (*auditDTOs.AuditFindingsSeverityBreakdownDTO, error)
 	GetAuditFindingsBySeverityLevel(severityLevelID uint, params *auditDTOs.AuditDashboardListQueryParamsDTO) (*auditDTOs.AuditFindingsBySeverityLevelListResponseDTO, error)
 	ExportAuditFindingsBySeverityLevel(data []*auditDTOs.AuditFindingsBySeverityLevelListDTO, currentUserID uint) (*os.File, error)
 	GetAuditFindingsBySeverityLevelExportFilename(severityLevelID uint) string
@@ -67,6 +66,7 @@ func (ads *AuditDashboardService) ExportAuditsByStatus(data []*auditListDTOs.Aud
 		"Audit Status",
 		"Team Lead",
 		"Created By",
+		"Created At",
 	}
 
 	rows := make([][]interface{}, 0, len(data))
@@ -84,6 +84,7 @@ func (ads *AuditDashboardService) ExportAuditsByStatus(data []*auditListDTOs.Aud
 				item.AuditStatusTitleAr,
 				item.TeamLeadFirstNameAr + " " + item.TeamLeadLastNameAr,
 				item.CreatedUserFirstNameAr + " " + item.CreatedUserLastNameAr,
+				item.CreatedAt,
 			})
 		} else {
 			rows = append(rows, []interface{}{
@@ -98,6 +99,7 @@ func (ads *AuditDashboardService) ExportAuditsByStatus(data []*auditListDTOs.Aud
 				item.AuditStatusTitleEn,
 				item.TeamLeadFirstNameEn + " " + item.TeamLeadLastNameEn,
 				item.CreatedUserFirstNameEn + " " + item.CreatedUserLastNameEn,
+				item.CreatedAt,
 			})
 		}
 	}
@@ -116,15 +118,15 @@ func (ads *AuditDashboardService) GetAuditsByStatusExportFilename(statusID uint)
 	} else {
 		title += " Audits"
 	}
-	return sanitizeFilename(title + ".xlsx")
+	return utility.SanitizeExportFileName(title + ".xlsx")
 }
 
 func (ads *AuditDashboardService) GetAuditFindingsSummary(params *auditDTOs.AuditDashboardQueryParamsDTO) (*auditDTOs.AuditFindingsSummaryDTO, error) {
 	return ads.repo.GetAuditFindingsSummary(params)
 }
 
-func (ads *AuditDashboardService) GetAuditFindingsSeverityBreakdown() (*auditDTOs.AuditFindingsSeverityBreakdownDTO, error) {
-	return ads.repo.GetAuditFindingsSeverityBreakdown()
+func (ads *AuditDashboardService) GetAuditFindingsSeverityBreakdown(params *auditDTOs.AuditDashboardQueryParamsDTO) (*auditDTOs.AuditFindingsSeverityBreakdownDTO, error) {
+	return ads.repo.GetAuditFindingsSeverityBreakdown(params)
 }
 
 func (ads *AuditDashboardService) GetAuditFindingsBySeverityLevel(severityLevelID uint, params *auditDTOs.AuditDashboardListQueryParamsDTO) (*auditDTOs.AuditFindingsBySeverityLevelListResponseDTO, error) {
@@ -148,19 +150,10 @@ func (ads *AuditDashboardService) ExportAuditFindingsBySeverityLevel(data []*aud
 		"Status",
 		"Created By",
 		"Created At",
-		"Updated By",
 	}
 
 	rows := make([][]interface{}, 0, len(data))
 	for i, item := range data {
-		updatedByEn := ""
-		if item.UpdatedUserFirstNameEn != nil && item.UpdatedUserLastNameEn != nil {
-			updatedByEn = *item.UpdatedUserFirstNameEn + " " + *item.UpdatedUserLastNameEn
-		}
-		updatedByAr := ""
-		if item.UpdatedUserFirstNameAr != nil && item.UpdatedUserLastNameAr != nil {
-			updatedByAr = *item.UpdatedUserFirstNameAr + " " + *item.UpdatedUserLastNameAr
-		}
 		if userSetting.Language == "ar" {
 			rows = append(rows, []interface{}{
 				i + 1,
@@ -173,7 +166,6 @@ func (ads *AuditDashboardService) ExportAuditFindingsBySeverityLevel(data []*aud
 				item.AuditFindingStatusTitleAr,
 				item.CreatedUserFirstNameAr + " " + item.CreatedUserLastNameAr,
 				item.CreatedAt,
-				updatedByAr,
 			})
 		} else {
 			rows = append(rows, []interface{}{
@@ -187,7 +179,6 @@ func (ads *AuditDashboardService) ExportAuditFindingsBySeverityLevel(data []*aud
 				item.AuditFindingStatusTitleEn,
 				item.CreatedUserFirstNameEn + " " + item.CreatedUserLastNameEn,
 				item.CreatedAt,
-				updatedByEn,
 			})
 		}
 	}
@@ -204,7 +195,7 @@ func (ads *AuditDashboardService) GetAuditFindingsBySeverityLevelExportFilename(
 	if err != nil || title == "" {
 		title = "Audit Findings"
 	}
-	return sanitizeFilename(title + " Severity Findings.xlsx")
+	return utility.SanitizeExportFileName(title + " Severity Findings.xlsx")
 }
 
 func (ads *AuditDashboardService) GetAuditFindingsTrend() ([]auditDTOs.AuditFindingsTrendMonthDTO, error) {
@@ -232,6 +223,7 @@ func (ads *AuditDashboardService) ExportOverdueAuditActionPlans(data []*auditDTO
 		"Target Date",
 		"Overdue Days",
 		"Status",
+		"Created By",
 		"Created At",
 	}
 
@@ -249,6 +241,7 @@ func (ads *AuditDashboardService) ExportOverdueAuditActionPlans(data []*auditDTO
 				item.TargetDate,
 				item.OverdueDays,
 				item.ActionPlanStatusTitleAr,
+				item.CreatedUserFirstNameAr + " " + item.CreatedUserLastNameAr,
 				item.CreatedAt,
 			})
 		} else {
@@ -263,6 +256,7 @@ func (ads *AuditDashboardService) ExportOverdueAuditActionPlans(data []*auditDTO
 				item.TargetDate,
 				item.OverdueDays,
 				item.ActionPlanStatusTitleEn,
+				item.CreatedUserFirstNameEn + " " + item.CreatedUserLastNameEn,
 				item.CreatedAt,
 			})
 		}
@@ -273,9 +267,4 @@ func (ads *AuditDashboardService) ExportOverdueAuditActionPlans(data []*auditDTO
 		return nil, errors.New("failed to generate export file: " + err.Error())
 	}
 	return file, nil
-}
-
-func sanitizeFilename(name string) string {
-	replacer := strings.NewReplacer("/", "-", "\\", "-", ":", "-", "*", "-", "?", "", "\"", "", "<", "", ">", "", "|", "")
-	return strings.TrimSpace(replacer.Replace(name))
 }
