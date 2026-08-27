@@ -12,6 +12,7 @@ type PenetrationTestingModule struct {
 	PenetrationTestPlanController                 *controllers.PenetrationTestPlanController
 	PenetrationTestExecutorController             *controllers.PenetrationTestExecutorController
 	PenetrationTestEnvironmentReadinessController *controllers.PenetrationTestEnvironmentReadinessController
+	PenetrationTestClassificationController       *controllers.PenetrationTestClassificationController
 }
 
 func NewPenetrationTestingModule(db *gorm.DB, sharedModule *SharedModule) *PenetrationTestingModule {
@@ -19,10 +20,12 @@ func NewPenetrationTestingModule(db *gorm.DB, sharedModule *SharedModule) *Penet
 	planService := services.NewPenetrationTestPlanService(repositories.NewPenetrationTestPlanRepository(db), sharedModule.ActivityLogService)
 	executorService := services.NewPenetrationTestExecutorService(repositories.NewPenetrationTestExecutorRepository(db), sharedModule.ActivityLogService)
 	readinessService := services.NewPenetrationTestEnvironmentReadinessService(repositories.NewPenetrationTestEnvironmentReadinessRepository(db), sharedModule.ActivityLogService)
+	classificationService := services.NewPenetrationTestClassificationService(repositories.NewPenetrationTestClassificationRepository(db))
 	return &PenetrationTestingModule{
 		PenetrationTestTypeController:                 controllers.NewPenetrationTestTypeController(typeService),
 		PenetrationTestPlanController:                 controllers.NewPenetrationTestPlanController(planService),
 		PenetrationTestExecutorController:             controllers.NewPenetrationTestExecutorController(executorService),
 		PenetrationTestEnvironmentReadinessController: controllers.NewPenetrationTestEnvironmentReadinessController(readinessService),
+		PenetrationTestClassificationController:       controllers.NewPenetrationTestClassificationController(classificationService),
 	}
 }

@@ -38,6 +38,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes.PUT("/penetration-testing/executors/activate", permission(), executor.ActivatePenetrationTestExecutors)
 	penetrationTestingRoutes.PUT("/penetration-testing/executors/deactivate", permission(), executor.DeactivatePenetrationTestExecutors)
 	readiness := m.PenetrationTestEnvironmentReadinessController
+	classification := m.PenetrationTestClassificationController
+	penetrationTestingRoutes.GET("/penetration-testing/classifications", classification.GetAllPenetrationTestClassifications)
 	penetrationTestingRoutes.GET("/penetration-testing/environment-readinesses", readiness.GetAllPenetrationTestEnvironmentReadinesses)
 	penetrationTestingRoutes.GET("/penetration-testing/environment-readinesses/:id", readiness.GetPenetrationTestEnvironmentReadinessDetails)
 	penetrationTestingRoutes.POST("/penetration-testing/environment-readinesses", permission(), readiness.CreatePenetrationTestEnvironmentReadiness)
