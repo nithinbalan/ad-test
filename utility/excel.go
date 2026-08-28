@@ -491,3 +491,9 @@ func MapRowsToRecords(headers []string, rows [][]string) []map[string]interface{
 
 	return records
 }
+
+// SanitizeExportFileName removes characters invalid in file names, keeping case and spacing as-is.
+func SanitizeExportFileName(name string) string {
+	replacer := strings.NewReplacer("/", "-", "\\", "-", ":", "-", "*", "-", "?", "", "\"", "", "<", "", ">", "", "|", "")
+	return strings.TrimSpace(replacer.Replace(name))
+}
