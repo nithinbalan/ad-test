@@ -19,15 +19,19 @@ type PenetrationTestEnvironmentReadinessRepositoryInterface interface {
 	ExistsByTitleExcludingID(uint, string, string) (bool, error)
 }
 
-type PenetrationTestEnvironmentReadinessRepository struct{ db *gorm.DB }
-
-func NewPenetrationTestEnvironmentReadinessRepository(db *gorm.DB) *PenetrationTestEnvironmentReadinessRepository {
-	return &PenetrationTestEnvironmentReadinessRepository{db: db}
+type PenetrationTestEnvironmentReadinessRepository struct {
+	db *gorm.DB
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) GetAll(sort, sortBy, keyword, status string) ([]*models.PenetrationTestEnvironmentReadiness, error) {
+func NewPenetrationTestEnvironmentReadinessRepository(db *gorm.DB) *PenetrationTestEnvironmentReadinessRepository {
+	return &PenetrationTestEnvironmentReadinessRepository{
+		db: db,
+	}
+}
+
+func (repo *PenetrationTestEnvironmentReadinessRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.PenetrationTestEnvironmentReadiness, error) {
 	var v []*models.PenetrationTestEnvironmentReadiness
-	q := r.db
+	q := repo.db
 	if keyword != "" {
 		q = q.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
 	}
@@ -43,9 +47,9 @@ func (r *PenetrationTestEnvironmentReadinessRepository) GetAll(sort, sortBy, key
 	return v, q.Order(sortBy + " " + sort).Find(&v).Error
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) GetByID(id uint) (*models.PenetrationTestEnvironmentReadiness, error) {
+func (repo *PenetrationTestEnvironmentReadinessRepository) GetByID(id uint) (*models.PenetrationTestEnvironmentReadiness, error) {
 	var v *models.PenetrationTestEnvironmentReadiness
-	x := r.db.First(&v, id)
+	x := repo.db.First(&v, id)
 	if errors.Is(x.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(x.Error, id)
 	}
@@ -55,63 +59,69 @@ func (r *PenetrationTestEnvironmentReadinessRepository) GetByID(id uint) (*model
 	return v, nil
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) Create(v *models.PenetrationTestEnvironmentReadiness) (*models.PenetrationTestEnvironmentReadiness, error) {
-	x := r.db.Create(&v)
+func (repo *PenetrationTestEnvironmentReadinessRepository) Create(v *models.PenetrationTestEnvironmentReadiness) (*models.PenetrationTestEnvironmentReadiness, error) {
+	x := repo.db.Create(&v)
 	return v, x.Error
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) Update(id uint, u *models.PenetrationTestEnvironmentReadiness) (*models.PenetrationTestEnvironmentReadiness, error) {
+func (repo *PenetrationTestEnvironmentReadinessRepository) Update(id uint, u *models.PenetrationTestEnvironmentReadiness) (*models.PenetrationTestEnvironmentReadiness, error) {
 	var v *models.PenetrationTestEnvironmentReadiness
-	if x := r.db.First(&v, id).Error; x != nil {
+	if x := repo.db.First(&v, id).Error; x != nil {
 		return nil, x
 	}
-	if x := r.db.Model(&v).Updates(u).Error; x != nil {
+	if x := repo.db.Model(&v).Updates(u).Error; x != nil {
 		return nil, x
 	}
 	return v, nil
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) Delete(id uint) error {
+func (repo *PenetrationTestEnvironmentReadinessRepository) Delete(id uint) error {
 	var v *models.PenetrationTestEnvironmentReadiness
-	if x := r.db.First(&v, id).Error; x != nil {
+	if x := repo.db.First(&v, id).Error; x != nil {
 		return x
 	}
-	return r.db.Delete(&models.PenetrationTestEnvironmentReadiness{}, id).Error
+	return repo.db.Delete(&models.PenetrationTestEnvironmentReadiness{}, id).Error
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) Activate(ids []uint) ([]uint, error) {
-	return r.updateStatus(ids, "inactive", "active")
+func (repo *PenetrationTestEnvironmentReadinessRepository) Activate(ids []uint) ([]uint, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return repo.updateStatus(ids, "inactive", "active")
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) Deactivate(ids []uint) ([]uint, error) {
-	return r.updateStatus(ids, "active", "inactive")
+func (repo *PenetrationTestEnvironmentReadinessRepository) Deactivate(ids []uint) ([]uint, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return repo.updateStatus(ids, "active", "inactive")
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) updateStatus(ids []uint, a, b string) ([]uint, error) {
+func (repo *PenetrationTestEnvironmentReadinessRepository) updateStatus(ids []uint, a, b string) ([]uint, error) {
 	var u []uint
-	if x := r.db.Model(&models.PenetrationTestEnvironmentReadiness{}).Where("id IN ? AND status = ?", ids, a).Pluck("id", &u).Error; x != nil {
+	if x := repo.db.Model(&models.PenetrationTestEnvironmentReadiness{}).Where("id IN ? AND status = ?", ids, a).Pluck("id", &u).Error; x != nil {
 		return nil, x
 	}
 	if len(u) > 0 {
-		if x := r.db.Model(&models.PenetrationTestEnvironmentReadiness{}).Where("id IN ?", u).Update("status", b).Error; x != nil {
+		if x := repo.db.Model(&models.PenetrationTestEnvironmentReadiness{}).Where("id IN ?", u).Update("status", b).Error; x != nil {
 			return nil, x
 		}
 	}
 	return u, nil
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) ExistsByTitle(a, b string) (bool, error) {
+func (repo *PenetrationTestEnvironmentReadinessRepository) ExistsByTitle(a, b string) (bool, error) {
 	var c int64
-	x := r.db.Model(&models.PenetrationTestEnvironmentReadiness{}).Where("title_en = ? OR title_ar = ?", a, b).Count(&c).Error
+	x := repo.db.Model(&models.PenetrationTestEnvironmentReadiness{}).Where("title_en = ? OR title_ar = ?", a, b).Count(&c).Error
 	if x != nil {
 		return false, utility.NewInternalServerError(x)
 	}
 	return c > 0, nil
 }
 
-func (r *PenetrationTestEnvironmentReadinessRepository) ExistsByTitleExcludingID(id uint, a, b string) (bool, error) {
+func (repo *PenetrationTestEnvironmentReadinessRepository) ExistsByTitleExcludingID(id uint, a, b string) (bool, error) {
 	var c int64
-	x := r.db.Model(&models.PenetrationTestEnvironmentReadiness{}).Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, a, b).Count(&c).Error
+	x := repo.db.Model(&models.PenetrationTestEnvironmentReadiness{}).Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, a, b).Count(&c).Error
 	if x != nil {
 		return false, utility.NewInternalServerError(x)
 	}

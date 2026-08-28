@@ -19,13 +19,17 @@ type PenetrationTestPlanRepositoryInterface interface {
 	ExistsByTitleExcludingID(uint, string, string) (bool, error)
 }
 
-type PenetrationTestPlanRepository struct{ db *gorm.DB }
-
-func NewPenetrationTestPlanRepository(db *gorm.DB) *PenetrationTestPlanRepository {
-	return &PenetrationTestPlanRepository{db: db}
+type PenetrationTestPlanRepository struct {
+	db *gorm.DB
 }
 
-func (repo *PenetrationTestPlanRepository) GetAll(sort, sortBy, keyword, status string) ([]*models.PenetrationTestPlan, error) {
+func NewPenetrationTestPlanRepository(db *gorm.DB) *PenetrationTestPlanRepository {
+	return &PenetrationTestPlanRepository{
+		db: db,
+	}
+}
+
+func (repo *PenetrationTestPlanRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.PenetrationTestPlan, error) {
 	var values []*models.PenetrationTestPlan
 	q := repo.db
 	if keyword != "" {
@@ -80,10 +84,16 @@ func (repo *PenetrationTestPlanRepository) Delete(id uint) error {
 }
 
 func (repo *PenetrationTestPlanRepository) Activate(ids []uint) ([]uint, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
 	return repo.updateStatus(ids, "inactive", "active")
 }
 
 func (repo *PenetrationTestPlanRepository) Deactivate(ids []uint) ([]uint, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
 	return repo.updateStatus(ids, "active", "inactive")
 }
 

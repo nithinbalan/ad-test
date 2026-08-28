@@ -143,13 +143,12 @@ func (ptts *PenetrationTestTypeService) Delete(ids []uint, currentUserID uint) (
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
+			deleted = append(deleted, map[string]any{
+				"id":       id,
+				"title_en": penetrationTestType.TitleEn,
+				"title_ar": penetrationTestType.TitleAr,
+			})
 		}
-
-		deleted = append(deleted, map[string]any{
-			"id":       id,
-			"title_en": penetrationTestType.TitleEn,
-			"title_ar": penetrationTestType.TitleAr,
-		})
 	}
 
 	if len(successfulIds) > 0 {

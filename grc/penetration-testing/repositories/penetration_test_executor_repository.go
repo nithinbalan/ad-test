@@ -19,15 +19,19 @@ type PenetrationTestExecutorRepositoryInterface interface {
 	ExistsByTitleExcludingID(uint, string, string) (bool, error)
 }
 
-type PenetrationTestExecutorRepository struct{ db *gorm.DB }
-
-func NewPenetrationTestExecutorRepository(db *gorm.DB) *PenetrationTestExecutorRepository {
-	return &PenetrationTestExecutorRepository{db: db}
+type PenetrationTestExecutorRepository struct {
+	db *gorm.DB
 }
 
-func (r *PenetrationTestExecutorRepository) GetAll(sort, sortBy, keyword, status string) ([]*models.PenetrationTestExecutor, error) {
+func NewPenetrationTestExecutorRepository(db *gorm.DB) *PenetrationTestExecutorRepository {
+	return &PenetrationTestExecutorRepository{
+		db: db,
+	}
+}
+
+func (repo *PenetrationTestExecutorRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.PenetrationTestExecutor, error) {
 	var v []*models.PenetrationTestExecutor
-	q := r.db
+	q := repo.db
 	if keyword != "" {
 		q = q.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
 	}
@@ -43,9 +47,9 @@ func (r *PenetrationTestExecutorRepository) GetAll(sort, sortBy, keyword, status
 	return v, q.Order(sortBy + " " + sort).Find(&v).Error
 }
 
-func (r *PenetrationTestExecutorRepository) GetByID(id uint) (*models.PenetrationTestExecutor, error) {
+func (repo *PenetrationTestExecutorRepository) GetByID(id uint) (*models.PenetrationTestExecutor, error) {
 	var v *models.PenetrationTestExecutor
-	x := r.db.First(&v, id)
+	x := repo.db.First(&v, id)
 	if errors.Is(x.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(x.Error, id)
 	}
@@ -55,63 +59,69 @@ func (r *PenetrationTestExecutorRepository) GetByID(id uint) (*models.Penetratio
 	return v, nil
 }
 
-func (r *PenetrationTestExecutorRepository) Create(v *models.PenetrationTestExecutor) (*models.PenetrationTestExecutor, error) {
-	x := r.db.Create(&v)
+func (repo *PenetrationTestExecutorRepository) Create(v *models.PenetrationTestExecutor) (*models.PenetrationTestExecutor, error) {
+	x := repo.db.Create(&v)
 	return v, x.Error
 }
 
-func (r *PenetrationTestExecutorRepository) Update(id uint, u *models.PenetrationTestExecutor) (*models.PenetrationTestExecutor, error) {
+func (repo *PenetrationTestExecutorRepository) Update(id uint, u *models.PenetrationTestExecutor) (*models.PenetrationTestExecutor, error) {
 	var v *models.PenetrationTestExecutor
-	if x := r.db.First(&v, id).Error; x != nil {
+	if x := repo.db.First(&v, id).Error; x != nil {
 		return nil, x
 	}
-	if x := r.db.Model(&v).Updates(u).Error; x != nil {
+	if x := repo.db.Model(&v).Updates(u).Error; x != nil {
 		return nil, x
 	}
 	return v, nil
 }
 
-func (r *PenetrationTestExecutorRepository) Delete(id uint) error {
+func (repo *PenetrationTestExecutorRepository) Delete(id uint) error {
 	var v *models.PenetrationTestExecutor
-	if x := r.db.First(&v, id).Error; x != nil {
+	if x := repo.db.First(&v, id).Error; x != nil {
 		return x
 	}
-	return r.db.Delete(&models.PenetrationTestExecutor{}, id).Error
+	return repo.db.Delete(&models.PenetrationTestExecutor{}, id).Error
 }
 
-func (r *PenetrationTestExecutorRepository) Activate(ids []uint) ([]uint, error) {
-	return r.updateStatus(ids, "inactive", "active")
+func (repo *PenetrationTestExecutorRepository) Activate(ids []uint) ([]uint, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return repo.updateStatus(ids, "inactive", "active")
 }
 
-func (r *PenetrationTestExecutorRepository) Deactivate(ids []uint) ([]uint, error) {
-	return r.updateStatus(ids, "active", "inactive")
+func (repo *PenetrationTestExecutorRepository) Deactivate(ids []uint) ([]uint, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return repo.updateStatus(ids, "active", "inactive")
 }
 
-func (r *PenetrationTestExecutorRepository) updateStatus(ids []uint, a, b string) ([]uint, error) {
+func (repo *PenetrationTestExecutorRepository) updateStatus(ids []uint, a, b string) ([]uint, error) {
 	var u []uint
-	if x := r.db.Model(&models.PenetrationTestExecutor{}).Where("id IN ? AND status = ?", ids, a).Pluck("id", &u).Error; x != nil {
+	if x := repo.db.Model(&models.PenetrationTestExecutor{}).Where("id IN ? AND status = ?", ids, a).Pluck("id", &u).Error; x != nil {
 		return nil, x
 	}
 	if len(u) > 0 {
-		if x := r.db.Model(&models.PenetrationTestExecutor{}).Where("id IN ?", u).Update("status", b).Error; x != nil {
+		if x := repo.db.Model(&models.PenetrationTestExecutor{}).Where("id IN ?", u).Update("status", b).Error; x != nil {
 			return nil, x
 		}
 	}
 	return u, nil
 }
 
-func (r *PenetrationTestExecutorRepository) ExistsByTitle(a, b string) (bool, error) {
+func (repo *PenetrationTestExecutorRepository) ExistsByTitle(a, b string) (bool, error) {
 	var c int64
-	x := r.db.Model(&models.PenetrationTestExecutor{}).Where("title_en = ? OR title_ar = ?", a, b).Count(&c).Error
+	x := repo.db.Model(&models.PenetrationTestExecutor{}).Where("title_en = ? OR title_ar = ?", a, b).Count(&c).Error
 	if x != nil {
 		return false, utility.NewInternalServerError(x)
 	}
 	return c > 0, nil
 }
 
-func (r *PenetrationTestExecutorRepository) ExistsByTitleExcludingID(id uint, a, b string) (bool, error) {
+func (repo *PenetrationTestExecutorRepository) ExistsByTitleExcludingID(id uint, a, b string) (bool, error) {
 	var c int64
-	x := r.db.Model(&models.PenetrationTestExecutor{}).Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, a, b).Count(&c).Error
+	x := repo.db.Model(&models.PenetrationTestExecutor{}).Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, a, b).Count(&c).Error
 	if x != nil {
 		return false, utility.NewInternalServerError(x)
 	}

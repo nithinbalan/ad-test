@@ -2,9 +2,10 @@ package repositories
 
 import (
 	"errors"
-	"gorm.io/gorm"
 	"jethur/grc/models"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type PenetrationTestTypeRepositoryInterface interface {
@@ -21,13 +22,17 @@ type PenetrationTestTypeRepositoryInterface interface {
 	ExistsByCodeExcludingID(id uint, code string) (bool, error)
 }
 
-type PenetrationTestTypeRepository struct{ db *gorm.DB }
-
-func NewPenetrationTestTypeRepository(db *gorm.DB) *PenetrationTestTypeRepository {
-	return &PenetrationTestTypeRepository{db: db}
+type PenetrationTestTypeRepository struct {
+	db *gorm.DB
 }
 
-func (repo *PenetrationTestTypeRepository) GetAll(sort, sortBy, keyword, status string) ([]*models.PenetrationTestType, error) {
+func NewPenetrationTestTypeRepository(db *gorm.DB) *PenetrationTestTypeRepository {
+	return &PenetrationTestTypeRepository{
+		db: db,
+	}
+}
+
+func (repo *PenetrationTestTypeRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.PenetrationTestType, error) {
 	var values []*models.PenetrationTestType
 	query := repo.db
 	if keyword != "" {
@@ -82,10 +87,16 @@ func (repo *PenetrationTestTypeRepository) Delete(id uint) error {
 }
 
 func (repo *PenetrationTestTypeRepository) Activate(ids []uint) ([]uint, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
 	return repo.updateStatus(ids, "inactive", "active")
 }
 
 func (repo *PenetrationTestTypeRepository) Deactivate(ids []uint) ([]uint, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
 	return repo.updateStatus(ids, "active", "inactive")
 }
 

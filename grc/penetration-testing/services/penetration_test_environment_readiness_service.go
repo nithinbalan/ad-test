@@ -143,13 +143,12 @@ func (pters *PenetrationTestEnvironmentReadinessService) Delete(ids []uint, curr
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
+			deleted = append(deleted, map[string]any{
+				"id":       id,
+				"title_en": penetrationTestEnvironmentReadiness.TitleEn,
+				"title_ar": penetrationTestEnvironmentReadiness.TitleAr,
+			})
 		}
-
-		deleted = append(deleted, map[string]any{
-			"id":       id,
-			"title_en": penetrationTestEnvironmentReadiness.TitleEn,
-			"title_ar": penetrationTestEnvironmentReadiness.TitleAr,
-		})
 	}
 
 	if len(successfulIds) > 0 {
