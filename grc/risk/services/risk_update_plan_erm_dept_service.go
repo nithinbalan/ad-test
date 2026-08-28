@@ -106,10 +106,10 @@ func (rupeds *RiskUpdatePlanERMDeptService) CreateERMDepartmentEvaluation(planID
 		return err
 	}
 
-	// Validate that ERM department evaluation data exists
-	if len(riskIDs) == 0 && len(processIDs) == 0 && len(controlIDs) == 0 {
+	// Validate that controls exist
+	if len(controlIDs) == 0 {
 		tx.Rollback()
-		return utility.NewValidationError(fmt.Errorf("No ERM department evaluation data found for this business unit"), "empty_data", "ERM department evaluation data")
+		return utility.NewValidationError(fmt.Errorf("No controls found for this business unit"), "empty_data", "controls")
 	}
 
 	// Create risk mappings
