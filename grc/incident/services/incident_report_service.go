@@ -31,8 +31,6 @@ type IncidentReportServiceInterface interface {
 	UpdateSection(incidentReportID uint, sectionID uint, currentUserID uint, formDTO *incidentDTOs.IncidentReportSectionFormDTO) error
 	DeleteIncidentReportSection(incidentReportID uint, sectionID uint, currentUserID uint) error
 	GetIncidentReportExportZip(incidentReportID uint, currentUserID uint) (string, error)
-	GetDocumentPath(id uint, token string) (string, error)
-	GetEvidencePath(id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -419,7 +417,7 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 			ClosureWorkflowStatusTitleEn:             (*string)(&inc.ClosureWorkflowStatusTitleEn),
 			ClosureWorkflowStatusTitleAr:             (*string)(&inc.ClosureWorkflowStatusTitleAr),
 			ClosureWorkflowStatusColorCode:           (*string)(&inc.ClosureWorkflowStatusColorCode),
-			ClosedDate:                               inc.ClosureApprovedAt,
+			ClosedDate:                               inc.ResolvedDate,
 		}
 
 		if err := irs.repo.CreateReportIncident(reportIncident, tx); err != nil {
@@ -1336,26 +1334,40 @@ func (irs *IncidentReportService) GetIncidentReportExportZip(incidentReportID ui
 	}
 
 	filesToZip := []string{pdfFileName}
+
+	// Optimize: Direct file path resolution without DB calls
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	baseDocPath := filepath.Join(storagePath, "incident", "incident-report",
+		strconv.FormatUint(uint64(incidentReportID), 10), "documents")
+	baseEvidencePath := filepath.Join(storagePath, "incident", "incident-report",
+		strconv.FormatUint(uint64(incidentReportID), 10), "evidences")
+
 	for _, incident := range incidentReport.Incidents {
 		for _, doc := range incident.Documents {
 			if doc.Token != nil {
-				path, err := irs.GetDocumentPath(incidentReportID, *doc.Token)
+				decryptedFilename, err := utility.DecryptData(*doc.Token)
 				if err != nil {
-					fmt.Printf("Error getting document path for ID %d: %v\n", doc.ID, err)
+					fmt.Printf("Error decrypting token for doc ID %d: %v\n", doc.ID, err)
 					continue
 				}
-				filesToZip = append(filesToZip, path)
+				fullPath := filepath.Join(baseDocPath, string(decryptedFilename))
+				if _, err := os.Stat(fullPath); err == nil {
+					filesToZip = append(filesToZip, fullPath)
+				}
 			}
 		}
 
 		for _, evidence := range incident.Evidences {
 			if evidence.Token != nil {
-				path, err := irs.GetEvidencePath(incidentReportID, *evidence.Token)
+				decryptedFilename, err := utility.DecryptData(*evidence.Token)
 				if err != nil {
-					fmt.Printf("Error getting evidence path for ID %d: %v\n", evidence.ID, err)
+					fmt.Printf("Error decrypting token for evidence ID %d: %v\n", evidence.ID, err)
 					continue
 				}
-				filesToZip = append(filesToZip, path)
+				fullPath := filepath.Join(baseEvidencePath, string(decryptedFilename))
+				if _, err := os.Stat(fullPath); err == nil {
+					filesToZip = append(filesToZip, fullPath)
+				}
 			}
 		}
 	}
@@ -1380,100 +1392,4 @@ func (irs *IncidentReportService) GetIncidentReportExportZip(incidentReportID ui
 	}()
 
 	return zipFilePath, nil
-}
-
-func (irs *IncidentReportService) GetDocumentPath(id uint, token string) (string, error) {
-	// Get full details of the incident report by ID
-	existingIncidentReport, err := irs.GetIncidentReportDetails(id)
-	if err != nil {
-		return "", err
-	}
-
-	// Check if there are any associated documents in any incident
-	hasDocuments := false
-	for _, incident := range existingIncidentReport.Incidents {
-		if len(incident.Documents) > 0 {
-			hasDocuments = true
-			break
-		}
-	}
-
-	if !hasDocuments {
-		return "", fmt.Errorf("no documents found for the incident report")
-	}
-
-	// Decrypt the token to get the file name
-	decryptedFilenameBytes, err := utility.DecryptData(token)
-	if err != nil {
-		return "", fmt.Errorf("resource not found")
-	}
-
-	decryptedFilename := string(decryptedFilenameBytes)
-	if decryptedFilename == "" {
-		return "", fmt.Errorf("resource not found")
-	}
-
-	// Define the storage path
-	storagePath := filepath.Join("incident", "incident-report", strconv.FormatUint(uint64(id), 10), "documents")
-
-	// Get the base storage path from environment variables
-	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
-
-	// Check if the file exists at the specified path
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("file not found")
-	} else if err != nil {
-		return "", fmt.Errorf("error accessing file: %w", err)
-	}
-
-	return fullPath, nil
-}
-
-func (irs *IncidentReportService) GetEvidencePath(id uint, token string) (string, error) {
-	// Get full details of the incident report by ID
-	existingIncidentReport, err := irs.GetIncidentReportDetails(id)
-	if err != nil {
-		return "", err
-	}
-
-	// Check if there are any associated evidences in any incident
-	hasEvidences := false
-	for _, incident := range existingIncidentReport.Incidents {
-		if len(incident.Evidences) > 0 {
-			hasEvidences = true
-			break
-		}
-	}
-
-	if !hasEvidences {
-		return "", fmt.Errorf("no evidences found for the incident report")
-	}
-
-	// Decrypt the token to get the file name
-	decryptedFilenameBytes, err := utility.DecryptData(token)
-	if err != nil {
-		return "", fmt.Errorf("resource not found")
-	}
-
-	decryptedFilename := string(decryptedFilenameBytes)
-	if decryptedFilename == "" {
-		return "", fmt.Errorf("resource not found")
-	}
-
-	// Define the storage path
-	storagePath := filepath.Join("incident", "incident-report", strconv.FormatUint(uint64(id), 10), "evidences")
-
-	// Get the base storage path from environment variables
-	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
-
-	// Check if the file exists at the specified path
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("file not found")
-	} else if err != nil {
-		return "", fmt.Errorf("error accessing file: %w", err)
-	}
-
-	return fullPath, nil
 }
