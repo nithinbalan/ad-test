@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	penetrationTestDTOs "jethur/grc/penetration-testing/dtos"
@@ -67,10 +66,23 @@ func (service *PenetrationTestFindingService) GetFullDetailsByID(id uint) (*pene
 
 func (service *PenetrationTestFindingService) Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFindingFormDTO) (uint, error) {
 	tx := service.repo.BeginTransaction()
-	value, err := service.buildModel(formDTO)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
+	var targetRemediationDate *time.Time
+	var err error
+	if formDTO.TargetRemediationDate != nil && *formDTO.TargetRemediationDate != "" {
+		targetRemediationDate, err = utility.ParseDate(*formDTO.TargetRemediationDate)
+		if err != nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(err, "invalid", "target_remediation_date")
+		}
+	}
+	value := &models.PenetrationTestFinding{
+		PenetrationTestID:     formDTO.PenetrationTestID,
+		Title:                 formDTO.Title,
+		SeverityLevelID:       formDTO.SeverityLevelID,
+		Description:           formDTO.Description,
+		Recommendation:        formDTO.Recommendation,
+		OwnerID:               formDTO.OwnerID,
+		TargetRemediationDate: targetRemediationDate,
 	}
 
 	if err := service.repo.ValidateReferences(value); err != nil {
@@ -97,7 +109,16 @@ func (service *PenetrationTestFindingService) Create(currentUserID uint, formDTO
 	}
 
 	if service.activityLogSvc != nil {
-		go service.logActivity(models.CreateAction, id, currentUserID, nil)
+		go func() {
+			existingEntry, err := service.GetFullDetailsByID(id)
+			if err != nil {
+				utility.LogError("Failed to fetch penetration test finding", map[string]interface{}{"error": err.Error()})
+				return
+			}
+			if err := service.activityLogSvc.LogActivity(models.CreateAction, models.PenetrationTestFinding{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "create penetration test finding", nil); err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+			}
+		}()
 	}
 	return id, nil
 }
@@ -110,10 +131,22 @@ func (service *PenetrationTestFindingService) Update(id uint, currentUserID uint
 		return err
 	}
 
-	updated, err := service.buildModel(formDTO)
-	if err != nil {
-		tx.Rollback()
-		return err
+	var targetRemediationDate *time.Time
+	if formDTO.TargetRemediationDate != nil && *formDTO.TargetRemediationDate != "" {
+		targetRemediationDate, err = utility.ParseDate(*formDTO.TargetRemediationDate)
+		if err != nil {
+			tx.Rollback()
+			return utility.NewValidationError(err, "invalid", "target_remediation_date")
+		}
+	}
+	updated := &models.PenetrationTestFinding{
+		PenetrationTestID:     formDTO.PenetrationTestID,
+		Title:                 formDTO.Title,
+		SeverityLevelID:       formDTO.SeverityLevelID,
+		Description:           formDTO.Description,
+		Recommendation:        formDTO.Recommendation,
+		OwnerID:               formDTO.OwnerID,
+		TargetRemediationDate: targetRemediationDate,
 	}
 	if err := service.repo.ValidateReferences(updated); err != nil {
 		tx.Rollback()
@@ -125,7 +158,8 @@ func (service *PenetrationTestFindingService) Update(id uint, currentUserID uint
 	updated.CreatedBYID = existing.CreatedBYID
 	updated.CreatedAt = existing.CreatedAt
 	updated.UpdatedBYID = &currentUserID
-	updated.UpdatedAt = func() *time.Time { value := time.Now(); return &value }()
+	now := time.Now()
+	updated.UpdatedAt = &now
 
 	if err := service.repo.Update(updated, tx); err != nil {
 		tx.Rollback()
@@ -136,7 +170,16 @@ func (service *PenetrationTestFindingService) Update(id uint, currentUserID uint
 	}
 
 	if service.activityLogSvc != nil {
-		go service.logActivity(models.UpdateAction, id, currentUserID, nil)
+		go func() {
+			existingEntry, err := service.GetFullDetailsByID(id)
+			if err != nil {
+				utility.LogError("Failed to fetch penetration test finding", map[string]interface{}{"error": err.Error()})
+				return
+			}
+			if err := service.activityLogSvc.LogActivity(models.UpdateAction, models.PenetrationTestFinding{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "update penetration test finding", nil); err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+			}
+		}()
 	}
 	return nil
 }
@@ -183,46 +226,4 @@ func (service *PenetrationTestFindingService) Delete(ids []uint, currentUserID u
 		)
 	}
 	return failedIDs, nil
-}
-
-func (service *PenetrationTestFindingService) logActivity(action models.Action, id uint, currentUserID uint, data interface{}) {
-	value, err := service.GetFullDetailsByID(id)
-	if err != nil {
-		utility.LogError("Failed to fetch penetration test finding for activity log", map[string]interface{}{"error": err.Error()})
-		return
-	}
-	if data == nil {
-		data = value
-	}
-	if err := service.activityLogSvc.LogActivity(action, models.PenetrationTestFinding{}.TableName(), id, data, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "", nil); err != nil {
-		utility.LogError("Failed to log penetration test finding activity", map[string]interface{}{"error": err.Error()})
-	}
-}
-
-func (service *PenetrationTestFindingService) buildModel(formDTO *penetrationTestDTOs.PenetrationTestFindingFormDTO) (*models.PenetrationTestFinding, error) {
-	targetRemediationDate, err := parseFindingOptionalDate(formDTO.TargetRemediationDate, "target_remediation_date")
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.PenetrationTestFinding{
-		PenetrationTestID:     formDTO.PenetrationTestID,
-		Title:                 formDTO.Title,
-		SeverityLevelID:       formDTO.SeverityLevelID,
-		Description:           formDTO.Description,
-		Recommendation:        formDTO.Recommendation,
-		OwnerID:               formDTO.OwnerID,
-		TargetRemediationDate: targetRemediationDate,
-	}, nil
-}
-
-func parseFindingOptionalDate(value *string, field string) (*time.Time, error) {
-	if value == nil || *value == "" {
-		return nil, nil
-	}
-	parsed, err := utility.ParseDate(*value)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid %s", field), "invalid", field)
-	}
-	return parsed, nil
 }
