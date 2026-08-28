@@ -178,6 +178,9 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		ReferenceNumber:          referenceNumber,
 		BusinessContinuityPlanID: testAndExerciseFormDTO.BusinessContinuityPlanID,
 		BcpTestAndExerciseID:     testAndExerciseFormDTO.BcpTestAndExerciseID,
+		Objective:                testAndExerciseFormDTO.Objective,
+		Scenario:                 testAndExerciseFormDTO.Scenario,
+		SuccessCriteria:          testAndExerciseFormDTO.SuccessCriteria,
 		ResponsibleUserID:        &testAndExerciseFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:        &responsibleUnitID,
 		TestingDate:              dates.TestingDate,
@@ -459,6 +462,9 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 
 	existingTestAndExercise.BusinessContinuityPlanID = testAndExerciseFormDTO.BusinessContinuityPlanID
 	existingTestAndExercise.ResponsibleUserID = &testAndExerciseFormDTO.ResponsibleUserID
+	existingTestAndExercise.Objective = testAndExerciseFormDTO.Objective
+	existingTestAndExercise.Scenario = testAndExerciseFormDTO.Scenario
+	existingTestAndExercise.SuccessCriteria = testAndExerciseFormDTO.SuccessCriteria
 	existingTestAndExercise.Description = testAndExerciseFormDTO.Description
 	existingTestAndExercise.TestingDate = dates.TestingDate
 	existingTestAndExercise.BcpTestAndExerciseID = testAndExerciseFormDTO.BcpTestAndExerciseID

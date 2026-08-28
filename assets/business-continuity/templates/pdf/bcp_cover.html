@@ -1,0 +1,115 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<style>
+  html {
+    margin: 0;
+  }
+
+  @font-face {
+    font-family: 'Lexend Deca';
+    src: url('{{.LexandDecaFont100}}') format('woff');
+    font-weight: 100;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'Lexend Deca';
+    src: url('{{.LexandDecaFont200}}') format('woff');
+    font-weight: 200;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'Lexend Deca';
+    src: url('{{.LexandDecaFont300}}') format('woff');
+    font-weight: 300;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'Lexend Deca';
+    src: url('{{.LexandDecaFont400}}') format('woff');
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'Lexend Deca';
+    src: url('{{.LexandDecaFont500}}') format('woff');
+    font-weight: 500;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'Lexend Deca';
+    src: url('{{.LexandDecaFont600}}') format('woff');
+    font-weight: 600;
+    font-style: normal;
+  }
+</style>
+
+<body style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; height: 100%; hyphens: auto; line-height: 1.4; margin: 0; -moz-hyphens: auto; -ms-word-break: break-all; width: 100% !important; -webkit-hyphens: auto; -webkit-text-size-adjust: none; word-break: break-word;">
+  <div class="page" style="width: 100%;">
+    <div style="min-height: 1250px; background: url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat; background-size: 100% 100%; padding: 0px 32px; position: relative;">
+      <div>
+        <img src="{{.ApiPath}}/report-template-settings/image-preview?type=logo" style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; padding: 5px 0;">
+      </div>
+
+      <h1 style="font-size: 40px; color: #fff; position: absolute; bottom: 500px; text-align: center; width: 94%;">
+        Business Continuity Plan</h1>
+    </div>
+
+    <div style="margin-left: 40px; margin-top: 24px;">
+      <div style="margin-top: 0px;">
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; font-weight: 300;">
+            <span>Ref No:</span>
+          </p>
+          <p style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: left; margin-top: 0px; font-weight: 400;">
+            {{.Data.ReferenceNumber}}
+          </p>
+        </div>
+        <div style="width: 60%; display: inline-block; vertical-align: top;">
+          <p style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; font-weight: 300;">
+            <span>Business Function</span>
+          </p>
+          <p style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: left; margin-top: 0px; font-weight: 400;">
+            {{.Data.BusinessFunctionTitle}}
+          </p>
+        </div>
+      </div>
+      <div style="margin-top: 10px;">
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; font-weight: 300;">
+            <span>Date</span>
+          </p>
+          <p style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: left; margin-top: 0px; font-weight: 400;">
+            {{.Data.CreatedAt}}
+          </p>
+        </div>
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; font-weight: 300;">
+            <span>Prepared By</span>
+          </p>
+          <p style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: left; margin-top: 0px; font-weight: 400;">
+            {{.Data.CreatedUserFirstNameEn}} {{.Data.CreatedUserLastNameEn}}
+          </p>
+        </div>
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; font-weight: 300;">
+            <span>Exported At</span>
+          </p>
+          <p style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: left; margin-top: 0px; font-weight: 400;">
+            {{.Data.GeneratedAt}}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

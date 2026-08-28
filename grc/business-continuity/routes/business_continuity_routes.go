@@ -134,6 +134,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/business-continuity-plans/delete", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.DeleteBusinessContinuityPlans)
 	businessContinuityRoutes.GET("/business-continuity-plans/export", middlewares.RolePermissionMiddleware(db, "bcp", "view"), businessContinuityPlanController.GetAllBusinessContinuityPlanExport)
 	businessContinuityRoutes.GET("/business-continuity-plans/:id/test-summary", businessContinuityPlanController.GetTestSummary)
+	businessContinuityRoutes.POST("/business-continuity-plans/create-version", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), businessContinuityPlanController.CreateVersion)
+	businessContinuityRoutes.GET("/business-continuity-plans/:id/version-history", middlewares.RolePermissionMiddleware(db, "bcp", "view"), businessContinuityPlanController.GetVersionHistory)
+	businessContinuityRoutes.GET("/business-continuity-plans/:id/export-pdf", middlewares.RolePermissionMiddleware(db, "bcp", "view"), businessContinuityPlanController.ExportBusinessContinuityPlanToPDF)
 
 	//bcp heatmap
 	businessContinuityRoutes.GET("/business-continuity-plans/:id/heatmap", middlewares.RolePermissionMiddleware(db, "bcp", "view"), businessContinuityPlanController.GetBcpHeatmap)
@@ -211,6 +214,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.DELETE("/test-and-exercises/:testAndExerciseId/test-result-analysis", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseTestResultController.DeleteTestAndExerciseTestResults)
 	businessContinuityRoutes.GET("/test-and-exercises/:testAndExerciseId/test-result-summary", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseController.GetTestResultSummary)
 	businessContinuityRoutes.PUT("/test-result-system-registers/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseTestResultController.UpdateTestResultSystemRegister)
+
+	// Test Result Performance Measures
+	businessContinuityRoutes.POST("/test-results/:testResultId/performance-measures", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseTestResultController.CreatePerformanceMeasure)
+	businessContinuityRoutes.GET("/test-results/:testResultId/performance-measures", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseTestResultController.GetPerformanceMeasures)
+	businessContinuityRoutes.PUT("/performance-measures/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseTestResultController.UpdatePerformanceMeasure)
+	businessContinuityRoutes.DELETE("/performance-measures/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseTestResultController.DeletePerformanceMeasure)
 
 	// Recovery Action Plan
 	unauthenticatedRoutes.GET("/test-and-exercises/:testAndExerciseId/recovery-action-plans/:actionPlanId/status-updates/:id/document-download", taeRecoveryActionPlanStatusUpdateController.DownloadTaeRecoveryActionPlanStatusUpdateDocument)
@@ -321,6 +330,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.GET("/bcm-bia-impact-levels", bcmBiaImpactLevelController.GetAllBCMBIAImpactLevels)
 	businessContinuityRoutes.GET("/bcm-bia-impact-levels/:id", bcmBiaImpactLevelController.GetBCMBIAImpactLevelFullDetails)
 	businessContinuityRoutes.GET("/bcm-bia-impact-levels/analysis-level/:analysisLevelId", bcmBiaImpactLevelController.GetBCMBIAImpactLevelByImpactAnalysisLevelID)
+	businessContinuityRoutes.PUT("/bcm-bia-impact-levels", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmBiaImpactLevelController.UpdateBCMBIAImpactLevels)
 
 	// Staff Allocations (auto-generated, user updates is_remote per slot)
 	businessContinuityRoutes.GET("/bia/processes/:processId/staff-allocations", middlewares.RolePermissionMiddleware(db, "bia", "view"), bcmStaffAllocationController.GetFullDetailsByProcessID)

@@ -87,7 +87,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcmBiaOutageBucketController := controllers.NewBCMBIAOutageBucketController(bcmBiaOutageBucketSvc)
 
 	bcmBiaImpactLevelRepo := repositories.NewBCMBIAImpactLevelRepository(db)
-	bcmBiaImpactLevelSvc := services.NewBCMBIAImpactLevelService(bcmBiaImpactLevelRepo)
+	bcmBiaImpactLevelSvc := services.NewBCMBIAImpactLevelService(bcmBiaImpactLevelRepo, sharedModule.ActivityLogService)
 	bcmBiaImpactLevelController := controllers.NewBCMBIAImpactLevelController(bcmBiaImpactLevelSvc)
 
 	businessImpactAssessmentRepo := repositories.NewBusinessImpactAssessmentRepository(db)
@@ -156,6 +156,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		organizationModule.UserSettingSvc,
 		bcpStatusSvc,
 		riskModule.RiskHeatMapSvc,
+		settingsModule.ReportTemplateSettingSvc,
 	)
 	businessContinuityPlanController := controllers.NewBusinessContinuityPlanController(businessContinuityPlanSvc)
 

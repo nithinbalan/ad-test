@@ -29,6 +29,11 @@ type TestAndExerciseTestResultServiceInterface interface {
 	Delete(testAndExerciseId uint, currentUserID uint) (uint, error)
 
 	GetDocumentPath(testAndExerciseId uint, token string) (string, error)
+
+	CreatePerformanceMeasures(testResultID uint, currentUserID uint, bulkDTO *businessContinuityDTOs.TestResultPerformanceMeasureBulkCreateDTO) ([]uint, error)
+	UpdatePerformanceMeasure(id uint, currentUserID uint, formDTO *businessContinuityDTOs.TestResultPerformanceMeasureFormDTO) error
+	DeletePerformanceMeasure(id uint, currentUserID uint) error
+	GetPerformanceMeasuresByTestResultID(testResultID uint) ([]*businessContinuityDTOs.TestResultPerformanceMeasureDetailDTO, error)
 }
 
 // Service and implementations
@@ -674,4 +679,181 @@ func (tetrs *TestAndExerciseTestResultService) GetDocumentPath(testAndExerciseID
 	}
 
 	return fullPath, nil
+}
+
+func (tetrs *TestAndExerciseTestResultService) CreatePerformanceMeasures(testResultID uint, currentUserID uint, bulkDTO *businessContinuityDTOs.TestResultPerformanceMeasureBulkCreateDTO) ([]uint, error) {
+	tx := tetrs.repo.BeginTransaction()
+
+	var createdIDs []uint
+
+	for _, formDTO := range bulkDTO.PerformanceMeasures {
+		measure := &models.TestResultPerformanceMeasure{
+			TestResultID:   testResultID,
+			Criterion:      formDTO.Criterion,
+			Target:         formDTO.Target,
+			AchievedResult: formDTO.AchievedResult,
+			Remarks:        formDTO.Remarks,
+			CreatedBYID:    currentUserID,
+		}
+
+		id, err := tetrs.repo.CreatePerformanceMeasure(measure, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		createdIDs = append(createdIDs, id)
+	}
+
+	tx.Commit()
+
+	go func() {
+		for _, id := range createdIDs {
+			measureDetails, err := tetrs.repo.GetPerformanceMeasureByID(id)
+			if err != nil {
+				utility.LogError("Failed to fetch performance measure", map[string]interface{}{
+					"error": err.Error(),
+				})
+				continue
+			}
+			err = tetrs.activityLogSvc.LogActivity(
+				models.CreateAction,
+				models.TestResultPerformanceMeasure{}.TableName(),
+				id,
+				measureDetails,
+				currentUserID,
+				"business_continuity",
+				"test_and_exercise",
+				"test_result_performance_measure",
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.CreateAction,
+					"tableName": models.TestResultPerformanceMeasure{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
+		}
+	}()
+
+	return createdIDs, nil
+}
+
+func (tetrs *TestAndExerciseTestResultService) UpdatePerformanceMeasure(id uint, currentUserID uint, formDTO *businessContinuityDTOs.TestResultPerformanceMeasureFormDTO) error {
+	tx := tetrs.repo.BeginTransaction()
+
+	existingMeasure, err := tetrs.repo.GetPerformanceMeasureByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	existingMeasure.Criterion = formDTO.Criterion
+	existingMeasure.Target = formDTO.Target
+	existingMeasure.AchievedResult = formDTO.AchievedResult
+	existingMeasure.Remarks = formDTO.Remarks
+	existingMeasure.UpdatedBYID = &currentUserID
+
+	err = tetrs.repo.UpdatePerformanceMeasure(existingMeasure, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		measureDetails, err := tetrs.repo.GetPerformanceMeasureByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch performance measure", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = tetrs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.TestResultPerformanceMeasure{}.TableName(),
+			id,
+			measureDetails,
+			currentUserID,
+			"business_continuity",
+			"test_and_exercise",
+			"test_result_performance_measure",
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.TestResultPerformanceMeasure{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (tetrs *TestAndExerciseTestResultService) DeletePerformanceMeasure(id uint, currentUserID uint) error {
+	tx := tetrs.repo.BeginTransaction()
+
+	existingMeasure, err := tetrs.repo.GetPerformanceMeasureByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	oldMeasure := *existingMeasure
+
+	err = tetrs.repo.DeletePerformanceMeasure(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		err = tetrs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.TestResultPerformanceMeasure{}.TableName(),
+			id,
+			&oldMeasure,
+			currentUserID,
+			"business_continuity",
+			"test_and_exercise",
+			"test_result_performance_measure",
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.DeleteAction,
+				"tableName": models.TestResultPerformanceMeasure{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (tetrs *TestAndExerciseTestResultService) GetPerformanceMeasuresByTestResultID(testResultID uint) ([]*businessContinuityDTOs.TestResultPerformanceMeasureDetailDTO, error) {
+	measures, err := tetrs.repo.GetPerformanceMeasuresByTestResultID(testResultID)
+	if err != nil {
+		return nil, err
+	}
+
+	var measureDTOs []*businessContinuityDTOs.TestResultPerformanceMeasureDetailDTO
+	err = mapstructure.Decode(measures, &measureDTOs)
+	if err != nil {
+		return nil, err
+	}
+
+	return measureDTOs, nil
 }

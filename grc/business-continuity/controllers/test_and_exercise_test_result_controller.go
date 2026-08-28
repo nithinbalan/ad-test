@@ -256,3 +256,118 @@ func (tetrc *TestAndExerciseTestResultController) UpdateTestResultSystemRegister
 
 	c.Status(http.StatusOK)
 }
+
+func (tetrc *TestAndExerciseTestResultController) CreatePerformanceMeasure(c *gin.Context) {
+	testResultIDStr := c.Param("testResultId")
+	testResultID, err := strconv.ParseUint(testResultIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var bulkDTO businessContinuityDTOs.TestResultPerformanceMeasureBulkCreateDTO
+	if err := c.ShouldBindJSON(&bulkDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tetrc.db, c, err.Error())
+		return
+	}
+
+	ids, err := tetrc.service.CreatePerformanceMeasures(uint(testResultID), currentUserID, &bulkDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(tetrc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"ids": ids})
+}
+
+func (tetrc *TestAndExerciseTestResultController) UpdatePerformanceMeasure(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO businessContinuityDTOs.TestResultPerformanceMeasureFormDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tetrc.db, c, err.Error())
+		return
+	}
+
+	if err := tetrc.service.UpdatePerformanceMeasure(uint(id), currentUserID, &formDTO); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(tetrc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (tetrc *TestAndExerciseTestResultController) DeletePerformanceMeasure(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tetrc.db, c, err.Error())
+		return
+	}
+
+	if err := tetrc.service.DeletePerformanceMeasure(uint(id), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(tetrc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (tetrc *TestAndExerciseTestResultController) GetPerformanceMeasures(c *gin.Context) {
+	testResultIDStr := c.Param("testResultId")
+	testResultID, err := strconv.ParseUint(testResultIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	measures, err := tetrc.service.GetPerformanceMeasuresByTestResultID(uint(testResultID))
+	if err != nil {
+		utility.SendInternalErrResp(tetrc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, measures)
+}

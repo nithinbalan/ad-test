@@ -16,6 +16,9 @@ type TestAndExerciseListDTO struct {
 	BusinessFunctionID              uint    `json:"business_function_id"`
 	BusinessFunctionTitle           string  `json:"business_function_title"`
 	BcpTestAndExerciseTitle         string  `json:"bcp_test_and_exercise_title"`
+	Objective                       *string `json:"objective"`
+	Scenario                        *string `json:"scenario"`
+	SuccessCriteria                 *string `json:"success_criteria"`
 	ResponsibleUserID               *uint   `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      *string `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      *string `json:"responsible_user_first_name_ar"`
@@ -72,6 +75,9 @@ type TestAndExerciseListResponseDTO struct {
 type TestAndExerciseFormDTO struct {
 	BusinessContinuityPlanID uint    `json:"business_continuity_plan_id" binding:"required"`
 	BcpTestAndExerciseID     uint    `json:"bcp_test_and_exercise_id" binding:"required"`
+	Objective                *string `json:"objective"`
+	Scenario                 *string `json:"scenario"`
+	SuccessCriteria          *string `json:"success_criteria"`
 	ResponsibleUserID        uint    `json:"responsible_user_id" binding:"required"`
 	TestingDate              string  `json:"testing_date" binding:"required"`
 	Description              *string `json:"description"`
@@ -86,6 +92,9 @@ type TestAndExerciseDetailDTO struct {
 	ResponsibleUser                         *organizationDTOs.UserMinimalDTO             `json:"responsible_user"`
 	BcpTestAndExerciseID                    uint                                         `json:"bcp_test_and_exercise_id"`
 	BcpTestAndExercise                      *BcpTestAndExerciseDetailDTO                 `json:"bcp_test_and_exercise"`
+	Objective                               *string                                      `json:"objective"`
+	Scenario                                *string                                      `json:"scenario"`
+	SuccessCriteria                         *string                                      `json:"success_criteria"`
 	TestAndExerciseProcesses                []*TestAndExerciseProcessDTO                 `json:"test_and_exercise_processes"`
 	TestAndExerciseSystemRegisters          []*TestAndExerciseSystemRegisterDTO          `json:"test_and_exercise_system_registers"`
 	TestAndExerciseRecoveryActionPlans      []*TestAndExerciseRecoveryActionPlanDTO      `json:"test_and_exercise_recovery_action_plans"`

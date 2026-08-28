@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	bcmDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	"jethur/utility"
 	"net/http"
@@ -70,4 +71,33 @@ func (bbilc *BCMBIAImpactLevelController) GetBCMBIAImpactLevelByImpactAnalysisLe
 	}
 
 	c.JSON(http.StatusOK, bcmBiaImpactLevel)
+}
+
+func (bbilc *BCMBIAImpactLevelController) UpdateBCMBIAImpactLevels(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(bbilc.db, c, err.Error())
+		return
+	}
+
+	var req bcmDTOs.BCMBIAImpactLevelBulkUpdateDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	updatedLevels, err := bbilc.service.UpdateImpactLevels(uint(currentUserID), &req)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, err)
+		default:
+			utility.SendInternalErrResp(bbilc.db, c, err.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedLevels)
 }

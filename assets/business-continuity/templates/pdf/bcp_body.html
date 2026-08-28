@@ -1,0 +1,497 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap" rel="stylesheet">
+
+</head>
+<style>
+   .keep-together {
+      page-break-inside: avoid;
+   }
+
+   .break-before {
+      page-break-before: always;
+   }
+
+   .break-after {
+      page-break-after: always;
+   }
+
+   .clearfix::after {
+      display: block;
+      clear: both;
+      content: "";
+   }
+
+   table {
+      border-collapse: collapse;
+   }
+
+   .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 16px 0;
+      border: 1px solid #eaedf2;
+      border-radius: 10px;
+      background: #ffffff;
+   }
+
+   .data-table th {
+      background-color: #165D31;
+      padding: 10px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 400;
+      color: #ffffff;
+      border: 1px solid #165D31;
+   }
+
+   .data-table td {
+      font-weight: 300;
+      padding: 10px;
+      font-size: 10.5px;
+      color: #1a1a1a;
+      border: 1px solid #eaedf2;
+      vertical-align: middle;
+   }
+
+   .data-table tr:last-child td {
+      border-bottom: none;
+   }
+
+   .table-row-number {
+      color: #6b7280;
+      width: 40px;
+   }
+
+   .list-cell ul {
+      margin: 0;
+      padding-left: 16px;
+   }
+
+   .list-cell li {
+      font-size: 10.5px;
+      line-height: 1.4;
+   }
+
+   .text-center {
+      text-align: center;
+   }
+
+   .empty-state {
+      text-align: center;
+      color: #9ca3af;
+      padding: 20px;
+      font-size: 11px;
+   }
+
+   .subsection-title {
+      font-size: 14px;
+      font-weight: 400;
+      color: #111827;
+      margin: 14px 0 8px 0;
+   }
+
+   .section-divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 16px 0;
+   }
+</style>
+
+<body
+   style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box;color: #000; height: 100%; hyphens: auto; line-height: 1.4; -moz-hyphens: auto; -ms-word-break: break-all; width: 100% !important; -webkit-hyphens: auto; -webkit-text-size-adjust: none; word-break: break-word;">
+
+
+   <div class="page" style="width: 1000px; margin: 0 ; background: #fff; padding:0px 32px; ">
+      <div style="padding-top: 4px ;">
+
+
+         <div class="keep-together" style="padding-top: 0px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 1. Basic Details
+            </h4>
+
+            <div style="margin-top: 10px; ">
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Ref No: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.ReferenceNumber}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Business Function: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.BusinessFunctionTitle}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Version: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.Version}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Status </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     <span style="background: #E5F4F0;
+                              color: {{.Data.BcpStatusColorCode}};
+                              padding: 4px 8px;
+                              border-radius: 5px;
+                              font-size: 12px;
+                              line-height: normal;
+                              display: inline-block;
+                              border: 1px solid #AFD6CC;
+                              font-weight: 400;"> {{.Data.BcpStatusTitleEn}} </span>
+                  </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Responsible User: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.ResponsibleUserFirstNameEn}} {{.Data.ResponsibleUserLastNameEn}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Responsible Unit: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.ResponsibleUnitTitleEn}} </p>
+               </div>
+               {{if .Data.Purpose}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Purpose </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.Purpose}} </p>
+               </div>
+               {{end}}
+               {{if .Data.Scope}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Scope </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.Scope}} </p>
+               </div>
+               {{end}}
+               {{if .Data.Objectives}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Objectives </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.Objectives}} </p>
+               </div>
+               {{end}}
+               {{if .Data.Assumptions}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Assumptions </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.Assumptions}} </p>
+               </div>
+               {{end}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Created At </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.CreatedAt}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Created By </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.CreatedUserFirstNameEn}} {{.Data.CreatedUserLastNameEn}} </p>
+               </div>
+            </div>
+         </div>
+
+
+         <div class="break-before" style="padding-top: 0px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 2. BCP Details
+            </h4>
+
+    <!-- TABLE 1: Time Frames -->
+    <h3 class="subsection-title">Time Frames</h3>
+    {{if .Data.TimeFrames}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Critical Procedure Name</th>
+          <th>RTO</th>
+          <th>MTPD</th>
+          <th>RPO</th>
+          <th>RSP</th>
+          <th>Alternate Site Name</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $i, $row := .Data.TimeFrames}}
+        <tr>
+          <td class="table-row-number">{{add $i 1}}</td>
+          <td>{{$row.CriticalProcedureName}}</td>
+          <td>{{$row.Rto}}</td>
+          <td>{{$row.Mtpd}}</td>
+          <td>{{$row.Rpo}}</td>
+          <td>{{$row.Rsp}}</td>
+          <td>{{$row.AlternateSiteName}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="empty-state">No time frame data available.</div>
+    {{end}}
+
+    <hr class="section-divider" />
+
+    <!-- TABLE 2: Critical Procedure Data Summary -->
+    <h3 class="subsection-title">Critical Procedure Data Summary</h3>
+    {{if .Data.CriticalProcedureSummaries}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Critical Procedure Name</th>
+          <th>Application System</th>
+          <th>Can the Procedure Be Performed Manually if Systems Are Down</th>
+          <th>Steps Required to Complete the Procedure Manually</th>
+          <th>Manual Forms to Complete the Manual Work</th>
+          <th>Requirements Needed to Complete the Manual Procedure</th>
+          <th>Critical Records</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $i, $row := .Data.CriticalProcedureSummaries}}
+        <tr>
+          <td class="table-row-number">{{add $i 1}}</td>
+          <td>{{$row.CriticalProcedureName}}</td>
+          <td class="list-cell">
+            {{if $row.ApplicationSystems}}
+            <ul>{{range $row.ApplicationSystems}}<li>{{.}}</li>{{end}}</ul>
+            {{else}}--{{end}}
+          </td>
+          <td>{{$row.ManualExecution}}</td>
+          <td>{{$row.ManualSteps}}</td>
+          <td class="list-cell">
+            {{if $row.ManualForms}}
+            <ul>{{range $row.ManualForms}}<li>{{.}}</li>{{end}}</ul>
+            {{else}}--{{end}}
+          </td>
+          <td>{{$row.ManualRequirements}}</td>
+          <td class="list-cell">
+            {{if $row.CriticalRecords}}
+            <ul>{{range $row.CriticalRecords}}<li>{{.}}</li>{{end}}</ul>
+            {{else}}--{{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="empty-state">No critical procedure data available.</div>
+    {{end}}
+
+    <hr class="section-divider" />
+
+    <!-- TABLE 3: Internal Dependencies -->
+    <h3 class="subsection-title">Internal Dependencies</h3>
+    {{if .Data.InternalDependencies}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Critical Procedure Name</th>
+          <th>Supporting Unit</th>
+          <th>Dependency Tier</th>
+          <th>Dependency Percentage Range</th>
+          <th>Required Support</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $i, $row := .Data.InternalDependencies}}
+        <tr>
+          <td class="table-row-number">{{add $i 1}}</td>
+          <td>{{$row.CriticalProcedureName}}</td>
+          <td>{{$row.SupportingUnitTitle}}</td>
+          <td>{{$row.DependencyTierTitle}}</td>
+          <td>{{$row.DependencyPercentageRange}}</td>
+          <td>{{$row.RequiredSupport}}</td>
+          <td>{{$row.Notes}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="empty-state">No internal dependencies.</div>
+    {{end}}
+
+    <!-- TABLE 4: External Dependencies -->
+    <h3 class="subsection-title">External Dependencies</h3>
+    {{if .Data.ExternalDependencies}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Critical Procedure Name</th>
+          <th>Entity Name</th>
+          <th>Entity Type</th>
+          <th>Dependency Tier</th>
+          <th>SLA Register</th>
+          <th>Internal Stakeholder</th>
+          <th>Contact Number</th>
+          <th>Contact Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $i, $row := .Data.ExternalDependencies}}
+        <tr>
+          <td class="table-row-number">{{add $i 1}}</td>
+          <td>{{$row.CriticalProcedureName}}</td>
+          <td>{{$row.EntityName}}</td>
+          <td>{{$row.EntityTypeTitle}}</td>
+          <td>{{$row.DependencyTierTitle}}</td>
+          <td>{{$row.SLARegisterTitle}}</td>
+          <td>{{$row.InternalStakeholder}}</td>
+          <td>{{$row.ContactNumber}}</td>
+          <td>{{$row.ContactEmail}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="empty-state">No external dependencies.</div>
+    {{end}}
+
+    <hr class="section-divider" />
+
+    <!-- TABLE 5: Critical Staff -->
+    <h3 class="subsection-title">Critical Staff</h3>
+    {{if .Data.CriticalStaff}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Critical Procedure Name</th>
+          <th class="text-center">Critical Staff</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $i, $row := .Data.CriticalStaff}}
+        <tr>
+          <td class="table-row-number">{{add $i 1}}</td>
+          <td>{{$row.CriticalProcedureName}}</td>
+          <td class="text-center">{{$row.CriticalStaff}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="empty-state">No critical staff data available.</div>
+    {{end}}
+
+    <hr class="section-divider" />
+
+    <!-- TABLE 6: Staff Allocations (dynamic columns) -->
+    <h3 class="subsection-title">Staff Allocations</h3>
+    {{if .Data.StaffAllocations}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Critical Procedure Name</th>
+          <th>Critical Staff</th>
+          <th>Remote Work</th>
+          {{range .Data.StaffAllocationBucketColumns}}
+          <th>{{.TitleEn}}</th>
+          {{end}}
+        </tr>
+      </thead>
+      <tbody>
+        {{range $i, $row := .Data.StaffAllocations}}
+        <tr>
+          <td class="table-row-number">{{add $i 1}}</td>
+          <td>{{$row.CriticalProcedureName}}</td>
+          <td>{{$row.CriticalStaff}}</td>
+          <td>{{$row.RemoteWork}}</td>
+          {{$bucketUsers := $row.BucketUsers}}
+          {{range $.Data.StaffAllocationBucketColumns}}
+          <td>{{index $bucketUsers .ID}}</td>
+          {{end}}
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="empty-state">No staff allocation data available.</div>
+    {{end}}
+
+    <hr class="section-divider" />
+
+    <!-- TABLE 7: Equipment (dynamic columns) -->
+    <h3 class="subsection-title">Equipment</h3>
+    {{if .Data.EquipmentList}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Critical Employee</th>
+          {{range .Data.EquipmentToolColumns}}
+          <th>{{.TitleEn}}</th>
+          {{end}}
+          <th>Need Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $i, $row := .Data.EquipmentList}}
+        <tr>
+          <td class="table-row-number">{{add $i 1}}</td>
+          <td>{{$row.CriticalEmployee}}</td>
+          {{$equipStatus := $row.EquipmentStatus}}
+          {{range $.Data.EquipmentToolColumns}}
+          <td>{{index $equipStatus .ID}}</td>
+          {{end}}
+          <td>{{$row.NeedStatus}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="empty-state">No equipment data available.</div>
+    {{end}}
+
+         </div>
+      </div>
+   </div>
+
+</body>
+
+</html>
