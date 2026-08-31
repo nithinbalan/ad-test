@@ -9,29 +9,33 @@ import (
 )
 
 type PenetrationTestFindingListDTO struct {
-	ID                     uint    `json:"id"`
-	ReferenceNumber        string  `json:"reference_number"`
-	PenetrationTestID      uint    `json:"penetration_test_id"`
-	Title                  string  `json:"title"`
-	Status                 string  `json:"status"`
-	SeverityLevelID        uint    `json:"severity_level_id"`
-	SeverityLevelTitleEn   string  `json:"severity_level_title_en"`
-	SeverityLevelTitleAr   string  `json:"severity_level_title_ar"`
-	SeverityLevelColorCode string  `json:"severity_level_color_code"`
-	OwnerID                uint    `json:"owner_id"`
-	OwnerFirstNameEn       string  `json:"owner_first_name_en"`
-	OwnerLastNameEn        string  `json:"owner_last_name_en"`
-	OwnerFirstNameAr       string  `json:"owner_first_name_ar"`
-	OwnerLastNameAr        string  `json:"owner_last_name_ar"`
-	TargetRemediationDate  *string `json:"target_remediation_date"`
-	CreatedAt              string  `json:"created_at"`
-	UpdatedAt              *string `json:"updated_at"`
+	ID                        uint    `json:"id"`
+	ReferenceNumber           string  `json:"reference_number"`
+	PenetrationTestID         uint    `json:"penetration_test_id"`
+	Title                     string  `json:"title"`
+	ActionPlanStatusID        uint    `json:"action_plan_status_id"`
+	ActionPlanStatusTitleEn   string  `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr   string  `json:"action_plan_status_title_ar"`
+	ActionPlanStatusColorCode string  `json:"action_plan_status_color_code"`
+	ActionPlanStatusType      string  `json:"action_plan_status_type"`
+	SeverityLevelID           uint    `json:"severity_level_id"`
+	SeverityLevelTitleEn      string  `json:"severity_level_title_en"`
+	SeverityLevelTitleAr      string  `json:"severity_level_title_ar"`
+	SeverityLevelColorCode    string  `json:"severity_level_color_code"`
+	OwnerID                   uint    `json:"owner_id"`
+	OwnerFirstNameEn          string  `json:"owner_first_name_en"`
+	OwnerLastNameEn           string  `json:"owner_last_name_en"`
+	OwnerFirstNameAr          string  `json:"owner_first_name_ar"`
+	OwnerLastNameAr           string  `json:"owner_last_name_ar"`
+	TargetRemediationDate     *string `json:"target_remediation_date"`
+	CreatedAt                 string  `json:"created_at"`
+	UpdatedAt                 *string `json:"updated_at"`
 }
 
 type PenetrationTestFindingFormDTO struct {
 	PenetrationTestID     uint    `json:"penetration_test_id" binding:"required"`
 	Title                 string  `json:"title" binding:"required,max=255"`
-	Status                string  `json:"status" binding:"omitempty,oneof='Open' 'In Remediation' 'Retest Requested' 'Closed'"`
+	ActionPlanStatusID    uint    `json:"action_plan_status_id" binding:"required"`
 	SeverityLevelID       uint    `json:"severity_level_id" binding:"required"`
 	Description           string  `json:"description" binding:"required"`
 	Recommendation        string  `json:"recommendation" binding:"required"`
@@ -44,7 +48,8 @@ type PenetrationTestFindingDetailDTO struct {
 	ReferenceNumber       string                           `json:"reference_number"`
 	PenetrationTestID     uint                             `json:"penetration_test_id"`
 	Title                 string                           `json:"title"`
-	Status                string                           `json:"status"`
+	ActionPlanStatusID    uint                             `json:"action_plan_status_id"`
+	ActionPlanStatus      masterDTOs.ActionPlanStatusDTO   `json:"action_plan_status"`
 	SeverityLevelID       uint                             `json:"severity_level_id"`
 	SeverityLevel         masterDTOs.SeverityLevelDTO      `json:"severity_level"`
 	Description           string                           `json:"description"`

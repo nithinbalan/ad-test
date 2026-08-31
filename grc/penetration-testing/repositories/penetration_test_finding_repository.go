@@ -46,7 +46,11 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 			penetration_test_findings.reference_number,
 			penetration_test_findings.penetration_test_id,
 			penetration_test_findings.title,
-			penetration_test_findings.status,
+			penetration_test_findings.action_plan_status_id,
+			action_plan_statuses.title_en AS action_plan_status_title_en,
+			action_plan_statuses.title_ar AS action_plan_status_title_ar,
+			action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
 			penetration_test_findings.severity_level_id,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
@@ -61,6 +65,7 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 			CONVERT(varchar(30), penetration_test_findings.updated_at, 126) AS updated_at
 		`).
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = penetration_test_findings.severity_level_id").
+		Joins("LEFT JOIN action_plan_statuses ON action_plan_statuses.id = penetration_test_findings.action_plan_status_id").
 		Joins("LEFT JOIN users AS owner_user ON owner_user.id = penetration_test_findings.owner_id")
 
 	if params.PenetrationTestID > 0 {
@@ -90,6 +95,7 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 		"reference_number":        true,
 		"title":                   true,
 		"severity_level_id":       true,
+		"action_plan_status_id":   true,
 		"target_remediation_date": true,
 		"created_at":              true,
 	}
@@ -132,6 +138,7 @@ func (repo *PenetrationTestFindingRepository) GetByID(id uint, tx ...utility.Dat
 	result := db.
 		Preload("PenetrationTest").
 		Preload("SeverityLevel").
+		Preload("ActionPlanStatus").
 		Preload("Owner").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -199,6 +206,7 @@ func (repo *PenetrationTestFindingRepository) ValidateReferences(penetrationTest
 	}{
 		{"penetration_tests", penetrationTestFinding.PenetrationTestID, "penetration_test_id"},
 		{"severity_levels", penetrationTestFinding.SeverityLevelID, "severity_level_id"},
+		{"action_plan_statuses", penetrationTestFinding.ActionPlanStatusID, "action_plan_status_id"},
 		{"users", penetrationTestFinding.OwnerID, "owner_id"},
 	}
 	for _, reference := range references {
