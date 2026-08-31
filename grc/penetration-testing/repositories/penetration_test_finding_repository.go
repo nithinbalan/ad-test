@@ -46,6 +46,7 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 			penetration_test_findings.reference_number,
 			penetration_test_findings.penetration_test_id,
 			penetration_test_findings.title,
+			penetration_test_findings.status,
 			penetration_test_findings.severity_level_id,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,

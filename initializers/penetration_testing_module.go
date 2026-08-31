@@ -8,6 +8,9 @@ import (
 )
 
 type PenetrationTestingModule struct {
+	PenetrationTestController                     *controllers.PenetrationTestController
+	PenetrationTestFindingController              *controllers.PenetrationTestFindingController
+	PenetrationTestRetestController               *controllers.PenetrationTestRetestController
 	PenetrationTestTypeController                 *controllers.PenetrationTestTypeController
 	PenetrationTestPlanController                 *controllers.PenetrationTestPlanController
 	PenetrationTestExecutorController             *controllers.PenetrationTestExecutorController
@@ -18,6 +21,9 @@ type PenetrationTestingModule struct {
 }
 
 func NewPenetrationTestingModule(db *gorm.DB, sharedModule *SharedModule) *PenetrationTestingModule {
+	penetrationTestService := services.NewPenetrationTestService(repositories.NewPenetrationTestRepository(db), sharedModule.ActivityLogService)
+	penetrationTestFindingService := services.NewPenetrationTestFindingService(repositories.NewPenetrationTestFindingRepository(db), sharedModule.ActivityLogService)
+	penetrationTestRetestService := services.NewPenetrationTestRetestService(repositories.NewPenetrationTestRetestRepository(db), sharedModule.ActivityLogService)
 	typeService := services.NewPenetrationTestTypeService(repositories.NewPenetrationTestTypeRepository(db), sharedModule.ActivityLogService)
 	planService := services.NewPenetrationTestPlanService(repositories.NewPenetrationTestPlanRepository(db), sharedModule.ActivityLogService)
 	executorService := services.NewPenetrationTestExecutorService(repositories.NewPenetrationTestExecutorRepository(db), sharedModule.ActivityLogService)
@@ -26,6 +32,9 @@ func NewPenetrationTestingModule(db *gorm.DB, sharedModule *SharedModule) *Penet
 	executionStatusService := services.NewPenetrationTestExecutionStatusService(repositories.NewPenetrationTestExecutionStatusRepository(db))
 	securityResultService := services.NewPenetrationTestSecurityResultService(repositories.NewPenetrationTestSecurityResultRepository(db))
 	return &PenetrationTestingModule{
+		PenetrationTestController:                     controllers.NewPenetrationTestController(penetrationTestService),
+		PenetrationTestFindingController:              controllers.NewPenetrationTestFindingController(penetrationTestFindingService),
+		PenetrationTestRetestController:               controllers.NewPenetrationTestRetestController(penetrationTestRetestService),
 		PenetrationTestTypeController:                 controllers.NewPenetrationTestTypeController(typeService),
 		PenetrationTestPlanController:                 controllers.NewPenetrationTestPlanController(planService),
 		PenetrationTestExecutorController:             controllers.NewPenetrationTestExecutorController(executorService),

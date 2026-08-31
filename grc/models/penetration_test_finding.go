@@ -7,6 +7,7 @@ type PenetrationTestFinding struct {
 	ReferenceNumber       string     `json:"reference_number" gorm:"type:varchar(45);not null;unique"`
 	PenetrationTestID     uint       `json:"penetration_test_id" gorm:"not null" binding:"required"`
 	Title                 string     `json:"title" gorm:"type:nvarchar(255);not null" binding:"required"`
+	Status                string     `json:"status" gorm:"type:varchar(20);not null;default:'Open'" binding:"required,oneof='Open' 'In Remediation' 'Retest Requested' 'Closed'"`
 	SeverityLevelID       uint       `json:"severity_level_id" gorm:"not null" binding:"required"`
 	Description           string     `json:"description" gorm:"type:nvarchar(max);not null" binding:"required"`
 	Recommendation        string     `json:"recommendation" gorm:"type:nvarchar(max);not null" binding:"required"`

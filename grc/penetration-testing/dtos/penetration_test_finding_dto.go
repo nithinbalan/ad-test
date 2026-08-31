@@ -1,10 +1,11 @@
 package dtos
 
 import (
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
-	"time"
 )
 
 type PenetrationTestFindingListDTO struct {
@@ -12,6 +13,7 @@ type PenetrationTestFindingListDTO struct {
 	ReferenceNumber        string  `json:"reference_number"`
 	PenetrationTestID      uint    `json:"penetration_test_id"`
 	Title                  string  `json:"title"`
+	Status                 string  `json:"status"`
 	SeverityLevelID        uint    `json:"severity_level_id"`
 	SeverityLevelTitleEn   string  `json:"severity_level_title_en"`
 	SeverityLevelTitleAr   string  `json:"severity_level_title_ar"`
@@ -29,6 +31,7 @@ type PenetrationTestFindingListDTO struct {
 type PenetrationTestFindingFormDTO struct {
 	PenetrationTestID     uint    `json:"penetration_test_id" binding:"required"`
 	Title                 string  `json:"title" binding:"required,max=255"`
+	Status                string  `json:"status" binding:"omitempty,oneof='Open' 'In Remediation' 'Retest Requested' 'Closed'"`
 	SeverityLevelID       uint    `json:"severity_level_id" binding:"required"`
 	Description           string  `json:"description" binding:"required"`
 	Recommendation        string  `json:"recommendation" binding:"required"`
@@ -41,6 +44,7 @@ type PenetrationTestFindingDetailDTO struct {
 	ReferenceNumber       string                           `json:"reference_number"`
 	PenetrationTestID     uint                             `json:"penetration_test_id"`
 	Title                 string                           `json:"title"`
+	Status                string                           `json:"status"`
 	SeverityLevelID       uint                             `json:"severity_level_id"`
 	SeverityLevel         masterDTOs.SeverityLevelDTO      `json:"severity_level"`
 	Description           string                           `json:"description"`
