@@ -19,7 +19,7 @@ type PenetrationTestFindingServiceInterface interface {
 	GetByID(id uint) (*models.PenetrationTestFinding, error)
 	GetFullDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestFindingDetailDTO, error)
 	Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFindingFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFindingFormDTO) error
+	Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -124,7 +124,7 @@ func (ptfs *PenetrationTestFindingService) Create(currentUserID uint, formDTO *p
 	return id, nil
 }
 
-func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFindingFormDTO) error {
+func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestFindingFormDTO) error {
 	tx := ptfs.repo.BeginTransaction()
 	existing, err := ptfs.repo.GetByID(id, tx)
 	if err != nil {
@@ -133,21 +133,21 @@ func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, f
 	}
 
 	var targetRemediationDate *time.Time
-	if formDTO.TargetRemediationDate != nil && *formDTO.TargetRemediationDate != "" {
-		targetRemediationDate, err = utility.ParseDate(*formDTO.TargetRemediationDate)
+	if form.TargetRemediationDate != nil && *form.TargetRemediationDate != "" {
+		targetRemediationDate, err = utility.ParseDate(*form.TargetRemediationDate)
 		if err != nil {
 			tx.Rollback()
 			return utility.NewValidationError(err, "invalid", "target_remediation_date")
 		}
 	}
 	updated := &models.PenetrationTestFinding{
-		PenetrationTestID:     formDTO.PenetrationTestID,
-		Title:                 formDTO.Title,
-		ActionPlanStatusID:    formDTO.ActionPlanStatusID,
-		SeverityLevelID:       formDTO.SeverityLevelID,
-		Description:           formDTO.Description,
-		Recommendation:        formDTO.Recommendation,
-		OwnerID:               formDTO.OwnerID,
+		PenetrationTestID:     form.PenetrationTestID,
+		Title:                 form.Title,
+		ActionPlanStatusID:    form.ActionPlanStatusID,
+		SeverityLevelID:       form.SeverityLevelID,
+		Description:           form.Description,
+		Recommendation:        form.Recommendation,
+		OwnerID:               form.OwnerID,
 		TargetRemediationDate: targetRemediationDate,
 	}
 	if updated.ActionPlanStatusID == 0 {

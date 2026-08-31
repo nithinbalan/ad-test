@@ -20,7 +20,7 @@ type PenetrationTestRetestServiceInterface interface {
 	GetByID(id uint) (*models.PenetrationTestRetest, error)
 	GetFullDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestRetestDetailDTO, error)
 	Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFormDTO) error
+	Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFormDTO) error
 	VerifyFinding(id uint, currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFindingFormDTO) error
 	Complete(id uint, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -185,9 +185,9 @@ func (ptrs *PenetrationTestRetestService) Create(currentUserID uint, formDTO *pe
 	return id, nil
 }
 
-func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFormDTO) error {
+func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFormDTO) error {
 	seen := make(map[uint]bool)
-	for _, findingID := range formDTO.FindingIDs {
+	for _, findingID := range form.FindingIDs {
 		if findingID == 0 || seen[findingID] {
 			return utility.NewValidationError(fmt.Errorf("finding IDs must be unique and valid"), "invalid", "finding_ids")
 		}
@@ -199,14 +199,14 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 		tx.Rollback()
 		return err
 	}
-	startDate, err := utility.ParseMandatoryDate(formDTO.StartDate)
+	startDate, err := utility.ParseMandatoryDate(form.StartDate)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewValidationError(err, "invalid", "start_date")
 	}
 	var endDate *time.Time
-	if formDTO.EndDate != nil && *formDTO.EndDate != "" {
-		endDate, err = utility.ParseDate(*formDTO.EndDate)
+	if form.EndDate != nil && *form.EndDate != "" {
+		endDate, err = utility.ParseDate(*form.EndDate)
 		if err != nil {
 			tx.Rollback()
 			return utility.NewValidationError(err, "invalid", "end_date")
@@ -216,23 +216,23 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 			return utility.NewValidationError(fmt.Errorf("end date cannot be before start date"), "invalid", "end_date")
 		}
 	}
-	if formDTO.Status == "completed" && endDate == nil {
+	if form.Status == "completed" && endDate == nil {
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("end date is required when completing a re-test"), "invalid", "end_date")
 	}
 	updated := &models.PenetrationTestRetest{
-		PenetrationTestID:         formDTO.PenetrationTestID,
+		PenetrationTestID:         form.PenetrationTestID,
 		StartDate:                 startDate,
 		EndDate:                   endDate,
-		PenetrationTestExecutorID: formDTO.PenetrationTestExecutorID,
-		Status:                    formDTO.Status,
-		Notes:                     formDTO.Notes,
+		PenetrationTestExecutorID: form.PenetrationTestExecutorID,
+		Status:                    form.Status,
+		Notes:                     form.Notes,
 	}
 	if existing.Status == "completed" {
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be updated"), "invalid", "status")
 	}
-	if err := ptrs.repo.ValidateReferences(updated, formDTO.FindingIDs); err != nil {
+	if err := ptrs.repo.ValidateReferences(updated, form.FindingIDs); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -251,7 +251,7 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 		tx.Rollback()
 		return err
 	}
-	for _, findingID := range formDTO.FindingIDs {
+	for _, findingID := range form.FindingIDs {
 		if _, err := ptrs.repo.CreateRetestFinding(&models.PenetrationTestRetestFinding{
 			PenetrationTestRetestID:  id,
 			PenetrationTestFindingID: findingID,
