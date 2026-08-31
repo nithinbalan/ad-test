@@ -288,7 +288,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 					"CommentedByFirstNameEn":      assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":       assignedBy.LastNameEn,
 					"CommentedOn":                 time.Now().Format("2006-01-02"),
-					"RedirectURL":                 fmt.Sprintf("%saudit/audit-findigs/%d/action-plans?action_plan_id=%d", appURL, findingID, actionPlanID),
+					"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, actionPlanID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -357,7 +357,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 				"CommentedByFirstNameEn":      assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":       assignedBy.LastNameEn,
 				"CommentedOn":                 time.Now().Format("2006-01-02"),
-				"RedirectURL":                 fmt.Sprintf("%saudit/audit-findigs/%d/action-plans?action_plan_id=%d", appURL, findingID, actionPlanID),
+				"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, actionPlanID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -425,7 +425,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 				"CommentedByFirstNameEn":      assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":       assignedBy.LastNameEn,
 				"CommentedOn":                 time.Now().Format("2006-01-02"),
-				"RedirectURL":                 fmt.Sprintf("%saudit/audit-findigs/%d/action-plans?action_plan_id=%d", appURL, findingID, actionPlanID),
+				"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, actionPlanID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -494,7 +494,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 					"CommentedByFirstNameEn":      assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":       assignedBy.LastNameEn,
 					"CommentedOn":                 time.Now().Format("2006-01-02"),
-					"RedirectURL":                 fmt.Sprintf("%saudit/audit-findigs/%d/action-plans?action_plan_id=%d", appURL, findingID, actionPlanID),
+					"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, actionPlanID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

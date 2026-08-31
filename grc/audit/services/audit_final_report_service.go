@@ -1141,7 +1141,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 					"AssignedByFirstNameEn":       assignedBy.FirstNameEn,
 					"AssignedByLastNameEn":        assignedBy.LastNameEn,
 					"AssignedOn":                  time.Now().Format("2006-01-02"),
-					"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans", appURL, actionPlan.AuditFindingID),
+					"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, actionPlan.ID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
