@@ -14,6 +14,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	settingServices "jethur/grc/settings/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
@@ -33,6 +34,7 @@ type TestAndExerciseServiceInterface interface {
 	GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error)
 	GetTestAndExerciseSystemRegisterByID(id uint) (*models.TestAndExerciseSystemRegister, error)
 	ExportTestAndExercise(data []*businessContinuityDTOs.TestAndExerciseListDTO, currentUserID uint) (*os.File, error)
+	ExportTestAndExercisePDF(id uint, currentUserID uint) (string, error)
 
 	GetTestResultSummary(testAndExerciseID uint) (*businessContinuityDTOs.TestResultSummaryDTO, error)
 }
@@ -49,6 +51,7 @@ type TestAndExerciseService struct {
 	actionPlanSvc                    masterServices.ActionPlanStatusServiceInterface
 	userSettingSvc                   organizationServices.UserSettingServiceInterface
 	taskSvc                          taskServices.TaskServiceInterface
+	reportTemplateSvc                settingServices.ReportTemplateSettingServiceInterface
 }
 
 func NewTestAndExerciseService(
@@ -62,6 +65,7 @@ func NewTestAndExerciseService(
 	actionPlanSvc masterServices.ActionPlanStatusServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	reportTemplateSvc settingServices.ReportTemplateSettingServiceInterface,
 ) TestAndExerciseServiceInterface {
 	return &TestAndExerciseService{
 		repo:                             repo,
@@ -74,6 +78,7 @@ func NewTestAndExerciseService(
 		actionPlanSvc:                    actionPlanSvc,
 		userSettingSvc:                   userSettingSvc,
 		taskSvc:                          taskSvc,
+		reportTemplateSvc:                reportTemplateSvc,
 	}
 }
 
@@ -1000,4 +1005,278 @@ func (tes *TestAndExerciseService) MarkAsCompleted(id uint, currentUserID uint) 
 	}()
 
 	return nil
+}
+
+func (tes *TestAndExerciseService) ExportTestAndExercisePDF(id uint, currentUserID uint) (string, error) {
+	// Validate that template images are configured
+	if _, err := tes.reportTemplateSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := tes.reportTemplateSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover_image_missing")
+	}
+
+	// Get complete Test & Exercise details
+	testExerciseDTO, err := tes.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	// Format dates
+	createdAt := testExerciseDTO.CreatedAt.Format("02 Jan 2006")
+	generatedAt := time.Now().Format("Jan 02, 2006")
+	preparedFirst := testExerciseDTO.CreatedByUser.FirstNameEN
+	preparedLast := testExerciseDTO.CreatedByUser.LastNameEN
+
+	var responsibleFirst, responsibleLast string
+	if testExerciseDTO.ResponsibleUser != nil {
+		responsibleFirst = testExerciseDTO.ResponsibleUser.FirstNameEN
+		responsibleLast = testExerciseDTO.ResponsibleUser.LastNameEN
+	}
+
+	var updatedFirst, updatedLast, updatedAtStr *string
+	if testExerciseDTO.UpdatedByUser != nil {
+		f := testExerciseDTO.UpdatedByUser.FirstNameEN
+		l := testExerciseDTO.UpdatedByUser.LastNameEN
+		updatedFirst = &f
+		updatedLast = &l
+	}
+	if testExerciseDTO.UpdatedAt != nil {
+		s := testExerciseDTO.UpdatedAt.Format("02 Jan 2006")
+		updatedAtStr = &s
+	}
+
+	// Extract Test Result data
+	testObservations := ""
+	recommendations := ""
+	findings := ""
+	var performanceMeasures []businessContinuityDTOs.TestAndExercisePerformanceMeasureExportDTO
+	var systemRegisters []businessContinuityDTOs.TestAndExerciseSystemRegisterExportDTO
+
+	if testExerciseDTO.TestAndExerciseTestResult != nil {
+		if testExerciseDTO.TestAndExerciseTestResult.TestObservations != nil {
+			testObservations = utility.StripHTMLTags(*testExerciseDTO.TestAndExerciseTestResult.TestObservations)
+		}
+		if testExerciseDTO.TestAndExerciseTestResult.Recommendations != nil {
+			recommendations = utility.StripHTMLTags(*testExerciseDTO.TestAndExerciseTestResult.Recommendations)
+		}
+		if testExerciseDTO.TestAndExerciseTestResult.Findings != nil {
+			findings = utility.StripHTMLTags(*testExerciseDTO.TestAndExerciseTestResult.Findings)
+		}
+
+		// Build Performance Measures table
+		for _, pm := range testExerciseDTO.TestAndExerciseTestResult.PerformanceMeasures {
+			criterion := ""
+			if pm.Criterion != nil {
+				criterion = utility.StripHTMLTags(*pm.Criterion)
+			}
+			target := ""
+			if pm.Target != nil {
+				target = utility.StripHTMLTags(*pm.Target)
+			}
+			achievedResult := ""
+			if pm.AchievedResult != nil {
+				achievedResult = utility.StripHTMLTags(*pm.AchievedResult)
+			}
+			remarks := ""
+			if pm.Remarks != nil {
+				remarks = utility.StripHTMLTags(*pm.Remarks)
+			}
+
+			performanceMeasures = append(performanceMeasures, businessContinuityDTOs.TestAndExercisePerformanceMeasureExportDTO{
+				Criterion:      criterion,
+				Target:         target,
+				AchievedResult: achievedResult,
+				Remarks:        remarks,
+			})
+		}
+
+		// Build System Registers table
+		for _, sr := range testExerciseDTO.TestAndExerciseTestResult.TestResultSystemRegisters {
+			systemTitle := sr.SystemRegister.TitleEn
+			testCompletionDate := sr.TestCompletionDateString
+
+			commFeedbackTitle := sr.CommunicationFeedbackOption.TitleEn
+			commFeedbackColor := sr.CommunicationFeedbackOption.ColorCode
+
+			recoveryFeedbackTitle := sr.RecoveryFeedbackOption.TitleEn
+			recoveryFeedbackColor := sr.RecoveryFeedbackOption.ColorCode
+
+			testResultTitle := sr.TestResultOption.TitleEn
+			testResultColor := sr.TestResultOption.ColorCode
+
+			systemRegisters = append(systemRegisters, businessContinuityDTOs.TestAndExerciseSystemRegisterExportDTO{
+				SystemTitle:                      systemTitle,
+				TestCompletionDate:               testCompletionDate,
+				CommunicationFeedbackOptionTitle: commFeedbackTitle,
+				CommunicationFeedbackOptionColor: commFeedbackColor,
+				RecoveryFeedbackOptionTitle:      recoveryFeedbackTitle,
+				RecoveryFeedbackOptionColor:      recoveryFeedbackColor,
+				TestResultOptionTitle:            testResultTitle,
+				TestResultOptionColor:            testResultColor,
+			})
+		}
+	}
+
+	// Build Recovery Action Plans table
+	var recoveryActionPlans []businessContinuityDTOs.TestAndExerciseRecoveryActionPlanExportDTO
+	for _, rap := range testExerciseDTO.TestAndExerciseRecoveryActionPlans {
+		processTitle := ""
+		if rap.Process != nil {
+			processTitle = rap.Process.TitleEn
+		}
+		systemTitle := ""
+		if rap.SystemRegister != nil {
+			systemTitle = rap.SystemRegister.TitleEn
+		}
+		bcpPhaseTitle := rap.BcpPhase.TitleEn
+		severityLevel := ""
+		if rap.SeverityLevel != nil {
+			severityLevel = rap.SeverityLevel.TitleEn
+		}
+		responsibleUser := fmt.Sprintf("%s %s", rap.ResponsibleUser.FirstNameEN, rap.ResponsibleUser.LastNameEN)
+		responsibleUnit := rap.ResponsibleUnit.TitleEn
+		targetDate := ""
+		if rap.TargetDateString != nil {
+			targetDate = *rap.TargetDateString
+		}
+
+		recoveryActionPlans = append(recoveryActionPlans, businessContinuityDTOs.TestAndExerciseRecoveryActionPlanExportDTO{
+			ProcessTitle:    processTitle,
+			SystemTitle:     systemTitle,
+			BcpPhaseTitle:   bcpPhaseTitle,
+			SeverityLevel:   severityLevel,
+			ResponsibleUser: responsibleUser,
+			ResponsibleUnit: responsibleUnit,
+			TargetDate:      targetDate,
+		})
+	}
+
+	// Build Communication Action Plans table
+	var communicationActionPlans []businessContinuityDTOs.TestAndExerciseCommunicationActionPlanExportDTO
+	for _, cap := range testExerciseDTO.TestAndExerciseCommunicationActionPlans {
+		processTitle := ""
+		if cap.Process != nil {
+			processTitle = cap.Process.TitleEn
+		}
+		systemTitle := ""
+		if cap.SystemRegister != nil {
+			systemTitle = cap.SystemRegister.TitleEn
+		}
+		bcpPhaseTitle := cap.BcpPhase.TitleEn
+		responsibleUser := fmt.Sprintf("%s %s", cap.ResponsibleUser.FirstNameEN, cap.ResponsibleUser.LastNameEN)
+		responsibleUnit := cap.ResponsibleUnit.TitleEn
+		frequency := ""
+		if cap.Frequency != nil {
+			frequency = *cap.Frequency
+		}
+		recipient := ""
+		if cap.Recipient != nil {
+			recipient = *cap.Recipient
+		}
+		channel := ""
+		if cap.Channel != nil {
+			channel = *cap.Channel
+		}
+
+		communicationActionPlans = append(communicationActionPlans, businessContinuityDTOs.TestAndExerciseCommunicationActionPlanExportDTO{
+			ProcessTitle:    processTitle,
+			SystemTitle:     systemTitle,
+			BcpPhaseTitle:   bcpPhaseTitle,
+			ResponsibleUser: responsibleUser,
+			ResponsibleUnit: responsibleUnit,
+			Frequency:       frequency,
+			Recipient:       recipient,
+			Channel:         channel,
+		})
+	}
+
+	// Prepare view model
+	objective := ""
+	if testExerciseDTO.Objective != nil {
+		objective = utility.StripHTMLTags(*testExerciseDTO.Objective)
+	}
+	scenario := ""
+	if testExerciseDTO.Scenario != nil {
+		scenario = utility.StripHTMLTags(*testExerciseDTO.Scenario)
+	}
+	successCriteria := ""
+	if testExerciseDTO.SuccessCriteria != nil {
+		successCriteria = utility.StripHTMLTags(*testExerciseDTO.SuccessCriteria)
+	}
+	description := ""
+	if testExerciseDTO.Description != nil {
+		description = utility.StripHTMLTags(*testExerciseDTO.Description)
+	}
+
+	responsibleUnitTitle := ""
+	if testExerciseDTO.BusinessContinuityPlan.ResponsibleUnit != nil {
+		responsibleUnitTitle = testExerciseDTO.BusinessContinuityPlan.ResponsibleUnit.TitleEn
+	}
+
+	viewModel := businessContinuityDTOs.TestAndExerciseExportPDFDTO{
+		Title:                      testExerciseDTO.BcpTestAndExercise.TitleEn,
+		ReferenceNumber:            testExerciseDTO.ReferenceNumber,
+		CreatedAt:                  createdAt,
+		GeneratedAt:                generatedAt,
+		CreatedUserFirstNameEn:     preparedFirst,
+		CreatedUserLastNameEn:      preparedLast,
+		UpdatedUserFirstNameEn:     updatedFirst,
+		UpdatedUserLastNameEn:      updatedLast,
+		UpdatedAtString:            updatedAtStr,
+		BcpTestAndExerciseTitle:    testExerciseDTO.BcpTestAndExercise.TitleEn,
+		Objective:                  objective,
+		Scenario:                   scenario,
+		SuccessCriteria:            successCriteria,
+		TestingDate:                testExerciseDTO.TestingDateString,
+		Description:                description,
+		ResponsibleUserFirstNameEn: responsibleFirst,
+		ResponsibleUserLastNameEn:  responsibleLast,
+		ResponsibleUnitTitleEn:     responsibleUnitTitle,
+		StatusTitleEn:              testExerciseDTO.TestAndExerciseStatus.TitleEn,
+		StatusColorCode:            testExerciseDTO.TestAndExerciseStatus.ColorCode,
+		StatusType:                 testExerciseDTO.TestAndExerciseStatus.Type,
+		TestObservations:           testObservations,
+		Recommendations:            recommendations,
+		Findings:                   findings,
+		PerformanceMeasures:        performanceMeasures,
+		SystemRegisters:            systemRegisters,
+		RecoveryActionPlans:        recoveryActionPlans,
+		CommunicationActionPlans:   communicationActionPlans,
+	}
+
+	// Body
+	bodyTemplates := []string{"business-continuity/templates/pdf/test_and_exercise_body.html"}
+	htmlContent, err := utility.GeneratePDFContent(viewModel, bodyTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	// Cover
+	coverTemplates := []string{"business-continuity/templates/pdf/test_and_exercise_cover.html"}
+	coverContent, err := utility.GeneratePDFContent(viewModel, coverTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate cover content: %w", err)
+	}
+
+	// Header
+	headerTemplates := []string{"business-continuity/templates/pdf/test_and_exercise_header.html"}
+	headerContent, err := utility.GeneratePDFContent(viewModel, headerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate header content: %w", err)
+	}
+
+	// Footer
+	footerTemplates := []string{"business-continuity/templates/pdf/test_and_exercise_footer.html"}
+	footerContent, err := utility.GeneratePDFContent(viewModel, footerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	pdfFileName := fmt.Sprintf("%s.pdf", viewModel.ReferenceNumber)
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
 }

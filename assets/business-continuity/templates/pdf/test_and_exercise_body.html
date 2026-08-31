@@ -1,0 +1,478 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap" rel="stylesheet">
+
+</head>
+<style>
+   .keep-together {
+      page-break-inside: avoid;
+   }
+
+   .break-before {
+      page-break-before: always;
+   }
+
+   .break-after {
+      page-break-after: always;
+   }
+
+   .clearfix::after {
+      display: block;
+      clear: both;
+      content: "";
+   }
+
+   table {
+      border-collapse: collapse;
+   }
+
+   .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 16px 0;
+      border: 1px solid #eaedf2;
+      border-radius: 10px;
+      background: #ffffff;
+   }
+
+   .data-table th {
+      background-color: #165D31;
+      padding: 10px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 400;
+      color: #ffffff;
+      border: 1px solid #165D31;
+   }
+
+   .data-table td {
+      font-weight: 300;
+      padding: 10px;
+      font-size: 10.5px;
+      color: #1a1a1a;
+      border: 1px solid #eaedf2;
+      vertical-align: middle;
+   }
+
+   .data-table tr:last-child td {
+      border-bottom: none;
+   }
+
+   .table-row-number {
+      color: #6b7280;
+      width: 40px;
+   }
+
+   .list-cell ul {
+      margin: 0;
+      padding-left: 16px;
+   }
+
+   .list-cell li {
+      font-size: 10.5px;
+      line-height: 1.4;
+   }
+
+   .text-center {
+      text-align: center;
+   }
+
+   .empty-state {
+      text-align: center;
+      color: #9ca3af;
+      padding: 20px;
+      font-size: 11px;
+   }
+
+   .subsection-title {
+      font-size: 14px;
+      font-weight: 400;
+      color: #111827;
+      margin: 14px 0 8px 0;
+   }
+
+   .section-divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 16px 0;
+   }
+</style>
+
+<body
+   style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box;color: #000; height: 100%; hyphens: auto; line-height: 1.4; -moz-hyphens: auto; -ms-word-break: break-all; width: 100% !important; -webkit-hyphens: auto; -webkit-text-size-adjust: none; word-break: break-word;">
+
+
+   <div class="page" style="width: 1000px; margin: 0 ; background: #fff; padding:0px 32px; ">
+      <div style="padding-top: 4px ;">
+
+
+         <div class="keep-together" style="padding-top: 0px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 1. Test & Exercise Details
+            </h4>
+
+            <div style="margin-top: 10px; ">
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Ref No: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.ReferenceNumber}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Test & Exercise Type: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.BcpTestAndExerciseTitle}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Testing Date: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.TestingDate}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Status </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     <span style="background: #E5F4F0;
+                              color: {{.Data.StatusColorCode}};
+                              padding: 4px 8px;
+                              border-radius: 5px;
+                              font-size: 12px;
+                              line-height: normal;
+                              display: inline-block;
+                              border: 1px solid #AFD6CC;
+                              font-weight: 400;"> {{.Data.StatusTitleEn}} </span>
+                  </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Responsible User: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.ResponsibleUserFirstNameEn}} {{.Data.ResponsibleUserLastNameEn}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Responsible Unit: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.ResponsibleUnitTitleEn}} </p>
+               </div>
+               {{if .Data.Objective}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Objective </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.Objective}} </p>
+               </div>
+               {{end}}
+               {{if .Data.Scenario}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Scenario </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.Scenario}} </p>
+               </div>
+               {{end}}
+               {{if .Data.SuccessCriteria}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Success Criteria </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.SuccessCriteria}} </p>
+               </div>
+               {{end}}
+               {{if .Data.Description}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Description </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.Description}} </p>
+               </div>
+               {{end}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Created At </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.CreatedAt}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Created By </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.CreatedUserFirstNameEn}} {{.Data.CreatedUserLastNameEn}} </p>
+               </div>
+               {{if .Data.UpdatedAtString}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Updated At </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.UpdatedAtString}} </p>
+               </div>
+               {{end}}
+               {{if .Data.UpdatedUserFirstNameEn}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Updated By </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.UpdatedUserFirstNameEn}} {{.Data.UpdatedUserLastNameEn}} </p>
+               </div>
+               {{end}}
+            </div>
+         </div>
+
+
+         <div class="break-before" style="padding-top: 0px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 2. Test Results
+            </h4>
+
+            {{if .Data.TestObservations}}
+            <div style="width: 100%;  display: inline-block; vertical-align: top; margin-bottom: 16px;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  Test Observations </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                  {{.Data.TestObservations}} </p>
+            </div>
+            {{end}}
+
+            {{if .Data.Recommendations}}
+            <div style="width: 100%;  display: inline-block; vertical-align: top; margin-bottom: 16px;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  Recommendations </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                  {{.Data.Recommendations}} </p>
+            </div>
+            {{end}}
+
+            {{if .Data.Findings}}
+            <div style="width: 100%;  display: inline-block; vertical-align: top; margin-bottom: 16px;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  Findings </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                  {{.Data.Findings}} </p>
+            </div>
+            {{end}}
+
+            <h3 class="subsection-title">Performance Measures</h3>
+            {{if .Data.PerformanceMeasures}}
+            <table class="data-table">
+               <thead>
+                  <tr>
+                     <th class="table-row-number">#</th>
+                     <th>Criterion</th>
+                     <th>Target</th>
+                     <th>Achieved Results</th>
+                     <th>Remarks</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  {{range $index, $pm := .Data.PerformanceMeasures}}
+                  <tr>
+                     <td class="table-row-number text-center">{{add $index 1}}</td>
+                     <td>{{$pm.Criterion}}</td>
+                     <td>{{$pm.Target}}</td>
+                     <td>{{$pm.AchievedResult}}</td>
+                     <td>{{$pm.Remarks}}</td>
+                  </tr>
+                  {{end}}
+               </tbody>
+            </table>
+            {{else}}
+            <div class="empty-state">No performance measures available</div>
+            {{end}}
+         </div>
+
+
+         <div class="break-before" style="padding-top: 0px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 3. System Registers
+            </h4>
+
+            {{if .Data.SystemRegisters}}
+            <table class="data-table">
+               <thead>
+                  <tr>
+                     <th class="table-row-number">#</th>
+                     <th>System</th>
+                     <th>Test Completion Date</th>
+                     <th>Communication Feedback</th>
+                     <th>Recovery Feedback</th>
+                     <th>Test Result</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  {{range $index, $sr := .Data.SystemRegisters}}
+                  <tr>
+                     <td class="table-row-number text-center">{{add $index 1}}</td>
+                     <td>{{$sr.SystemTitle}}</td>
+                     <td>{{$sr.TestCompletionDate}}</td>
+                     <td>
+                        <span style="background: #E5F4F0;
+                                 color: {{$sr.CommunicationFeedbackOptionColor}};
+                                 padding: 4px 8px;
+                                 border-radius: 5px;
+                                 font-size: 11px;
+                                 line-height: normal;
+                                 display: inline-block;
+                                 border: 1px solid #AFD6CC;
+                                 font-weight: 400;">
+                           {{$sr.CommunicationFeedbackOptionTitle}}
+                        </span>
+                     </td>
+                     <td>
+                        <span style="background: #E5F4F0;
+                                 color: {{$sr.RecoveryFeedbackOptionColor}};
+                                 padding: 4px 8px;
+                                 border-radius: 5px;
+                                 font-size: 11px;
+                                 line-height: normal;
+                                 display: inline-block;
+                                 border: 1px solid #AFD6CC;
+                                 font-weight: 400;">
+                           {{$sr.RecoveryFeedbackOptionTitle}}
+                        </span>
+                     </td>
+                     <td>
+                        <span style="background: #E5F4F0;
+                                 color: {{$sr.TestResultOptionColor}};
+                                 padding: 4px 8px;
+                                 border-radius: 5px;
+                                 font-size: 11px;
+                                 line-height: normal;
+                                 display: inline-block;
+                                 border: 1px solid #AFD6CC;
+                                 font-weight: 400;">
+                           {{$sr.TestResultOptionTitle}}
+                        </span>
+                     </td>
+                  </tr>
+                  {{end}}
+               </tbody>
+            </table>
+            {{else}}
+            <div class="empty-state">No system registers available</div>
+            {{end}}
+         </div>
+
+
+         <div class="break-before" style="padding-top: 0px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 4. Recovery Action Plans
+            </h4>
+
+            {{if .Data.RecoveryActionPlans}}
+            <table class="data-table">
+               <thead>
+                  <tr>
+                     <th class="table-row-number">#</th>
+                     <th>Process</th>
+                     <th>System</th>
+                     <th>BCP Phase</th>
+                     <th>Severity Level</th>
+                     <th>Responsible User</th>
+                     <th>Responsible Unit</th>
+                     <th>Target Date</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  {{range $index, $rap := .Data.RecoveryActionPlans}}
+                  <tr>
+                     <td class="table-row-number text-center">{{add $index 1}}</td>
+                     <td>{{$rap.ProcessTitle}}</td>
+                     <td>{{$rap.SystemTitle}}</td>
+                     <td>{{$rap.BcpPhaseTitle}}</td>
+                     <td>{{$rap.SeverityLevel}}</td>
+                     <td>{{$rap.ResponsibleUser}}</td>
+                     <td>{{$rap.ResponsibleUnit}}</td>
+                     <td>{{$rap.TargetDate}}</td>
+                  </tr>
+                  {{end}}
+               </tbody>
+            </table>
+            {{else}}
+            <div class="empty-state">No recovery action plans available</div>
+            {{end}}
+         </div>
+
+
+         <div class="break-before" style="padding-top: 0px;">
+            <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 5. Communication Action Plans
+            </h4>
+
+            {{if .Data.CommunicationActionPlans}}
+            <table class="data-table">
+               <thead>
+                  <tr>
+                     <th class="table-row-number">#</th>
+                     <th>Process</th>
+                     <th>System</th>
+                     <th>BCP Phase</th>
+                     <th>Responsible User</th>
+                     <th>Responsible Unit</th>
+                     <th>Frequency</th>
+                     <th>Recipient</th>
+                     <th>Channel</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  {{range $index, $cap := .Data.CommunicationActionPlans}}
+                  <tr>
+                     <td class="table-row-number text-center">{{add $index 1}}</td>
+                     <td>{{$cap.ProcessTitle}}</td>
+                     <td>{{$cap.SystemTitle}}</td>
+                     <td>{{$cap.BcpPhaseTitle}}</td>
+                     <td>{{$cap.ResponsibleUser}}</td>
+                     <td>{{$cap.ResponsibleUnit}}</td>
+                     <td>{{$cap.Frequency}}</td>
+                     <td>{{$cap.Recipient}}</td>
+                     <td>{{$cap.Channel}}</td>
+                  </tr>
+                  {{end}}
+               </tbody>
+            </table>
+            {{else}}
+            <div class="empty-state">No communication action plans available</div>
+            {{end}}
+         </div>
+
+      </div>
+   </div>
+
+</body>
+
+</html>

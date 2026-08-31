@@ -298,3 +298,33 @@ func (tec *TestAndExerciseController) GetTestResultSummary(c *gin.Context) {
 
 	c.JSON(http.StatusOK, summary)
 }
+
+func (tec *TestAndExerciseController) ExportTestAndExercisePDF(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tec.db, c, err.Error())
+		return
+	}
+
+	pdfFileName, err := tec.service.ExportTestAndExercisePDF(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(tec.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"file_name": pdfFileName})
+}

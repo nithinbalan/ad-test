@@ -224,3 +224,74 @@ type TestAndExerciseSystemRegisterDTO struct {
 type TestAndExerciseParsedDates struct {
 	TestingDate *time.Time
 }
+
+// PDF Export DTOs
+type TestAndExerciseExportPDFDTO struct {
+	Title                      string
+	ReferenceNumber            string
+	CreatedAt                  string
+	GeneratedAt                string
+	CreatedUserFirstNameEn     string
+	CreatedUserLastNameEn      string
+	UpdatedUserFirstNameEn     *string
+	UpdatedUserLastNameEn      *string
+	UpdatedAtString            *string
+	BcpTestAndExerciseTitle    string
+	Objective                  string
+	Scenario                   string
+	SuccessCriteria            string
+	TestingDate                string
+	Description                string
+	ResponsibleUserFirstNameEn string
+	ResponsibleUserLastNameEn  string
+	ResponsibleUnitTitleEn     string
+	StatusTitleEn              string
+	StatusColorCode            string
+	StatusType                 string
+	TestObservations           string
+	Recommendations            string
+	Findings                   string
+	PerformanceMeasures        []TestAndExercisePerformanceMeasureExportDTO
+	SystemRegisters            []TestAndExerciseSystemRegisterExportDTO
+	RecoveryActionPlans        []TestAndExerciseRecoveryActionPlanExportDTO
+	CommunicationActionPlans   []TestAndExerciseCommunicationActionPlanExportDTO
+}
+
+type TestAndExercisePerformanceMeasureExportDTO struct {
+	Criterion      string
+	Target         string
+	AchievedResult string
+	Remarks        string
+}
+
+type TestAndExerciseSystemRegisterExportDTO struct {
+	SystemTitle                      string
+	TestCompletionDate               string
+	CommunicationFeedbackOptionTitle string
+	CommunicationFeedbackOptionColor string
+	RecoveryFeedbackOptionTitle      string
+	RecoveryFeedbackOptionColor      string
+	TestResultOptionTitle            string
+	TestResultOptionColor            string
+}
+
+type TestAndExerciseRecoveryActionPlanExportDTO struct {
+	ProcessTitle    string
+	SystemTitle     string
+	BcpPhaseTitle   string
+	SeverityLevel   string
+	ResponsibleUser string
+	ResponsibleUnit string
+	TargetDate      string
+}
+
+type TestAndExerciseCommunicationActionPlanExportDTO struct {
+	ProcessTitle    string
+	SystemTitle     string
+	BcpPhaseTitle   string
+	ResponsibleUser string
+	ResponsibleUnit string
+	Frequency       string
+	Recipient       string
+	Channel         string
+}
