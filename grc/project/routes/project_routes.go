@@ -24,6 +24,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectActionPlanStatusUpdateController := app.ProjectModule.ProjectActionPlanStatusUpdateController
 	projectActionPlanCommentController := app.ProjectModule.ProjectActionPlanCommentController
 	projectAssociatedItemController := app.ProjectModule.ProjectAssociatedItemController
+	projectClassificationController := app.ProjectModule.ProjectClassificationController
+	projectPhaseController := app.ProjectModule.ProjectPhaseController
 
 	// Project Type
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
@@ -117,4 +119,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.GET("/projects/:projectId/clauses", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllClauses)
 	projectRoutes.PUT("/projects/:projectId/clauses", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.UpdateClauses)
 
+	// project classifications
+	projectRoutes.GET("/project/project-classifications", projectClassificationController.GetAllProjectClassifications)
+	projectRoutes.GET("/project/project-classifications/:id", projectClassificationController.GetProjectClassificationDetails)
+	projectRoutes.POST("/project/project-classifications", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.CreateProjectClassification)
+	projectRoutes.PUT("/project/project-classifications/:id", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.UpdateProjectClassification)
+	projectRoutes.POST("/project/project-classifications/delete", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.DeleteProjectClassifications)
+	projectRoutes.PUT("/project/project-classifications/activate", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.ActivateProjectClassifications)
+	projectRoutes.PUT("/project/project-classifications/deactivate", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.DeactivateProjectClassifications)
+
+	// Project Phases
+	projectRoutes.GET("/project-phases", projectPhaseController.GetAllProjectPhases)
+	projectRoutes.GET("/project-phases/:id", projectPhaseController.GetProjectPhaseDetails)
 }

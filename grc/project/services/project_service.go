@@ -117,16 +117,20 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 	}
 
 	project := &models.Project{
-		TitleEn:           form.TitleEn,
-		TitleAr:           form.TitleAr,
-		DescriptionEn:     form.DescriptionEn,
-		DescriptionAr:     form.DescriptionAr,
-		ResponsibleUserID: form.ResponsibleUserID,
-		StartDate:         *startDate,
-		EndDate:           *endDate,
-		ProjectTypeID:     form.ProjectTypeID,
-		ProjectStatusID:   form.ProjectStatusID,
-		CreatedBYID:       currentUserID,
+		TitleEn:                 form.TitleEn,
+		TitleAr:                 form.TitleAr,
+		DescriptionEn:           form.DescriptionEn,
+		DescriptionAr:           form.DescriptionAr,
+		Budget:                  form.Budget,
+		Scope:                   form.Scope,
+		ResponsibleUserID:       form.ResponsibleUserID,
+		StartDate:               *startDate,
+		EndDate:                 *endDate,
+		ProjectTypeID:           form.ProjectTypeID,
+		ProjectStatusID:         form.ProjectStatusID,
+		ProjectPhaseID:          form.ProjectPhaseID,
+		ProjectClassificationID: &form.ProjectClassificationID,
+		CreatedBYID:             currentUserID,
 	}
 
 	id, err := s.repo.Create(project)
@@ -136,15 +140,19 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 
 	go func() {
 		activityData := map[string]interface{}{
-			"title_en":            form.TitleEn,
-			"title_ar":            form.TitleAr,
-			"description_en":      form.DescriptionEn,
-			"description_ar":      form.DescriptionAr,
-			"responsible_user_id": form.ResponsibleUserID,
-			"start_date":          form.StartDate,
-			"end_date":            form.EndDate,
-			"project_type_id":     form.ProjectTypeID,
-			"project_status_id":   form.ProjectStatusID,
+			"title_en":                  form.TitleEn,
+			"title_ar":                  form.TitleAr,
+			"description_en":            form.DescriptionEn,
+			"description_ar":            form.DescriptionAr,
+			"budget":                    form.Budget,
+			"scope":                     form.Scope,
+			"responsible_user_id":       form.ResponsibleUserID,
+			"start_date":                form.StartDate,
+			"end_date":                  form.EndDate,
+			"project_type_id":           form.ProjectTypeID,
+			"project_status_id":         form.ProjectStatusID,
+			"project_phase_id":          form.ProjectPhaseID,
+			"project_classification_id": form.ProjectClassificationID,
 		}
 		err := s.activityLog.LogActivity(models.CreateAction, models.Project{}.TableName(), id, activityData, currentUserID, "", "", "", nil)
 		if err != nil {
@@ -236,15 +244,19 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 	oldResponsibleUserID := project.ResponsibleUserID
 
 	oldData := map[string]interface{}{
-		"title_en":            project.TitleEn,
-		"title_ar":            project.TitleAr,
-		"description_en":      project.DescriptionEn,
-		"description_ar":      project.DescriptionAr,
-		"responsible_user_id": project.ResponsibleUserID,
-		"start_date":          project.StartDate,
-		"end_date":            project.EndDate,
-		"project_type_id":     project.ProjectTypeID,
-		"project_status_id":   project.ProjectStatusID,
+		"title_en":                  project.TitleEn,
+		"title_ar":                  project.TitleAr,
+		"description_en":            project.DescriptionEn,
+		"description_ar":            project.DescriptionAr,
+		"budget":                    project.Budget,
+		"scope":                     project.Scope,
+		"responsible_user_id":       project.ResponsibleUserID,
+		"start_date":                project.StartDate,
+		"end_date":                  project.EndDate,
+		"project_type_id":           project.ProjectTypeID,
+		"project_status_id":         project.ProjectStatusID,
+		"project_phase_id":          project.ProjectPhaseID,
+		"project_classification_id": project.ProjectClassificationID,
 	}
 
 	startDate, endDate, err := parseProjectDates(form)
@@ -256,11 +268,15 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 	project.TitleAr = form.TitleAr
 	project.DescriptionEn = form.DescriptionEn
 	project.DescriptionAr = form.DescriptionAr
+	project.Budget = form.Budget
+	project.Scope = form.Scope
 	project.ResponsibleUserID = form.ResponsibleUserID
 	project.StartDate = *startDate
 	project.EndDate = *endDate
 	project.ProjectTypeID = form.ProjectTypeID
 	project.ProjectStatusID = form.ProjectStatusID
+	project.ProjectPhaseID = form.ProjectPhaseID
+	project.ProjectClassificationID = &form.ProjectClassificationID
 	project.UpdatedBYID = &currentUserID
 
 	err = s.repo.Update(project)
@@ -270,15 +286,19 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 
 	go func() {
 		newData := map[string]interface{}{
-			"title_en":            form.TitleEn,
-			"title_ar":            form.TitleAr,
-			"description_en":      form.DescriptionEn,
-			"description_ar":      form.DescriptionAr,
-			"responsible_user_id": form.ResponsibleUserID,
-			"start_date":          form.StartDate,
-			"end_date":            form.EndDate,
-			"project_type_id":     form.ProjectTypeID,
-			"project_status_id":   form.ProjectStatusID,
+			"title_en":                  form.TitleEn,
+			"title_ar":                  form.TitleAr,
+			"description_en":            form.DescriptionEn,
+			"description_ar":            form.DescriptionAr,
+			"budget":                    form.Budget,
+			"scope":                     form.Scope,
+			"responsible_user_id":       form.ResponsibleUserID,
+			"start_date":                form.StartDate,
+			"end_date":                  form.EndDate,
+			"project_type_id":           form.ProjectTypeID,
+			"project_status_id":         form.ProjectStatusID,
+			"project_phase_id":          form.ProjectPhaseID,
+			"project_classification_id": form.ProjectClassificationID,
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
 		if len(changes) > 0 {
@@ -562,6 +582,10 @@ func (s *ProjectService) ExportProjects(data []*dtos.ProjectListDTO, currentUser
 		"Title",
 		"Description",
 		"Project Type",
+		"Project Phase",
+		"Classification",
+		"Budget",
+		"Scope",
 		"Start Date",
 		"End Date",
 		"Responsible User",
@@ -575,6 +599,10 @@ func (s *ProjectService) ExportProjects(data []*dtos.ProjectListDTO, currentUser
 				project.TitleAr,
 				stripHTML(project.DescriptionAr),
 				project.ProjectTypeTitleAr,
+				project.ProjectPhaseTitleAr,
+				project.ProjectClassificationTitleAr,
+				project.Budget,
+				stripHTML(project.Scope),
 				project.StartDate,
 				project.EndDate,
 				fmt.Sprintf("%s %s", project.ResponsibleUserFirstNameAr, project.ResponsibleUserLastNameAr),
@@ -585,6 +613,10 @@ func (s *ProjectService) ExportProjects(data []*dtos.ProjectListDTO, currentUser
 				project.TitleEn,
 				stripHTML(project.DescriptionEn),
 				project.ProjectTypeTitleEn,
+				project.ProjectPhaseTitleEn,
+				project.ProjectClassificationTitleEn,
+				project.Budget,
+				stripHTML(project.Scope),
 				project.StartDate,
 				project.EndDate,
 				fmt.Sprintf("%s %s", project.ResponsibleUserFirstNameEn, project.ResponsibleUserLastNameEn),

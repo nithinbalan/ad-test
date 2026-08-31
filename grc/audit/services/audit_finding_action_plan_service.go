@@ -320,7 +320,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 			"AssignedByFirstNameEn":       assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":        assignedBy.LastNameEn,
 			"AssignedOn":                  time.Now().Format("2006-01-02"),
-			"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans", appURL, findingID),
+			"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -556,7 +556,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				"AuditFindingTitle":           audit.Title,
 				"ActionPlanTitle":             existingAuditFindingActionPlan.Title,
 				"ActionPlanDescription":       existingAuditFindingActionPlan.Description,
-				"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans", appURL, findingID),
+				"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -580,7 +580,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				"AssignedByFirstNameEn":       assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":        assignedBy.LastNameEn,
 				"AssignedOn":                  time.Now().Format("2006-01-02"),
-				"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans", appURL, findingID),
+				"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -628,12 +628,14 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 		ReferenceNumber   string
 		AuditFindingTitle string
 	}
+	affectedFindingIDs := make(map[uint]bool)
 	for _, id := range ids {
 
 		auditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
 		if err != nil {
 			continue
 		}
+		affectedFindingIDs[auditFindingActionPlan.AuditFindingID] = true
 		description := ""
 		if auditFindingActionPlan.Description != nil {
 			description = *auditFindingActionPlan.Description
@@ -695,6 +697,20 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 	if len(failedIds) > 0 {
 		tx.Rollback()
 		return failedIds, nil
+	}
+
+	for findingID := range affectedFindingIDs {
+		allClosed, err := afaps.AreAllActionPlansClosed(findingID, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		if allClosed {
+			if err := afaps.auditFindingSvc.UpdateStatus(findingID, "re-assessment-pending", currentUserID, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 	}
 
 	tx.Commit()

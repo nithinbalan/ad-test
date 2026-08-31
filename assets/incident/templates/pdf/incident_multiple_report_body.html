@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <style>
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont100}}') format('woff');
+      font-weight: 100;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont200}}') format('woff');
+      font-weight: 200;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont300}}') format('woff');
+      font-weight: 300;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont400}}') format('woff');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont500}}') format('woff');
+      font-weight: 500;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont600}}') format('woff');
+      font-weight: 600;
+      font-style: normal;
+    }
+
+    .keep-together {
+      page-break-inside: avoid;
+    }
+
+    .clearfix::after {
+      display: block;
+      clear: both;
+      content: "";
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+
+    /* HTML content styling for sections */
+    ul,
+    ol {
+      margin: 8px 0;
+      padding-left: 25px;
+    }
+
+    li {
+      margin: 4px 0;
+      line-height: 1.5em;
+    }
+
+    blockquote {
+      margin: 10px 0;
+      padding: 10px 15px;
+      border-left: 3px solid #ddd;
+      background-color: #f9f9f9;
+      font-style: italic;
+    }
+
+    strong,
+    b {
+      font-weight: 600;
+    }
+
+    em,
+    i {
+      font-style: italic;
+    }
+
+    u {
+      text-decoration: underline;
+    }
+
+    a {
+      color: #0066cc;
+      text-decoration: underline;
+    }
+
+    a:hover {
+      color: #0052a3;
+    }
+
+    br {
+      line-height: 1.5em;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    @media print {
+      .section {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+
+<body
+  style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; background-color: #ffffff; color: #000; margin: 0; line-height: 1.4; width: 100%; padding: 0 30px 0 30px;">
+  {{range $index, $incident := .Data.Incidents}}
+  <!-- INCIDENT {{add $index 1}}: {{if $incident.ReferenceNumber}}{{$incident.ReferenceNumber}}{{end}} -->
+  <div class="" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0px 32px">
+      <div style="padding-top: 0px">
+        {{if eq $index 0}}
+        <!-- Show Executive Summary, Scope, Objective before first incident -->
+        {{if $.Data.ExecutiveSummary}}
+        <h4 style="margin: 0 0 8px 0; font-size: 18px; color: #050505; font-weight: 500;">1. Executive Summary</h4>
+        <div style="margin: 0 0 15px 0; font-size: 14px; color: #000; line-height: 1.5em; font-weight: 300;">
+          {{safeHTML $.Data.ExecutiveSummary}}
+        </div>
+        {{end}}
+
+        {{if $.Data.Scope}}
+        <h4 style="margin: 0 0 8px 0; font-size: 18px; color: #050505; font-weight: 500;">2. Scope</h4>
+        <div style="margin: 0 0 15px 0; font-size: 14px; color: #000; line-height: 1.5em; font-weight: 300;">
+          {{safeHTML $.Data.Scope}}
+        </div>
+        {{end}}
+
+        {{if $.Data.Objective}}
+        <h4 style="margin: 0 0 8px 0; font-size: 18px; color: #050505; font-weight: 500;">3. Objective</h4>
+        <div style="margin: 0 0 15px 0; font-size: 14px; color: #000; line-height: 1.5em; font-weight: 300;">
+          {{safeHTML $.Data.Objective}}
+        </div>
+        {{end}}
+
+        <h4 style="margin: 15px 0 15px 0; font-size: 18px; color: #050505; font-weight: 500;">4. Incident & Context</h4>
+        {{end}}
+        <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 500;">{{add $index 1}}. {{if
+          $incident.ReferenceNumber}}{{$incident.ReferenceNumber}}{{else}}Incident{{end}}</h4>
+
+        <h5 style="margin: 15px 0 10px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.1 Basic
+          Incident Information</h5>
+        <h6 style="margin: 10px 0 10px 0; font-size: 14px; color: #050505; font-weight: 400;">{{add $index 1}}.1.1
+          Overview</h6>
+
+        <div style="margin-top: 10px">
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Title:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.Title}}{{$incident.Title}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Ref No:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.ReferenceNumber}}{{$incident.ReferenceNumber}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Incident Date & Time:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.IncidentAtFormatted}}{{$incident.IncidentAtFormatted}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Status</p>
+            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px">
+              {{if $incident.IncidentStatusTitleEn}}
+              <span
+                style="background: #e5f4f0; color: #0e7b61; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #afd6cc; font-weight: 400;">{{$incident.IncidentStatusTitleEn}}</span>
+              {{else}}-{{end}}
+            </p>
+          </div>
+
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Category:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.IncidentCategoryTitleEn}}{{$incident.IncidentCategoryTitleEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Sub Category:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.IncidentSubCategoryTitleEn}}{{$incident.IncidentSubCategoryTitleEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Severity Level:</p>
+            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
+              {{if $incident.SeverityLevelTitleEn}}
+              <span
+                style="background: #f4e5e6; color: #db0015; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #eec2c5; font-weight: 400;">{{$incident.SeverityLevelTitleEn}}</span>
+              {{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Reported Date & Time:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.ReportedAtFormatted}}{{$incident.ReportedAtFormatted}}{{else}}-{{end}}
+            </p>
+          </div>
+
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Reported By:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.ReportedUserNameEn}}{{$incident.ReportedUserNameEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Responsible User:</p>
+            <div style="margin: 0 0 13px 0;">
+              <span
+                style="display: inline-block; margin-left: 8px; color: #000; font-size: 14px; font-weight: 400; vertical-align: middle;">
+                {{if $incident.ResponsibleUserNameEn}}{{$incident.ResponsibleUserNameEn}}{{else}}-{{end}}
+              </span>
+            </div>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Location:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.IncidentLocation}}{{$incident.IncidentLocation}}{{else}}-{{end}}
+            </p>
+          </div>
+
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Incident Type:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.IncidentTypeTitleEn}}{{$incident.IncidentTypeTitleEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Responsible Unit:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.ResponsibleUnitTitleEn}}{{$incident.ResponsibleUnitTitleEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Business Owner:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.BusinessOwnerNameEn}}{{$incident.BusinessOwnerNameEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Response Team Lead:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.ResponseTeamLeadNameEn}}{{$incident.ResponseTeamLeadNameEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 100%; display: inline-block; vertical-align: top">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Response Team Members:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.ResponseTeamMembersEn}}{{$incident.ResponseTeamMembersEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Incident Scope:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.IncidentScopeTitleEn}}{{$incident.IncidentScopeTitleEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Sensitivity Classification:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.IncidentSensitivityClassificationTitleEn}}{{$incident.IncidentSensitivityClassificationTitleEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Acknowledged:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $incident.IsAcknowledge}}Yes ({{$incident.AcknowledgedAtString}}) - {{$incident.AcknowledgedByNameEn}}{{else}}No{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">SLA Status:</p>
+            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
+              {{if $incident.IsSLATimeExceeded}}
+              <span style="background: #f4e5e6; color: #db0015; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #eec2c5; font-weight: 400;">Exceeded</span>
+              {{else if $incident.IsSLATimeAchieved}}
+              <span style="background: #e5f4f0; color: #0e7b61; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #afd6cc; font-weight: 400;">Achieved</span>
+              {{else}}-{{end}}
+            </p>
+          </div>
+
+          <div style="width: 33%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Confidentiality Severity:</p>
+            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
+              {{if $incident.ConfidentialitySeverityLevelTitleEn}}
+              <span style="background: #f4e5e6; color: #db0015; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #eec2c5; font-weight: 400;">{{$incident.ConfidentialitySeverityLevelTitleEn}}</span>
+              {{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 33%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Integrity Severity:</p>
+            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
+              {{if $incident.IntegritySeverityLevelTitleEn}}
+              <span style="background: #f4e5e6; color: #db0015; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #eec2c5; font-weight: 400;">{{$incident.IntegritySeverityLevelTitleEn}}</span>
+              {{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 33%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Availability Severity:</p>
+            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
+              {{if $incident.AvailabilitySeverityLevelTitleEn}}
+              <span style="background: #f4e5e6; color: #db0015; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #eec2c5; font-weight: 400;">{{$incident.AvailabilitySeverityLevelTitleEn}}</span>
+              {{else}}-{{end}}
+            </p>
+          </div>
+
+          <div style="width: 100%; display: inline-block; vertical-align: top">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Description</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
+              {{if $incident.Description}}{{$incident.Description}}{{else}}-{{end}}
+            </p>
+          </div>
+
+          <div style="width: 100%; display: inline-block; vertical-align: top">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Quick Action</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
+              {{if $incident.QuickAction}}{{$incident.QuickAction}}{{else}}-{{end}}
+            </p>
+          </div>
+        </div>
+
+        <h6 style="margin: 20px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.1.2
+          Incident Timeline</h6>
+
+          <div style="margin-top: 30px">
+            {{if $incident.Timelines}}
+            {{range $tlIndex, $timeline := $incident.Timelines}}
+            {{$isLastItem := eq (add $tlIndex 1) (len $incident.Timelines)}}
+            <div
+              style="{{if not $isLastItem}}border-left: 1px solid #bc8e48;{{end}} min-height: 50px; padding-bottom: 15px; font-size: 0;">
+              <div style="width: 2%; padding-right: 1%; display: inline-block; vertical-align: top; font-size: 14px;">
+                <span style="background: #bc8e48; width: 7px; height: 7px; border-radius: 10px; display: block; margin-left: -4px; margin-top: -0.5px;"></span>
+              </div>
+  
+              <div style="width: 14%; padding-right: 1%; display: inline-block; vertical-align: top; font-size: 14px;">
+                <p style="margin-top: -9px; font-size: 14px; font-weight: 400; line-height: 1.4;">{{if
+                  $timeline.IncidentTimelineTypeTitleEn}}{{$timeline.IncidentTimelineTypeTitleEn}}{{else}}-{{end}}</p>
+              </div>
+  
+              <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top; font-size: 14px;">
+                <p style="margin-top: -9px; font-size: 13px; font-weight: 300; line-height: 1.4;">Date:</p>
+                <p style="margin-top: -9px; font-size: 14px; font-weight: 400; line-height: 1.4;">{{if
+                  $timeline.PerformedAt}}{{$timeline.PerformedAt.Format "Jan 02, 2006, 03:04 PM"}}{{else}}-{{end}}</p>
+              </div>
+  
+              <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top; font-size: 14px;">
+                <p style="margin-top: -9px; font-size: 13px; font-weight: 300; line-height: 1.4;">Reported By:</p>
+                <p style="margin-top: -9px; font-size: 14px; font-weight: 400; line-height: 1.4;">{{if
+                  $timeline.PerformedByFirstNameEn}}{{$timeline.PerformedByFirstNameEn}}
+                  {{$timeline.PerformedByLastNameEn}}{{else}}-{{end}}</p>
+              </div>
+  
+              <div style="width: 25%; display: inline-block; vertical-align: top; font-size: 14px;">
+                <p style="margin-top: -9px; font-size: 13px; font-weight: 300; line-height: 1.4;">Status:</p>
+                <p style="margin-top: -9px; font-size: 14px; font-weight: 400; line-height: 1.4; margin-top: 5px;">
+                  {{if $timeline.TimelineStatusTitleEn}}
+                  {{if eq $timeline.TimelineStatusType "completed"}}
+                  <span
+                    style="background: #e5f4f0; color: #0e7b61; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #afd6cc; font-weight: 400;">{{$timeline.TimelineStatusTitleEn}}</span>
+                  {{else if eq $timeline.TimelineStatusType "in_progress"}}
+                  <span
+                    style="background: #fff7ed; color: #ea580c; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #fed7aa; font-weight: 400;">{{$timeline.TimelineStatusTitleEn}}</span>
+                  {{else if eq $timeline.TimelineStatusType "pending"}}
+                  <span
+                    style="background: #fffbeb; color: #ca8a04; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #fef08a; font-weight: 400;">{{$timeline.TimelineStatusTitleEn}}</span>
+                  {{else}}
+                  <span
+                    style="background: #f3f4f6; color: #6b7280; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #d1d5db; font-weight: 400;">{{$timeline.TimelineStatusTitleEn}}</span>
+                  {{end}}
+                  {{else}}-{{end}}
+                </p>
+              </div>
+            </div>
+            {{end}}
+            {{else}}
+            <p style="margin: 0; font-size: 14px; color: #9ca3af; font-style: italic;">No timeline data available</p>
+            {{end}}
+          </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSOCIATED ITEMS -->
+  {{if or $incident.StrategicObjectives $incident.KPIs $incident.ComplianceRequirements $incident.Processes
+  $incident.Risks $incident.Controls $incident.AssociatedDocuments $incident.Assets}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="border-top: 1px solid #DEDEDE; margin-bottom: 20px;"></div>
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.2 Associated
+          Items</h5>
+
+        {{if $incident.StrategicObjectives}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.1
+          Strategic Objectives</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">
+                Title</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">
+                Category</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Start Date</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                End Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $soIndex, $so := $incident.StrategicObjectives}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: top;">{{add $soIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: top;">{{$so.TitleEn}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: top;">{{if
+                $so.StrategicObjectiveCategoryTitleEn}}{{$so.StrategicObjectiveCategoryTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: top;">{{if
+                $so.StartDate}}{{$so.StartDate}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: top;">{{if
+                $so.EndDate}}{{$so.EndDate}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $incident.KPIs}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.2 KPIs
+        </h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">
+                Title</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Category</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Responsible User</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">
+                Frequency</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $kpiIndex, $kpi := $incident.KPIs}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $kpiIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$kpi.Title}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $kpi.KPICategoryTitleEn}}{{$kpi.KPICategoryTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+
+                <span style="display: inline-block; margin-left: 8px; vertical-align: middle;">
+                  {{if $kpi.ResponsibleUserFirstNameEn}}{{$kpi.ResponsibleUserFirstNameEn}}
+                  {{$kpi.ResponsibleUserLastNameEn}}{{else}}-{{end}}
+                </span>
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $kpi.ReviewFrequencyTitleEn}}{{$kpi.ReviewFrequencyTitleEn}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $incident.ComplianceRequirements}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.3
+          Compliance Requirements</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 35%;">
+                Title</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Clause No</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 40%;">
+                Clause Title</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{$rowIndex := 0}}
+            {{range $compIndex, $comp := $incident.ComplianceRequirements}}
+            {{range $clauseIndex, $clause := $comp.Clauses}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $rowIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{$comp.ComplianceRegisterTitleEn}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{$clause.ClauseNo}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{$clause.ClauseTitleEn}}</td>
+            </tr>
+            {{$rowIndex = add $rowIndex 1}}
+            {{end}}
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $incident.Processes}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.4
+          Processes</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Reference</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 35%;">
+                Title</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">
+                Process Group</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">
+                Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $procIndex, $proc := $incident.Processes}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $procIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $proc.ReferenceNumber}}{{$proc.ReferenceNumber}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$proc.TitleEn}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $proc.ProcessGroupTitleEn}}{{$proc.ProcessGroupTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $proc.LifecycleStatusTitleEn}}
+                <span
+                  style="background: #fbf4ec; color: #b6630a; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #edd7bf; font-weight: 400;">{{$proc.LifecycleStatusTitleEn}}</span>
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $incident.Risks}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.5 Risks
+        </h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 500; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Risk Title</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">
+                Risk Category</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">
+                Status</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">
+                Likelihood</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">
+                Impact</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">
+                Risk Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $riskIndex, $risk := $incident.Risks}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $riskIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$risk.Title}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $risk.RiskCategoryTitleEn}}{{$risk.RiskCategoryTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $risk.RiskStatusTitleEn}}
+                {{if eq $risk.RiskStatusTitleEn "Open"}}
+                <span
+                  style="background: #fee2e2; color: {{if $risk.RiskStatusColorCode}}{{$risk.RiskStatusColorCode}}{{else}}#dc2626{{end}}; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid {{if $risk.RiskStatusColorCode}}{{$risk.RiskStatusColorCode}}{{else}}#dc2626{{end}}; font-weight: 400;">{{$risk.RiskStatusTitleEn}}</span>
+                {{else}}
+                <span
+                  style="background: #f5f5f5; color: {{if $risk.RiskStatusColorCode}}{{$risk.RiskStatusColorCode}}{{else}}#374151{{end}}; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid {{if $risk.RiskStatusColorCode}}{{$risk.RiskStatusColorCode}}{{else}}#374151{{end}}; font-weight: 400;">{{$risk.RiskStatusTitleEn}}</span>
+                {{end}}
+                {{else}}-{{end}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $risk.CurrentLikelihoodTitleEn}}{{$risk.CurrentLikelihoodTitleEn}}{{else}}-{{end}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $risk.CurrentImpactTitleEn}}{{$risk.CurrentImpactTitleEn}}{{else}}-{{end}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $risk.CurrentRiskRatingTitleEn}}
+                <span
+                  style="background: #ffffff; color: {{if $risk.CurrentRiskRatingColorCode}}{{$risk.CurrentRiskRatingColorCode}}{{else}}#6b7280{{end}}; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid {{if $risk.CurrentRiskRatingColorCode}}{{$risk.CurrentRiskRatingColorCode}}{{else}}#d1d5db{{end}}; font-weight: 400;">{{$risk.CurrentRiskRatingTitleEn}}</span>
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS, DOCUMENTS, ASSETS -->
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div>
+        {{if $incident.Controls}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.6
+          Controls</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 75%;">
+                Control</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $ctrlIndex, $ctrl := $incident.Controls}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $ctrlIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $ctrl.TitleEn}}{{$ctrl.TitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $ctrl.ControlImplementationStatusTitleEn}}
+                <span
+                  style="background: #e5f4f0; color: #0e7b61; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #afd6cc; font-weight: 400;">{{$ctrl.ControlImplementationStatusTitleEn}}</span>
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $incident.AssociatedDocuments}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.7
+          Documents</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">
+                Title</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">
+                Category</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">
+                Type</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Responsible User</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $docIndex, $doc := $incident.AssociatedDocuments}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $docIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$doc.TitleEn}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $doc.DocumentCategoryTitleEn}}{{$doc.DocumentCategoryTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $doc.DocumentTypeTitleEn}}{{$doc.DocumentTypeTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                <span style="display: inline-block; margin-left: 8px; vertical-align: middle;">
+                  {{if $doc.ResponsibleUserFirstNameEn}}{{$doc.ResponsibleUserFirstNameEn}}
+                  {{$doc.ResponsibleUserLastNameEn}}{{else}}-{{end}}
+                </span>
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $doc.DocumentStatusTitleEn}}
+                {{if eq $doc.DocumentStatusTitleEn "Published"}}
+                <span
+                  style="background: #e5f4f0; color: {{if $doc.DocumentStatusColorCode}}{{$doc.DocumentStatusColorCode}}{{else}}#059669{{end}}; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid {{if $doc.DocumentStatusColorCode}}{{$doc.DocumentStatusColorCode}}{{else}}#059669{{end}}; font-weight: 400;">{{$doc.DocumentStatusTitleEn}}</span>
+                {{else}}
+                <span
+                  style="background: {{if $doc.DocumentStatusColorCode}}{{$doc.DocumentStatusColorCode}}{{else}}#FFC107{{end}}; color: #fff; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid {{if $doc.DocumentStatusColorCode}}{{$doc.DocumentStatusColorCode}}{{else}}#FFC107{{end}}; font-weight: 400;">{{$doc.DocumentStatusTitleEn}}</span>
+                {{end}}
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $incident.Assets}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.8
+          Assets</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">
+                Type</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">
+                Title</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Category</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">
+                Responsible User</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Acquisition Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $assetIndex, $asset := $incident.Assets}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $assetIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $asset.AssetSubCategoryTitleEn}}{{$asset.AssetSubCategoryTitleEn}}{{else}}{{if
+                $asset.AssetCategoryTitleEn}}{{$asset.AssetCategoryTitleEn}}{{else}}-{{end}}{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{$asset.TitleEn}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $asset.AssetCategoryTitleEn}}{{$asset.AssetCategoryTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+
+                <span style="display: inline-block; margin-left: 8px; vertical-align: middle;">
+                  {{if $asset.ResponsibleUserFirstNameEn}}{{$asset.ResponsibleUserFirstNameEn}}
+                  {{$asset.ResponsibleUserLastNameEn}}{{else}}-{{end}}
+                </span>
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $asset.AcquisitionDate}}{{$asset.AcquisitionDate}}{{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- INVESTIGATION & COMMUNICATION -->
+  {{if $incident.Investigation}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="border-top: 1px solid #DEDEDE; margin-bottom: 20px;"></div>
+
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.3
+          Investigation</h5>
+        <h6 style="margin: 10px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.3.1
+          Investigation Details</h6>
+
+        <div style="margin-bottom: 20px;">
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Start Date & Time:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">
+            {{if
+            $incident.Investigation.InitiatedAtString}}{{$incident.Investigation.InitiatedAtString}}{{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Team Lead:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">
+            {{if $incident.Investigation.TeamLead.FirstNameEN}}{{$incident.Investigation.TeamLead.FirstNameEN}}
+            {{$incident.Investigation.TeamLead.LastNameEN}}{{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Team Members:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">
+            {{if $incident.Investigation.Users}}
+            {{range $userIndex, $user := $incident.Investigation.Users}}
+            {{if $userIndex}}, {{end}}{{$user.User.FirstNameEn}} {{$user.User.LastNameEn}}
+            {{end}}
+            {{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Investigation Details:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+            {{if $incident.Investigation.Description}}{{$incident.Investigation.Description}}{{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Investigation Findings:</p>
+          {{if $incident.Investigation.Findings}}
+          <ul style="padding: 0 0 0 20px; margin: 0 0 20px 0;">
+            {{range $finding := $incident.Investigation.Findings}}
+            <li style="font-size: 14px; color: #1a1a1a; line-height: 1.6; margin-bottom: 8px;">{{$finding.Title}}</li>
+            {{end}}
+          </ul>
+          {{else}}
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">-</p>
+          {{end}}
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Recommendations for Action:
+          </p>
+          <p style="margin: 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+            {{if
+            $incident.Investigation.ActionRecommendation}}{{$incident.Investigation.ActionRecommendation}}{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  {{if $incident.CommunicationLogs}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="padding-top: 0">
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.4
+          Communication Log</h5>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">
+                Date & Time</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 10%;">
+                Method</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">
+                Communicated By</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">
+                Communicated To</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 40%;">
+                Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $commIndex, $comm := $incident.CommunicationLogs}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $commIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{$comm.CommunicatedAt.Format "Jan _2, 2006, 03:04 PM"}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{$comm.CommunicationMethod}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{$comm.CommunicatedBy}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{$comm.CommunicatedTo}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $comm.Summary}}{{$comm.Summary}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  {{if $incident.ActionPlans}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.5
+          Action Plans</h5>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
+                #</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">
+                Title</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">
+                Target Date</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">
+                Responsible User</th>
+              <th
+                style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">
+                Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $apIndex, $ap := $incident.ActionPlans}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $apIndex
+                1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$ap.ActionPlanTitle}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
+                $ap.TargetDate}}{{$ap.TargetDate.Format "Jan _2, 2006"}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+
+                <span style="display: inline-block; margin-left: 8px; vertical-align: middle;">
+                  {{if $ap.ResponsibleUserNameEn}}{{$ap.ResponsibleUserNameEn}}{{else}}-{{end}}
+                </span>
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $ap.ActionPlanStatusTitleEn}}
+                <span
+                  style="background: #fbf4ec; color: #b6630a; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #edd7bf; font-weight: 400;">{{$ap.ActionPlanStatusTitleEn}}</span>
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- RCA, CLOSURE, PIR -->
+  {{if $incident.RootCauseAnalyses}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.6 Root Cause
+          Analysis</h5>
+
+        {{range $rcaIndex, $rca := $incident.RootCauseAnalyses}}
+        <div style="margin-bottom: 15px;">
+          <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: 400;">{{$rca.Why}}. {{$rca.Question}}?</p>
+          <p style="margin: 0 0 10px 0; padding-left: 20px; font-size: 14px; color: #374151;">• {{if
+            $rca.Answer}}{{$rca.Answer}}{{else}}-{{end}}</p>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  {{if $incident.IncidentClosure}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.7 Incident
+          Closure</h5>
+
+        <div style="margin-bottom: 20px;">
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Completion Date:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">
+            {{if
+            $incident.IncidentClosure.CompletionDateString}}{{$incident.IncidentClosure.CompletionDateString}}{{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Resolution Summary:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+            {{if
+            $incident.IncidentClosure.ResolutionSummary}}{{$incident.IncidentClosure.ResolutionSummary}}{{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Lessons Learned:</p>
+          {{if $incident.IncidentClosure.Lessons}}
+          <ul style="padding: 0 0 0 20px; margin: 0 0 20px 0;">
+            {{range $lesson := $incident.IncidentClosure.Lessons}}
+            <li style="font-size: 14px; color: #1a1a1a; line-height: 1.6; margin-bottom: 8px;">{{$lesson.Lessons}}</li>
+            {{end}}
+          </ul>
+          {{else}}
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">-</p>
+          {{end}}
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Notes:</p>
+          <p style="margin: 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+            {{if $incident.IncidentClosure.Notes}}{{$incident.IncidentClosure.Notes}}{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  {{if $incident.IncidentPostReview}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.8 Post
+          Implementation Review (PIR)</h5>
+
+        <div style="margin-bottom: 20px;">
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Completion Date:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">
+            {{if
+            $incident.IncidentPostReview.PostReviewDateString}}{{$incident.IncidentPostReview.PostReviewDateString}}{{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Participants:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">
+            {{if $incident.IncidentPostReview.Users}}
+            {{range $userIndex, $user := $incident.IncidentPostReview.Users}}
+            {{if $userIndex}}, {{end}}{{$user.User.FirstNameEn}} {{$user.User.LastNameEn}}
+            {{end}}
+            {{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Response Effectiveness:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">
+            {{if
+            $incident.IncidentPostReview.IncidentPostReviewEffectiveness.TitleEn}}{{$incident.IncidentPostReview.IncidentPostReviewEffectiveness.TitleEn}}{{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Incident Summary:</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+            {{if $incident.IncidentPostReview.Summary}}{{$incident.IncidentPostReview.Summary}}{{else}}-{{end}}
+          </p>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Lessons Learned:</p>
+          {{if $incident.IncidentPostReview.Lessons}}
+          <ul style="padding: 0 0 0 20px; margin: 0 0 20px 0;">
+            {{range $lesson := $incident.IncidentPostReview.Lessons}}
+            <li style="font-size: 14px; color: #1a1a1a; line-height: 1.6; margin-bottom: 8px;">{{$lesson.Lesson}}</li>
+            {{end}}
+          </ul>
+          {{else}}
+          <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">-</p>
+          {{end}}
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Improvement Recommendations:
+          </p>
+          {{if $incident.IncidentPostReview.Recommendations}}
+          <ul style="padding: 0 0 0 20px; margin: 0;">
+            {{range $rec := $incident.IncidentPostReview.Recommendations}}
+            <li style="font-size: 14px; color: #1a1a1a; line-height: 1.6; margin-bottom: 8px;">{{$rec.Recommendation}}
+            </li>
+            {{end}}
+          </ul>
+          {{else}}
+          <p style="margin: 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">-</p>
+          {{end}}
+        </div>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  {{end}}
+
+</body>
+
+</html>

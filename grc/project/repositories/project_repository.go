@@ -41,6 +41,8 @@ func (r *ProjectRepository) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dto
 			projects.title_ar,
 			projects.description_en,
 			projects.description_ar,
+			projects.budget,
+			projects.scope,
 			CONVERT(VARCHAR, projects.start_date, 23) AS start_date,
 			CONVERT(VARCHAR, projects.end_date, 23) AS end_date,
 			project_types.id AS project_type_id,
@@ -49,6 +51,12 @@ func (r *ProjectRepository) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dto
 			project_statuses.id AS project_status_id,
 			project_statuses.title_en AS project_status_title_en,
 			project_statuses.title_ar AS project_status_title_ar,
+			project_phases.id AS project_phase_id,
+			project_phases.title_en AS project_phase_title_en,
+			project_phases.title_ar AS project_phase_title_ar,
+			project_classifications.id AS project_classification_id,
+			project_classifications.title_en AS project_classification_title_en,
+			project_classifications.title_ar AS project_classification_title_ar,
 			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
 			responsible_user.first_name_ar AS responsible_user_first_name_ar,
@@ -79,6 +87,8 @@ func (r *ProjectRepository) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dto
 		`).
 		Joins("LEFT JOIN project_types ON project_types.id = projects.project_type_id").
 		Joins("LEFT JOIN project_statuses ON project_statuses.id = projects.project_status_id").
+		Joins("LEFT JOIN project_phases ON project_phases.id = projects.project_phase_id").
+		Joins("LEFT JOIN project_classifications ON project_classifications.id = projects.project_classification_id").
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = projects.responsible_user_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = projects.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = projects.updated_by_id")
@@ -109,12 +119,16 @@ func (r *ProjectRepository) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dto
 			project_types.title_ar LIKE ? OR
 			project_statuses.title_en LIKE ? OR
 			project_statuses.title_ar LIKE ? OR
+			project_phases.title_en LIKE ? OR
+			project_phases.title_ar LIKE ? OR
+			project_classifications.title_en LIKE ? OR
+			project_classifications.title_ar LIKE ? OR
 			responsible_user.first_name_en LIKE ? OR
 			responsible_user.first_name_ar LIKE ? OR
 			responsible_user.last_name_en LIKE ? OR
 			responsible_user.last_name_ar LIKE ? OR
 			responsible_user.email LIKE ?`,
-			like, like, like, like,
+			like, like, like, like, like, like, like, like,
 			like, like, like, like,
 			like, like, like, like,
 			like)
@@ -174,6 +188,8 @@ func (r *ProjectRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTr
 		Preload("ResponsibleUser").
 		Preload("ProjectType").
 		Preload("ProjectStatus").
+		Preload("ProjectPhase").
+		Preload("ProjectClassification").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&project, id)

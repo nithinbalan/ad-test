@@ -1,0 +1,122 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <style>
+    html {
+      margin: 0;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont100}}') format('woff');
+      font-weight: 100;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont200}}') format('woff');
+      font-weight: 200;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont300}}') format('woff');
+      font-weight: 300;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont400}}') format('woff');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont500}}') format('woff');
+      font-weight: 500;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont600}}') format('woff');
+      font-weight: 600;
+      font-style: normal;
+    }
+  </style>
+</head>
+
+<body style="font-family: 'Lexend Deca', sans-serif; margin:0; padding:0; background:#fff;">
+  <div style="width: 1000px; margin: 0 auto; background: #fff;">
+    <div style="
+      height: 1210px;
+      background: url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat;
+      background-size: cover;
+      background-position: center;
+      padding: 10px 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;">
+
+      <!-- Logo section similar to other templates, top-left aligned -->
+      <img src="{{.ApiPath}}/report-template-settings/image-preview?type=logo" alt="Logo"
+        style="position: absolute; top: 40px; left: 40px; max-height: 150px; max-width: 350px; margin-top: 20px; margin-left: 20px;" />
+
+      <h1 style="
+        font-size: 40px;
+        color: #000;
+        position: absolute;
+        bottom: 90px;
+        text-align: center;
+        width: 94%;
+        font-weight: 700;
+        margin-top: -10px;">
+        Incident Management Report
+      </h1>
+      <h1 style="
+        font-size: 30px;
+        color: #000;
+        position: absolute;
+        bottom: 40px;
+        text-align: center;
+        width: 94%;
+        font-weight: 700;
+        margin: 0;">
+        {{.Data.Title}}
+      </h1>
+    </div>
+
+    <div style="padding: 20px 40px; background: #2F4C81; color: #fff; height: 126px; padding-bottom: 39.8px;">
+      <div style="margin-top: 15px">
+        <div style="width: 60%; display: inline-block; vertical-align: top;">
+          <p style="margin:0 0 2px 0; color:#fff; font-size:13px; font-weight:300;">Title</p>
+          <p style="margin:0 0 13px 0; color:#fff; font-size:14px; font-weight:400;">{{.Data.Title}}</p>
+        </div>
+      </div>
+      <div style="margin-top: 20px">
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin:0 0 2px 0; color:#fff; font-size:13px; font-weight:300;">Reported At</p>
+          <p style="margin:0 0 13px 0; color:#fff; font-size:14px; font-weight:400;">{{.Data.ReportedAt}}</p>
+        </div>
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin:0 0 2px 0; color:#fff; font-size:13px; font-weight:300;">Reported By</p>
+          <p style="margin:0 0 13px 0; color:#fff; font-size:14px; font-weight:400;">{{.Data.CreatedUserFirstNameEn}}
+            {{.Data.CreatedUserLastNameEn}}</p>
+        </div>
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin:0 0 2px 0; color:#fff; font-size:13px; font-weight:300;">Exported At</p>
+          <p style="margin:0 0 13px 0; color:#fff; font-size:14px; font-weight:400;">{{.Data.GeneratedAt}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
