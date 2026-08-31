@@ -51,6 +51,8 @@ func (pc *ProjectController) GetAllProjects(c *gin.Context) {
 	allowedParams := []string{
 		"project_type_ids",
 		"project_status_ids",
+		"project_phase_ids",
+		"project_classification_ids",
 		"responsible_user_ids",
 	}
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -70,18 +72,23 @@ func (pc *ProjectController) GetAllProjects(c *gin.Context) {
 
 	// Define allowed sortable fields mapping
 	validSortFields := map[string]string{
-		"title_en":          "projects.title_en",
-		"title_ar":          "projects.title_ar",
-		"description_en":    "projects.description_en",
-		"description_ar":    "projects.description_ar",
-		"start_date":        "projects.start_date",
-		"end_date":          "projects.end_date",
-		"created_at":        "projects.created_at",
-		"updated_at":        "projects.updated_at",
-		"project_type_en":   "project_types.title_en",
-		"project_type_ar":   "project_types.title_ar",
-		"project_status_en": "project_statuses.title_en",
-		"project_status_ar": "project_statuses.title_ar",
+		"title_en":                  "projects.title_en",
+		"title_ar":                  "projects.title_ar",
+		"description_en":            "projects.description_en",
+		"description_ar":            "projects.description_ar",
+		"start_date":                "projects.start_date",
+		"end_date":                  "projects.end_date",
+		"created_at":                "projects.created_at",
+		"updated_at":                "projects.updated_at",
+		"project_type_en":           "project_types.title_en",
+		"project_type_ar":           "project_types.title_ar",
+		"project_status_en":         "project_statuses.title_en",
+		"project_status_ar":         "project_statuses.title_ar",
+		"project_phase_en":          "project_phases.title_en",
+		"project_phase_ar":          "project_phases.title_ar",
+		"project_classification_en": "project_classifications.title_en",
+		"project_classification_ar": "project_classifications.title_ar",
+		"budget":                    "projects.budget",
 	}
 
 	sortField, valid := validSortFields[sortBy]
