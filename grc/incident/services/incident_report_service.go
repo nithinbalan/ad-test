@@ -31,7 +31,6 @@ type IncidentReportServiceInterface interface {
 	UpdateSection(incidentReportID uint, sectionID uint, currentUserID uint, formDTO *incidentDTOs.IncidentReportSectionFormDTO) error
 	DeleteIncidentReportSection(incidentReportID uint, sectionID uint, currentUserID uint) error
 	GetIncidentReportExportZip(incidentReportID uint, currentUserID uint) (string, error)
-	GetDocumentPath(id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -350,30 +349,75 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 	}
 
 	var incidentDocumentsMap = make(map[uint][]incidentDTOs.IncidentReportDocumentDTO)
+	var incidentEvidencesMap = make(map[uint][]incidentDTOs.IncidentReportEvidenceDTO)
 
 	for _, inc := range incidents {
 		reportIncident := &models.IncidentReportIncident{
-			IncidentReportID:           reportID,
-			IncidentRegisterID:         inc.ID,
-			ReferenceNumber:            &inc.ReferenceNumber,
-			IncidentTitle:              inc.IncidentTitle,
-			IncidentCategoryTitleEn:    &inc.IncidentCategoryTitleEn,
-			IncidentCategoryTitleAr:    &inc.IncidentCategoryTitleAr,
-			IncidentSubCategoryTitleEn: inc.IncidentSubCategoryTitleEn,
-			IncidentSubCategoryTitleAr: inc.IncidentSubCategoryTitleAr,
-			SeverityLevelTitleEn:       &inc.SeverityTitleEn,
-			SeverityLevelTitleAr:       &inc.SeverityTitleAr,
-			SeverityLevelColorCode:     inc.SeverityColorCode,
-			IncidentAt:                 &inc.RealTime,
-			ReportedAt:                 &inc.DetectedTime,
-			IncidentLocation:           inc.IncidentLocation,
-			IncidentStatusTitleEn:      &inc.IncidentStatusTitleEn,
-			IncidentStatusTitleAr:      &inc.IncidentStatusTitleAr,
-			ResponsibleUserNameEn:      inc.ResponsibleUserNameEn,
-			ResponsibleUserNameAr:      inc.ResponsibleUserNameAr,
-			ReportedUserNameEn:         inc.ReportedUserNameEn,
-			ReportedUserNameAr:         inc.ReportedUserNameAr,
-			ClosedDate:                 inc.ResolvedDate,
+			IncidentReportID:                         reportID,
+			IncidentRegisterID:                       inc.ID,
+			ReferenceNumber:                          &inc.ReferenceNumber,
+			IncidentTitle:                            inc.IncidentTitle,
+			IncidentCategoryTitleEn:                  &inc.IncidentCategoryTitleEn,
+			IncidentCategoryTitleAr:                  &inc.IncidentCategoryTitleAr,
+			IncidentSubCategoryTitleEn:               &inc.IncidentSubCategoryTitleEn,
+			IncidentSubCategoryTitleAr:               &inc.IncidentSubCategoryTitleAr,
+			IncidentTypeTitleEn:                      (*string)(&inc.IncidentTypeTitleEn),
+			IncidentTypeTitleAr:                      (*string)(&inc.IncidentTypeTitleAr),
+			SeverityLevelTitleEn:                     &inc.SeverityTitleEn,
+			SeverityLevelTitleAr:                     &inc.SeverityTitleAr,
+			SeverityLevelColorCode:                   inc.SeverityColorCode,
+			IncidentAt:                               &inc.RealTime,
+			ReportedAt:                               &inc.DetectedTime,
+			IncidentLocation:                         inc.IncidentLocation,
+			IncidentStatusTitleEn:                    &inc.IncidentStatusTitleEn,
+			IncidentStatusTitleAr:                    &inc.IncidentStatusTitleAr,
+			IncidentStatusColorCode:                  (*string)(&inc.IncidentStatusColorCode),
+			ResponsibleUserNameEn:                    inc.ResponsibleUserNameEn,
+			ResponsibleUserNameAr:                    inc.ResponsibleUserNameAr,
+			ReportedUserNameEn:                       inc.ReportedUserNameEn,
+			ReportedUserNameAr:                       inc.ReportedUserNameAr,
+			ResponsibleUnitTitleEn:                   (*string)(&inc.ResponsibleUnitTitleEn),
+			ResponsibleUnitTitleAr:                   (*string)(&inc.ResponsibleUnitTitleAr),
+			ResponsibleUnitColorCode:                 (*string)(&inc.ResponsibleUnitColorCode),
+			BusinessOwnerNameEn:                      (*string)(&inc.BusinessOwnerNameEn),
+			BusinessOwnerNameAr:                      (*string)(&inc.BusinessOwnerNameAr),
+			ResponseTeamLeadNameEn:                   (*string)(&inc.ResponseTeamLeadNameEn),
+			ResponseTeamLeadNameAr:                   (*string)(&inc.ResponseTeamLeadNameAr),
+			ResponseTeamMembersEn:                    (*string)(&inc.ResponseTeamMembersEn),
+			ResponseTeamMembersAr:                    (*string)(&inc.ResponseTeamMembersAr),
+			IncidentScopeTitleEn:                     (*string)(&inc.IncidentScopeTitleEn),
+			IncidentScopeTitleAr:                     (*string)(&inc.IncidentScopeTitleAr),
+			IncidentSensitivityClassificationTitleEn: (*string)(&inc.IncidentSensitivityClassificationTitleEn),
+			IncidentSensitivityClassificationTitleAr: (*string)(&inc.IncidentSensitivityClassificationTitleAr),
+			ConfidentialitySeverityLevelTitleEn:      (*string)(&inc.ConfidentialitySeverityLevelTitleEn),
+			ConfidentialitySeverityLevelTitleAr:      (*string)(&inc.ConfidentialitySeverityLevelTitleAr),
+			ConfidentialitySeverityLevelColorCode:    (*string)(&inc.ConfidentialitySeverityLevelColorCode),
+			IntegritySeverityLevelTitleEn:            (*string)(&inc.IntegritySeverityLevelTitleEn),
+			IntegritySeverityLevelTitleAr:            (*string)(&inc.IntegritySeverityLevelTitleAr),
+			IntegritySeverityLevelColorCode:          (*string)(&inc.IntegritySeverityLevelColorCode),
+			AvailabilitySeverityLevelTitleEn:         (*string)(&inc.AvailabilitySeverityLevelTitleEn),
+			AvailabilitySeverityLevelTitleAr:         (*string)(&inc.AvailabilitySeverityLevelTitleAr),
+			AvailabilitySeverityLevelColorCode:       (*string)(&inc.AvailabilitySeverityLevelColorCode),
+			Description:                              (*string)(&inc.Description),
+			QuickAction:                              (*string)(&inc.QuickAction),
+			IsAcknowledge:                            inc.IsAcknowledge,
+			AcknowledgedAt:                           inc.AcknowledgedAt,
+			AcknowledgedByNameEn:                     (*string)(&inc.AcknowledgedByNameEn),
+			AcknowledgedByNameAr:                     (*string)(&inc.AcknowledgedByNameAr),
+			IsSLATimeAchieved:                        inc.IsSLATimeAchieved,
+			IsSLATimeExceeded:                        inc.IsSLATimeExceeded,
+			ClosureResolutionSummary:                 (*string)(&inc.ClosureResolutionSummary),
+			ClosureNotes:                             (*string)(&inc.ClosureNotes),
+			ClosureSubmittedAt:                       inc.ClosureSubmittedAt,
+			ClosureSubmittedByNameEn:                 (*string)(&inc.ClosureSubmittedByNameEn),
+			ClosureSubmittedByNameAr:                 (*string)(&inc.ClosureSubmittedByNameAr),
+			ClosureApprovedAt:                        inc.ClosureApprovedAt,
+			ClosureApprovedByNameEn:                  (*string)(&inc.ClosureApprovedByNameEn),
+			ClosureApprovedByNameAr:                  (*string)(&inc.ClosureApprovedByNameAr),
+			ClosureWorkflowStatusTitleEn:             (*string)(&inc.ClosureWorkflowStatusTitleEn),
+			ClosureWorkflowStatusTitleAr:             (*string)(&inc.ClosureWorkflowStatusTitleAr),
+			ClosureWorkflowStatusColorCode:           (*string)(&inc.ClosureWorkflowStatusColorCode),
+			ClosedDate:                               inc.ResolvedDate,
 		}
 
 		if err := irs.repo.CreateReportIncident(reportIncident, tx); err != nil {
@@ -441,6 +485,68 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 
 		if len(reportDocs) > 0 {
 			if err := irs.repo.CreateIncidentDocuments(reportDocs, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+
+		evidences, err := irs.repo.GetEvidencesByIncidentID(inc.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		incidentEvidencesMap[inc.ID] = evidences
+
+		var reportEvidences []*models.IncidentReportEvidence
+
+		for _, evidence := range evidences {
+			if evidence.Name == nil || *evidence.Name == "" {
+				continue // Skip evidences without a name
+			}
+
+			oldEvidenceFilePath := filepath.Join(
+				storagePath,
+				"incident",
+				"incident-register",
+				strconv.FormatUint(uint64(inc.ID), 10),
+				"evidences",
+				*evidence.Name,
+			)
+
+			if _, err := os.Stat(oldEvidenceFilePath); os.IsNotExist(err) {
+				tx.Rollback()
+				return 0, fmt.Errorf("source evidence file does not exist: %s", oldEvidenceFilePath)
+			}
+
+			newEvidenceURL := utility.GenerateDocumentURL(
+				"incident",
+				"incident-report",
+				strconv.FormatUint(uint64(reportID), 10),
+				"evidences",
+			)
+
+			evidenceName := *evidence.Name
+			evidenceSize := evidence.Size
+			evidenceToken := evidence.Token
+			evidenceOriginalName := evidence.OriginalName
+			evidenceType := evidence.Type
+			reportEvidences = append(reportEvidences, &models.IncidentReportEvidence{
+				IncidentEvidenceID:       evidence.ID,
+				IncidentReportIncidentID: reportIncident.ID,
+				URL:                      &newEvidenceURL,
+				Name:                     &evidenceName,
+				Size:                     evidenceSize,
+				Token:                    evidenceToken,
+				OriginalName:             evidenceOriginalName,
+				Type:                     evidenceType,
+				CreatedByID:              &currentUserID,
+				UpdatedByID:              nil,
+			})
+		}
+
+		if len(reportEvidences) > 0 {
+			if err := irs.repo.CreateIncidentEvidences(reportEvidences, tx); err != nil {
 				tx.Rollback()
 				return 0, err
 			}
@@ -612,6 +718,62 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 		}
 	}
 
+	newEvidenceStoragePath := filepath.Join(
+		storagePath,
+		"incident",
+		"incident-report",
+		strconv.FormatUint(uint64(reportID), 10),
+		"evidences",
+	)
+
+	if err := os.MkdirAll(newEvidenceStoragePath, os.ModePerm); err != nil {
+		_ = irs.DeleteIncidentReport(reportID, currentUserID)
+		return 0, fmt.Errorf("failed to create evidence storage directory: %w", err)
+	}
+
+	for _, inc := range incidents {
+		evidences := incidentEvidencesMap[inc.ID]
+
+		for _, evidence := range evidences {
+			if evidence.Name == nil || *evidence.Name == "" {
+				continue
+			}
+
+			oldEvidenceFilePath := filepath.Join(
+				storagePath,
+				"incident",
+				"incident-register",
+				strconv.FormatUint(uint64(inc.ID), 10),
+				"evidences",
+				*evidence.Name,
+			)
+
+			newEvidenceFilePath := filepath.Join(newEvidenceStoragePath, *evidence.Name)
+
+			input, err := os.Open(oldEvidenceFilePath)
+			if err != nil {
+				_ = irs.DeleteIncidentReport(reportID, currentUserID)
+				return 0, fmt.Errorf("failed to open source evidence file %s: %w", oldEvidenceFilePath, err)
+			}
+
+			output, err := os.Create(newEvidenceFilePath)
+			if err != nil {
+				input.Close()
+				_ = irs.DeleteIncidentReport(reportID, currentUserID)
+				return 0, fmt.Errorf("failed to create destination evidence file %s: %w", newEvidenceFilePath, err)
+			}
+
+			_, err = io.Copy(output, input)
+			output.Close()
+			input.Close()
+
+			if err != nil {
+				_ = irs.DeleteIncidentReport(reportID, currentUserID)
+				return 0, fmt.Errorf("failed to copy evidence file from %s to %s: %w", oldEvidenceFilePath, newEvidenceFilePath, err)
+			}
+		}
+	}
+
 	go func() {
 		report, err := irs.repo.GetIncidentReportByID(reportID)
 		if err != nil {
@@ -655,6 +817,13 @@ func (irs *IncidentReportService) parseIncidentReportDates(dto incidentDTOs.Inci
 	}
 
 	return parsed, nil
+}
+
+func safeStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 func formatTitle(sectionType string) (string, string) {
@@ -702,13 +871,58 @@ func (irs *IncidentReportService) GetIncidentReportDetails(id uint) (*incidentDT
 	}
 
 	// Flatten IncidentRegister fields into Incident level for API response
-	for _, incident := range response.Incidents {
+	for i, incident := range response.Incidents {
 		if incident.IncidentRegister != nil {
 			incident.Investigation = incident.IncidentRegister.Investigation
 			incident.CommunicationLogs = incident.IncidentRegister.CommunicationLogs
 			incident.IncidentClosure = incident.IncidentRegister.IncidentClosure
 			incident.IncidentPostReview = incident.IncidentRegister.IncidentPostReview
 			incident.IncidentRegister = nil // Hide nested structure from API response
+		}
+
+		// Build timeline from the raw preloaded model (flat DTO requires manual mapping)
+		if i < len(report.Incidents) && report.Incidents[i].IncidentRegister != nil {
+			for _, t := range report.Incidents[i].IncidentRegister.Timelines {
+				timelineItem := &incidentDTOs.IncidentTimelineListDTO{
+					ID:                          t.ID,
+					IncidentTimelineTypeTitleEn: t.IncidentTimelineType.TitleEn,
+					IncidentTimelineTypeTitleAr: t.IncidentTimelineType.TitleAr,
+					TimelineStatusTitleEn:       t.TimelineStatus.TitleEn,
+					TimelineStatusTitleAr:       t.TimelineStatus.TitleAr,
+					PerformedByFirstNameEn:      &t.PerformedBy.FirstNameEn,
+					PerformedByLastNameEn:       &t.PerformedBy.LastNameEn,
+					PerformedAt:                 t.PerformedAt,
+				}
+				incident.Timelines = append(incident.Timelines, timelineItem)
+			}
+		}
+
+		// Fetch live associated items using the underlying incident register ID
+		if incident.IncidentRegisterID != 0 {
+			if kpis, err := irs.repo.GetAllIncidentKPI(incident.IncidentRegisterID); err == nil {
+				incident.KPIs = kpis
+			}
+			if strategicObjectives, err := irs.repo.GetAllIncidentStrategicObjectives(incident.IncidentRegisterID); err == nil {
+				incident.StrategicObjectives = strategicObjectives
+			}
+			if assets, err := irs.repo.GetAllIncidentAssets(incident.IncidentRegisterID); err == nil {
+				incident.Assets = assets
+			}
+			if associatedDocuments, err := irs.repo.GetAllIncidentAssociatedDocuments(incident.IncidentRegisterID); err == nil {
+				incident.AssociatedDocuments = associatedDocuments
+			}
+			if controls, err := irs.repo.GetAllIncidentControls(incident.IncidentRegisterID); err == nil {
+				incident.ControlsAssociated = controls
+			}
+			if risks, err := irs.repo.GetAllIncidentRisks(incident.IncidentRegisterID); err == nil {
+				incident.Risks = risks
+			}
+			if processes, err := irs.repo.GetAllIncidentProcesses(incident.IncidentRegisterID); err == nil {
+				incident.Processes = processes
+			}
+			if complianceRequirements, err := irs.repo.GetAllIncidentComplianceRequirements(incident.IncidentRegisterID); err == nil {
+				incident.ComplianceRequirements = complianceRequirements
+			}
 		}
 	}
 
@@ -920,156 +1134,262 @@ func (irs *IncidentReportService) DeleteIncidentReportSection(incidentReportID u
 }
 
 func (irs *IncidentReportService) GetIncidentReportExportZip(incidentReportID uint, currentUserID uint) (string, error) {
-	// TODO: PDF template is not ready yet
-	// When template is ready, uncomment and implement the following:
-	// 1. Fetch incident report detail: incidentReport, err := irs.GetIncidentReportDetails(incidentReportID)
-	// 2. Build section data with incidents (similar to risk report pattern)
-	// 3. Generate PDF content using template
-	// 4. Convert HTML to PDF
-	// 5. Collect all documents from all incidents
-	// 6. Create ZIP file with PDF + documents
+	incidentReport, err := irs.GetIncidentReportDetails(incidentReportID)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch incident report details: %w", err)
+	}
 
-	// For now, return error indicating template is not ready
-	return "", fmt.Errorf("PDF template for incident report export is not ready yet")
+	var incidents []*incidentDTOs.IncidentReportIncidentPDFDTO
 
-	// Placeholder code structure (to be implemented when template is ready):
-	/*
-		var sectionData []incidentDTOs.IncidentReportSectionWithDataDTO
+	for _, incident := range incidentReport.Incidents {
+		var incidentAtFormatted, reportedAtFormatted string
+		if incident.IncidentAt != nil {
+			incidentAtFormatted = incident.IncidentAt.Format("Jan _2, 2006, 03:04 PM")
+		}
+		if incident.ReportedAt != nil {
+			reportedAtFormatted = incident.ReportedAt.Format("Jan _2, 2006, 03:04 PM")
+		}
 
+		var acknowledgedAtString, closedDateString, closureSubmittedAtString, closureApprovedAtString string
+		if incident.AcknowledgedAt != nil {
+			acknowledgedAtString = incident.AcknowledgedAt.Format("Jan _2, 2006, 03:04 PM")
+		}
+		if incident.ClosedDate != nil {
+			closedDateString = incident.ClosedDate.Format("Jan _2, 2006, 03:04 PM")
+		}
+		if incident.ClosureSubmittedAt != nil {
+			closureSubmittedAtString = incident.ClosureSubmittedAt.Format("Jan _2, 2006, 03:04 PM")
+		}
+		if incident.ClosureApprovedAt != nil {
+			closureApprovedAtString = incident.ClosureApprovedAt.Format("Jan _2, 2006, 03:04 PM")
+		}
+
+		incidentItem := &incidentDTOs.IncidentReportIncidentPDFDTO{
+			ID:                                       incident.ID,
+			ReferenceNumber:                          incident.ReferenceNumber,
+			Title:                                    incident.IncidentTitle,
+			IncidentCategoryTitleEn:                  incident.IncidentCategoryTitleEn,
+			IncidentCategoryTitleAr:                  incident.IncidentCategoryTitleAr,
+			IncidentSubCategoryTitleEn:               incident.IncidentSubCategoryTitleEn,
+			IncidentSubCategoryTitleAr:               incident.IncidentSubCategoryTitleAr,
+			IncidentTypeTitleEn:                      incident.IncidentTypeTitleEn,
+			IncidentTypeTitleAr:                      incident.IncidentTypeTitleAr,
+			SeverityLevelTitleEn:                     incident.SeverityLevelTitleEn,
+			SeverityLevelTitleAr:                     incident.SeverityLevelTitleAr,
+			SeverityLevelColorCode:                   incident.SeverityLevelColorCode,
+			IncidentAtFormatted:                      incidentAtFormatted,
+			ReportedAtFormatted:                      reportedAtFormatted,
+			IncidentLocation:                         incident.IncidentLocation,
+			IncidentStatusTitleEn:                    incident.IncidentStatusTitleEn,
+			IncidentStatusTitleAr:                    incident.IncidentStatusTitleAr,
+			IncidentStatusColorCode:                  incident.IncidentStatusColorCode,
+			ResponsibleUserNameEn:                    incident.ResponsibleUserNameEn,
+			ResponsibleUserNameAr:                    incident.ResponsibleUserNameAr,
+			ReportedUserNameEn:                       incident.ReportedUserNameEn,
+			ReportedUserNameAr:                       incident.ReportedUserNameAr,
+			ResponsibleUnitTitleEn:                   incident.ResponsibleUnitTitleEn,
+			ResponsibleUnitTitleAr:                   incident.ResponsibleUnitTitleAr,
+			ResponsibleUnitColorCode:                 incident.ResponsibleUnitColorCode,
+			BusinessOwnerNameEn:                      safeStr(incident.BusinessOwnerNameEn),
+			BusinessOwnerNameAr:                      safeStr(incident.BusinessOwnerNameAr),
+			ResponseTeamLeadNameEn:                   safeStr(incident.ResponseTeamLeadNameEn),
+			ResponseTeamLeadNameAr:                   safeStr(incident.ResponseTeamLeadNameAr),
+			ResponseTeamMembersEn:                    safeStr(incident.ResponseTeamMembersEn),
+			ResponseTeamMembersAr:                    safeStr(incident.ResponseTeamMembersAr),
+			IncidentScopeTitleEn:                     safeStr(incident.IncidentScopeTitleEn),
+			IncidentScopeTitleAr:                     safeStr(incident.IncidentScopeTitleAr),
+			IncidentSensitivityClassificationTitleEn: safeStr(incident.IncidentSensitivityClassificationTitleEn),
+			IncidentSensitivityClassificationTitleAr: safeStr(incident.IncidentSensitivityClassificationTitleAr),
+			ConfidentialitySeverityLevelTitleEn:      safeStr(incident.ConfidentialitySeverityLevelTitleEn),
+			ConfidentialitySeverityLevelTitleAr:      safeStr(incident.ConfidentialitySeverityLevelTitleAr),
+			ConfidentialitySeverityLevelColorCode:    safeStr(incident.ConfidentialitySeverityLevelColorCode),
+			IntegritySeverityLevelTitleEn:            safeStr(incident.IntegritySeverityLevelTitleEn),
+			IntegritySeverityLevelTitleAr:            safeStr(incident.IntegritySeverityLevelTitleAr),
+			IntegritySeverityLevelColorCode:          safeStr(incident.IntegritySeverityLevelColorCode),
+			AvailabilitySeverityLevelTitleEn:         safeStr(incident.AvailabilitySeverityLevelTitleEn),
+			AvailabilitySeverityLevelTitleAr:         safeStr(incident.AvailabilitySeverityLevelTitleAr),
+			AvailabilitySeverityLevelColorCode:       safeStr(incident.AvailabilitySeverityLevelColorCode),
+			Description:                              safeStr(incident.Description),
+			QuickAction:                              safeStr(incident.QuickAction),
+			IsAcknowledge:                            incident.IsAcknowledge,
+			AcknowledgedAt:                           incident.AcknowledgedAt,
+			AcknowledgedAtString:                     acknowledgedAtString,
+			AcknowledgedByNameEn:                     safeStr(incident.AcknowledgedByNameEn),
+			AcknowledgedByNameAr:                     safeStr(incident.AcknowledgedByNameAr),
+			IsSLATimeAchieved:                        incident.IsSLATimeAchieved,
+			IsSLATimeExceeded:                        incident.IsSLATimeExceeded,
+			ClosedDateString:                         closedDateString,
+			ClosureResolutionSummary:                 safeStr(incident.ClosureResolutionSummary),
+			ClosureNotes:                             safeStr(incident.ClosureNotes),
+			ClosureSubmittedAtString:                 closureSubmittedAtString,
+			ClosureSubmittedByNameEn:                 safeStr(incident.ClosureSubmittedByNameEn),
+			ClosureSubmittedByNameAr:                 safeStr(incident.ClosureSubmittedByNameAr),
+			ClosureApprovedAtString:                  closureApprovedAtString,
+			ClosureApprovedByNameEn:                  safeStr(incident.ClosureApprovedByNameEn),
+			ClosureApprovedByNameAr:                  safeStr(incident.ClosureApprovedByNameAr),
+			ClosureWorkflowStatusTitleEn:             safeStr(incident.ClosureWorkflowStatusTitleEn),
+			ClosureWorkflowStatusTitleAr:             safeStr(incident.ClosureWorkflowStatusTitleAr),
+			ClosureWorkflowStatusColorCode:           safeStr(incident.ClosureWorkflowStatusColorCode),
+			Documents:                                incident.Documents,
+			Evidences:                                incident.Evidences,
+			ActionPlans:                              incident.ActionPlans,
+			CommunicationLogs:                        incident.CommunicationLogs,
+			Investigation:                            incident.Investigation,
+			RootCauseAnalyses:                        incident.RootCauseAnalyses,
+			IncidentClosure:                          incident.IncidentClosure,
+			IncidentPostReview:                       incident.IncidentPostReview,
+			Timelines:                                incident.Timelines,
+			KPIs:                                     incident.KPIs,
+			StrategicObjectives:                      incident.StrategicObjectives,
+			ComplianceRequirements:                   incident.ComplianceRequirements,
+			Processes:                                incident.Processes,
+			Risks:                                    incident.Risks,
+			Controls:                                 incident.ControlsAssociated,
+			AssociatedDocuments:                      incident.AssociatedDocuments,
+			Assets:                                   incident.Assets,
+		}
+
+		incidents = append(incidents, incidentItem)
+	}
+
+	var executiveSummary, scope, objective string
+	if len(incidentReport.Sections) > 0 {
 		for _, section := range incidentReport.Sections {
-			sectionItem := incidentDTOs.IncidentReportSectionWithDataDTO{
-				ID:            section.ID,
-				Type:          section.Type,
-				TitleEn:       section.TitleEn,
-				TitleAr:       section.TitleAr,
-				DescriptionEn: utility.StripPTags(section.DescriptionEn),
-				DescriptionAr: utility.StripPTags(section.DescriptionAr),
+			switch section.Type {
+			case "executive-summary":
+				executiveSummary = section.DescriptionEn
+			case "scope":
+				scope = section.DescriptionEn
+			case "objectives":
+				objective = section.DescriptionEn
 			}
-
-			// Map incidents to sections based on section type
-			for _, incident := range incidentReport.Incidents {
-				// Build incident item for PDF
-				// sectionItem.Incidents = append(sectionItem.Incidents, incidentItem)
-			}
-
-			sectionData = append(sectionData, sectionItem)
 		}
+	}
 
-		parsedCreatedAt, err := time.Parse(time.RFC3339, incidentReport.CreatedAt.Format(time.RFC3339))
-		if err != nil {
-			return "", fmt.Errorf("invalid CreatedAt format: %w", err)
-		}
+	var startDateStr, endDateStr string
+	if incidentReport.StartDate != nil {
+		startDateStr = incidentReport.StartDate.Format("Jan _2, 2006, 03:04 PM")
+	}
+	if incidentReport.EndDate != nil {
+		endDateStr = incidentReport.EndDate.Format("Jan _2, 2006")
+	}
 
-		// Final DTO to render
-		reportDetail := incidentDTOs.IncidentReportPDFDetailDTO{
-			ID:                       incidentReport.ID,
-			Title:                    incidentReport.Title,
-			StartDate:                incidentReport.StartDate,
-			EndDate:                  incidentReport.EndDate,
-			CreatedUserFirstNameEn:   incidentReport.CreatedBy.FirstNameEN,
-			CreatedUserFirstNameAr:   incidentReport.CreatedBy.FirstNameAR,
-			CreatedUserLastNameEn:    incidentReport.CreatedBy.LastNameEN,
-			CreatedUserLastNameAr:     incidentReport.CreatedBy.LastNameAR,
-			CreatedAt:                parsedCreatedAt.Format("2006-01-02"),
-			Sections:                 sectionData,
-		}
+	parsedCreatedAt := incidentReport.CreatedAt.Format("2006-01-02")
+	reportedAt := incidentReport.CreatedAt.Format("02,Jan 2006")
+	generatedAt := time.Now().Format("Jan _2, 2006, 03:04 PM")
 
-		// Generate PDF content
-		templatePaths := []string{"incident/templates/pdf/incident_report_summary.html"}
-		htmlContent, err := utility.GeneratePDFContent(reportDetail, templatePaths, "", "")
-		if err != nil {
-			return "", fmt.Errorf("failed to generate HTML content: %w", err)
-		}
+	var createdUserFirstNameEn, createdUserFirstNameAr, createdUserLastNameEn, createdUserLastNameAr string
+	if incidentReport.CreatedByUser != nil {
+		createdUserFirstNameEn = incidentReport.CreatedByUser.FirstNameEn
+		createdUserFirstNameAr = incidentReport.CreatedByUser.FirstNameAr
+		createdUserLastNameEn = incidentReport.CreatedByUser.LastNameEn
+		createdUserLastNameAr = incidentReport.CreatedByUser.LastNameAr
+	}
 
-		// Convert to PDF
-		pdfFileName := fmt.Sprintf("IncidentReport_%d.pdf", incidentReportID)
-		if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
-			return "", fmt.Errorf("failed to generate PDF: %w", err)
-		}
+	reportDetail := incidentDTOs.IncidentReportPDFDetailDTO{
+		ID:                     incidentReport.ID,
+		Title:                  incidentReport.Title,
+		StartDate:              startDateStr,
+		EndDate:                endDateStr,
+		ReportedAt:             reportedAt,
+		CreatedUserFirstNameEn: createdUserFirstNameEn,
+		CreatedUserFirstNameAr: createdUserFirstNameAr,
+		CreatedUserLastNameEn:  createdUserLastNameEn,
+		CreatedUserLastNameAr:  createdUserLastNameAr,
+		CreatedAt:              parsedCreatedAt,
+		GeneratedAt:            generatedAt,
+		ExecutiveSummary:       executiveSummary,
+		Scope:                  scope,
+		Objective:              objective,
+		Incidents:              incidents,
+	}
 
-		filesToZip := []string{pdfFileName}
-		// Collect all documents from all incidents
-		for _, incident := range incidentReport.Incidents {
-			for _, doc := range incident.Documents {
-				path, err := irs.GetDocumentPath(incidentReportID, doc.Token)
+	bodyTemplatePaths := []string{"incident/templates/pdf/incident_multiple_report_body.html"}
+	htmlContent, err := utility.GeneratePDFContent(reportDetail, bodyTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	headerTemplatePaths := []string{"incident/templates/pdf/incident_multiple_report_header.html"}
+	headerContent, err := utility.GeneratePDFContent(reportDetail, headerTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate header content: %w", err)
+	}
+
+	footerTemplatePaths := []string{"incident/templates/pdf/incident_multiple_report_footer.html"}
+	footerContent, err := utility.GeneratePDFContent(reportDetail, footerTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	coverTemplatePaths := []string{"incident/templates/pdf/incident_multiple_report_cover.html"}
+	coverContent, err := utility.GeneratePDFContent(reportDetail, coverTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate cover content: %w", err)
+	}
+
+	pdfFileName := fmt.Sprintf("IncidentReport_%d.pdf", incidentReportID)
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	filesToZip := []string{pdfFileName}
+
+	// Optimize: Direct file path resolution without DB calls
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	baseDocPath := filepath.Join(storagePath, "incident", "incident-report",
+		strconv.FormatUint(uint64(incidentReportID), 10), "documents")
+	baseEvidencePath := filepath.Join(storagePath, "incident", "incident-report",
+		strconv.FormatUint(uint64(incidentReportID), 10), "evidences")
+
+	for _, incident := range incidentReport.Incidents {
+		for _, doc := range incident.Documents {
+			if doc.Token != nil {
+				decryptedFilename, err := utility.DecryptData(*doc.Token)
 				if err != nil {
-					fmt.Printf("Error getting document path for ID %d: %v\n", doc.ID, err)
+					fmt.Printf("Error decrypting token for doc ID %d: %v\n", doc.ID, err)
 					continue
 				}
-				filesToZip = append(filesToZip, path)
+				fullPath := filepath.Join(baseDocPath, string(decryptedFilename))
+				if _, err := os.Stat(fullPath); err == nil {
+					filesToZip = append(filesToZip, fullPath)
+				}
 			}
 		}
 
-		// Create ZIP archive
-		zipDir := filepath.Join("storage", "zip")
-		zipFilePath := filepath.Join(zipDir, fmt.Sprintf("incident_report_%d.zip", incidentReportID))
-
-		// Ensure the directory exists
-		if err := os.MkdirAll(zipDir, os.ModePerm); err != nil {
-			return "", fmt.Errorf("failed to create directory %s: %w", zipDir, err)
-		}
-
-		err = utility.CreateZipFile(zipFilePath, filesToZip)
-		if err != nil {
-			return "", fmt.Errorf("failed to create ZIP file: %w", err)
-		}
-
-		go func() {
-			time.Sleep(2 * time.Second)
-			// Delete the temporary file
-			if err := os.Remove(pdfFileName); err != nil {
-				utility.LogError("Failed to delete temp file", map[string]interface{}{"file": pdfFileName, "error": err.Error()})
+		for _, evidence := range incident.Evidences {
+			if evidence.Token != nil {
+				decryptedFilename, err := utility.DecryptData(*evidence.Token)
+				if err != nil {
+					fmt.Printf("Error decrypting token for evidence ID %d: %v\n", evidence.ID, err)
+					continue
+				}
+				fullPath := filepath.Join(baseEvidencePath, string(decryptedFilename))
+				if _, err := os.Stat(fullPath); err == nil {
+					filesToZip = append(filesToZip, fullPath)
+				}
 			}
-		}()
-
-		return zipFilePath, nil
-	*/
-}
-
-func (irs *IncidentReportService) GetDocumentPath(id uint, token string) (string, error) {
-	// Get full details of the incident report by ID
-	existingIncidentReport, err := irs.GetIncidentReportDetails(id)
-	if err != nil {
-		return "", err
-	}
-
-	// Check if there are any associated documents in any incident
-	hasDocuments := false
-	for _, incident := range existingIncidentReport.Incidents {
-		if len(incident.Documents) > 0 {
-			hasDocuments = true
-			break
 		}
 	}
 
-	if !hasDocuments {
-		return "", fmt.Errorf("no documents found for the incident report")
+	zipDir := filepath.Join("storage", "zip")
+	zipFilePath := filepath.Join(zipDir, fmt.Sprintf("incident_report_%d.zip", incidentReportID))
+
+	if err := os.MkdirAll(zipDir, os.ModePerm); err != nil {
+		return "", fmt.Errorf("failed to create directory %s: %w", zipDir, err)
 	}
 
-	// Decrypt the token to get the file name
-	decryptedFilenameBytes, err := utility.DecryptData(token)
+	err = utility.CreateZipFile(zipFilePath, filesToZip)
 	if err != nil {
-		return "", fmt.Errorf("resource not found")
+		return "", fmt.Errorf("failed to create ZIP file: %w", err)
 	}
 
-	decryptedFilename := string(decryptedFilenameBytes)
-	if decryptedFilename == "" {
-		return "", fmt.Errorf("resource not found")
-	}
+	go func() {
+		time.Sleep(2 * time.Second)
+		if err := os.Remove(pdfFileName); err != nil {
+			utility.LogError("Failed to delete temp file", map[string]interface{}{"file": pdfFileName, "error": err.Error()})
+		}
+	}()
 
-	// Define the storage path
-	storagePath := filepath.Join("incident", "incident-report", strconv.FormatUint(uint64(id), 10), "documents")
-
-	// Get the base storage path from environment variables
-	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
-
-	// Check if the file exists at the specified path
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("file not found")
-	} else if err != nil {
-		return "", fmt.Errorf("error accessing file: %w", err)
-	}
-
-	return fullPath, nil
+	return zipFilePath, nil
 }

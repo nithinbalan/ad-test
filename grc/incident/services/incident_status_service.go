@@ -10,7 +10,7 @@ import (
 )
 
 type IncidentStatusServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IncidentStatus, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isIncident bool) ([]*models.IncidentStatus, error)
 	GetByID(id uint) (*models.IncidentStatus, error)
 	GetByType(status string) (*models.IncidentStatus, error)
 }
@@ -26,8 +26,8 @@ func NewIncidentStatusService(repo repositories.IncidentStatusRepositoryInterfac
 	}
 }
 
-func (iss *IncidentStatusService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IncidentStatus, error) {
-	return iss.repo.GetAll(sort, sortBy, keyword, status)
+func (iss *IncidentStatusService) GetAll(sort string, sortBy string, keyword string, status string, isIncident bool) ([]*models.IncidentStatus, error) {
+	return iss.repo.GetAll(sort, sortBy, keyword, status, isIncident)
 }
 
 func (iss IncidentStatusService) GetByID(id uint) (*models.IncidentStatus, error) {

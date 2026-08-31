@@ -27,10 +27,12 @@ type IncidentReportRepositoryInterface interface {
 	GetIncidentsByIDs(ids []uint, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportIncidentDTO, error)
 	GetReportIncidentsByDateRange(start time.Time, end time.Time, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportIncidentDTO, error)
 	GetDocumentsByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportDocumentDTO, error)
+	GetEvidencesByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportEvidenceDTO, error)
 	Create(report *models.IncidentReport, tx utility.DatabaseTransaction) (uint, error)
 	CreateSection(section *models.IncidentReportSection, tx utility.DatabaseTransaction) (uint, error)
 	CreateReportIncident(incident *models.IncidentReportIncident, tx utility.DatabaseTransaction) error
 	CreateIncidentDocuments(docs []*models.IncidentReportDocument, tx utility.DatabaseTransaction) error
+	CreateIncidentEvidences(evidences []*models.IncidentReportEvidence, tx utility.DatabaseTransaction) error
 	CreateIncidentRootCauseAnalyses(rcas []*models.IncidentReportRootCauseAnalysis, tx utility.DatabaseTransaction) error
 	CreateIncidentReportActionPlans(plans []*models.IncidentReportActionPlan, tx utility.DatabaseTransaction) error
 
@@ -146,6 +148,7 @@ func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models
 
 	result := db.
 		Preload("IncidentCategory").
+		Preload("IncidentSubCategory").
 		Preload("IncidentType").
 		Preload("IncidentStatus").
 		Preload("ReportedByUser").
@@ -153,6 +156,20 @@ func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models
 		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("BusinessOwner").
+		Preload("IncidentResponseTeam").
+		Preload("IncidentResponseTeam.TeamLeadUser").
+		Preload("IncidentResponseTeam.IncidentResponseTeamMembers").
+		Preload("IncidentResponseTeam.IncidentResponseTeamMembers.User").
+		Preload("ResponseTeamLead").
+		Preload("ResponseTeamMembers").
+		Preload("ResponseTeamMembers.User").
+		Preload("IncidentScope").
+		Preload("IncidentSensitivityClassification").
+		Preload("ConfidentialitySeverityLevel").
+		Preload("IntegritySeverityLevel").
+		Preload("AvailabilitySeverityLevel").
+		Preload("AcknowledgedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Investigation").
@@ -173,6 +190,9 @@ func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models
 		Preload("IncidentClosure").
 		Preload("IncidentPostReview").
 		Preload("IncidentClosure.Lessons").
+		Preload("IncidentClosure.SubmittedByUser").
+		Preload("IncidentClosure.ApprovedByUser").
+		Preload("IncidentClosure.WorkflowStatus").
 		Preload("IncidentPostReview").
 		Preload("IncidentPostReview.Users").
 		Preload("IncidentPostReview.Users.User").
@@ -998,10 +1018,14 @@ func (repo *IncidentReportRepository) GetIncidentsByIDs(
             incident_register.id,
             incident_register.reference_number,
             incident_register.title AS incident_title,
+            incident_register.description,
+            incident_register.quick_action,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
             incident_sub_categories.title_en AS incident_sub_category_title_en,
             incident_sub_categories.title_ar AS incident_sub_category_title_ar,
+            incident_types.title_en AS incident_type_title_en,
+            incident_types.title_ar AS incident_type_title_ar,
             severity_levels.title_en AS severity_title_en,
             severity_levels.title_ar AS severity_title_ar,
             severity_levels.color_code AS severity_color_code,
@@ -1010,10 +1034,48 @@ func (repo *IncidentReportRepository) GetIncidentsByIDs(
             ISNULL(incident_register.location, '') AS incident_location,
             incident_statuses.title_en AS incident_status_title_en,
             incident_statuses.title_ar AS incident_status_title_ar,
+            incident_statuses.color_code AS incident_status_color_code,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
+            organization_units.color_code AS responsible_unit_color_code,
+            business_owner.first_name_en + ' ' + business_owner.last_name_en AS business_owner_name_en,
+            business_owner.first_name_ar + ' ' + business_owner.last_name_ar AS business_owner_name_ar,
+            response_team_lead.first_name_en + ' ' + response_team_lead.last_name_en AS response_team_lead_name_en,
+            response_team_lead.first_name_ar + ' ' + response_team_lead.last_name_ar AS response_team_lead_name_ar,
+            incident_scopes.title_en AS incident_scope_title_en,
+            incident_scopes.title_ar AS incident_scope_title_ar,
+            incident_sensitivity_classifications.title_en AS incident_sensitivity_classification_title_en,
+            incident_sensitivity_classifications.title_ar AS incident_sensitivity_classification_title_ar,
+            confidentiality_severity.title_en AS confidentiality_severity_level_title_en,
+            confidentiality_severity.title_ar AS confidentiality_severity_level_title_ar,
+            confidentiality_severity.color_code AS confidentiality_severity_level_color_code,
+            integrity_severity.title_en AS integrity_severity_level_title_en,
+            integrity_severity.title_ar AS integrity_severity_level_title_ar,
+            integrity_severity.color_code AS integrity_severity_level_color_code,
+            availability_severity.title_en AS availability_severity_level_title_en,
+            availability_severity.title_ar AS availability_severity_level_title_ar,
+            availability_severity.color_code AS availability_severity_level_color_code,
+            incident_register.is_acknowledge,
+            incident_register.acknowledged_at,
+            acknowledged_user.first_name_en + ' ' + acknowledged_user.last_name_en AS acknowledged_by_name_en,
+            acknowledged_user.first_name_ar + ' ' + acknowledged_user.last_name_ar AS acknowledged_by_name_ar,
+            incident_register.is_sla_time_achieved,
+            incident_register.is_sla_time_exceeded,
             incident_investigations.description AS containment_strategy,
             incident_investigations.action_recommendation AS next_steps,
             incident_closures.completion_date AS resolved_date,
             incident_closures.resolution_summary AS recovery_measures,
+            incident_closures.resolution_summary AS closure_resolution_summary,
+            incident_closures.notes AS closure_notes,
+            incident_closures.submitted_at AS closure_submitted_at,
+            closure_submitted_user.first_name_en + ' ' + closure_submitted_user.last_name_en AS closure_submitted_by_name_en,
+            closure_submitted_user.first_name_ar + ' ' + closure_submitted_user.last_name_ar AS closure_submitted_by_name_ar,
+            incident_closures.approved_at AS closure_approved_at,
+            closure_approved_user.first_name_en + ' ' + closure_approved_user.last_name_en AS closure_approved_by_name_en,
+            closure_approved_user.first_name_ar + ' ' + closure_approved_user.last_name_ar AS closure_approved_by_name_ar,
+            workflow_statuses.title_en AS closure_workflow_status_title_en,
+            workflow_statuses.title_ar AS closure_workflow_status_title_ar,
+            workflow_statuses.color_code AS closure_workflow_status_color_code,
             assigned_user.initial AS assigned_user_initial,
             assigned_user.first_name_en AS assigned_user_first_name_en,
             assigned_user.last_name_en AS assigned_user_last_name_en,
@@ -1026,11 +1088,24 @@ func (repo *IncidentReportRepository) GetIncidentsByIDs(
         `).
 		Joins("LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id").
 		Joins("LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id").
+		Joins("LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id").
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id").
 		Joins("LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id").
+		Joins("LEFT JOIN users AS business_owner ON business_owner.id = incident_register.business_owner_id").
+		Joins("LEFT JOIN users AS response_team_lead ON response_team_lead.id = incident_register.response_team_lead_id").
+		Joins("LEFT JOIN incident_scopes ON incident_scopes.id = incident_register.incident_scope_id").
+		Joins("LEFT JOIN incident_sensitivity_classifications ON incident_sensitivity_classifications.id = incident_register.incident_sensitivity_classification_id").
+		Joins("LEFT JOIN severity_levels AS confidentiality_severity ON confidentiality_severity.id = incident_register.confidentiality_severity_level_id").
+		Joins("LEFT JOIN severity_levels AS integrity_severity ON integrity_severity.id = incident_register.integrity_severity_level_id").
+		Joins("LEFT JOIN severity_levels AS availability_severity ON availability_severity.id = incident_register.availability_severity_level_id").
+		Joins("LEFT JOIN users AS acknowledged_user ON acknowledged_user.id = incident_register.acknowledged_by_id").
 		Joins("LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id").
 		Joins("LEFT JOIN users assigned_user ON assigned_user.id = incident_investigations.team_lead_id").
 		Joins("LEFT JOIN incident_closures ON incident_closures.incident_register_id = incident_register.id").
+		Joins("LEFT JOIN users AS closure_submitted_user ON closure_submitted_user.id = incident_closures.submitted_by_id").
+		Joins("LEFT JOIN users AS closure_approved_user ON closure_approved_user.id = incident_closures.approved_by_id").
+		Joins("LEFT JOIN workflow_statuses ON workflow_statuses.id = incident_closures.workflow_status_id").
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id").
 		Joins("LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by").
 		Where("incident_register.id IN ?", ids).
@@ -1061,10 +1136,14 @@ func (repo *IncidentReportRepository) GetReportIncidentsByDateRange(
             incident_register.id,
             incident_register.reference_number,
             incident_register.title AS incident_title,
+            incident_register.description,
+            incident_register.quick_action,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
             incident_sub_categories.title_en AS incident_sub_category_title_en,
             incident_sub_categories.title_ar AS incident_sub_category_title_ar,
+            incident_types.title_en AS incident_type_title_en,
+            incident_types.title_ar AS incident_type_title_ar,
             severity_levels.title_en AS severity_title_en,
             severity_levels.title_ar AS severity_title_ar,
             severity_levels.color_code AS severity_color_code,
@@ -1073,10 +1152,48 @@ func (repo *IncidentReportRepository) GetReportIncidentsByDateRange(
             ISNULL(incident_register.location, '') AS incident_location,
             incident_statuses.title_en AS incident_status_title_en,
             incident_statuses.title_ar AS incident_status_title_ar,
+            incident_statuses.color_code AS incident_status_color_code,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
+            organization_units.color_code AS responsible_unit_color_code,
+            business_owner.first_name_en + ' ' + business_owner.last_name_en AS business_owner_name_en,
+            business_owner.first_name_ar + ' ' + business_owner.last_name_ar AS business_owner_name_ar,
+            response_team_lead.first_name_en + ' ' + response_team_lead.last_name_en AS response_team_lead_name_en,
+            response_team_lead.first_name_ar + ' ' + response_team_lead.last_name_ar AS response_team_lead_name_ar,
+            incident_scopes.title_en AS incident_scope_title_en,
+            incident_scopes.title_ar AS incident_scope_title_ar,
+            incident_sensitivity_classifications.title_en AS incident_sensitivity_classification_title_en,
+            incident_sensitivity_classifications.title_ar AS incident_sensitivity_classification_title_ar,
+            confidentiality_severity.title_en AS confidentiality_severity_level_title_en,
+            confidentiality_severity.title_ar AS confidentiality_severity_level_title_ar,
+            confidentiality_severity.color_code AS confidentiality_severity_level_color_code,
+            integrity_severity.title_en AS integrity_severity_level_title_en,
+            integrity_severity.title_ar AS integrity_severity_level_title_ar,
+            integrity_severity.color_code AS integrity_severity_level_color_code,
+            availability_severity.title_en AS availability_severity_level_title_en,
+            availability_severity.title_ar AS availability_severity_level_title_ar,
+            availability_severity.color_code AS availability_severity_level_color_code,
+            incident_register.is_acknowledge,
+            incident_register.acknowledged_at,
+            acknowledged_user.first_name_en + ' ' + acknowledged_user.last_name_en AS acknowledged_by_name_en,
+            acknowledged_user.first_name_ar + ' ' + acknowledged_user.last_name_ar AS acknowledged_by_name_ar,
+            incident_register.is_sla_time_achieved,
+            incident_register.is_sla_time_exceeded,
             incident_investigations.description AS containment_strategy,
             incident_investigations.action_recommendation AS next_steps,
             incident_closures.completion_date AS resolved_date,
             incident_closures.resolution_summary AS recovery_measures,
+            incident_closures.resolution_summary AS closure_resolution_summary,
+            incident_closures.notes AS closure_notes,
+            incident_closures.submitted_at AS closure_submitted_at,
+            closure_submitted_user.first_name_en + ' ' + closure_submitted_user.last_name_en AS closure_submitted_by_name_en,
+            closure_submitted_user.first_name_ar + ' ' + closure_submitted_user.last_name_ar AS closure_submitted_by_name_ar,
+            incident_closures.approved_at AS closure_approved_at,
+            closure_approved_user.first_name_en + ' ' + closure_approved_user.last_name_en AS closure_approved_by_name_en,
+            closure_approved_user.first_name_ar + ' ' + closure_approved_user.last_name_ar AS closure_approved_by_name_ar,
+            workflow_statuses.title_en AS closure_workflow_status_title_en,
+            workflow_statuses.title_ar AS closure_workflow_status_title_ar,
+            workflow_statuses.color_code AS closure_workflow_status_color_code,
             assigned_user.initial AS assigned_user_initial,
             assigned_user.first_name_en AS assigned_user_first_name_en,
             assigned_user.last_name_en AS assigned_user_last_name_en,
@@ -1089,11 +1206,24 @@ func (repo *IncidentReportRepository) GetReportIncidentsByDateRange(
         `).
 		Joins("LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id").
 		Joins("LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id").
+		Joins("LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id").
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id").
 		Joins("LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id").
+		Joins("LEFT JOIN users AS business_owner ON business_owner.id = incident_register.business_owner_id").
+		Joins("LEFT JOIN users AS response_team_lead ON response_team_lead.id = incident_register.response_team_lead_id").
+		Joins("LEFT JOIN incident_scopes ON incident_scopes.id = incident_register.incident_scope_id").
+		Joins("LEFT JOIN incident_sensitivity_classifications ON incident_sensitivity_classifications.id = incident_register.incident_sensitivity_classification_id").
+		Joins("LEFT JOIN severity_levels AS confidentiality_severity ON confidentiality_severity.id = incident_register.confidentiality_severity_level_id").
+		Joins("LEFT JOIN severity_levels AS integrity_severity ON integrity_severity.id = incident_register.integrity_severity_level_id").
+		Joins("LEFT JOIN severity_levels AS availability_severity ON availability_severity.id = incident_register.availability_severity_level_id").
+		Joins("LEFT JOIN users AS acknowledged_user ON acknowledged_user.id = incident_register.acknowledged_by_id").
 		Joins("LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id").
 		Joins("LEFT JOIN users assigned_user ON assigned_user.id = incident_investigations.team_lead_id").
 		Joins("LEFT JOIN incident_closures ON incident_closures.incident_register_id = incident_register.id").
+		Joins("LEFT JOIN users AS closure_submitted_user ON closure_submitted_user.id = incident_closures.submitted_by_id").
+		Joins("LEFT JOIN users AS closure_approved_user ON closure_approved_user.id = incident_closures.approved_by_id").
+		Joins("LEFT JOIN workflow_statuses ON workflow_statuses.id = incident_closures.workflow_status_id").
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id").
 		Joins("LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by").
 		Where("incident_register.reported_at BETWEEN ? AND ?", start, end).
@@ -1166,6 +1296,37 @@ func (repo *IncidentReportRepository) GetDocumentsByIncidentID(
 	return documents, nil
 }
 
+func (repo *IncidentReportRepository) GetEvidencesByIncidentID(
+	incidentID uint,
+	tx utility.DatabaseTransaction,
+) ([]incidentDTOs.IncidentReportEvidenceDTO, error) {
+
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
+
+	var evidences []incidentDTOs.IncidentReportEvidenceDTO
+
+	query := db.Table("incident_evidences").
+		Select(`
+            incident_evidences.id,
+            incident_evidences.url,
+            incident_evidences.name,
+            incident_evidences.size,
+            incident_evidences.token,
+            incident_evidences.original_name,
+            incident_evidences.type
+        `).
+		Where("incident_evidences.incident_register_id = ?", incidentID)
+
+	if err := query.Find(&evidences).Error; err != nil {
+		return nil, err
+	}
+
+	return evidences, nil
+}
+
 func (repo *IncidentReportRepository) CreateIncidentDocuments(
 	docs []*models.IncidentReportDocument,
 	tx utility.DatabaseTransaction,
@@ -1177,6 +1338,23 @@ func (repo *IncidentReportRepository) CreateIncidentDocuments(
 	}
 
 	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentReportRepository) CreateIncidentEvidences(
+	evidences []*models.IncidentReportEvidence,
+	tx utility.DatabaseTransaction,
+) error {
+
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
+
+	if err := db.Create(&evidences).Error; err != nil {
 		return err
 	}
 
@@ -1225,6 +1403,7 @@ func (repo *IncidentReportRepository) GetIncidentReportDetailsByID(id uint) (*mo
 		Preload("Sections").
 		Preload("Incidents").
 		Preload("Incidents.Documents").
+		Preload("Incidents.Evidences").
 		Preload("Incidents.RootCauseAnalyses").
 		Preload("Incidents.ActionPlans", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id, incident_report_id, incident_report_incident_id, action_plan_title, action_plan_description, target_date, responsible_user_name_en, responsible_user_name_ar, severity_level_title_en, severity_level_title_ar, action_plan_status_title_en, action_plan_status_title_ar, action_plan_status_color_code")
@@ -1238,6 +1417,10 @@ func (repo *IncidentReportRepository) GetIncidentReportDetailsByID(id uint) (*mo
 		Preload("Incidents.IncidentRegister.Investigation.Findings").
 		Preload("Incidents.IncidentRegister.Investigation.CreatedByUser").
 		Preload("Incidents.IncidentRegister.Investigation.UpdatedByUser").
+		Preload("Incidents.IncidentRegister.Timelines").
+		Preload("Incidents.IncidentRegister.Timelines.PerformedBy").
+		Preload("Incidents.IncidentRegister.Timelines.TimelineStatus").
+		Preload("Incidents.IncidentRegister.Timelines.IncidentTimelineType").
 		Preload("Incidents.IncidentRegister.CommunicationLogs").
 		Preload("Incidents.IncidentRegister.CommunicationLogs.CreatedByUser").
 		Preload("Incidents.IncidentRegister.CommunicationLogs.UpdatedByUser").
@@ -1245,6 +1428,20 @@ func (repo *IncidentReportRepository) GetIncidentReportDetailsByID(id uint) (*mo
 		Preload("Incidents.IncidentRegister.IncidentClosure.Lessons").
 		Preload("Incidents.IncidentRegister.IncidentClosure.CreatedByUser").
 		Preload("Incidents.IncidentRegister.IncidentClosure.UpdatedByUser").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.WorkflowLevelType").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.WorkflowStatus").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.CreatedBy").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.UpdatedBy").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.IncidentClosureWorkflowParticipants").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.IncidentClosureWorkflowParticipants.User").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.IncidentClosureWorkflowParticipants.DelegateeUser").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.IncidentClosureWorkflowParticipants.Role").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.IncidentClosureWorkflowParticipants.WorkflowStatus").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.IncidentClosureWorkflowReviews").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.IncidentClosureWorkflowReviews.WorkflowStatus").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.IncidentClosureWorkflowReviews.CreatedByUser").
+		Preload("Incidents.IncidentRegister.IncidentClosure.IncidentClosureWorkflows.IncidentClosureWorkflowReviews.UpdatedByUser").
 		Preload("Incidents.IncidentRegister.IncidentPostReview").
 		Preload("Incidents.IncidentRegister.IncidentPostReview.Users").
 		Preload("Incidents.IncidentRegister.IncidentPostReview.Users.User").
