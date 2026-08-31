@@ -296,7 +296,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 				"ResolvedByFirstNameEn":       resolvedBy.FirstNameEn,
 				"ResolvedByLastNameEn":        resolvedBy.LastNameEn,
 				"ResolvedOn":                  time.Now().Format("2006-01-02"),
-				"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, auditFindingActionPlanID),
+				"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans?action_plan_id=%d", appURL, auditFindingID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -660,7 +660,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Approve(AuditFindingID uin
 			"ResolvedByFirstNameEn":       resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":        resolvedBy.LastNameEn,
 			"ResolvedOn":                  time.Now().Format("2006-01-02"),
-			"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, AuditFindingActionPlanID),
+			"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans?action_plan_id=%d", appURL, AuditFindingID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -823,7 +823,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Revert(AuditFindingID uint
 			"ResolvedByFirstNameEn":       resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":        resolvedBy.LastNameEn,
 			"ResolvedOn":                  time.Now().Format("2006-01-02"),
-			"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, AuditFindingActionPlanID),
+			"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans?action_plan_id=%d", appURL, AuditFindingID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
