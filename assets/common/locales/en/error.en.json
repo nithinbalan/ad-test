@@ -314,6 +314,10 @@
 {
   "id": "latest_must_be_failed",
   "translation": "A new {{.Field}} can only be created if none exists or the latest has failed."
+},
+{
+  "id": "empty_result",
+  "translation": "Incidents not found for this criteria."
 }
 
 

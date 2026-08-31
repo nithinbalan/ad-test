@@ -312,7 +312,7 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 			tx.Rollback()
 			return 0, utility.NewValidationError(
 				errors.New("no incidents found for the specified criteria"),
-				"empty-result",
+				"empty_result",
 				"date_range",
 			)
 		}
@@ -452,8 +452,8 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 			)
 
 			if _, err := os.Stat(oldFilePath); os.IsNotExist(err) {
-				tx.Rollback()
-				return 0, fmt.Errorf("source file does not exist: %s", oldFilePath)
+				fmt.Printf("Warning: Document file not found, skipping: %s\n", oldFilePath)
+				continue // Skip missing files instead of failing
 			}
 
 			newURL := utility.GenerateDocumentURL(
@@ -515,8 +515,8 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 			)
 
 			if _, err := os.Stat(oldEvidenceFilePath); os.IsNotExist(err) {
-				tx.Rollback()
-				return 0, fmt.Errorf("source evidence file does not exist: %s", oldEvidenceFilePath)
+				fmt.Printf("Warning: Evidence file not found, skipping: %s\n", oldEvidenceFilePath)
+				continue // Skip missing files instead of failing
 			}
 
 			newEvidenceURL := utility.GenerateDocumentURL(
@@ -694,10 +694,15 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 
 			newFilePath := filepath.Join(newStoragePath, *document.Name)
 
+			if _, err := os.Stat(oldFilePath); os.IsNotExist(err) {
+				fmt.Printf("Warning: Source document not found during copy, skipping: %s\n", oldFilePath)
+				continue
+			}
+
 			input, err := os.Open(oldFilePath)
 			if err != nil {
-				_ = irs.DeleteIncidentReport(reportID, currentUserID)
-				return 0, fmt.Errorf("failed to open source file %s: %w", oldFilePath, err)
+				fmt.Printf("Warning: Failed to open source document, skipping: %s - %v\n", oldFilePath, err)
+				continue
 			}
 
 			output, err := os.Create(newFilePath)
@@ -750,10 +755,15 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 
 			newEvidenceFilePath := filepath.Join(newEvidenceStoragePath, *evidence.Name)
 
+			if _, err := os.Stat(oldEvidenceFilePath); os.IsNotExist(err) {
+				fmt.Printf("Warning: Source evidence not found during copy, skipping: %s\n", oldEvidenceFilePath)
+				continue
+			}
+
 			input, err := os.Open(oldEvidenceFilePath)
 			if err != nil {
-				_ = irs.DeleteIncidentReport(reportID, currentUserID)
-				return 0, fmt.Errorf("failed to open source evidence file %s: %w", oldEvidenceFilePath, err)
+				fmt.Printf("Warning: Failed to open source evidence, skipping: %s - %v\n", oldEvidenceFilePath, err)
+				continue
 			}
 
 			output, err := os.Create(newEvidenceFilePath)
