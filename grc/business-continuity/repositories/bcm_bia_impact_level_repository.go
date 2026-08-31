@@ -84,7 +84,7 @@ func (repo *BCMBIAImpactLevelRepository) GetAll(sort string, sortBy string, keyw
 			rsp_unit.title_ar AS rsp_unit_title_ar,
 			rsp_unit.minutes AS rsp_unit_minutes,
 			rsp_unit.type AS rsp_unit_type,
-			bcm_bia_impact_levels.[order],
+			bcm_bia_impact_levels.[order] AS [order],
 			bcm_bia_impact_levels.status
 		`).
 		Joins("LEFT JOIN bcm_impact_analysis_levels AS impact_level ON impact_level.id = bcm_bia_impact_levels.impact_analysis_level_id").
