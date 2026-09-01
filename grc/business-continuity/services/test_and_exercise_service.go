@@ -1210,12 +1210,12 @@ func (tes *TestAndExerciseService) ExportTestAndExercisePDF(id uint, currentUser
 	}
 
 	responsibleUnitTitle := ""
-	if testExerciseDTO.BusinessContinuityPlan.ResponsibleUnit != nil {
+	if testExerciseDTO.BusinessContinuityPlan.ResponsibleUnit.ID != 0 {
 		responsibleUnitTitle = testExerciseDTO.BusinessContinuityPlan.ResponsibleUnit.TitleEn
 	}
 
 	viewModel := businessContinuityDTOs.TestAndExerciseExportPDFDTO{
-		Title:                      testExerciseDTO.BcpTestAndExercise.TitleEn,
+		Title:                      testExerciseDTO.BcpTestAndExercise.Title,
 		ReferenceNumber:            testExerciseDTO.ReferenceNumber,
 		CreatedAt:                  createdAt,
 		GeneratedAt:                generatedAt,
@@ -1224,7 +1224,7 @@ func (tes *TestAndExerciseService) ExportTestAndExercisePDF(id uint, currentUser
 		UpdatedUserFirstNameEn:     updatedFirst,
 		UpdatedUserLastNameEn:      updatedLast,
 		UpdatedAtString:            updatedAtStr,
-		BcpTestAndExerciseTitle:    testExerciseDTO.BcpTestAndExercise.TitleEn,
+		BcpTestAndExerciseTitle:    testExerciseDTO.BcpTestAndExercise.Title,
 		Objective:                  objective,
 		Scenario:                   scenario,
 		SuccessCriteria:            successCriteria,
