@@ -107,10 +107,10 @@ func (bbils *BCMBIAImpactLevelService) UpdateImpactLevels(currentUserID uint, re
 	var allChanges []utility.ChangeDetail
 
 	for _, form := range req.Settings {
-		existingLevel, err := bbils.repo.GetByOutageBucketID(form.OutageBucketID)
+		existingLevel, err := bbils.repo.GetByID(form.ID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, utility.NewResourceNotFoundError(err, form.OutageBucketID)
+				return nil, utility.NewResourceNotFoundError(err, form.ID)
 			}
 			return nil, err
 		}

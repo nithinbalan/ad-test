@@ -59,7 +59,8 @@ type BCMBIAImpactLevelDTO struct {
 }
 
 type BCMBIAImpactLevelFormDTO struct {
-	OutageBucketID        uint    `json:"outage_bucket_id" binding:"required"`
+	ID                    uint    `json:"id" binding:"required"`
+	OutageBucketID        *uint   `json:"outage_bucket_id"`
 	ImpactAnalysisLevelID uint    `json:"impact_analysis_level_id" binding:"required"`
 	ClassificationEn      string  `json:"classification_en" binding:"required"`
 	ClassificationAr      string  `json:"classification_ar" binding:"required"`
