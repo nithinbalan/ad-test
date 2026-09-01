@@ -979,14 +979,17 @@ func (irs *IncidentReportService) GetIncidentReportDetails(id uint) (*incidentDT
 		if i < len(report.Incidents) && report.Incidents[i].IncidentRegister != nil {
 			for _, t := range report.Incidents[i].IncidentRegister.Timelines {
 				timelineItem := &incidentDTOs.IncidentTimelineListDTO{
-					ID:                          t.ID,
-					IncidentTimelineTypeTitleEn: t.IncidentTimelineType.TitleEn,
-					IncidentTimelineTypeTitleAr: t.IncidentTimelineType.TitleAr,
-					TimelineStatusTitleEn:       t.TimelineStatus.TitleEn,
-					TimelineStatusTitleAr:       t.TimelineStatus.TitleAr,
-					PerformedByFirstNameEn:      &t.PerformedBy.FirstNameEn,
-					PerformedByLastNameEn:       &t.PerformedBy.LastNameEn,
-					PerformedAt:                 t.PerformedAt,
+					ID:                            t.ID,
+					IncidentTimelineTypeTitleEn:   t.IncidentTimelineType.TitleEn,
+					IncidentTimelineTypeTitleAr:   t.IncidentTimelineType.TitleAr,
+					IncidentTimelineTypeColorCode: t.IncidentTimelineType.ColorCode,
+					TimelineStatusTitleEn:         t.TimelineStatus.TitleEn,
+					TimelineStatusTitleAr:         t.TimelineStatus.TitleAr,
+					TimelineStatusType:            t.TimelineStatus.Type,
+					TimelineStatusColorCode:       t.TimelineStatus.ColorCode,
+					PerformedByFirstNameEn:        &t.PerformedBy.FirstNameEn,
+					PerformedByLastNameEn:         &t.PerformedBy.LastNameEn,
+					PerformedAt:                   t.PerformedAt,
 				}
 				incident.Timelines = append(incident.Timelines, timelineItem)
 			}
