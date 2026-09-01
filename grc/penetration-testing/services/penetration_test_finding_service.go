@@ -2,10 +2,13 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	penetrationTestDTOs "jethur/grc/penetration-testing/dtos"
 	"jethur/grc/penetration-testing/repositories"
 	"jethur/utility"
@@ -24,14 +27,29 @@ type PenetrationTestFindingServiceInterface interface {
 }
 
 type PenetrationTestFindingService struct {
-	repo           repositories.PenetrationTestFindingRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
+	repo                repositories.PenetrationTestFindingRepositoryInterface
+	activityLogSvc      logServices.ActivityLogServiceInterface
+	penetrationTestSvc  PenetrationTestServiceInterface
+	severityLevelSvc    masterServices.SeverityLevelServiceInterface
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
+	userSvc             organizationServices.UserServiceInterface
 }
 
-func NewPenetrationTestFindingService(repo repositories.PenetrationTestFindingRepositoryInterface, activityLogSvc logServices.ActivityLogServiceInterface) PenetrationTestFindingServiceInterface {
+func NewPenetrationTestFindingService(
+	repo repositories.PenetrationTestFindingRepositoryInterface,
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	penetrationTestSvc PenetrationTestServiceInterface,
+	severityLevelSvc masterServices.SeverityLevelServiceInterface,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+) PenetrationTestFindingServiceInterface {
 	return &PenetrationTestFindingService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:                repo,
+		activityLogSvc:      activityLogSvc,
+		penetrationTestSvc:  penetrationTestSvc,
+		severityLevelSvc:    severityLevelSvc,
+		actionPlanStatusSvc: actionPlanStatusSvc,
+		userSvc:             userSvc,
 	}
 }
 
@@ -67,6 +85,10 @@ func (ptfs *PenetrationTestFindingService) GetFullDetailsByID(id uint) (*penetra
 
 func (ptfs *PenetrationTestFindingService) Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFindingFormDTO) (uint, error) {
 	tx := ptfs.repo.BeginTransaction()
+	if err := ptfs.validatePenetrationTestFindingFormDTO(formDTO); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	var targetRemediationDate *time.Time
 	var err error
 	if formDTO.TargetRemediationDate != nil && *formDTO.TargetRemediationDate != "" {
@@ -86,11 +108,6 @@ func (ptfs *PenetrationTestFindingService) Create(currentUserID uint, formDTO *p
 		OwnerID:               formDTO.OwnerID,
 		TargetRemediationDate: targetRemediationDate,
 	}
-	if err := ptfs.repo.ValidateReferences(value); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
 	referenceNumber, err := ptfs.repo.GenerateReferenceNumber(tx)
 	if err != nil {
 		tx.Rollback()
@@ -131,6 +148,13 @@ func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, f
 		tx.Rollback()
 		return err
 	}
+	if form.ActionPlanStatusID == 0 {
+		form.ActionPlanStatusID = existing.ActionPlanStatusID
+	}
+	if err := ptfs.validatePenetrationTestFindingFormDTO(form); err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	var targetRemediationDate *time.Time
 	if form.TargetRemediationDate != nil && *form.TargetRemediationDate != "" {
@@ -150,14 +174,6 @@ func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, f
 		OwnerID:               form.OwnerID,
 		TargetRemediationDate: targetRemediationDate,
 	}
-	if updated.ActionPlanStatusID == 0 {
-		updated.ActionPlanStatusID = existing.ActionPlanStatusID
-	}
-	if err := ptfs.repo.ValidateReferences(updated); err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	updated.ID = existing.ID
 	updated.ReferenceNumber = existing.ReferenceNumber
 	updated.CreatedBYID = existing.CreatedBYID
@@ -231,4 +247,23 @@ func (ptfs *PenetrationTestFindingService) Delete(ids []uint, currentUserID uint
 		)
 	}
 	return failedIDs, nil
+}
+
+func (ptfs *PenetrationTestFindingService) validatePenetrationTestFindingFormDTO(formDTO *penetrationTestDTOs.PenetrationTestFindingFormDTO) error {
+	if _, err := ptfs.penetrationTestSvc.GetByID(formDTO.PenetrationTestID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("penetration test does not exist"), "not_exist", "penetration test")
+	}
+	if _, err := ptfs.severityLevelSvc.GetByID(formDTO.SeverityLevelID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+	}
+	if formDTO.ActionPlanStatusID == 0 {
+		return utility.NewValidationError(fmt.Errorf("action plan status is required"), "required", "action plan status")
+	}
+	if _, err := ptfs.actionPlanStatusSvc.GetByID(formDTO.ActionPlanStatusID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
+	}
+	if _, err := ptfs.userSvc.GetByID(formDTO.OwnerID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("owner does not exist"), "not_exist", "owner")
+	}
+	return nil
 }

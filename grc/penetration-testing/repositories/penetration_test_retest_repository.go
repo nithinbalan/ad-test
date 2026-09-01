@@ -23,7 +23,6 @@ type PenetrationTestRetestRepositoryInterface interface {
 	UpdateRetestFinding(penetrationTestRetestFinding *models.PenetrationTestRetestFinding, tx ...utility.DatabaseTransaction) error
 	DeleteRetestFindings(penetrationTestRetestID uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber(penetrationTestID uint, tx ...utility.DatabaseTransaction) (string, error)
-	ValidateReferences(penetrationTestRetest *models.PenetrationTestRetest, findingIDs []uint) error
 }
 
 type PenetrationTestRetestRepository struct {
@@ -273,35 +272,4 @@ func (repo *PenetrationTestRetestRepository) GenerateReferenceNumber(penetration
 		return "", err
 	}
 	return fmt.Sprintf("RT-%s-%02d", penetrationTest.ReferenceNumber[3:], count+1), nil
-}
-
-func (repo *PenetrationTestRetestRepository) ValidateReferences(penetrationTestRetest *models.PenetrationTestRetest, findingIDs []uint) error {
-	references := []struct {
-		table string
-		id    uint
-		field string
-	}{
-		{"penetration_tests", penetrationTestRetest.PenetrationTestID, "penetration_test_id"},
-		{"penetration_test_executors", penetrationTestRetest.PenetrationTestExecutorID, "penetration_test_executor_id"},
-	}
-	for _, reference := range references {
-		var count int64
-		if err := repo.db.Table(reference.table).Where("id = ?", reference.id).Count(&count).Error; err != nil {
-			return err
-		}
-		if count == 0 {
-			return utility.NewValidationError(fmt.Errorf("referenced record does not exist"), "invalid", reference.field)
-		}
-	}
-
-	for _, findingID := range findingIDs {
-		var count int64
-		if err := repo.db.Table("penetration_test_findings").Where("id = ? AND penetration_test_id = ?", findingID, penetrationTestRetest.PenetrationTestID).Count(&count).Error; err != nil {
-			return err
-		}
-		if count == 0 {
-			return utility.NewValidationError(fmt.Errorf("referenced record does not exist"), "invalid", "finding_ids")
-		}
-	}
-	return nil
 }

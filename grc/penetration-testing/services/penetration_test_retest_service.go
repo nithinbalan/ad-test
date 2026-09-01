@@ -27,14 +27,26 @@ type PenetrationTestRetestServiceInterface interface {
 }
 
 type PenetrationTestRetestService struct {
-	repo           repositories.PenetrationTestRetestRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
+	repo                      repositories.PenetrationTestRetestRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	penetrationTestSvc        PenetrationTestServiceInterface
+	penetrationTestFindingSvc PenetrationTestFindingServiceInterface
+	executorSvc               PenetrationTestExecutorServiceInterface
 }
 
-func NewPenetrationTestRetestService(repo repositories.PenetrationTestRetestRepositoryInterface, activityLogSvc logServices.ActivityLogServiceInterface) PenetrationTestRetestServiceInterface {
+func NewPenetrationTestRetestService(
+	repo repositories.PenetrationTestRetestRepositoryInterface,
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	penetrationTestSvc PenetrationTestServiceInterface,
+	penetrationTestFindingSvc PenetrationTestFindingServiceInterface,
+	executorSvc PenetrationTestExecutorServiceInterface,
+) PenetrationTestRetestServiceInterface {
 	return &PenetrationTestRetestService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		penetrationTestSvc:        penetrationTestSvc,
+		penetrationTestFindingSvc: penetrationTestFindingSvc,
+		executorSvc:               executorSvc,
 	}
 }
 
@@ -99,12 +111,8 @@ func (ptrs *PenetrationTestRetestService) GetFullDetailsByID(id uint) (*penetrat
 }
 
 func (ptrs *PenetrationTestRetestService) Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFormDTO) (uint, error) {
-	seen := make(map[uint]bool)
-	for _, findingID := range formDTO.FindingIDs {
-		if findingID == 0 || seen[findingID] {
-			return 0, utility.NewValidationError(fmt.Errorf("finding IDs must be unique and valid"), "invalid", "finding_ids")
-		}
-		seen[findingID] = true
+	if err := ptrs.validatePenetrationTestRetestFormDTO(formDTO); err != nil {
+		return 0, err
 	}
 	startDate, err := utility.ParseMandatoryDate(formDTO.StartDate)
 	if err != nil {
@@ -138,10 +146,6 @@ func (ptrs *PenetrationTestRetestService) Create(currentUserID uint, formDTO *pe
 	if active != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("an active re-test already exists"), "invalid", "penetration_test_id")
 	}
-	if err := ptrs.repo.ValidateReferences(value, formDTO.FindingIDs); err != nil {
-		return 0, err
-	}
-
 	tx := ptrs.repo.BeginTransaction()
 	value.ReferenceNumber, err = ptrs.repo.GenerateReferenceNumber(value.PenetrationTestID, tx)
 	if err != nil {
@@ -186,12 +190,8 @@ func (ptrs *PenetrationTestRetestService) Create(currentUserID uint, formDTO *pe
 }
 
 func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFormDTO) error {
-	seen := make(map[uint]bool)
-	for _, findingID := range form.FindingIDs {
-		if findingID == 0 || seen[findingID] {
-			return utility.NewValidationError(fmt.Errorf("finding IDs must be unique and valid"), "invalid", "finding_ids")
-		}
-		seen[findingID] = true
+	if err := ptrs.validatePenetrationTestRetestFormDTO(form); err != nil {
+		return err
 	}
 	tx := ptrs.repo.BeginTransaction()
 	existing, err := ptrs.repo.GetByID(id, tx)
@@ -231,10 +231,6 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 	if existing.Status == "completed" {
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be updated"), "invalid", "status")
-	}
-	if err := ptrs.repo.ValidateReferences(updated, form.FindingIDs); err != nil {
-		tx.Rollback()
-		return err
 	}
 	updated.ID = existing.ID
 	updated.ReferenceNumber = existing.ReferenceNumber
@@ -396,4 +392,25 @@ func (ptrs *PenetrationTestRetestService) Delete(ids []uint, currentUserID uint)
 		go ptrs.activityLogSvc.LogBulkActivities(models.DeleteAction, models.PenetrationTestRetest{}.TableName(), successfulIDs, deleted, currentUserID, nil)
 	}
 	return failedIDs, nil
+}
+
+func (ptrs *PenetrationTestRetestService) validatePenetrationTestRetestFormDTO(formDTO *penetrationTestDTOs.PenetrationTestRetestFormDTO) error {
+	if _, err := ptrs.penetrationTestSvc.GetByID(formDTO.PenetrationTestID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("penetration test does not exist"), "not_exist", "penetration test")
+	}
+	if _, err := ptrs.executorSvc.GetByID(formDTO.PenetrationTestExecutorID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("penetration test executor does not exist"), "not_exist", "penetration test executor")
+	}
+	seen := make(map[uint]bool)
+	for _, findingID := range formDTO.FindingIDs {
+		if findingID == 0 || seen[findingID] {
+			return utility.NewValidationError(fmt.Errorf("finding IDs must be unique and valid"), "invalid", "finding IDs")
+		}
+		finding, err := ptrs.penetrationTestFindingSvc.GetByID(findingID)
+		if err != nil || finding.PenetrationTestID != formDTO.PenetrationTestID {
+			return utility.NewValidationError(fmt.Errorf("finding does not belong to penetration test"), "not_exist", "finding IDs")
+		}
+		seen[findingID] = true
+	}
+	return nil
 }

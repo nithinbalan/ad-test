@@ -27,7 +27,6 @@ type PenetrationTestRepositoryInterface interface {
 	UpdatePenetrationTestManagementSharing(value *models.PenetrationTestManagementSharing, tx ...utility.DatabaseTransaction) error
 	DeletePenetrationTestDetails(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
-	ValidateReferences(penetrationTest *models.PenetrationTest) error
 }
 
 type PenetrationTestRepository struct {
@@ -249,61 +248,4 @@ func (repo *PenetrationTestRepository) GenerateReferenceNumber(tx ...utility.Dat
 		return "", err
 	}
 	return fmt.Sprintf("PT-%d-%03d", year, count+1), nil
-}
-
-func (repo *PenetrationTestRepository) ValidateReferences(penetrationTest *models.PenetrationTest) error {
-	references := []struct {
-		table string
-		id    uint
-		field string
-	}{
-		{"penetration_test_types", penetrationTest.PenetrationTestTypeID, "penetration_test_type_id"},
-		{"penetration_test_plans", penetrationTest.PenetrationTestPlanID, "penetration_test_plan_id"},
-		{"penetration_test_classifications", penetrationTest.PenetrationTestClassificationID, "penetration_test_classification_id"},
-		{"penetration_test_executors", penetrationTest.PenetrationTestExecutorID, "penetration_test_executor_id"},
-		{"users", penetrationTest.CSResponsibleEmployeeID, "cs_responsible_employee_id"},
-	}
-	for _, reference := range references {
-		var count int64
-		if err := repo.db.Table(reference.table).Where("id = ?", reference.id).Count(&count).Error; err != nil {
-			return err
-		}
-		if count == 0 {
-			return utility.NewValidationError(fmt.Errorf("referenced record does not exist"), "invalid", reference.field)
-		}
-	}
-	childReferences := []struct {
-		table string
-		id    uint
-		field string
-	}{}
-	if penetrationTest.EnvironmentPreparation != nil {
-		childReferences = append(childReferences, struct {
-			table string
-			id    uint
-			field string
-		}{"penetration_test_environment_readinesses", penetrationTest.EnvironmentPreparation.EnvironmentReadinessID, "environment_readiness_id"})
-	}
-	if penetrationTest.Execution != nil {
-		childReferences = append(childReferences, struct {
-			table string
-			id    uint
-			field string
-		}{"penetration_test_execution_statuses", penetrationTest.Execution.ExecutionStatusID, "execution_status_id"})
-		childReferences = append(childReferences, struct {
-			table string
-			id    uint
-			field string
-		}{"penetration_test_security_results", penetrationTest.Execution.SecurityResultID, "security_result_id"})
-	}
-	for _, reference := range childReferences {
-		var count int64
-		if err := repo.db.Table(reference.table).Where("id = ?", reference.id).Count(&count).Error; err != nil {
-			return err
-		}
-		if count == 0 {
-			return utility.NewValidationError(fmt.Errorf("referenced record does not exist"), "invalid", reference.field)
-		}
-	}
-	return nil
 }

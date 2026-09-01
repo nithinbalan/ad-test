@@ -7,6 +7,7 @@ import (
 
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	penetrationTestDTOs "jethur/grc/penetration-testing/dtos"
 	"jethur/grc/penetration-testing/repositories"
 	"jethur/utility"
@@ -25,12 +26,42 @@ type PenetrationTestServiceInterface interface {
 }
 
 type PenetrationTestService struct {
-	repo           repositories.PenetrationTestRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
+	repo               repositories.PenetrationTestRepositoryInterface
+	activityLogSvc     logServices.ActivityLogServiceInterface
+	typeSvc            PenetrationTestTypeServiceInterface
+	planSvc            PenetrationTestPlanServiceInterface
+	classificationSvc  PenetrationTestClassificationServiceInterface
+	executorSvc        PenetrationTestExecutorServiceInterface
+	readinessSvc       PenetrationTestEnvironmentReadinessServiceInterface
+	executionStatusSvc PenetrationTestExecutionStatusServiceInterface
+	securityResultSvc  PenetrationTestSecurityResultServiceInterface
+	userSvc            organizationServices.UserServiceInterface
 }
 
-func NewPenetrationTestService(repo repositories.PenetrationTestRepositoryInterface, activityLogSvc logServices.ActivityLogServiceInterface) PenetrationTestServiceInterface {
-	return &PenetrationTestService{repo: repo, activityLogSvc: activityLogSvc}
+func NewPenetrationTestService(
+	repo repositories.PenetrationTestRepositoryInterface,
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	typeSvc PenetrationTestTypeServiceInterface,
+	planSvc PenetrationTestPlanServiceInterface,
+	classificationSvc PenetrationTestClassificationServiceInterface,
+	executorSvc PenetrationTestExecutorServiceInterface,
+	readinessSvc PenetrationTestEnvironmentReadinessServiceInterface,
+	executionStatusSvc PenetrationTestExecutionStatusServiceInterface,
+	securityResultSvc PenetrationTestSecurityResultServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+) PenetrationTestServiceInterface {
+	return &PenetrationTestService{
+		repo:               repo,
+		activityLogSvc:     activityLogSvc,
+		typeSvc:            typeSvc,
+		planSvc:            planSvc,
+		classificationSvc:  classificationSvc,
+		executorSvc:        executorSvc,
+		readinessSvc:       readinessSvc,
+		executionStatusSvc: executionStatusSvc,
+		securityResultSvc:  securityResultSvc,
+		userSvc:            userSvc,
+	}
 }
 
 func (ptls *PenetrationTestService) GetAll(params *penetrationTestDTOs.PenetrationTestListQueryParamsDTO) (*penetrationTestDTOs.PenetrationTestListResponseDTO, error) {
@@ -99,6 +130,10 @@ func (ptls *PenetrationTestService) GetFullDetailsByID(id uint) (*penetrationTes
 
 func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFormDTO) (uint, error) {
 	tx := ptls.repo.BeginTransaction()
+	if err := ptls.validatePenetrationTestFormDTO(formDTO); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	environmentNotifyDate, err := utility.ParseMandatoryDate(formDTO.EnvironmentNotifyDate)
 	if err != nil {
 		tx.Rollback()
@@ -149,10 +184,6 @@ func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrat
 		PenetrationTestExecutorID:       formDTO.PenetrationTestExecutorID,
 		CSResponsibleEmployeeID:         formDTO.CSResponsibleEmployeeID,
 		Scope:                           formDTO.Scope,
-	}
-	if err := ptls.repo.ValidateReferences(value); err != nil {
-		tx.Rollback()
-		return 0, err
 	}
 	value.CreatedBYID = currentUserID
 	value.ReferenceNumber, err = ptls.repo.GenerateReferenceNumber(tx)
@@ -225,6 +256,10 @@ func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrat
 
 func (ptls *PenetrationTestService) Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestFormDTO) error {
 	tx := ptls.repo.BeginTransaction()
+	if err := ptls.validatePenetrationTestFormDTO(form); err != nil {
+		tx.Rollback()
+		return err
+	}
 	value, err := ptls.repo.GetByID(id, tx)
 	if err != nil {
 		tx.Rollback()
@@ -298,10 +333,6 @@ func (ptls *PenetrationTestService) Update(id uint, currentUserID uint, form *pe
 		ResultsSharedWithManagement: form.ResultsSharedWithManagement,
 		ManagementNotifyDate:        managementNotifyDate, ManagementResponseDate: managementResponseDate,
 		RemediationNotes: form.RemediationNotes,
-	}
-	if err := ptls.repo.ValidateReferences(updated); err != nil {
-		tx.Rollback()
-		return err
 	}
 	value.SystemApplicationName = updated.SystemApplicationName
 	value.PenetrationTestTypeID = updated.PenetrationTestTypeID
@@ -425,4 +456,32 @@ func (ptls *PenetrationTestService) Delete(ids []uint, currentUserID uint) ([]ui
 		}()
 	}
 	return failedIDs, nil
+}
+
+func (ptls *PenetrationTestService) validatePenetrationTestFormDTO(formDTO *penetrationTestDTOs.PenetrationTestFormDTO) error {
+	if _, err := ptls.typeSvc.GetByID(formDTO.PenetrationTestTypeID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("penetration test type does not exist"), "not_exist", "penetration test type")
+	}
+	if _, err := ptls.planSvc.GetByID(formDTO.PenetrationTestPlanID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("penetration test plan does not exist"), "not_exist", "penetration test plan")
+	}
+	if _, err := ptls.classificationSvc.GetByID(formDTO.PenetrationTestClassificationID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("penetration test classification does not exist"), "not_exist", "penetration test classification")
+	}
+	if _, err := ptls.executorSvc.GetByID(formDTO.PenetrationTestExecutorID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("penetration test executor does not exist"), "not_exist", "penetration test executor")
+	}
+	if _, err := ptls.userSvc.GetByID(formDTO.CSResponsibleEmployeeID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("CS responsible employee does not exist"), "not_exist", "CS responsible employee")
+	}
+	if _, err := ptls.readinessSvc.GetByID(formDTO.EnvironmentReadinessID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("environment readiness does not exist"), "not_exist", "environment readiness")
+	}
+	if _, err := ptls.executionStatusSvc.GetByID(formDTO.ExecutionStatusID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("execution status does not exist"), "not_exist", "execution status")
+	}
+	if _, err := ptls.securityResultSvc.GetByID(formDTO.SecurityResultID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("security result does not exist"), "not_exist", "security result")
+	}
+	return nil
 }
