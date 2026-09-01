@@ -40,9 +40,11 @@ type ProjectSecurityGateChecklistTemplateRequirementDTO struct {
 	TemplateVersionID uint   `json:"template_version_id"`
 	TitleEn           string `json:"title_en"`
 	TitleAr           string `json:"title_ar"`
+	IsCritical        bool   `json:"is_critical"`
 }
 
 type ProjectSecurityGateChecklistTemplateRequirementFormDTO struct {
-	TitleEn string `json:"title_en" binding:"required,max=500"`
-	TitleAr string `json:"title_ar" binding:"required,max=500"`
+	TitleEn    string `json:"title_en" binding:"required,max=500"`
+	TitleAr    string `json:"title_ar" binding:"required,max=500"`
+	IsCritical bool   `json:"is_critical"`
 }

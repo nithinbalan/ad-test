@@ -232,6 +232,7 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) CreateRequirement(tem
 		TemplateVersionID: versionID,
 		TitleEn:           form.TitleEn,
 		TitleAr:           form.TitleAr,
+		IsCritical:        form.IsCritical,
 	}
 
 	created, err := psgcts.repo.CreateRequirement(requirement)
@@ -271,13 +272,15 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) UpdateRequirement(tem
 	}
 
 	oldData := map[string]interface{}{
-		"title_en": existing.TitleEn,
-		"title_ar": existing.TitleAr,
+		"title_en":    existing.TitleEn,
+		"title_ar":    existing.TitleAr,
+		"is_critical": existing.IsCritical,
 	}
 
 	_, err = psgcts.repo.UpdateRequirement(id, &models.ProjectSecurityGateChecklistTemplateRequirement{
-		TitleEn: form.TitleEn,
-		TitleAr: form.TitleAr,
+		TitleEn:    form.TitleEn,
+		TitleAr:    form.TitleAr,
+		IsCritical: form.IsCritical,
 	})
 	if err != nil {
 		return err
@@ -285,8 +288,9 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) UpdateRequirement(tem
 
 	go func() {
 		newData := map[string]interface{}{
-			"title_en": form.TitleEn,
-			"title_ar": form.TitleAr,
+			"title_en":    form.TitleEn,
+			"title_ar":    form.TitleAr,
+			"is_critical": form.IsCritical,
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
 		if len(changes) > 0 {

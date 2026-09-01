@@ -164,8 +164,9 @@ func (repo *ProjectSecurityGateChecklistTemplateRepository) UpdateRequirement(id
 	}
 
 	if err := repo.db.Model(&requirement).Updates(map[string]interface{}{
-		"title_en": updatedRequirement.TitleEn,
-		"title_ar": updatedRequirement.TitleAr,
+		"title_en":    updatedRequirement.TitleEn,
+		"title_ar":    updatedRequirement.TitleAr,
+		"is_critical": updatedRequirement.IsCritical,
 	}).Error; err != nil {
 		return nil, err
 	}

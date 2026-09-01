@@ -131,9 +131,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Project Security Gate Checklist Template
 	projectRoutes.GET("/project-security-gate-checklist-templates", projectSecurityGateChecklistTemplateController.GetAllProjectSecurityGateChecklistTemplates)
 	projectRoutes.GET("/project-security-gate-checklist-templates/:templateId", projectSecurityGateChecklistTemplateController.GetProjectSecurityGateChecklistTemplateDetails)
-	projectRoutes.POST("/project-security-gate-checklist-templates/:templateId/versions", projectSecurityGateChecklistTemplateController.CreateProjectSecurityGateChecklistTemplateVersion)
-	projectRoutes.PUT("/project-security-gate-checklist-templates/:templateId/versions/:versionId/publish", projectSecurityGateChecklistTemplateController.PublishProjectSecurityGateChecklistTemplateVersion)
-	projectRoutes.POST("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements", projectSecurityGateChecklistTemplateController.CreateProjectSecurityGateChecklistTemplateRequirement)
-	projectRoutes.PUT("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements/:requirementId", projectSecurityGateChecklistTemplateController.UpdateProjectSecurityGateChecklistTemplateRequirement)
-	projectRoutes.DELETE("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements/:requirementId", projectSecurityGateChecklistTemplateController.DeleteProjectSecurityGateChecklistTemplateRequirement)
+	projectRoutes.POST("/project-security-gate-checklist-templates/:templateId/versions", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.CreateProjectSecurityGateChecklistTemplateVersion)
+	projectRoutes.PUT("/project-security-gate-checklist-templates/:templateId/versions/:versionId/publish", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.PublishProjectSecurityGateChecklistTemplateVersion)
+	projectRoutes.POST("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.CreateProjectSecurityGateChecklistTemplateRequirement)
+	projectRoutes.PUT("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.UpdateProjectSecurityGateChecklistTemplateRequirement)
+	projectRoutes.DELETE("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.DeleteProjectSecurityGateChecklistTemplateRequirement)
 }

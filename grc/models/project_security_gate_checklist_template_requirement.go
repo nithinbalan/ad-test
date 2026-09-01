@@ -5,6 +5,7 @@ type ProjectSecurityGateChecklistTemplateRequirement struct {
 	TemplateVersionID uint   `json:"template_version_id" gorm:"not null"`
 	TitleEn           string `json:"title_en" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	TitleAr           string `json:"title_ar" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
+	IsCritical        bool   `json:"is_critical" gorm:"not null;default:false"`
 
 	// Relationships
 	TemplateVersion *ProjectSecurityGateChecklistTemplateVersion `json:"template_version" gorm:"foreignKey:TemplateVersionID"`
