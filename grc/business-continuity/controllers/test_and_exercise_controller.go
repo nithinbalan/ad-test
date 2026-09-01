@@ -300,7 +300,7 @@ func (tec *TestAndExerciseController) GetTestResultSummary(c *gin.Context) {
 }
 
 func (tec *TestAndExerciseController) ExportTestAndExercisePDF(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("testAndExerciseId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -319,7 +319,7 @@ func (tec *TestAndExerciseController) ExportTestAndExercisePDF(c *gin.Context) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 		case *utility.ForbiddenError:
-			utility.SendForbiddenErrResp(c, e)
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(tec.db, c, e.Error())
 		}

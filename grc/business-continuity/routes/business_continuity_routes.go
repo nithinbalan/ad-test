@@ -188,7 +188,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.PUT("/test-and-exercises/:testAndExerciseId/mark-as-completed", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseController.MarkAsCompleted)
 	businessContinuityRoutes.POST("/test-and-exercises/delete", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseController.DeleteTestAndExercises)
 	businessContinuityRoutes.GET("/test-and-exercises/export", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseController.GetAllTestAndExerciseExport)
-	businessContinuityRoutes.GET("/test-and-exercises/:id/export-pdf", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseController.ExportTestAndExercisePDF)
+	businessContinuityRoutes.GET("/test-and-exercises/:testAndExerciseId/export-pdf", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseController.ExportTestAndExercisePDF)
 
 	// Test and exercise communication action plan
 	businessContinuityRoutes.GET("/test-and-exercises/:testAndExerciseId/communication-action-plans", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseCommunicationActionPlanController.GetAllTestAndExerciseCommunicationActionPlans)
