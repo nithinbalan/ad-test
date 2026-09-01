@@ -32,6 +32,7 @@ type AuditUniverseService struct {
 	controlSvc               organizationServices.ControlServiceInterface
 	userSvc                  organizationServices.UserServiceInterface
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
+	complianceActionPlanSvc  complianceServices.ComplianceActionPlanServiceInterface
 	riskRegisterSvc          riskServices.RiskRegisterServiceInterface
 	incidentRegisterSvc      incidentServices.IncidentRegisterServiceInterface
 	documentSvc              documentServices.DocumentServiceInterface
@@ -46,6 +47,7 @@ func NewAuditUniverseService(
 	controlSvc organizationServices.ControlServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
+	complianceActionPlanSvc complianceServices.ComplianceActionPlanServiceInterface,
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 	incidentRegisterSvc incidentServices.IncidentRegisterServiceInterface,
 	documentSvc documentServices.DocumentServiceInterface,
@@ -59,6 +61,7 @@ func NewAuditUniverseService(
 		controlSvc:               controlSvc,
 		userSvc:                  userSvc,
 		complianceRequirementSvc: complianceRequirementSvc,
+		complianceActionPlanSvc:  complianceActionPlanSvc,
 		riskRegisterSvc:          riskRegisterSvc,
 		incidentRegisterSvc:      incidentRegisterSvc,
 		documentSvc:              documentSvc,
@@ -152,6 +155,24 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 						responsibleUserID = incident.ResponsibleUserID
 					}
 				}
+			case "compliance_action_plan":
+				auditableItem.ComplianceActionPlanID = id
+				auditableItem.Type = "compliance_action_plan"
+				complianceActionPlan, err := aus.complianceActionPlanSvc.GetByID(0, *id)
+				if err != nil {
+					return fmt.Errorf("failed to get compliance action plan: %w", err)
+				}
+				if complianceActionPlan != nil {
+					if responsibleUserID == 0 {
+						responsibleUserID = complianceActionPlan.ResponsibleUserID
+					}
+					userUnit, err := aus.userSvc.GetUserPrimaryUnitID(complianceActionPlan.ResponsibleUserID)
+					if err != nil {
+						return fmt.Errorf("failed to get user primary unit ID: %w", err)
+					}
+					orgUnitID = userUnit
+				}
+
 			// Commented -ToDo, Responsible User removed from Compliance req
 			// case "compliance":
 			// 	auditableItem.ComplianceRequirementID = id
@@ -227,6 +248,9 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 	if err := addItems(auditUniverseFormDTO.ComplianceRequirementIDs, "compliance"); err != nil {
 		return err
 	}
+	if err := addItems(auditUniverseFormDTO.ComplianceActionPlanIDs, "compliance_action_plan"); err != nil {
+		return err
+	}
 	if err := addItems(auditUniverseFormDTO.RiskRegisterIDs, "risk"); err != nil {
 		return err
 	}
@@ -261,6 +285,10 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 		return err
 	}
 	if err := aus.MarkedAsAuditableItem(auditUniverseFormDTO.ComplianceRequirementIDs, &models.ComplianceRequirement{}, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := aus.MarkedAsAuditableItem(auditUniverseFormDTO.ComplianceActionPlanIDs, &models.ComplianceActionPlan{}, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -345,7 +373,7 @@ func (aus *AuditUniverseService) Delete(currentUserID uint, auditUniverseFormDTO
 		return err
 	}
 	// Initialize slices to hold all IDs
-	var processIDs, controlIDs, documentIDs, incidentIDs, complianceIDs, riskIDs, userIDs []uint
+	var processIDs, controlIDs, documentIDs, incidentIDs, complianceIDs, complianceActionPlanIDs, riskIDs, userIDs []uint
 
 	// Helper function to collect IDs
 	collectIDs := func(ids []*uint, target *[]uint) {
@@ -362,6 +390,7 @@ func (aus *AuditUniverseService) Delete(currentUserID uint, auditUniverseFormDTO
 	collectIDs(auditUniverseFormDTO.DocumentIDs, &documentIDs)
 	collectIDs(auditUniverseFormDTO.IncidentRegisterIDs, &incidentIDs)
 	collectIDs(auditUniverseFormDTO.ComplianceRequirementIDs, &complianceIDs)
+	collectIDs(auditUniverseFormDTO.ComplianceActionPlanIDs, &complianceActionPlanIDs)
 	collectIDs(auditUniverseFormDTO.RiskRegisterIDs, &riskIDs)
 	collectIDs(auditUniverseFormDTO.UserIDs, &userIDs)
 
@@ -417,6 +446,9 @@ func (aus *AuditUniverseService) Delete(currentUserID uint, auditUniverseFormDTO
 	if err := deleteItems(complianceIDs, "compliance_requirement_id"); err != nil {
 		return err
 	}
+	if err := deleteItems(complianceActionPlanIDs, "compliance_action_plan_id"); err != nil {
+		return err
+	}
 	if err := deleteItems(riskIDs, "risk_register_id"); err != nil {
 		return err
 	}
@@ -442,6 +474,10 @@ func (aus *AuditUniverseService) Delete(currentUserID uint, auditUniverseFormDTO
 		return err
 	}
 	if err := aus.UnmarkedAsAuditableItem(auditUniverseFormDTO.ComplianceRequirementIDs, &models.ComplianceRequirement{}, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := aus.UnmarkedAsAuditableItem(auditUniverseFormDTO.ComplianceActionPlanIDs, &models.ComplianceActionPlan{}, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -568,6 +604,22 @@ func (aus *AuditUniverseService) validateAuditUniverseFormDTO(auditUniverseFormD
 		}
 
 		complianceRequirementIDMap[*id] = true
+	}
+
+	// Validate Compliance Action Plan IDs
+	complianceActionPlanIDs := auditUniverseFormDTO.ComplianceActionPlanIDs
+	complianceActionPlanIDMap := make(map[uint]bool)
+
+	for _, id := range complianceActionPlanIDs {
+		if complianceActionPlanIDMap[*id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate compliance action plan ID: %d", *id), "duplicate", "compliance action plan")
+		}
+
+		if _, err := aus.complianceActionPlanSvc.GetByID(0, *id); err != nil {
+			return utility.NewValidationError(fmt.Errorf("compliance action plan does not exist for ID: %d", *id), "not_exist", "compliance action plan")
+		}
+
+		complianceActionPlanIDMap[*id] = true
 	}
 
 	// Validate Risk Register IDs

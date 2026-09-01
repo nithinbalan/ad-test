@@ -76,6 +76,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentController := app.DocumentModule.DocumentController
 	incidentRegisterController := app.IncidentModule.IncidentRegisterController
 	riskRegisterController := app.RiskModule.RiskRegisterController
+	complianceActionPlanController := app.ComplianceModule.ComplianceActionPlanController
 
 	// Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -104,6 +105,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	auditRoutes.GET("/audit-universe/risk-registers", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), riskRegisterController.GetAllRiskRegisters)
 	auditRoutes.GET("/audit-universe/risk-registers/:id", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), riskRegisterController.GetRiskRegisterDetails)
+
+	auditRoutes.GET("/audit-universe/compliance-action-plans", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), complianceActionPlanController.GetAllComplianceActionPlans)
+	auditRoutes.GET("/audit-universe/compliance-action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), complianceActionPlanController.GetComplianceActionPlanDetails)
 
 	// Auditable Item
 	auditRoutes.GET("/auditable-items", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), auditableItemController.GetAllAuditableItems)

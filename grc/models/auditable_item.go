@@ -15,12 +15,13 @@ type AuditableItem struct {
 	ResponsibleUnitID       uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
 	ResponsibleUserID       uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ComplianceRequirementID *uint      `json:"compliance_requirement_id" gorm:"default:null"`
+	ComplianceActionPlanID  *uint      `json:"compliance_action_plan_id" gorm:"default:null"`
 	RiskRegisterID          *uint      `json:"risk_register_id" gorm:"default:null"`
 	UserID                  *uint      `json:"user_id" gorm:"default:null"`
 	Comment                 string     `json:"comment" binding:"required" gorm:"type:nvarchar(MAX);not null"`
 	AuditorRiskRatingID     uint       `json:"auditor_risk_rating_id" gorm:"not null"`
 	AuditStatusID           uint       `json:"audit_status_id" gorm:"not null"`
-	Type                    string     `json:"type" gorm:"type:nvarchar(50);not null;default:'custom';check:type in ('process', 'control', 'incident', 'risk', 'document', 'compliance_register', 'compliance_requirement', 'user', 'custom')"`
+	Type                    string     `json:"type" gorm:"type:nvarchar(50);not null;default:'custom';check:type in ('process', 'control', 'incident', 'risk', 'document', 'compliance_register', 'compliance_requirement', 'compliance_action_plan', 'user', 'custom')"`
 	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID             uint       `json:"created_by_id" gorm:"not null"`
@@ -32,6 +33,7 @@ type AuditableItem struct {
 	Document              *Document              `gorm:"foreignKey:DocumentID"`
 	IncidentRegister      *IncidentRegister      `gorm:"foreignKey:IncidentRegisterID"`
 	ComplianceRequirement *ComplianceRequirement `gorm:"foreignKey:ComplianceRequirementID"`
+	ComplianceActionPlan  *ComplianceActionPlan  `gorm:"foreignKey:ComplianceActionPlanID"`
 	RiskRegister          *RiskRegister          `gorm:"foreignKey:RiskRegisterID"`
 	User                  *User                  `gorm:"foreignKey:UserID"`
 	AuditorRiskRating     *AuditorRiskRating     `gorm:"foreignKey:AuditorRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
