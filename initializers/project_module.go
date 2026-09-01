@@ -9,14 +9,17 @@ import (
 )
 
 type ProjectModule struct {
-	ProjectTypeController                   *controllers.ProjectTypeController
-	ProjectStatusController                 *controllers.ProjectStatusController
-	ProjectController                       *controllers.ProjectController
-	ProjectMilestoneController              *controllers.ProjectMilestoneController
-	ProjectActionPlanController             *controllers.ProjectActionPlanController
-	ProjectActionPlanStatusUpdateController *controllers.ProjectActionPlanStatusUpdateController
-	ProjectActionPlanCommentController      *controllers.ProjectActionPlanCommentController
-	ProjectAssociatedItemController         *controllers.ProjectAssociatedItemController
+	ProjectTypeController                          *controllers.ProjectTypeController
+	ProjectStatusController                        *controllers.ProjectStatusController
+	ProjectController                              *controllers.ProjectController
+	ProjectMilestoneController                     *controllers.ProjectMilestoneController
+	ProjectActionPlanController                    *controllers.ProjectActionPlanController
+	ProjectActionPlanStatusUpdateController        *controllers.ProjectActionPlanStatusUpdateController
+	ProjectActionPlanCommentController             *controllers.ProjectActionPlanCommentController
+	ProjectAssociatedItemController                *controllers.ProjectAssociatedItemController
+	ProjectSecurityGateClassificationController    *controllers.ProjectSecurityGateClassificationController
+	ProjectSecurityGateStageController             *controllers.ProjectSecurityGateStageController
+	ProjectSecurityGateChecklistTemplateController *controllers.ProjectSecurityGateChecklistTemplateController
 
 	projectSvc           services.ProjectServiceInterface
 	projectMilestoneSvc  services.ProjectMilestoneServiceInterface
@@ -93,15 +96,33 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	projectAssociatedItemSvc := services.NewProjectAssociatedItemService(projectAssociatedItemRepo, projectSvc, commonModule.AssociatedItemValidationService)
 	projectAssociatedItemController := controllers.NewProjectAssociatedItemController(projectAssociatedItemSvc)
 
+	projectSecurityGateClassificationRepo := repositories.NewProjectSecurityGateClassificationRepository(db)
+	projectSecurityGateClassificationSvc := services.NewProjectSecurityGateClassificationService(projectSecurityGateClassificationRepo)
+	projectSecurityGateClassificationController := controllers.NewProjectSecurityGateClassificationController(projectSecurityGateClassificationSvc)
+
+	projectSecurityGateStageRepo := repositories.NewProjectSecurityGateStageRepository(db)
+	projectSecurityGateStageSvc := services.NewProjectSecurityGateStageService(projectSecurityGateStageRepo)
+	projectSecurityGateStageController := controllers.NewProjectSecurityGateStageController(projectSecurityGateStageSvc)
+
+	projectSecurityGateChecklistTemplateRepo := repositories.NewProjectSecurityGateChecklistTemplateRepository(db)
+	projectSecurityGateChecklistTemplateSvc := services.NewProjectSecurityGateChecklistTemplateService(
+		projectSecurityGateChecklistTemplateRepo,
+		sharedModule.ActivityLogService,
+	)
+	projectSecurityGateChecklistTemplateController := controllers.NewProjectSecurityGateChecklistTemplateController(projectSecurityGateChecklistTemplateSvc)
+
 	return &ProjectModule{
-		ProjectTypeController:                   projectTypeController,
-		ProjectStatusController:                 projectStatusController,
-		ProjectController:                       projectController,
-		ProjectMilestoneController:              projectMilestoneController,
-		ProjectActionPlanController:             projectActionPlanController,
-		ProjectActionPlanStatusUpdateController: projectActionPlanStatusUpdateController,
-		ProjectActionPlanCommentController:      projectActionPlanCommentController,
-		ProjectAssociatedItemController:         projectAssociatedItemController,
+		ProjectTypeController:                          projectTypeController,
+		ProjectStatusController:                        projectStatusController,
+		ProjectController:                              projectController,
+		ProjectMilestoneController:                     projectMilestoneController,
+		ProjectActionPlanController:                    projectActionPlanController,
+		ProjectActionPlanStatusUpdateController:        projectActionPlanStatusUpdateController,
+		ProjectActionPlanCommentController:             projectActionPlanCommentController,
+		ProjectAssociatedItemController:                projectAssociatedItemController,
+		ProjectSecurityGateClassificationController:    projectSecurityGateClassificationController,
+		ProjectSecurityGateStageController:             projectSecurityGateStageController,
+		ProjectSecurityGateChecklistTemplateController: projectSecurityGateChecklistTemplateController,
 
 		projectSvc:           projectSvc,
 		projectMilestoneSvc:  projectMilestoneSvc,
