@@ -9,6 +9,7 @@ import (
 	incidentRepo "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
 	"os"
@@ -120,6 +121,12 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 		return nil, err
 	}
 	incidentDTO.Controls = controls
+
+	vulnerabilities, err := irs.repo.GetAllIncidentVulnerabilities(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.Vulnerabilities = vulnerabilities
 
 	risks, err := irs.repo.GetAllIncidentRisks(id)
 	if err != nil {
@@ -596,18 +603,38 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 				actionPlanDescription = p.Description
 			}
 
+			// Responsible User Details
+			//var responsibleUserID *uint
 			responsibleUserNameEn := ""
 			responsibleUserNameAr := ""
+			//var responsibleUserInitial *string
+			//var responsibleUserColor *string
+			//var responsibleUserEmail *string
+			//var responsibleUserProfileImagePath *string
+
 			if p.ResponsibleUser != nil {
+				//responsibleUserID = &p.ResponsibleUser.ID
 				responsibleUserNameEn = fmt.Sprintf("%s %s", p.ResponsibleUser.FirstNameEn, p.ResponsibleUser.LastNameEn)
 				responsibleUserNameAr = fmt.Sprintf("%s %s", p.ResponsibleUser.FirstNameAr, p.ResponsibleUser.LastNameAr)
+				//responsibleUserInitial = &p.ResponsibleUser.Initial
+				//responsibleUserColor = &p.ResponsibleUser.Color
+				//responsibleUserEmail = &p.ResponsibleUser.Email
+				//responsibleUserProfileImagePath = p.ResponsibleUser.ProfileImagePath
 			}
 
-			severityLevelTitleEn := ""
-			severityLevelTitleAr := ""
+			// Severity Level Details
+			//var severityLevelID *uint
+			var severityLevelTitleEn *string
+			var severityLevelTitleAr *string
+			//var severityLevelColorCode *string
+			//var severityLevelType *string
+
 			if p.SeverityLevel != nil {
-				severityLevelTitleEn = p.SeverityLevel.TitleEn
-				severityLevelTitleAr = p.SeverityLevel.TitleAr
+				//severityLevelID = &p.SeverityLevel.ID
+				severityLevelTitleEn = &p.SeverityLevel.TitleEn
+				severityLevelTitleAr = &p.SeverityLevel.TitleAr
+				//severityLevelColorCode = &p.SeverityLevel.ColorCode
+				//severityLevelType = &p.SeverityLevel.Type
 			}
 
 			actionPlanStatusTitleEn := ""
@@ -635,14 +662,26 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 
 				ActionPlanTitle:       actionPlanTitle,
 				ActionPlanDescription: actionPlanDescription,
+				TargetDate:            targetDate,
 
-				TargetDate: targetDate,
-
+				// Responsible User
+				//ResponsibleUserID:               responsibleUserID,
 				ResponsibleUserNameEn: responsibleUserNameEn,
 				ResponsibleUserNameAr: responsibleUserNameAr,
+				// ResponsibleUserInitial:          responsibleUserInitial,
+				// ResponsibleUserColor:            responsibleUserColor,
+				// ResponsibleUserEmail:            responsibleUserEmail,
+				// ResponsibleUserProfileImagePath: responsibleUserProfileImagePath,
 
-				SeverityLevelTitleEn: &severityLevelTitleEn,
-				SeverityLevelTitleAr: &severityLevelTitleAr,
+				// Severity Level
+				//SeverityLevelID:        severityLevelID,
+				SeverityLevelTitleEn: severityLevelTitleEn,
+				SeverityLevelTitleAr: severityLevelTitleAr,
+				// SeverityLevelColorCode: severityLevelColorCode,
+				// SeverityLevelType:      severityLevelType,
+
+				// Action Plan Progress
+				//ActionPlanPercentage: p.Percentage,
 
 				ActionPlanStatusTitleEn:   actionPlanStatusTitleEn,
 				ActionPlanStatusTitleAr:   actionPlanStatusTitleAr,
@@ -874,6 +913,11 @@ func (irs *IncidentReportService) GetIncidentReportDetails(id uint) (*incidentDT
 		return nil, err
 	}
 
+	// Clear preloaded action plans before decode - they will be fetched live via GetAllIncidentActionPlan
+	for i := range report.Incidents {
+		report.Incidents[i].ActionPlans = nil
+	}
+
 	// Use single mapstructure.Decode() for the entire structure - DONE!
 	var response incidentDTOs.IncidentReportDetailsDTO
 	if err := mapstructure.Decode(report, &response); err != nil {
@@ -888,6 +932,47 @@ func (irs *IncidentReportService) GetIncidentReportDetails(id uint) (*incidentDT
 			incident.IncidentClosure = incident.IncidentRegister.IncidentClosure
 			incident.IncidentPostReview = incident.IncidentRegister.IncidentPostReview
 			incident.IncidentRegister = nil // Hide nested structure from API response
+		}
+
+		// Map ResponseTeamLead and ResponseTeamMembers from preloaded IncidentRegister
+		if i < len(report.Incidents) && report.Incidents[i].IncidentRegister != nil {
+			reg := report.Incidents[i].IncidentRegister
+			if reg.ResponseTeamLead != nil {
+				incident.ResponseTeamLead = &organizationDTOs.UserMinimalDTO{
+					ID:               int(reg.ResponseTeamLead.ID),
+					FirstNameEN:      reg.ResponseTeamLead.FirstNameEn,
+					LastNameEN:       reg.ResponseTeamLead.LastNameEn,
+					FirstNameAR:      reg.ResponseTeamLead.FirstNameAr,
+					LastNameAR:       reg.ResponseTeamLead.LastNameAr,
+					Email:            reg.ResponseTeamLead.Email,
+					Initial:          reg.ResponseTeamLead.Initial,
+					Color:            reg.ResponseTeamLead.Color,
+					ProfileImagePath: reg.ResponseTeamLead.ProfileImagePath,
+				}
+			}
+			if len(reg.ResponseTeamMembers) > 0 {
+				for _, m := range reg.ResponseTeamMembers {
+					if m.User != nil {
+						member := &incidentDTOs.IncidentRegisterResponseTeamMemberDTO{
+							ID:                 m.ID,
+							IncidentRegisterID: m.IncidentRegisterID,
+							UserID:             m.UserID,
+							User: organizationDTOs.UserMinimalDTO{
+								ID:               int(m.User.ID),
+								FirstNameEN:      m.User.FirstNameEn,
+								LastNameEN:       m.User.LastNameEn,
+								FirstNameAR:      m.User.FirstNameAr,
+								LastNameAR:       m.User.LastNameAr,
+								Email:            m.User.Email,
+								Initial:          m.User.Initial,
+								Color:            m.User.Color,
+								ProfileImagePath: m.User.ProfileImagePath,
+							},
+						}
+						incident.ResponseTeamMembers = append(incident.ResponseTeamMembers, member)
+					}
+				}
+			}
 		}
 
 		// Build timeline from the raw preloaded model (flat DTO requires manual mapping)
@@ -909,6 +994,9 @@ func (irs *IncidentReportService) GetIncidentReportDetails(id uint) (*incidentDT
 
 		// Fetch live associated items using the underlying incident register ID
 		if incident.IncidentRegisterID != 0 {
+			if actionPlans, err := irs.repo.GetAllIncidentActionPlan(incident.IncidentRegisterID); err == nil {
+				incident.ActionPlans = actionPlans
+			}
 			if kpis, err := irs.repo.GetAllIncidentKPI(incident.IncidentRegisterID); err == nil {
 				incident.KPIs = kpis
 			}
@@ -932,6 +1020,9 @@ func (irs *IncidentReportService) GetIncidentReportDetails(id uint) (*incidentDT
 			}
 			if complianceRequirements, err := irs.repo.GetAllIncidentComplianceRequirements(incident.IncidentRegisterID); err == nil {
 				incident.ComplianceRequirements = complianceRequirements
+			}
+			if vulnerabilities, err := irs.repo.GetAllIncidentVulnerabilities(incident.IncidentRegisterID); err == nil {
+				incident.Vulnerabilities = vulnerabilities
 			}
 		}
 	}
@@ -1204,8 +1295,10 @@ func (irs *IncidentReportService) GetIncidentReportExportZip(incidentReportID ui
 			BusinessOwnerNameAr:                      safeStr(incident.BusinessOwnerNameAr),
 			ResponseTeamLeadNameEn:                   safeStr(incident.ResponseTeamLeadNameEn),
 			ResponseTeamLeadNameAr:                   safeStr(incident.ResponseTeamLeadNameAr),
+			ResponseTeamLead:                         incident.ResponseTeamLead,
 			ResponseTeamMembersEn:                    safeStr(incident.ResponseTeamMembersEn),
 			ResponseTeamMembersAr:                    safeStr(incident.ResponseTeamMembersAr),
+			ResponseTeamMembers:                      incident.ResponseTeamMembers,
 			IncidentScopeTitleEn:                     safeStr(incident.IncidentScopeTitleEn),
 			IncidentScopeTitleAr:                     safeStr(incident.IncidentScopeTitleAr),
 			IncidentSensitivityClassificationTitleEn: safeStr(incident.IncidentSensitivityClassificationTitleEn),
@@ -1257,6 +1350,7 @@ func (irs *IncidentReportService) GetIncidentReportExportZip(incidentReportID ui
 			Controls:                                 incident.ControlsAssociated,
 			AssociatedDocuments:                      incident.AssociatedDocuments,
 			Assets:                                   incident.Assets,
+			Vulnerabilities:                          incident.Vulnerabilities,
 		}
 
 		incidents = append(incidents, incidentItem)

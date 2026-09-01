@@ -24,6 +24,7 @@ type IncidentReportRepositoryInterface interface {
 	GetAllIncidentRisks(incidentID uint) ([]*commonDTOs.AssociatedRiskListDTO, error)
 	GetAllIncidentProcesses(incidentID uint) ([]*commonDTOs.AssociatedProcessListDTO, error)
 	GetAllIncidentComplianceRequirements(incidentID uint) ([]*commonDTOs.AssociatedClauseListDTO, error)
+	GetAllIncidentVulnerabilities(incidentID uint) ([]*commonDTOs.AssociatedVulnerabilityListDTO, error)
 	GetIncidentsByIDs(ids []uint, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportIncidentDTO, error)
 	GetReportIncidentsByDateRange(start time.Time, end time.Time, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportIncidentDTO, error)
 	GetDocumentsByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportDocumentDTO, error)
@@ -495,6 +496,61 @@ func (repo *IncidentReportRepository) GetAllIncidentAssets(incidentID uint) ([]*
 	}
 
 	return incidentAssets, nil
+}
+
+func (repo *IncidentReportRepository) GetAllIncidentVulnerabilities(incidentID uint) ([]*commonDTOs.AssociatedVulnerabilityListDTO, error) {
+	var vulnerabilities []*commonDTOs.AssociatedVulnerabilityListDTO
+
+	query := repo.db.Table("vulnerability_incidents").
+		Select(`
+			vulnerability_incidents.id,
+			vulnerability_incidents.vulnerability_id,
+			vulnerability_incidents.incident_register_id,
+			vulnerabilities.reference_number,
+			vulnerabilities.title_en,
+			vulnerabilities.title_ar,
+			vulnerabilities.description,
+			vulnerabilities.source,
+			vulnerabilities.severity_level_id,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			vulnerabilities.vulnerability_status_id,
+			vulnerability_statuses.title_en AS vulnerability_status_title_en,
+			vulnerability_statuses.title_ar AS vulnerability_status_title_ar,
+			vulnerability_statuses.color_code AS vulnerability_status_color_code,
+			vulnerability_statuses.type AS vulnerability_status_type,
+			vulnerability_types.title_en AS vulnerability_type_title_en,
+			vulnerability_types.title_ar AS vulnerability_type_title_ar,
+			vulnerabilities.responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			CONVERT(VARCHAR, vulnerability_incidents.created_at, 23) AS created_at
+		`).
+		Joins(`
+			LEFT JOIN vulnerabilities ON vulnerabilities.id = vulnerability_incidents.vulnerability_id
+			LEFT JOIN vulnerability_types ON vulnerability_types.id = vulnerabilities.vulnerability_type_id
+			LEFT JOIN severity_levels ON severity_levels.id = vulnerabilities.severity_level_id
+			LEFT JOIN vulnerability_statuses ON vulnerability_statuses.id = vulnerabilities.vulnerability_status_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = vulnerabilities.responsible_user_id
+			LEFT JOIN organization_units ON organization_units.id = vulnerabilities.responsible_unit_id
+		`).
+		Where("vulnerability_incidents.incident_register_id = ?", incidentID)
+
+	err := query.Scan(&vulnerabilities).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return vulnerabilities, nil
 }
 
 func (repo *IncidentReportRepository) GetAllIncidentAssociatedDocuments(incidentID uint) ([]*commonDTOs.AssociatedDocumentListDTO, error) {
@@ -1405,10 +1461,10 @@ func (repo *IncidentReportRepository) GetIncidentReportDetailsByID(id uint) (*mo
 		Preload("Incidents.Documents").
 		Preload("Incidents.Evidences").
 		Preload("Incidents.RootCauseAnalyses").
-		Preload("Incidents.ActionPlans", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, incident_report_id, incident_report_incident_id, action_plan_title, action_plan_description, target_date, responsible_user_name_en, responsible_user_name_ar, severity_level_title_en, severity_level_title_ar, action_plan_status_title_en, action_plan_status_title_ar, action_plan_status_color_code")
-		}).
 		Preload("Incidents.IncidentRegister").
+		Preload("Incidents.IncidentRegister.ResponseTeamLead").
+		Preload("Incidents.IncidentRegister.ResponseTeamMembers").
+		Preload("Incidents.IncidentRegister.ResponseTeamMembers.User").
 		Preload("Incidents.IncidentRegister.Investigation").
 		Preload("Incidents.IncidentRegister.Investigation.TeamLead").
 		Preload("Incidents.IncidentRegister.Investigation.Users").
@@ -1417,7 +1473,9 @@ func (repo *IncidentReportRepository) GetIncidentReportDetailsByID(id uint) (*mo
 		Preload("Incidents.IncidentRegister.Investigation.Findings").
 		Preload("Incidents.IncidentRegister.Investigation.CreatedByUser").
 		Preload("Incidents.IncidentRegister.Investigation.UpdatedByUser").
-		Preload("Incidents.IncidentRegister.Timelines").
+		Preload("Incidents.IncidentRegister.Timelines", func(db *gorm.DB) *gorm.DB {
+			return db.Order("performed_at ASC")
+		}).
 		Preload("Incidents.IncidentRegister.Timelines.PerformedBy").
 		Preload("Incidents.IncidentRegister.Timelines.TimelineStatus").
 		Preload("Incidents.IncidentRegister.Timelines.IncidentTimelineType").

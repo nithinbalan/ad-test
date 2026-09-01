@@ -44,6 +44,7 @@ type IncidentReportDetailDTO struct {
 	Controls                          []*commonDTOs.AssociatedControlListDTO            `json:"controls"`
 	Risks                             []*commonDTOs.AssociatedRiskListDTO               `json:"risks"`
 	Assets                            []*commonDTOs.AssociatedAssetListDTO              `json:"assets"`
+	Vulnerabilities                   []*commonDTOs.AssociatedVulnerabilityListDTO      `json:"vulnerabilities"`
 	Processes                         []*commonDTOs.AssociatedProcessListDTO            `json:"processes"`
 	Timelines                         []*IncidentTimelineListDTO                        `json:"timelines"`
 	SLARegisters                      []*IncidentSLARegisterDTO                         `json:"sla_registers"`
@@ -265,80 +266,82 @@ type IncidentReportSectionDTO struct {
 }
 
 type IncidentReportIncidentDetailDTO struct {
-	ID                                       uint                                  `json:"id" mapstructure:"ID"`
-	IncidentRegisterID                       uint                                  `json:"incident_register_id" mapstructure:"IncidentRegisterID"`
-	ReferenceNumber                          *string                               `json:"reference_number" mapstructure:"ReferenceNumber"`
-	IncidentTitle                            string                                `json:"incident_title" mapstructure:"IncidentTitle"`
-	IncidentCategoryTitleEn                  *string                               `json:"incident_category_title_en" mapstructure:"IncidentCategoryTitleEn"`
-	IncidentCategoryTitleAr                  *string                               `json:"incident_category_title_ar" mapstructure:"IncidentCategoryTitleAr"`
-	IncidentSubCategoryTitleEn               *string                               `json:"incident_sub_category_title_en" mapstructure:"IncidentSubCategoryTitleEn"`
-	IncidentSubCategoryTitleAr               *string                               `json:"incident_sub_category_title_ar" mapstructure:"IncidentSubCategoryTitleAr"`
-	IncidentTypeTitleEn                      *string                               `json:"incident_type_title_en" mapstructure:"IncidentTypeTitleEn"`
-	IncidentTypeTitleAr                      *string                               `json:"incident_type_title_ar" mapstructure:"IncidentTypeTitleAr"`
-	SeverityLevelTitleEn                     *string                               `json:"severity_level_title_en" mapstructure:"SeverityLevelTitleEn"`
-	SeverityLevelTitleAr                     *string                               `json:"severity_level_title_ar" mapstructure:"SeverityLevelTitleAr"`
-	SeverityLevelColorCode                   *string                               `json:"severity_level_color_code" mapstructure:"SeverityLevelColorCode"`
-	IncidentAt                               *time.Time                            `json:"incident_at" mapstructure:"IncidentAt"`
-	ReportedAt                               *time.Time                            `json:"reported_at" mapstructure:"ReportedAt"`
-	IncidentLocation                         string                                `json:"incident_location" mapstructure:"IncidentLocation"`
-	IncidentStatusTitleEn                    *string                               `json:"incident_status_title_en" mapstructure:"IncidentStatusTitleEn"`
-	IncidentStatusTitleAr                    *string                               `json:"incident_status_title_ar" mapstructure:"IncidentStatusTitleAr"`
-	IncidentStatusColorCode                  *string                               `json:"incident_status_color_code" mapstructure:"IncidentStatusColorCode"`
-	ResponsibleUserNameEn                    string                                `json:"responsible_user_name_en" mapstructure:"ResponsibleUserNameEn"`
-	ResponsibleUserNameAr                    string                                `json:"responsible_user_name_ar" mapstructure:"ResponsibleUserNameAr"`
-	ReportedUserNameEn                       string                                `json:"reported_user_name_en" mapstructure:"ReportedUserNameEn"`
-	ReportedUserNameAr                       string                                `json:"reported_user_name_ar" mapstructure:"ReportedUserNameAr"`
-	ResponsibleUnitTitleEn                   *string                               `json:"responsible_unit_title_en" mapstructure:"ResponsibleUnitTitleEn"`
-	ResponsibleUnitTitleAr                   *string                               `json:"responsible_unit_title_ar" mapstructure:"ResponsibleUnitTitleAr"`
-	ResponsibleUnitColorCode                 *string                               `json:"responsible_unit_color_code" mapstructure:"ResponsibleUnitColorCode"`
-	BusinessOwnerNameEn                      *string                               `json:"business_owner_name_en" mapstructure:"BusinessOwnerNameEn"`
-	BusinessOwnerNameAr                      *string                               `json:"business_owner_name_ar" mapstructure:"BusinessOwnerNameAr"`
-	ResponseTeamLeadNameEn                   *string                               `json:"response_team_lead_name_en" mapstructure:"ResponseTeamLeadNameEn"`
-	ResponseTeamLeadNameAr                   *string                               `json:"response_team_lead_name_ar" mapstructure:"ResponseTeamLeadNameAr"`
-	ResponseTeamMembersEn                    *string                               `json:"response_team_members_en" mapstructure:"ResponseTeamMembersEn"`
-	ResponseTeamMembersAr                    *string                               `json:"response_team_members_ar" mapstructure:"ResponseTeamMembersAr"`
-	IncidentScopeTitleEn                     *string                               `json:"incident_scope_title_en" mapstructure:"IncidentScopeTitleEn"`
-	IncidentScopeTitleAr                     *string                               `json:"incident_scope_title_ar" mapstructure:"IncidentScopeTitleAr"`
-	IncidentSensitivityClassificationTitleEn *string                               `json:"incident_sensitivity_classification_title_en" mapstructure:"IncidentSensitivityClassificationTitleEn"`
-	IncidentSensitivityClassificationTitleAr *string                               `json:"incident_sensitivity_classification_title_ar" mapstructure:"IncidentSensitivityClassificationTitleAr"`
-	ConfidentialitySeverityLevelTitleEn      *string                               `json:"confidentiality_severity_level_title_en" mapstructure:"ConfidentialitySeverityLevelTitleEn"`
-	ConfidentialitySeverityLevelTitleAr      *string                               `json:"confidentiality_severity_level_title_ar" mapstructure:"ConfidentialitySeverityLevelTitleAr"`
-	ConfidentialitySeverityLevelColorCode    *string                               `json:"confidentiality_severity_level_color_code" mapstructure:"ConfidentialitySeverityLevelColorCode"`
-	IntegritySeverityLevelTitleEn            *string                               `json:"integrity_severity_level_title_en" mapstructure:"IntegritySeverityLevelTitleEn"`
-	IntegritySeverityLevelTitleAr            *string                               `json:"integrity_severity_level_title_ar" mapstructure:"IntegritySeverityLevelTitleAr"`
-	IntegritySeverityLevelColorCode          *string                               `json:"integrity_severity_level_color_code" mapstructure:"IntegritySeverityLevelColorCode"`
-	AvailabilitySeverityLevelTitleEn         *string                               `json:"availability_severity_level_title_en" mapstructure:"AvailabilitySeverityLevelTitleEn"`
-	AvailabilitySeverityLevelTitleAr         *string                               `json:"availability_severity_level_title_ar" mapstructure:"AvailabilitySeverityLevelTitleAr"`
-	AvailabilitySeverityLevelColorCode       *string                               `json:"availability_severity_level_color_code" mapstructure:"AvailabilitySeverityLevelColorCode"`
-	Description                              *string                               `json:"description" mapstructure:"Description"`
-	QuickAction                              *string                               `json:"quick_action" mapstructure:"QuickAction"`
-	IsAcknowledge                            bool                                  `json:"is_acknowledge" mapstructure:"IsAcknowledge"`
-	AcknowledgedAt                           *time.Time                            `json:"acknowledged_at" mapstructure:"AcknowledgedAt"`
-	AcknowledgedByNameEn                     *string                               `json:"acknowledged_by_name_en" mapstructure:"AcknowledgedByNameEn"`
-	AcknowledgedByNameAr                     *string                               `json:"acknowledged_by_name_ar" mapstructure:"AcknowledgedByNameAr"`
-	IsSLATimeAchieved                        bool                                  `json:"is_sla_time_achieved" mapstructure:"IsSLATimeAchieved"`
-	IsSLATimeExceeded                        bool                                  `json:"is_sla_time_exceeded" mapstructure:"IsSLATimeExceeded"`
-	ClosedDate                               *time.Time                            `json:"closed_date" mapstructure:"ClosedDate"`
-	ClosureResolutionSummary                 *string                               `json:"closure_resolution_summary" mapstructure:"ClosureResolutionSummary"`
-	ClosureNotes                             *string                               `json:"closure_notes" mapstructure:"ClosureNotes"`
-	ClosureSubmittedAt                       *time.Time                            `json:"closure_submitted_at" mapstructure:"ClosureSubmittedAt"`
-	ClosureSubmittedByNameEn                 *string                               `json:"closure_submitted_by_name_en" mapstructure:"ClosureSubmittedByNameEn"`
-	ClosureSubmittedByNameAr                 *string                               `json:"closure_submitted_by_name_ar" mapstructure:"ClosureSubmittedByNameAr"`
-	ClosureApprovedAt                        *time.Time                            `json:"closure_approved_at" mapstructure:"ClosureApprovedAt"`
-	ClosureApprovedByNameEn                  *string                               `json:"closure_approved_by_name_en" mapstructure:"ClosureApprovedByNameEn"`
-	ClosureApprovedByNameAr                  *string                               `json:"closure_approved_by_name_ar" mapstructure:"ClosureApprovedByNameAr"`
-	ClosureWorkflowStatusTitleEn             *string                               `json:"closure_workflow_status_title_en" mapstructure:"ClosureWorkflowStatusTitleEn"`
-	ClosureWorkflowStatusTitleAr             *string                               `json:"closure_workflow_status_title_ar" mapstructure:"ClosureWorkflowStatusTitleAr"`
-	ClosureWorkflowStatusColorCode           *string                               `json:"closure_workflow_status_color_code" mapstructure:"ClosureWorkflowStatusColorCode"`
-	Documents                                []*IncidentReportDocumentDTO          `json:"documents" mapstructure:"Documents"`
-	Evidences                                []*IncidentReportEvidenceDTO          `json:"evidences" mapstructure:"Evidences"`
-	RootCauseAnalyses                        []*IncidentReportRootCauseAnalysisDTO `json:"root_cause_analyses" mapstructure:"RootCauseAnalyses"`
-	ActionPlans                              []*IncidentReportActionPlanDTO        `json:"action_plans" mapstructure:"ActionPlans"`
-	IncidentRegister                         *IncidentRegisterDTO                  `json:"incident_register,omitempty" mapstructure:"IncidentRegister"`
-	Investigation                            *IncidentInvestigationDetailDTO       `json:"investigation,omitempty" mapstructure:"-"`
-	CommunicationLogs                        []*IncidentCommunicationLogDetailDTO  `json:"communication_logs,omitempty" mapstructure:"-"`
-	IncidentClosure                          *IncidentClosureDetailDTO             `json:"incident_closure,omitempty" mapstructure:"-"`
-	IncidentPostReview                       *IncidentPostReviewDetailDTO          `json:"incident_post_review,omitempty" mapstructure:"-"`
+	ID                                       uint                                     `json:"id" mapstructure:"ID"`
+	IncidentRegisterID                       uint                                     `json:"incident_register_id" mapstructure:"IncidentRegisterID"`
+	ReferenceNumber                          *string                                  `json:"reference_number" mapstructure:"ReferenceNumber"`
+	IncidentTitle                            string                                   `json:"incident_title" mapstructure:"IncidentTitle"`
+	IncidentCategoryTitleEn                  *string                                  `json:"incident_category_title_en" mapstructure:"IncidentCategoryTitleEn"`
+	IncidentCategoryTitleAr                  *string                                  `json:"incident_category_title_ar" mapstructure:"IncidentCategoryTitleAr"`
+	IncidentSubCategoryTitleEn               *string                                  `json:"incident_sub_category_title_en" mapstructure:"IncidentSubCategoryTitleEn"`
+	IncidentSubCategoryTitleAr               *string                                  `json:"incident_sub_category_title_ar" mapstructure:"IncidentSubCategoryTitleAr"`
+	IncidentTypeTitleEn                      *string                                  `json:"incident_type_title_en" mapstructure:"IncidentTypeTitleEn"`
+	IncidentTypeTitleAr                      *string                                  `json:"incident_type_title_ar" mapstructure:"IncidentTypeTitleAr"`
+	SeverityLevelTitleEn                     *string                                  `json:"severity_level_title_en" mapstructure:"SeverityLevelTitleEn"`
+	SeverityLevelTitleAr                     *string                                  `json:"severity_level_title_ar" mapstructure:"SeverityLevelTitleAr"`
+	SeverityLevelColorCode                   *string                                  `json:"severity_level_color_code" mapstructure:"SeverityLevelColorCode"`
+	IncidentAt                               *time.Time                               `json:"incident_at" mapstructure:"IncidentAt"`
+	ReportedAt                               *time.Time                               `json:"reported_at" mapstructure:"ReportedAt"`
+	IncidentLocation                         string                                   `json:"incident_location" mapstructure:"IncidentLocation"`
+	IncidentStatusTitleEn                    *string                                  `json:"incident_status_title_en" mapstructure:"IncidentStatusTitleEn"`
+	IncidentStatusTitleAr                    *string                                  `json:"incident_status_title_ar" mapstructure:"IncidentStatusTitleAr"`
+	IncidentStatusColorCode                  *string                                  `json:"incident_status_color_code" mapstructure:"IncidentStatusColorCode"`
+	ResponsibleUserNameEn                    string                                   `json:"responsible_user_name_en" mapstructure:"ResponsibleUserNameEn"`
+	ResponsibleUserNameAr                    string                                   `json:"responsible_user_name_ar" mapstructure:"ResponsibleUserNameAr"`
+	ReportedUserNameEn                       string                                   `json:"reported_user_name_en" mapstructure:"ReportedUserNameEn"`
+	ReportedUserNameAr                       string                                   `json:"reported_user_name_ar" mapstructure:"ReportedUserNameAr"`
+	ResponsibleUnitTitleEn                   *string                                  `json:"responsible_unit_title_en" mapstructure:"ResponsibleUnitTitleEn"`
+	ResponsibleUnitTitleAr                   *string                                  `json:"responsible_unit_title_ar" mapstructure:"ResponsibleUnitTitleAr"`
+	ResponsibleUnitColorCode                 *string                                  `json:"responsible_unit_color_code" mapstructure:"ResponsibleUnitColorCode"`
+	BusinessOwnerNameEn                      *string                                  `json:"business_owner_name_en" mapstructure:"BusinessOwnerNameEn"`
+	BusinessOwnerNameAr                      *string                                  `json:"business_owner_name_ar" mapstructure:"BusinessOwnerNameAr"`
+	ResponseTeamLeadNameEn                   *string                                  `json:"response_team_lead_name_en" mapstructure:"ResponseTeamLeadNameEn"`
+	ResponseTeamLeadNameAr                   *string                                  `json:"response_team_lead_name_ar" mapstructure:"ResponseTeamLeadNameAr"`
+	ResponseTeamLead                         *organizationDTOs.UserMinimalDTO         `json:"response_team_lead,omitempty" mapstructure:"-"`
+	ResponseTeamMembersEn                    *string                                  `json:"response_team_members_en" mapstructure:"ResponseTeamMembersEn"`
+	ResponseTeamMembersAr                    *string                                  `json:"response_team_members_ar" mapstructure:"ResponseTeamMembersAr"`
+	ResponseTeamMembers                      []*IncidentRegisterResponseTeamMemberDTO `json:"response_team_members,omitempty" mapstructure:"-"`
+	IncidentScopeTitleEn                     *string                                  `json:"incident_scope_title_en" mapstructure:"IncidentScopeTitleEn"`
+	IncidentScopeTitleAr                     *string                                  `json:"incident_scope_title_ar" mapstructure:"IncidentScopeTitleAr"`
+	IncidentSensitivityClassificationTitleEn *string                                  `json:"incident_sensitivity_classification_title_en" mapstructure:"IncidentSensitivityClassificationTitleEn"`
+	IncidentSensitivityClassificationTitleAr *string                                  `json:"incident_sensitivity_classification_title_ar" mapstructure:"IncidentSensitivityClassificationTitleAr"`
+	ConfidentialitySeverityLevelTitleEn      *string                                  `json:"confidentiality_severity_level_title_en" mapstructure:"ConfidentialitySeverityLevelTitleEn"`
+	ConfidentialitySeverityLevelTitleAr      *string                                  `json:"confidentiality_severity_level_title_ar" mapstructure:"ConfidentialitySeverityLevelTitleAr"`
+	ConfidentialitySeverityLevelColorCode    *string                                  `json:"confidentiality_severity_level_color_code" mapstructure:"ConfidentialitySeverityLevelColorCode"`
+	IntegritySeverityLevelTitleEn            *string                                  `json:"integrity_severity_level_title_en" mapstructure:"IntegritySeverityLevelTitleEn"`
+	IntegritySeverityLevelTitleAr            *string                                  `json:"integrity_severity_level_title_ar" mapstructure:"IntegritySeverityLevelTitleAr"`
+	IntegritySeverityLevelColorCode          *string                                  `json:"integrity_severity_level_color_code" mapstructure:"IntegritySeverityLevelColorCode"`
+	AvailabilitySeverityLevelTitleEn         *string                                  `json:"availability_severity_level_title_en" mapstructure:"AvailabilitySeverityLevelTitleEn"`
+	AvailabilitySeverityLevelTitleAr         *string                                  `json:"availability_severity_level_title_ar" mapstructure:"AvailabilitySeverityLevelTitleAr"`
+	AvailabilitySeverityLevelColorCode       *string                                  `json:"availability_severity_level_color_code" mapstructure:"AvailabilitySeverityLevelColorCode"`
+	Description                              *string                                  `json:"description" mapstructure:"Description"`
+	QuickAction                              *string                                  `json:"quick_action" mapstructure:"QuickAction"`
+	IsAcknowledge                            bool                                     `json:"is_acknowledge" mapstructure:"IsAcknowledge"`
+	AcknowledgedAt                           *time.Time                               `json:"acknowledged_at" mapstructure:"AcknowledgedAt"`
+	AcknowledgedByNameEn                     *string                                  `json:"acknowledged_by_name_en" mapstructure:"AcknowledgedByNameEn"`
+	AcknowledgedByNameAr                     *string                                  `json:"acknowledged_by_name_ar" mapstructure:"AcknowledgedByNameAr"`
+	IsSLATimeAchieved                        bool                                     `json:"is_sla_time_achieved" mapstructure:"IsSLATimeAchieved"`
+	IsSLATimeExceeded                        bool                                     `json:"is_sla_time_exceeded" mapstructure:"IsSLATimeExceeded"`
+	ClosedDate                               *time.Time                               `json:"closed_date" mapstructure:"ClosedDate"`
+	ClosureResolutionSummary                 *string                                  `json:"closure_resolution_summary" mapstructure:"ClosureResolutionSummary"`
+	ClosureNotes                             *string                                  `json:"closure_notes" mapstructure:"ClosureNotes"`
+	ClosureSubmittedAt                       *time.Time                               `json:"closure_submitted_at" mapstructure:"ClosureSubmittedAt"`
+	ClosureSubmittedByNameEn                 *string                                  `json:"closure_submitted_by_name_en" mapstructure:"ClosureSubmittedByNameEn"`
+	ClosureSubmittedByNameAr                 *string                                  `json:"closure_submitted_by_name_ar" mapstructure:"ClosureSubmittedByNameAr"`
+	ClosureApprovedAt                        *time.Time                               `json:"closure_approved_at" mapstructure:"ClosureApprovedAt"`
+	ClosureApprovedByNameEn                  *string                                  `json:"closure_approved_by_name_en" mapstructure:"ClosureApprovedByNameEn"`
+	ClosureApprovedByNameAr                  *string                                  `json:"closure_approved_by_name_ar" mapstructure:"ClosureApprovedByNameAr"`
+	ClosureWorkflowStatusTitleEn             *string                                  `json:"closure_workflow_status_title_en" mapstructure:"ClosureWorkflowStatusTitleEn"`
+	ClosureWorkflowStatusTitleAr             *string                                  `json:"closure_workflow_status_title_ar" mapstructure:"ClosureWorkflowStatusTitleAr"`
+	ClosureWorkflowStatusColorCode           *string                                  `json:"closure_workflow_status_color_code" mapstructure:"ClosureWorkflowStatusColorCode"`
+	Documents                                []*IncidentReportDocumentDTO             `json:"documents" mapstructure:"Documents"`
+	Evidences                                []*IncidentReportEvidenceDTO             `json:"evidences" mapstructure:"Evidences"`
+	RootCauseAnalyses                        []*IncidentReportRootCauseAnalysisDTO    `json:"root_cause_analyses" mapstructure:"RootCauseAnalyses"`
+	ActionPlans                              []*IncidentActionPlanListDTO             `json:"action_plans" mapstructure:"ActionPlans"`
+	IncidentRegister                         *IncidentRegisterDTO                     `json:"incident_register,omitempty" mapstructure:"IncidentRegister"`
+	Investigation                            *IncidentInvestigationDetailDTO          `json:"investigation,omitempty" mapstructure:"-"`
+	CommunicationLogs                        []*IncidentCommunicationLogDetailDTO     `json:"communication_logs,omitempty" mapstructure:"-"`
+	IncidentClosure                          *IncidentClosureDetailDTO                `json:"incident_closure,omitempty" mapstructure:"-"`
+	IncidentPostReview                       *IncidentPostReviewDetailDTO             `json:"incident_post_review,omitempty" mapstructure:"-"`
 
 	// Live associated items and timeline, fetched at retrieval time (not stored on the snapshot)
 	Timelines              []*IncidentTimelineListDTO                        `json:"timelines,omitempty" mapstructure:"-"`
@@ -350,6 +353,7 @@ type IncidentReportIncidentDetailDTO struct {
 	ControlsAssociated     []*commonDTOs.AssociatedControlListDTO            `json:"controls,omitempty" mapstructure:"-"`
 	AssociatedDocuments    []*commonDTOs.AssociatedDocumentListDTO           `json:"associated_documents,omitempty" mapstructure:"-"`
 	Assets                 []*commonDTOs.AssociatedAssetListDTO              `json:"assets,omitempty" mapstructure:"-"`
+	Vulnerabilities        []*commonDTOs.AssociatedVulnerabilityListDTO      `json:"vulnerabilities,omitempty" mapstructure:"-"`
 }
 
 type IncidentRegisterDTO struct {
@@ -411,10 +415,12 @@ type IncidentReportIncidentPDFDTO struct {
 	BusinessOwnerNameEn string `json:"business_owner_name_en"`
 	BusinessOwnerNameAr string `json:"business_owner_name_ar"`
 
-	ResponseTeamLeadNameEn string `json:"response_team_lead_name_en"`
-	ResponseTeamLeadNameAr string `json:"response_team_lead_name_ar"`
-	ResponseTeamMembersEn  string `json:"response_team_members_en"`
-	ResponseTeamMembersAr  string `json:"response_team_members_ar"`
+	ResponseTeamLeadNameEn string                                   `json:"response_team_lead_name_en"`
+	ResponseTeamLeadNameAr string                                   `json:"response_team_lead_name_ar"`
+	ResponseTeamLead       *organizationDTOs.UserMinimalDTO         `json:"response_team_lead,omitempty"`
+	ResponseTeamMembersEn  string                                   `json:"response_team_members_en"`
+	ResponseTeamMembersAr  string                                   `json:"response_team_members_ar"`
+	ResponseTeamMembers    []*IncidentRegisterResponseTeamMemberDTO `json:"response_team_members,omitempty"`
 
 	IncidentScopeTitleEn string `json:"incident_scope_title_en"`
 	IncidentScopeTitleAr string `json:"incident_scope_title_ar"`
@@ -466,7 +472,7 @@ type IncidentReportIncidentPDFDTO struct {
 	Documents         []*IncidentReportDocumentDTO          `json:"documents"`
 	Evidences         []*IncidentReportEvidenceDTO          `json:"evidences"`
 	RootCauseAnalyses []*IncidentReportRootCauseAnalysisDTO `json:"root_cause_analyses"`
-	ActionPlans       []*IncidentReportActionPlanDTO        `json:"action_plans"`
+	ActionPlans       []*IncidentActionPlanListDTO          `json:"action_plans"`
 
 	Investigation      *IncidentInvestigationDetailDTO      `json:"investigation,omitempty"`
 	CommunicationLogs  []*IncidentCommunicationLogDetailDTO `json:"communication_logs,omitempty"`
@@ -482,6 +488,7 @@ type IncidentReportIncidentPDFDTO struct {
 	Controls               []*commonDTOs.AssociatedControlListDTO            `json:"controls,omitempty"`
 	AssociatedDocuments    []*commonDTOs.AssociatedDocumentListDTO           `json:"associated_documents,omitempty"`
 	Assets                 []*commonDTOs.AssociatedAssetListDTO              `json:"assets,omitempty"`
+	Vulnerabilities        []*commonDTOs.AssociatedVulnerabilityListDTO      `json:"vulnerabilities,omitempty"`
 }
 
 type IncidentReportPDFDetailDTO struct {

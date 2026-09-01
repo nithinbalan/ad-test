@@ -443,6 +443,7 @@
             (gt (len .Data.Risks) 0)
             (gt (len .Data.AssociatedDocuments) 0)
             (gt (len .Data.Assets) 0)
+            (gt (len .Data.Vulnerabilities) 0)
             }}
             <h4 style="font-size: 18px; color: #050505; font-weight: 400; margin-top: 32px;">
                3. Associated Items
@@ -1406,7 +1407,7 @@
                     text-align: left;
                     ">
                            <span style="background: #E5F4F0;
-                   color: '{{$item.ControlEfficiencyStatusColorCode}}';
+                   color: '{{$item.ControlEffectivenessRatingColorCode}}';
                     padding: 4px 8px;
                     border-radius: 5px;
                     font-size: 12px;
@@ -1415,7 +1416,7 @@
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
                               {{if
-                              $item.ControlEfficiencyStatusTitleEn}}{{$item.ControlEfficiencyStatusTitleEn}}{{else}}NA{{end}}
+                              $item.ControlEffectivenessRatingTitleEn}}{{$item.ControlEffectivenessRatingTitleEn}}{{else}}NA{{end}}
                            </span>
                         </td>
                      </tr>
@@ -1760,6 +1761,46 @@
                               {{if $item.AssetStatusTitleEn}}{{$item.AssetStatusTitleEn}}{{else}}NA{{end}}
                            </span>
                         </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
+            {{end}}
+
+            <!-- vulnerability table -->
+            {{if gt (len .Data.Vulnerabilities) 0}}
+            <div style="margin-top: 24px;" class="keep-together">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 400;">
+                  <span> Vulnerabilities</span>
+               </p>
+               <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                  <thead>
+                     <tr style="border: 1px solid #eaedf2">
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">Ref No</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 23%;">Title</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Vulnerability Type</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">Status</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 13%;">Severity Level</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Responsible User</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {{range $vIdx, $vuln := .Data.Vulnerabilities}}
+                     <tr style="border: 1px solid #eaedf2;">
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{add $vIdx 1}}</td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{$vuln.ReferenceNumber}}</td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{$vuln.TitleEn}}</td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{$vuln.VulnerabilityTypeTitleEn}}</td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px;">
+                           <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{$vuln.VulnerabilityStatusColorCode}}; color: #fff; font-size: 12px;">{{$vuln.VulnerabilityStatusTitleEn}}</span>
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px;">
+                           <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{$vuln.SeverityLevelColorCode}}; color: #fff; font-size: 12px;">{{$vuln.SeverityLevelTitleEn}}</span>
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{$vuln.ResponsibleUserFirstNameEn}} {{$vuln.ResponsibleUserLastNameEn}}</td>
                      </tr>
                      {{end}}
                   </tbody>
