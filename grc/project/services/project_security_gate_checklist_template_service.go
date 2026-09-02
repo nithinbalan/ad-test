@@ -92,24 +92,39 @@ func latestPublishedVersionID(versions []models.ProjectSecurityGateChecklistTemp
 	return nil
 }
 
-func (psgcts *ProjectSecurityGateChecklistTemplateService) CreateVersion(templateID uint, currentUserID uint) (uint, error) {
-	if _, err := psgcts.repo.GetByID(templateID); err != nil {
+func (psgcts *ProjectSecurityGateChecklistTemplateService) CreateVersion(templateID uint, currentUserID uint) (id uint, err error) {
+	tx := psgcts.repo.BeginTransaction()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+	}()
+
+	if _, err = psgcts.repo.GetByID(templateID, tx); err != nil {
 		return 0, err
 	}
 
-	hasDraft, err := psgcts.repo.ExistsVersionByStatus(templateID, "draft")
+	hasDraft, err := psgcts.repo.ExistsVersionByStatus(templateID, "draft", tx)
 	if err != nil {
 		return 0, err
 	}
 	if hasDraft {
-		return 0, utility.NewValidationError(
+		err = utility.NewValidationError(
 			fmt.Errorf("an unpublished version already exists for this template; publish it before creating a new one"),
 			"draft_exists",
 			"version",
 		)
+		return 0, err
 	}
 
-	maxVersion, err := psgcts.repo.GetMaxVersionByTemplateID(templateID)
+	maxVersion, err := psgcts.repo.GetMaxVersionByTemplateID(templateID, tx)
 	if err != nil {
 		return 0, err
 	}
@@ -122,8 +137,12 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) CreateVersion(templat
 		CreatedAt:   time.Now(),
 	}
 
-	created, err := psgcts.repo.CreateVersion(version)
+	created, err := psgcts.repo.CreateVersion(version, tx)
 	if err != nil {
+		return 0, err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return 0, err
 	}
 
@@ -145,34 +164,51 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) CreateVersion(templat
 	return created.ID, nil
 }
 
-func (psgcts *ProjectSecurityGateChecklistTemplateService) PublishVersion(templateID uint, id uint, currentUserID uint) error {
-	if _, err := psgcts.repo.GetByID(templateID); err != nil {
+func (psgcts *ProjectSecurityGateChecklistTemplateService) PublishVersion(templateID uint, id uint, currentUserID uint) (err error) {
+	tx := psgcts.repo.BeginTransaction()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+	}()
+
+	if _, err = psgcts.repo.GetByID(templateID, tx); err != nil {
 		return err
 	}
 
-	version, err := psgcts.repo.GetVersionByID(id)
+	version, err := psgcts.repo.GetVersionByID(id, tx)
 	if err != nil {
 		return err
 	}
 
 	if version.TemplateID != templateID {
-		return &utility.ResourceNotFoundError{}
+		err = &utility.ResourceNotFoundError{}
+		return err
 	}
 
 	if version.Status == "published" {
-		return utility.NewValidationError(
+		err = utility.NewValidationError(
 			fmt.Errorf("this version has already been published"),
 			"already_published",
 			"version",
 		)
+		return err
 	}
 
 	if len(version.Requirements) == 0 {
-		return utility.NewValidationError(
+		err = utility.NewValidationError(
 			fmt.Errorf("a version cannot be published without at least one checklist requirement"),
 			"no_requirements",
 			"requirement",
 		)
+		return err
 	}
 
 	version.Status = "published"
@@ -180,7 +216,11 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) PublishVersion(templa
 	now := time.Now()
 	version.PublishedAt = &now
 
-	if err := psgcts.repo.UpdateVersion(version); err != nil {
+	if err = psgcts.repo.UpdateVersion(version, tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
 		return err
 	}
 

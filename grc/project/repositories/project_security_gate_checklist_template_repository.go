@@ -9,14 +9,15 @@ import (
 )
 
 type ProjectSecurityGateChecklistTemplateRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll() ([]*models.ProjectSecurityGateChecklistTemplate, error)
-	GetByID(id uint) (*models.ProjectSecurityGateChecklistTemplate, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplate, error)
 	GetDetailsByID(id uint) (*models.ProjectSecurityGateChecklistTemplate, error)
-	GetVersionByID(id uint) (*models.ProjectSecurityGateChecklistTemplateVersion, error)
-	GetMaxVersionByTemplateID(templateID uint) (int, error)
-	ExistsVersionByStatus(templateID uint, status string) (bool, error)
-	CreateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion) (*models.ProjectSecurityGateChecklistTemplateVersion, error)
-	UpdateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion) error
+	GetVersionByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error)
+	GetMaxVersionByTemplateID(templateID uint, tx ...utility.DatabaseTransaction) (int, error)
+	ExistsVersionByStatus(templateID uint, status string, tx ...utility.DatabaseTransaction) (bool, error)
+	CreateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error)
+	UpdateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion, tx ...utility.DatabaseTransaction) error
 	GetRequirementByID(id uint) (*models.ProjectSecurityGateChecklistTemplateRequirement, error)
 	CreateRequirement(requirement *models.ProjectSecurityGateChecklistTemplateRequirement) (*models.ProjectSecurityGateChecklistTemplateRequirement, error)
 	UpdateRequirement(id uint, requirement *models.ProjectSecurityGateChecklistTemplateRequirement) (*models.ProjectSecurityGateChecklistTemplateRequirement, error)
@@ -41,9 +42,18 @@ func (repo *ProjectSecurityGateChecklistTemplateRepository) GetAll() ([]*models.
 	return templates, result.Error
 }
 
-func (repo *ProjectSecurityGateChecklistTemplateRepository) GetByID(id uint) (*models.ProjectSecurityGateChecklistTemplate, error) {
+func (repo *ProjectSecurityGateChecklistTemplateRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *ProjectSecurityGateChecklistTemplateRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplate, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var template *models.ProjectSecurityGateChecklistTemplate
-	result := repo.db.Preload("Stage").First(&template, id)
+	result := db.Preload("Stage").First(&template, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -77,10 +87,15 @@ func (repo *ProjectSecurityGateChecklistTemplateRepository) GetDetailsByID(id ui
 	return template, nil
 }
 
-func (repo *ProjectSecurityGateChecklistTemplateRepository) GetVersionByID(id uint) (*models.ProjectSecurityGateChecklistTemplateVersion, error) {
+func (repo *ProjectSecurityGateChecklistTemplateRepository) GetVersionByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var version *models.ProjectSecurityGateChecklistTemplateVersion
 
-	result := repo.db.
+	result := db.
 		Preload("CreatedByUser").
 		Preload("PublishedByUser").
 		Preload("Requirements", func(db *gorm.DB) *gorm.DB {
@@ -97,10 +112,15 @@ func (repo *ProjectSecurityGateChecklistTemplateRepository) GetVersionByID(id ui
 	return version, nil
 }
 
-func (repo *ProjectSecurityGateChecklistTemplateRepository) GetMaxVersionByTemplateID(templateID uint) (int, error) {
+func (repo *ProjectSecurityGateChecklistTemplateRepository) GetMaxVersionByTemplateID(templateID uint, tx ...utility.DatabaseTransaction) (int, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var maxVersion *int
 
-	result := repo.db.Model(&models.ProjectSecurityGateChecklistTemplateVersion{}).
+	result := db.Model(&models.ProjectSecurityGateChecklistTemplateVersion{}).
 		Where("template_id = ?", templateID).
 		Select("MAX(version)").
 		Scan(&maxVersion)
@@ -116,10 +136,15 @@ func (repo *ProjectSecurityGateChecklistTemplateRepository) GetMaxVersionByTempl
 	return *maxVersion, nil
 }
 
-func (repo *ProjectSecurityGateChecklistTemplateRepository) ExistsVersionByStatus(templateID uint, status string) (bool, error) {
+func (repo *ProjectSecurityGateChecklistTemplateRepository) ExistsVersionByStatus(templateID uint, status string, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var count int64
 
-	err := repo.db.Model(&models.ProjectSecurityGateChecklistTemplateVersion{}).
+	err := db.Model(&models.ProjectSecurityGateChecklistTemplateVersion{}).
 		Where("template_id = ? AND status = ?", templateID, status).
 		Count(&count).Error
 
@@ -130,13 +155,23 @@ func (repo *ProjectSecurityGateChecklistTemplateRepository) ExistsVersionByStatu
 	return count > 0, nil
 }
 
-func (repo *ProjectSecurityGateChecklistTemplateRepository) CreateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion) (*models.ProjectSecurityGateChecklistTemplateVersion, error) {
-	result := repo.db.Create(version)
+func (repo *ProjectSecurityGateChecklistTemplateRepository) CreateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Create(version)
 	return version, result.Error
 }
 
-func (repo *ProjectSecurityGateChecklistTemplateRepository) UpdateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion) error {
-	return repo.db.Save(version).Error
+func (repo *ProjectSecurityGateChecklistTemplateRepository) UpdateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(version).Error
 }
 
 func (repo *ProjectSecurityGateChecklistTemplateRepository) GetRequirementByID(id uint) (*models.ProjectSecurityGateChecklistTemplateRequirement, error) {

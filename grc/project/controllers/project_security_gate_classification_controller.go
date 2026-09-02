@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"jethur/grc/project/services"
 	"jethur/utility"
 	"net/http"
@@ -26,6 +27,20 @@ func (psgcc *ProjectSecurityGateClassificationController) GetAllProjectSecurityG
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+
+	validSortFields := map[string]bool{
+		"id":         true,
+		"title_en":   true,
+		"title_ar":   true,
+		"type":       true,
+		"color_code": true,
+		"status":     true,
+	}
+
+	if sortBy != "" && !validSortFields[sortBy] {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid 'sort_by' parameter"))
+		return
+	}
 
 	classifications, err := psgcc.service.GetAll(sort, sortBy, keyword, status)
 
