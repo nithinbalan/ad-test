@@ -55,6 +55,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 			incident_register.title AS incident_register_title,
 			compliance_requirements.title_en AS compliance_requirement_title_en,
 			compliance_requirements.title_ar AS compliance_requirement_title_ar,
+			compliance_action_plans.title AS compliance_action_plan_title,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
@@ -108,6 +109,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
         LEFT JOIN documents ON documents.id = auditable_items.document_id
         LEFT JOIN incident_register ON incident_register.id = auditable_items.incident_register_id
         LEFT JOIN compliance_requirements ON compliance_requirements.id = auditable_items.compliance_requirement_id
+        LEFT JOIN compliance_action_plans ON compliance_action_plans.id = auditable_items.compliance_action_plan_id
 		LEFT JOIN organization_units ON organization_units.id = auditable_items.responsible_unit_id
         LEFT JOIN risk_register ON risk_register.id = auditable_items.risk_register_id
         LEFT JOIN users ON users.id = auditable_items.user_id
@@ -171,6 +173,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
             incident_register.title LIKE ? OR
             compliance_requirements.title_en LIKE ? OR
             compliance_requirements.title_ar LIKE ? OR
+            compliance_action_plans.title LIKE ? OR
             risk_register.title LIKE ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
@@ -178,7 +181,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword)
+			keyword, keyword, keyword)
 	}
 
 	// Calculate total count for pagination
@@ -251,6 +254,7 @@ func (repo *AuditableItemRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("Document").
 		Preload("IncidentRegister").
 		Preload("ComplianceRequirement").
+		Preload("ComplianceActionPlan").
 		Preload("RiskRegister").
 		Preload("User").
 		Preload("ResponsibleUnit").
