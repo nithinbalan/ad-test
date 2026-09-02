@@ -1,12 +1,16 @@
 package repositories
 
 import (
-	"gorm.io/gorm"
+	"errors"
 	"jethur/grc/models"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type PenetrationTestExecutionStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.PenetrationTestExecutionStatus, error)
+	GetByID(id uint) (*models.PenetrationTestExecutionStatus, error)
 }
 
 type PenetrationTestExecutionStatusRepository struct{ db *gorm.DB }
@@ -31,4 +35,16 @@ func (repo *PenetrationTestExecutionStatusRepository) GetAll(sort string, sortBy
 		sort = "asc"
 	}
 	return values, query.Order(sortBy + " " + sort).Find(&values).Error
+}
+
+func (repo *PenetrationTestExecutionStatusRepository) GetByID(id uint) (*models.PenetrationTestExecutionStatus, error) {
+	var value *models.PenetrationTestExecutionStatus
+	result := repo.db.First(&value, id)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	}
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return value, nil
 }

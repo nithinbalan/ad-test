@@ -69,7 +69,7 @@ func (ptes *PenetrationTestExecutorService) Create(currentUserID uint, penetrati
 			created.ID,
 			created,
 			currentUserID,
-			"", "", "", nil,
+			"penetration_testing", "penetration_testing_setting", "create penetration test executor", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log activity: %v", err)
@@ -119,7 +119,7 @@ func (ptes *PenetrationTestExecutorService) Update(id uint, currentUserID uint, 
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			"", "", "", nil,
+			"penetration_testing", "penetration_testing_setting", "update penetration test executor", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log update activity: %v\n", err)

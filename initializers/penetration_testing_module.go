@@ -8,6 +8,9 @@ import (
 )
 
 type PenetrationTestingModule struct {
+	PenetrationTestController                     *controllers.PenetrationTestController
+	PenetrationTestFindingController              *controllers.PenetrationTestFindingController
+	PenetrationTestRetestController               *controllers.PenetrationTestRetestController
 	PenetrationTestTypeController                 *controllers.PenetrationTestTypeController
 	PenetrationTestPlanController                 *controllers.PenetrationTestPlanController
 	PenetrationTestExecutorController             *controllers.PenetrationTestExecutorController
@@ -17,7 +20,12 @@ type PenetrationTestingModule struct {
 	PenetrationTestSecurityResultController       *controllers.PenetrationTestSecurityResultController
 }
 
-func NewPenetrationTestingModule(db *gorm.DB, sharedModule *SharedModule) *PenetrationTestingModule {
+func NewPenetrationTestingModule(
+	db *gorm.DB,
+	sharedModule *SharedModule,
+	masterModule *MasterModule,
+	organizationModule *OrganizationModule,
+) *PenetrationTestingModule {
 	typeService := services.NewPenetrationTestTypeService(repositories.NewPenetrationTestTypeRepository(db), sharedModule.ActivityLogService)
 	planService := services.NewPenetrationTestPlanService(repositories.NewPenetrationTestPlanRepository(db), sharedModule.ActivityLogService)
 	executorService := services.NewPenetrationTestExecutorService(repositories.NewPenetrationTestExecutorRepository(db), sharedModule.ActivityLogService)
@@ -25,7 +33,37 @@ func NewPenetrationTestingModule(db *gorm.DB, sharedModule *SharedModule) *Penet
 	classificationService := services.NewPenetrationTestClassificationService(repositories.NewPenetrationTestClassificationRepository(db))
 	executionStatusService := services.NewPenetrationTestExecutionStatusService(repositories.NewPenetrationTestExecutionStatusRepository(db))
 	securityResultService := services.NewPenetrationTestSecurityResultService(repositories.NewPenetrationTestSecurityResultRepository(db))
+	penetrationTestService := services.NewPenetrationTestService(
+		repositories.NewPenetrationTestRepository(db),
+		sharedModule.ActivityLogService,
+		typeService,
+		planService,
+		classificationService,
+		executorService,
+		readinessService,
+		executionStatusService,
+		securityResultService,
+		organizationModule.UserSvc,
+	)
+	penetrationTestFindingService := services.NewPenetrationTestFindingService(
+		repositories.NewPenetrationTestFindingRepository(db),
+		sharedModule.ActivityLogService,
+		penetrationTestService,
+		masterModule.SeverityLevelSvc,
+		masterModule.ActionPlanStatusSvc,
+		organizationModule.UserSvc,
+	)
+	penetrationTestRetestService := services.NewPenetrationTestRetestService(
+		repositories.NewPenetrationTestRetestRepository(db),
+		sharedModule.ActivityLogService,
+		penetrationTestService,
+		penetrationTestFindingService,
+		executorService,
+	)
 	return &PenetrationTestingModule{
+		PenetrationTestController:                     controllers.NewPenetrationTestController(penetrationTestService),
+		PenetrationTestFindingController:              controllers.NewPenetrationTestFindingController(penetrationTestFindingService),
+		PenetrationTestRetestController:               controllers.NewPenetrationTestRetestController(penetrationTestRetestService),
 		PenetrationTestTypeController:                 controllers.NewPenetrationTestTypeController(typeService),
 		PenetrationTestPlanController:                 controllers.NewPenetrationTestPlanController(planService),
 		PenetrationTestExecutorController:             controllers.NewPenetrationTestExecutorController(executorService),
