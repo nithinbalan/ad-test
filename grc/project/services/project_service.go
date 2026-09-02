@@ -123,6 +123,7 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 		DescriptionAr:           form.DescriptionAr,
 		Budget:                  form.Budget,
 		Scope:                   form.Scope,
+		NumberOfResources:       form.NumberOfResources,
 		ResponsibleUserID:       form.ResponsibleUserID,
 		StartDate:               *startDate,
 		EndDate:                 *endDate,
@@ -146,6 +147,7 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 			"description_ar":            form.DescriptionAr,
 			"budget":                    form.Budget,
 			"scope":                     form.Scope,
+			"number_of_resources":       form.NumberOfResources,
 			"responsible_user_id":       form.ResponsibleUserID,
 			"start_date":                form.StartDate,
 			"end_date":                  form.EndDate,
@@ -154,7 +156,7 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 			"project_phase_id":          form.ProjectPhaseID,
 			"project_classification_id": form.ProjectClassificationID,
 		}
-		err := s.activityLog.LogActivity(models.CreateAction, models.Project{}.TableName(), id, activityData, currentUserID, "", "", "", nil)
+		err := s.activityLog.LogActivity(models.CreateAction, models.Project{}.TableName(), id, activityData, currentUserID, "project", "project_register", "", nil)
 		if err != nil {
 			utility.LogError("Failed to log create activity", map[string]interface{}{
 				"recordID": id,
@@ -168,7 +170,7 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{form.ResponsibleUserID},
-			ModuleIdentifier:     "organization",
+			ModuleIdentifier:     "project",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Project Responsibility Assigned",
 			HeadingAr:            "تم تعيين مسؤولية المشروع",
@@ -221,7 +223,7 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 			EmailData:            emailData,
 		}
 
-		err = s.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
+		err = s.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_register")
 		if err != nil {
 			utility.LogError("Failed to send project assignment notifications", map[string]interface{}{
 				"error": err.Error(),
@@ -250,6 +252,7 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 		"description_ar":            project.DescriptionAr,
 		"budget":                    project.Budget,
 		"scope":                     project.Scope,
+		"number_of_resources":       project.NumberOfResources,
 		"responsible_user_id":       project.ResponsibleUserID,
 		"start_date":                project.StartDate,
 		"end_date":                  project.EndDate,
@@ -270,6 +273,7 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 	project.DescriptionAr = form.DescriptionAr
 	project.Budget = form.Budget
 	project.Scope = form.Scope
+	project.NumberOfResources = form.NumberOfResources
 	project.ResponsibleUserID = form.ResponsibleUserID
 	project.StartDate = *startDate
 	project.EndDate = *endDate
@@ -292,6 +296,7 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 			"description_ar":            form.DescriptionAr,
 			"budget":                    form.Budget,
 			"scope":                     form.Scope,
+			"number_of_resources":       form.NumberOfResources,
 			"responsible_user_id":       form.ResponsibleUserID,
 			"start_date":                form.StartDate,
 			"end_date":                  form.EndDate,
@@ -302,7 +307,7 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
 		if len(changes) > 0 {
-			err := s.activityLog.LogActivity(models.UpdateAction, models.Project{}.TableName(), id, changes, currentUserID, "", "", "", nil)
+			err := s.activityLog.LogActivity(models.UpdateAction, models.Project{}.TableName(), id, changes, currentUserID, "project", "project_register", "", nil)
 			if err != nil {
 				utility.LogError("Failed to log update activity", map[string]interface{}{
 					"recordID": id,
@@ -321,7 +326,7 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{oldResponsibleUserID},
-				ModuleIdentifier:     "organization",
+				ModuleIdentifier:     "project",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Project Responsibility Removed",
 				HeadingAr:            "تمت إزالة مسؤولية المشروع",
@@ -339,7 +344,7 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{form.ResponsibleUserID},
-				ModuleIdentifier:     "organization",
+				ModuleIdentifier:     "project",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Project Responsibility Assigned",
 				HeadingAr:            "تم تعيين مسؤولية المشروع",
@@ -404,17 +409,16 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 
 			// Email notification for the new responsible user
 			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
-			newResponsibleUserSubject := fmt.Sprintf("Project/%s: Responsibility Assigned", project.TitleEn)
+			newResponsibleUserSubject := fmt.Sprintf("Project/%s: Responsibility Assigned", form.TitleEn)
 			newResponsibleUserEmailData := map[string]interface{}{
-				"FirstNameEn":           newResponsibleUser.FirstNameEn,
-				"LastNameEn":            newResponsibleUser.LastNameEn,
-				"ProjectTitle":          project.TitleEn,
-				"ProjectTitleAr":        project.TitleAr,
-				"ProjectDescription":    stripHTML(project.DescriptionEn),
-				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
-				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
-				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/project/%d/overview", appURL, id),
+				"FirstNameEn":          newResponsibleUser.FirstNameEn,
+				"LastNameEn":           newResponsibleUser.LastNameEn,
+				"ProjectTitle":         form.TitleEn,
+				"ProjectTitleAr":       form.TitleAr,
+				"ProjectDescription":   stripHTML(form.DescriptionEn),
+				"UpdatedByFirstNameEn": updatedByUser.FirstNameEn,
+				"UpdatedByLastNameEn":  updatedByUser.LastNameEn,
+				"RedirectURL":          fmt.Sprintf("%s/project/%d/overview", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -425,14 +429,14 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 			}
 
 			// Send notifications and emails
-			err = s.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "project_management")
+			err = s.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "project_register")
 			if err != nil {
 				utility.LogError("Failed to send notifications to new responsible user for project", map[string]interface{}{
 					"error": err.Error(),
 				})
 			}
 
-			err = s.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "project_management")
+			err = s.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "project_register")
 			if err != nil {
 				utility.LogError("Failed to send notifications to old responsible user for project", map[string]interface{}{
 					"error": err.Error(),
@@ -555,7 +559,7 @@ func (s *ProjectService) UpdateStatus(id uint, currentUserID uint, projectStatus
 				"new": newData,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"project", "project_register", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

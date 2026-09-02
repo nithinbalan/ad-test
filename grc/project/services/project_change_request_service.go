@@ -1,0 +1,507 @@
+package services
+
+import (
+	"errors"
+	"path/filepath"
+	"strconv"
+	"time"
+
+	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
+	"jethur/grc/project/dtos"
+	"jethur/grc/project/repositories"
+	"jethur/utility"
+
+	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
+)
+
+type ProjectChangeRequestServiceInterface interface {
+	GetAll(projectID uint, params *dtos.ProjectChangeRequestListQueryParamsDTO) (*dtos.ProjectChangeRequestListResponseDTO, error)
+	GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error)
+	GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectChangeRequestDetailDTO, error)
+	Create(projectID uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) (uint, error)
+	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) error
+	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
+	GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error)
+}
+
+type ProjectChangeRequestService struct {
+	repo        repositories.ProjectChangeRequestRepositoryInterface
+	activityLog logServices.ActivityLogServiceInterface
+	userSvc     organizationServices.UserServiceInterface
+	projectSvc  ProjectServiceInterface
+}
+
+func NewProjectChangeRequestService(
+	repo repositories.ProjectChangeRequestRepositoryInterface,
+	activityLog logServices.ActivityLogServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	projectSvc ProjectServiceInterface,
+) ProjectChangeRequestServiceInterface {
+	return &ProjectChangeRequestService{
+		repo:        repo,
+		activityLog: activityLog,
+		userSvc:     userSvc,
+		projectSvc:  projectSvc,
+	}
+}
+
+func (pcrs *ProjectChangeRequestService) GetAll(projectID uint, params *dtos.ProjectChangeRequestListQueryParamsDTO) (*dtos.ProjectChangeRequestListResponseDTO, error) {
+	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+	return pcrs.repo.GetAll(projectID, params)
+}
+
+func (pcrs *ProjectChangeRequestService) GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error) {
+	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+	changeRequest, err := pcrs.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return changeRequest, nil
+}
+
+func (pcrs *ProjectChangeRequestService) GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectChangeRequestDetailDTO, error) {
+	var detailDTO dtos.ProjectChangeRequestDetailDTO
+
+	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+
+	changeRequest, err := pcrs.repo.GetFullDetailsByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, &utility.ResourceNotFoundError{}
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(changeRequest, &detailDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	if changeRequest.RequestedOn != nil {
+		str := changeRequest.RequestedOn.Format("2006-01-02")
+		detailDTO.RequestedOnString = &str
+	}
+
+	for i, ia := range changeRequest.ImpactAssessments {
+		if i < len(detailDTO.ImpactAssessments) {
+			if ia.CurrentDate != nil {
+				cdStr := ia.CurrentDate.Format("2006-01-02")
+				detailDTO.ImpactAssessments[i].CurrentDateString = &cdStr
+			}
+			if ia.RevisedDate != nil {
+				rdStr := ia.RevisedDate.Format("2006-01-02")
+				detailDTO.ImpactAssessments[i].RevisedDateString = &rdStr
+			}
+			if ia.ProjectImpactAssessmentType != nil {
+				detailDTO.ImpactAssessments[i].ProjectImpactAssessmentType = &dtos.ProjectImpactAssessmentTypeDTO{
+					ID:      ia.ProjectImpactAssessmentType.ID,
+					TitleEn: ia.ProjectImpactAssessmentType.TitleEn,
+					TitleAr: ia.ProjectImpactAssessmentType.TitleAr,
+					Type:    ia.ProjectImpactAssessmentType.Type,
+					Status:  ia.ProjectImpactAssessmentType.Status,
+				}
+			}
+		}
+	}
+
+	detailDTO.CreatedAt = changeRequest.CreatedAt
+	detailDTO.UpdatedAt = changeRequest.UpdatedAt
+
+	return &detailDTO, nil
+}
+
+func (pcrs *ProjectChangeRequestService) Create(projectID uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) (uint, error) {
+	project, err := pcrs.projectSvc.GetByID(projectID)
+	if err != nil {
+		return 0, err
+	}
+
+	requestedOn, err := utility.ParseDate(form.RequestedOn)
+	if err != nil {
+		return 0, utility.NewValidationError(err, "invalid_date", "requested_on")
+	}
+
+	refNumber, err := pcrs.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
+
+	impactAssessments, err := parseImpactAssessments(form.ImpactAssessments)
+	if err != nil {
+		return 0, err
+	}
+
+	changeRequest := &models.ProjectChangeRequest{
+		ReferenceNumber:       refNumber,
+		ProjectID:             project.ID,
+		Title:                 form.Title,
+		Description:           form.Description,
+		BusinessJustification: form.BusinessJustification,
+		AnticipatedBenefits:   form.AnticipatedBenefits,
+		RisksOfDeferral:       form.RisksOfDeferral,
+		RequestedByUserID:     form.RequestedByUserID,
+		RequestedOn:           requestedOn,
+		CreatedBYID:           currentUserID,
+		CreatedAt:             time.Now(),
+	}
+
+	tx := pcrs.repo.BeginTransaction()
+
+	id, err := pcrs.repo.Create(changeRequest, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if len(impactAssessments) > 0 {
+		for _, ia := range impactAssessments {
+			ia.ProjectChangeRequestID = id
+		}
+		if err := pcrs.repo.CreateImpactAssessments(impactAssessments, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	var documents []*models.ProjectChangeRequestDocument
+	for _, doc := range form.Documents {
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		url := utility.GenerateDocumentURL("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+		document := &models.ProjectChangeRequestDocument{
+			ProjectChangeRequestID: id,
+			URL:                    url,
+			Name:                   doc.FileName,
+			Size:                   doc.Size,
+			Token:                  encryptedFileName,
+			OriginalName:           &doc.OriginalName,
+			Type:                   doc.Type,
+			CreatedByID:            currentUserID,
+			CreatedAt:              time.Now(),
+		}
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := pcrs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	tx.Commit()
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			return 0, err
+		}
+	}
+
+	go func() {
+		activityData := map[string]interface{}{
+			"project_id":             projectID,
+			"reference_number":       refNumber,
+			"title":                  form.Title,
+			"description":            form.Description,
+			"business_justification": form.BusinessJustification,
+			"anticipated_benefits":   form.AnticipatedBenefits,
+			"risks_of_deferral":      form.RisksOfDeferral,
+			"requested_by_user_id":   form.RequestedByUserID,
+			"requested_on":           form.RequestedOn,
+		}
+		err := pcrs.activityLog.LogActivity(models.CreateAction, models.ProjectChangeRequest{}.TableName(), id, activityData, currentUserID, "project", "project_register", "", nil)
+		if err != nil {
+			utility.LogError("Failed to log create project change request activity", map[string]interface{}{
+				"recordID": id,
+				"error":    err.Error(),
+			})
+		}
+	}()
+
+	return id, nil
+}
+
+func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) error {
+	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
+		return err
+	}
+
+	changeRequest, err := pcrs.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &utility.ResourceNotFoundError{}
+		}
+		return err
+	}
+
+	oldData := map[string]interface{}{
+		"title":                  changeRequest.Title,
+		"description":            changeRequest.Description,
+		"business_justification": changeRequest.BusinessJustification,
+		"anticipated_benefits":   changeRequest.AnticipatedBenefits,
+		"risks_of_deferral":      changeRequest.RisksOfDeferral,
+		"requested_by_user_id":   changeRequest.RequestedByUserID,
+		"requested_on":           changeRequest.RequestedOn,
+	}
+
+	requestedOn, err := utility.ParseDate(form.RequestedOn)
+	if err != nil {
+		return utility.NewValidationError(err, "invalid_date", "requested_on")
+	}
+
+	impactAssessments, err := parseImpactAssessments(form.ImpactAssessments)
+	if err != nil {
+		return err
+	}
+
+	changeRequest.Title = form.Title
+	changeRequest.Description = form.Description
+	changeRequest.BusinessJustification = form.BusinessJustification
+	changeRequest.AnticipatedBenefits = form.AnticipatedBenefits
+	changeRequest.RisksOfDeferral = form.RisksOfDeferral
+	changeRequest.RequestedByUserID = form.RequestedByUserID
+	changeRequest.RequestedOn = requestedOn
+	changeRequest.UpdatedBYID = &currentUserID
+	now := time.Now()
+	changeRequest.UpdatedAt = &now
+
+	tx := pcrs.repo.BeginTransaction()
+
+	err = pcrs.repo.Update(changeRequest, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := pcrs.repo.DeleteImpactAssessments(id, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if len(impactAssessments) > 0 {
+		for _, ia := range impactAssessments {
+			ia.ProjectChangeRequestID = id
+		}
+		if err := pcrs.repo.CreateImpactAssessments(impactAssessments, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var documents []*models.ProjectChangeRequestDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.ProjectChangeRequestDocument
+
+	for _, doc := range form.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			url := utility.GenerateDocumentURL("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+			document := &models.ProjectChangeRequestDocument{
+				ProjectChangeRequestID: id,
+				URL:                    url,
+				Name:                   doc.FileName,
+				Size:                   doc.Size,
+				Token:                  encryptedFileName,
+				OriginalName:           &doc.OriginalName,
+				Type:                   doc.Type,
+				CreatedByID:            currentUserID,
+				CreatedAt:              time.Now(),
+			}
+			documents = append(documents, document)
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := pcrs.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						tx.Rollback()
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					tx.Rollback()
+					return err
+				}
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			}
+		}
+	}
+
+	if len(documents) > 0 {
+		if err := pcrs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIDs) > 0 {
+		if err := pcrs.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			return err
+		}
+	}
+
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+			return err
+		}
+	}
+
+	go func() {
+		newData := map[string]interface{}{
+			"title":                  form.Title,
+			"description":            form.Description,
+			"business_justification": form.BusinessJustification,
+			"anticipated_benefits":   form.AnticipatedBenefits,
+			"risks_of_deferral":      form.RisksOfDeferral,
+			"requested_by_user_id":   form.RequestedByUserID,
+			"requested_on":           form.RequestedOn,
+		}
+		changes := utility.CompareFieldChanges(oldData, newData)
+		if len(changes) > 0 {
+			err := pcrs.activityLog.LogActivity(models.UpdateAction, models.ProjectChangeRequest{}.TableName(), id, changes, currentUserID, "project", "project_register", "", nil)
+			if err != nil {
+				utility.LogError("Failed to log update project change request activity", map[string]interface{}{
+					"recordID": id,
+					"error":    err.Error(),
+				})
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (pcrs *ProjectChangeRequestService) Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedItems []map[string]interface{}
+
+	for _, id := range ids {
+		changeRequest, err := pcrs.repo.GetByID(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		err = pcrs.repo.Delete(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		successfulIds = append(successfulIds, id)
+		deletedItems = append(deletedItems, map[string]interface{}{
+			"id":               id,
+			"reference_number": changeRequest.ReferenceNumber,
+			"title":            changeRequest.Title,
+		})
+
+		folderPath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10))
+		if err := utility.RemoveFolder(folderPath); err != nil {
+			utility.LogError("Failed to remove change request storage folder", map[string]interface{}{
+				"changeRequestID": id,
+				"path":            folderPath,
+				"error":           err.Error(),
+			})
+		}
+	}
+
+	if len(successfulIds) > 0 {
+		go func() {
+			err := pcrs.activityLog.LogBulkActivities(
+				models.DeleteAction,
+				models.ProjectChangeRequest{}.TableName(),
+				successfulIds,
+				deletedItems,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log bulk delete project change requests activity", map[string]interface{}{
+					"recordIDs": successfulIds,
+					"error":     err.Error(),
+				})
+			}
+		}()
+	}
+
+	return failedIds, nil
+}
+
+func (pcrs *ProjectChangeRequestService) GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error) {
+	if projectID != 0 {
+		if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
+			return nil, err
+		}
+	}
+
+	return pcrs.repo.GetSummary(projectID)
+}
+
+func parseImpactAssessments(forms []dtos.ProjectImpactAssessmentFormDTO) ([]*models.ProjectImpactAssessment, error) {
+	var impactAssessments []*models.ProjectImpactAssessment
+	for _, f := range forms {
+		var currentDate, revisedDate *time.Time
+		if f.CurrentDate != nil && *f.CurrentDate != "" {
+			cd, err := utility.ParseDate(*f.CurrentDate)
+			if err != nil {
+				return nil, utility.NewValidationError(err, "invalid_date", "current_date")
+			}
+			currentDate = cd
+		}
+		if f.RevisedDate != nil && *f.RevisedDate != "" {
+			rd, err := utility.ParseDate(*f.RevisedDate)
+			if err != nil {
+				return nil, utility.NewValidationError(err, "invalid_date", "revised_date")
+			}
+			revisedDate = rd
+		}
+		ia := &models.ProjectImpactAssessment{
+			ProjectImpactAssessmentTypeID: f.ProjectImpactAssessmentTypeID,
+			CurrentDate:                   currentDate,
+			RevisedDate:                   revisedDate,
+			CurrentBudget:                 f.CurrentBudget,
+			RevisedBudget:                 f.RevisedBudget,
+			CurrentResourceCount:          f.CurrentResourceCount,
+			RevisedResourceCount:          f.RevisedResourceCount,
+			Description:                   f.Description,
+		}
+		impactAssessments = append(impactAssessments, ia)
+	}
+	return impactAssessments, nil
+}

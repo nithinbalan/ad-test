@@ -21,6 +21,9 @@ type ProjectMilestoneListDTO struct {
 	ProjectMilestoneStatusTitleAr   string  `json:"project_milestone_status_title_ar"`
 	ProjectMilestoneStatusType      string  `json:"project_milestone_status_type"`
 	ProjectMilestoneStatusColorCode string  `json:"project_milestone_status_color_code"`
+	ProjectPhaseID                  *uint   `json:"project_phase_id"`
+	ProjectPhaseTitleEn             *string `json:"project_phase_title_en"`
+	ProjectPhaseTitleAr             *string `json:"project_phase_title_ar"`
 	CreatedUserID                   uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
@@ -69,6 +72,8 @@ type ProjectMilestoneDetailDTO struct {
 	PlannedDateString      *string                              `json:"planned_date"`
 	ActualDateString       *string                              `json:"actual_date"`
 	ProjectMilestoneStatus masterDTOs.ProjectMilestoneStatusDTO `json:"project_milestone_status"`
+	ProjectPhaseID         *uint                                `json:"project_phase_id"`
+	ProjectPhase           *ProjectPhaseDTO                     `json:"project_phase"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO      `json:"created_by"`
 	UpdatedByUser          *organizationDTOs.UserMinimalDTO     `json:"updated_by"`
 	CreatedAt              time.Time                            `json:"created_at"`
@@ -83,4 +88,10 @@ type ProjectMilestoneFormDTO struct {
 	PlannedDate              *string `json:"planned_date"`
 	ActualDate               *string `json:"actual_date"`
 	ProjectMilestoneStatusID uint    `json:"project_milestone_status_id" binding:"required"`
+	ProjectPhaseID           *uint   `json:"project_phase_id"`
+}
+
+type ProjectMilestoneStatusUpdateDTO struct {
+	ProjectMilestoneStatusID uint    `json:"project_milestone_status_id" binding:"required"`
+	ActualDate               *string `json:"actual_date"`
 }

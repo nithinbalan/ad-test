@@ -26,15 +26,20 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectAssociatedItemController := app.ProjectModule.ProjectAssociatedItemController
 	projectClassificationController := app.ProjectModule.ProjectClassificationController
 	projectPhaseController := app.ProjectModule.ProjectPhaseController
+	projectChangeRequestController := app.ProjectModule.ProjectChangeRequestController
+	projectChangeRequestWorkflowController := app.ProjectModule.ProjectChangeRequestWorkflowController
+	projectChangeRequestReviewController := app.ProjectModule.ProjectChangeRequestReviewController
+	projectChangeRequestReviewCommentController := app.ProjectModule.ProjectChangeRequestReviewCommentController
+	projectImpactAssessmentTypeController := app.ProjectModule.ProjectImpactAssessmentTypeController
 
-	// Project Type
+	// Project Types
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
 	projectRoutes.GET("/project-types/:id", projectTypeController.GetProjectTypeDetails)
-	projectRoutes.POST("/project-types", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.CreateProjectType)
-	projectRoutes.PUT("/project-types/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.UpdateProjectType)
-	projectRoutes.POST("/project-types/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.DeleteProjectTypes)
-	projectRoutes.PUT("/project-types/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.ActivateProjectTypes)
-	projectRoutes.PUT("/project-types/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectTypeController.DeactivateProjectTypes)
+	projectRoutes.POST("/project-types", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectTypeController.CreateProjectType)
+	projectRoutes.PUT("/project-types/:id", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectTypeController.UpdateProjectType)
+	projectRoutes.POST("/project-types/delete", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectTypeController.DeleteProjectTypes)
+	projectRoutes.PUT("/project-types/activate", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectTypeController.ActivateProjectTypes)
+	projectRoutes.PUT("/project-types/deactivate", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectTypeController.DeactivateProjectTypes)
 
 	// Project Status
 	projectRoutes.GET("/project-statuses", projectStatusController.GetAllProjectStatuses)
@@ -44,52 +49,79 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.GET("/projects", projectController.GetAllProjects)
 	projectRoutes.GET("/projects/export", projectController.GetProjectsExport)
 	projectRoutes.GET("/projects/:projectId", projectController.GetProjectDetails)
-	projectRoutes.POST("/projects", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectController.CreateProject)
-	projectRoutes.PUT("/projects/:projectId", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectController.UpdateProject)
-	projectRoutes.POST("/projects/delete", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectController.DeleteProjects)
-	projectRoutes.PUT("/projects/:projectId/status-update", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectController.UpdateProjectStatus)
+	projectRoutes.POST("/projects", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.CreateProject)
+	projectRoutes.PUT("/projects/:projectId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.UpdateProject)
+	projectRoutes.POST("/projects/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.DeleteProjects)
+	projectRoutes.PUT("/projects/:projectId/status-update", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.UpdateProjectStatus)
 
 	// Project Milestones
 	projectRoutes.GET("/project-milestones", projectMilestoneController.GetAllProjectMilestones)
 	projectRoutes.GET("/projects/:projectId/milestones", projectMilestoneController.GetAllProjectMilestones)
 	projectRoutes.GET("/projects/:projectId/milestones/:milestoneId", projectMilestoneController.GetProjectMilestoneDetails)
-	projectRoutes.POST("/projects/:projectId/milestones", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectMilestoneController.CreateProjectMilestone)
-	projectRoutes.PUT("/projects/:projectId/milestones/:milestoneId", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectMilestoneController.UpdateProjectMilestone)
-	projectRoutes.POST("/projects/:projectId/milestones/delete", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectMilestoneController.DeleteProjectMilestones)
+	projectRoutes.POST("/projects/:projectId/milestones", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectMilestoneController.CreateProjectMilestone)
+	projectRoutes.PUT("/projects/:projectId/milestones/:milestoneId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectMilestoneController.UpdateProjectMilestone)
+	projectRoutes.PUT("/projects/:projectId/milestones/:milestoneId/status-update", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectMilestoneController.UpdateProjectMilestoneStatus)
+	projectRoutes.POST("/projects/:projectId/milestones/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectMilestoneController.DeleteProjectMilestones)
+
+	// Project Change Requests
+	projectRoutes.GET("/projects/:projectId/change-requests", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetAllProjectChangeRequests)
+	projectRoutes.GET("/projects/:projectId/change-requests/summary", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetProjectChangeRequestSummary)
+	projectRoutes.GET("/projects/:projectId/change-requests/:changeRequestId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetProjectChangeRequestDetails)
+	projectRoutes.POST("/projects/:projectId/change-requests", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestController.CreateProjectChangeRequest)
+	projectRoutes.PUT("/projects/:projectId/change-requests/:changeRequestId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestController.UpdateProjectChangeRequest)
+	projectRoutes.POST("/projects/:projectId/change-requests/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestController.DeleteProjectChangeRequests)
+
+	// Project Change Request Review & Workflow
+	projectRoutes.POST("/projects/:projectId/change-requests/:changeRequestId/submit", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewController.SubmitChangeRequest)
+	projectRoutes.POST("/projects/:projectId/change-requests/:changeRequestId/resubmit", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewController.ResubmitChangeRequest)
+	projectRoutes.POST("/projects/:projectId/change-requests/:changeRequestId/approve", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewController.ApproveChangeRequest)
+	projectRoutes.POST("/projects/:projectId/change-requests/:changeRequestId/revert", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewController.RevertChangeRequest)
+	projectRoutes.POST("/projects/:projectId/change-requests/:changeRequestId/reject", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewController.RejectChangeRequest)
+	projectRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/workflow-list", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestWorkflowController.GetWorkflowList)
+
+	// Project Change Request Review Comments
+	unauthenticatedRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/review-comments/:commentId/document-download", projectChangeRequestReviewCommentController.DownloadDocument)
+	unauthenticatedRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/review-comments/:commentId/document-preview", projectChangeRequestReviewCommentController.GetDocumentPreview)
+	projectRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/review-comments", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestReviewCommentController.GetAllComments)
+	projectRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestReviewCommentController.GetCommentDetails)
+	projectRoutes.POST("/projects/:projectId/change-requests/:changeRequestId/review-comments", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewCommentController.CreateComment)
+	projectRoutes.PUT("/projects/:projectId/change-requests/:changeRequestId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewCommentController.UpdateComment)
+	projectRoutes.POST("/projects/:projectId/change-requests/:changeRequestId/review-comments/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewCommentController.DeleteComments)
+	projectRoutes.PUT("/projects/:projectId/change-requests/:changeRequestId/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewCommentController.ResolveComment)
 
 	// Project Action Plans
 	projectRoutes.GET("/project-action-plans", projectActionPlanController.GetAllProjectActionPlans)
-	projectRoutes.GET("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectActionPlanController.GetAllProjectActionPlans)
-	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectActionPlanController.GetProjectActionPlanDetails)
-	projectRoutes.POST("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanController.CreateProjectActionPlan)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanController.UpdateProjectActionPlan)
-	projectRoutes.POST("/projects/:projectId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanController.DeleteProjectActionPlans)
+	projectRoutes.GET("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectActionPlanController.GetAllProjectActionPlans)
+	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectActionPlanController.GetProjectActionPlanDetails)
+	projectRoutes.POST("/projects/:projectId/action-plans", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectActionPlanController.CreateProjectActionPlan)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectActionPlanController.UpdateProjectActionPlan)
+	projectRoutes.POST("/projects/:projectId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectActionPlanController.DeleteProjectActionPlans)
 
 	// Project Action Plan	 Status Update
 	unauthenticatedRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates/:id/document-download", projectActionPlanStatusUpdateController.DownloadProjectActionPlanStatusUpdateDocument)
 	unauthenticatedRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates/:id/document-preview", projectActionPlanStatusUpdateController.GetProjectActionPlanStatusUpdateDocumentPreview)
-	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectActionPlanStatusUpdateController.GetAllProjectActionPlanStatusUpdates)
+	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectActionPlanStatusUpdateController.GetAllProjectActionPlanStatusUpdates)
 	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/status-updates", projectActionPlanStatusUpdateController.CreateProjectActionPlanStatusUpdate)
 	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/status-updates/:id", projectActionPlanStatusUpdateController.UpdateProjectActionPlanStatusUpdate)
-	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectActionPlanStatusUpdateController.GetLatestProjectActionPlanStatusUpdate)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/approve", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanStatusUpdateController.ApproveProjectActionPlan)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/revert", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanStatusUpdateController.RevertProjectActionPlan)
+	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectActionPlanStatusUpdateController.GetLatestProjectActionPlanStatusUpdate)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/approve", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectActionPlanStatusUpdateController.ApproveProjectActionPlan)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/revert", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectActionPlanStatusUpdateController.RevertProjectActionPlan)
 
 	// Project Action Plan Comments
 	unauthenticatedRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/comments/:commentId/document-download", projectActionPlanCommentController.DownloadProjectActionPlanCommentDocument)
 	unauthenticatedRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/comments/:commentId/document-preview", projectActionPlanCommentController.GetProjectActionPlanCommentDocumentPreview)
-	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectActionPlanCommentController.GetAllComments)
-	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectActionPlanCommentController.GetCommentDetails)
-	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanCommentController.CreateComment)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanCommentController.UpdateComment)
-	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanCommentController.DeleteComment)
+	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectActionPlanCommentController.GetAllComments)
+	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectActionPlanCommentController.GetCommentDetails)
+	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectActionPlanCommentController.CreateComment)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectActionPlanCommentController.UpdateComment)
+	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectActionPlanCommentController.DeleteComment)
 
-	projectRoutes.GET("/projects/:projectId/documents", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectAssociatedItemController.GetAllProjectDocuments)
-	projectRoutes.POST("/projects/:projectId/documents", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectAssociatedItemController.CreateProjectDocument)
-	projectRoutes.DELETE("/projects/:projectId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectAssociatedItemController.DeleteProjectDocument)
+	projectRoutes.GET("/projects/:projectId/documents", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectAssociatedItemController.GetAllProjectDocuments)
+	projectRoutes.POST("/projects/:projectId/documents", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectAssociatedItemController.CreateProjectDocument)
+	projectRoutes.DELETE("/projects/:projectId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectAssociatedItemController.DeleteProjectDocument)
 
-	projectRoutes.GET("/projects/:projectId/controls", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectAssociatedItemController.GetAllProjectControls)
-	projectRoutes.POST("/projects/:projectId/controls", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectAssociatedItemController.CreateProjectControl)
+	projectRoutes.GET("/projects/:projectId/controls", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectAssociatedItemController.GetAllProjectControls)
+	projectRoutes.POST("/projects/:projectId/controls", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectAssociatedItemController.CreateProjectControl)
 	projectRoutes.DELETE("/projects/:projectId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectContol)
 
 	projectRoutes.GET("/projects/:projectId/processes", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectProcesses)
@@ -122,13 +154,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// project classifications
 	projectRoutes.GET("/project/project-classifications", projectClassificationController.GetAllProjectClassifications)
 	projectRoutes.GET("/project/project-classifications/:id", projectClassificationController.GetProjectClassificationDetails)
-	projectRoutes.POST("/project/project-classifications", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.CreateProjectClassification)
-	projectRoutes.PUT("/project/project-classifications/:id", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.UpdateProjectClassification)
-	projectRoutes.POST("/project/project-classifications/delete", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.DeleteProjectClassifications)
-	projectRoutes.PUT("/project/project-classifications/activate", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.ActivateProjectClassifications)
-	projectRoutes.PUT("/project/project-classifications/deactivate", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectClassificationController.DeactivateProjectClassifications)
+	projectRoutes.POST("/project/project-classifications", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectClassificationController.CreateProjectClassification)
+	projectRoutes.PUT("/project/project-classifications/:id", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectClassificationController.UpdateProjectClassification)
+	projectRoutes.POST("/project/project-classifications/delete", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectClassificationController.DeleteProjectClassifications)
+	projectRoutes.PUT("/project/project-classifications/activate", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectClassificationController.ActivateProjectClassifications)
+	projectRoutes.PUT("/project/project-classifications/deactivate", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectClassificationController.DeactivateProjectClassifications)
 
 	// Project Phases
 	projectRoutes.GET("/project-phases", projectPhaseController.GetAllProjectPhases)
 	projectRoutes.GET("/project-phases/:id", projectPhaseController.GetProjectPhaseDetails)
+
+	// Project Impact Assessment Types
+	projectRoutes.GET("/project-impact-assessment-types", projectImpactAssessmentTypeController.GetAllProjectImpactAssessmentTypes)
+	projectRoutes.GET("/project-impact-assessment-types/:id", projectImpactAssessmentTypeController.GetProjectImpactAssessmentTypeDetails)
 }

@@ -1,9 +1,12 @@
 package repositories
 
 import (
+	"math"
+
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/grc/project/dtos"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -15,6 +18,7 @@ type ProjectMilestoneRepositoryInterface interface {
 	Create(milestone *models.ProjectMilestone) (uint, error)
 	Update(milestone *models.ProjectMilestone) error
 	Delete(id uint) error
+	UpdateProjectCompletionPercentage(projectID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ProjectMilestoneRepository struct {
@@ -44,6 +48,9 @@ func (repo *ProjectMilestoneRepository) GetAll(projectID uint, params *dtos.Proj
 			status.title_ar AS project_milestone_status_title_ar,
 			status.type AS project_milestone_status_type,
 			status.color_code AS project_milestone_status_color_code,
+			project_milestones.project_phase_id,
+			phase.title_en AS project_phase_title_en,
+			phase.title_ar AS project_phase_title_ar,
 			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -65,6 +72,7 @@ func (repo *ProjectMilestoneRepository) GetAll(projectID uint, params *dtos.Proj
 		`).
 		Joins(`LEFT JOIN projects ON project_milestones.project_id = projects.id`).
 		Joins(`LEFT JOIN project_milestone_statuses AS status ON project_milestones.project_milestone_status_id = status.id`).
+		Joins(`LEFT JOIN project_phases AS phase ON project_milestones.project_phase_id = phase.id`).
 		Joins(`LEFT JOIN users AS created_user ON project_milestones.created_by_id = created_user.id`).
 		Joins(`LEFT JOIN users AS updated_user ON project_milestones.updated_by_id = updated_user.id`)
 
@@ -76,7 +84,7 @@ func (repo *ProjectMilestoneRepository) GetAll(projectID uint, params *dtos.Proj
 	// Apply filters
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			query = query.Where("project_milestones."+columnName+" IN (?)", values)
 		}
 	}
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -134,6 +142,7 @@ func (repo *ProjectMilestoneRepository) GetFullDetailsByID(id uint) (*models.Pro
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ProjectMilestoneStatus").
+		Preload("ProjectPhase").
 		First(&milestone, id)
 	if result.Error != nil {
 		return nil, result.Error
@@ -166,4 +175,31 @@ func (repo *ProjectMilestoneRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *ProjectMilestoneRepository) UpdateProjectCompletionPercentage(projectID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var totalCount int64
+	if err := db.Model(&models.ProjectMilestone{}).Where("project_id = ?", projectID).Count(&totalCount).Error; err != nil {
+		return err
+	}
+
+	var percentage float64
+	if totalCount > 0 {
+		var completedCount int64
+		err := db.Model(&models.ProjectMilestone{}).
+			Joins("JOIN project_milestone_statuses ON project_milestones.project_milestone_status_id = project_milestone_statuses.id").
+			Where("project_milestones.project_id = ? AND project_milestone_statuses.type = ?", projectID, "completed").
+			Count(&completedCount).Error
+		if err != nil {
+			return err
+		}
+		percentage = math.Round((float64(completedCount)/float64(totalCount))*10000) / 100
+	}
+
+	return db.Model(&models.Project{}).Where("id = ?", projectID).Update("completion_percentage", percentage).Error
 }
