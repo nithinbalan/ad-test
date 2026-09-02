@@ -316,6 +316,10 @@
   "translation": "A new {{.Field}} can only be created if none exists or the latest has failed."
 },
 {
+  "id": "empty_result",
+  "translation": "Incidents not found for this criteria."
+},
+{
   "id": "draft_exists",
   "translation": "An unpublished {{.Field}} already exists. Please publish it before creating a new one."
 },

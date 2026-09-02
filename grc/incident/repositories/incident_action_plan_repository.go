@@ -262,6 +262,9 @@ func (repo *IncidentActionPlanRepository) GetAllByIncidentID(incidentID uint, tx
 
 	err := db.
 		Preload("ActionPlanStatus").
+		Preload("SeverityLevel").
+		Preload("ResponsibleUser").
+		Preload("ActionPlanStatusUpdates").
 		Where("incident_register_id = ?", incidentID).
 		Order("created_at ASC").
 		Find(&plans).Error

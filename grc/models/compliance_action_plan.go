@@ -20,6 +20,7 @@ type ComplianceActionPlan struct {
 	ActionPlanStatusID                               uint       `json:"action_plan_status_id" binding:"required" gorm:"not null"`
 	Percentage                                       *int       `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	DelegateeUserID                                  *uint      `json:"delegatee_user_id"`
+	MarkedAsAuditableItem                            bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 	CreatedAt                                        time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                                        *time.Time `json:"updated_at" gorm:"type:datetime"`
 	CreatedByID                                      uint       `json:"created_by_id" gorm:"not null"`

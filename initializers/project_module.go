@@ -17,6 +17,8 @@ type ProjectModule struct {
 	ProjectActionPlanStatusUpdateController        *controllers.ProjectActionPlanStatusUpdateController
 	ProjectActionPlanCommentController             *controllers.ProjectActionPlanCommentController
 	ProjectAssociatedItemController                *controllers.ProjectAssociatedItemController
+	ProjectClassificationController                *controllers.ProjectClassificationController
+	ProjectPhaseController                         *controllers.ProjectPhaseController
 	ProjectSecurityGateClassificationController    *controllers.ProjectSecurityGateClassificationController
 	ProjectSecurityGateStageController             *controllers.ProjectSecurityGateStageController
 	ProjectSecurityGateChecklistTemplateController *controllers.ProjectSecurityGateChecklistTemplateController
@@ -96,6 +98,14 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	projectAssociatedItemSvc := services.NewProjectAssociatedItemService(projectAssociatedItemRepo, projectSvc, commonModule.AssociatedItemValidationService)
 	projectAssociatedItemController := controllers.NewProjectAssociatedItemController(projectAssociatedItemSvc)
 
+	projectClassificationRepo := repositories.NewProjectClassificationRepository(db)
+	projectClassificationSvc := services.NewProjectClassificationService(projectClassificationRepo, sharedModule.ActivityLogService)
+	projectClassificationController := controllers.NewProjectClassificationController(projectClassificationSvc)
+
+	projectPhaseRepo := repositories.NewProjectPhaseRepository(db)
+	projectPhaseSvc := services.NewProjectPhaseService(projectPhaseRepo)
+	projectPhaseController := controllers.NewProjectPhaseController(projectPhaseSvc)
+
 	projectSecurityGateClassificationRepo := repositories.NewProjectSecurityGateClassificationRepository(db)
 	projectSecurityGateClassificationSvc := services.NewProjectSecurityGateClassificationService(projectSecurityGateClassificationRepo)
 	projectSecurityGateClassificationController := controllers.NewProjectSecurityGateClassificationController(projectSecurityGateClassificationSvc)
@@ -120,6 +130,8 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectActionPlanStatusUpdateController:        projectActionPlanStatusUpdateController,
 		ProjectActionPlanCommentController:             projectActionPlanCommentController,
 		ProjectAssociatedItemController:                projectAssociatedItemController,
+		ProjectClassificationController:                projectClassificationController,
+		ProjectPhaseController:                         projectPhaseController,
 		ProjectSecurityGateClassificationController:    projectSecurityGateClassificationController,
 		ProjectSecurityGateStageController:             projectSecurityGateStageController,
 		ProjectSecurityGateChecklistTemplateController: projectSecurityGateChecklistTemplateController,

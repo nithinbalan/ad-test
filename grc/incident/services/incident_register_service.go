@@ -199,6 +199,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	incidentRegister := &models.IncidentRegister{
 		ReferenceNumber:                     referenceNumber,
 		IncidentCategoryID:                  incidentRegisterFormDTO.IncidentCategoryID,
+		IncidentSubCategoryID:               incidentRegisterFormDTO.IncidentSubCategoryID,
 		IncidentTypeID:                      incidentRegisterFormDTO.IncidentTypeID,
 		SeverityLevelID:                     *incidentRegisterFormDTO.SeverityLevelID,
 		IncidentStatusID:                    &incidentStatus.ID,
@@ -500,6 +501,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		existingIncidentRegister.ResponsibleUnitID = organizationUnitID
 	}
 	existingIncidentRegister.IncidentCategoryID = incidentRegisterFormDTO.IncidentCategoryID
+	existingIncidentRegister.IncidentSubCategoryID = incidentRegisterFormDTO.IncidentSubCategoryID
 	existingIncidentRegister.IncidentTypeID = incidentRegisterFormDTO.IncidentTypeID
 	existingIncidentRegister.SeverityLevelID = *incidentRegisterFormDTO.SeverityLevelID
 	existingIncidentRegister.BusinessOwnerID = incidentRegisterFormDTO.BusinessOwnerID
@@ -1491,8 +1493,14 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 			"Reported Date & Time",
 			"Current Status",
 			"Action Taken",
-			"Investigation Date & Time",
+			"Investigation Date",
 			"Investigation Details",
+			"Business Owner",
+			"Incident Scope",
+			"Sensitivity Classification",
+			"Confidentiality Severity Level",
+			"Integrity Severity Level",
+			"Availability Severity Level",
 		}
 	} else {
 		headers = []string{
@@ -1508,8 +1516,14 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 			"Reported Date & Time",
 			"Current Status",
 			"Action Taken",
-			"Investigation Date & Time",
+			"Investigation Date",
 			"Investigation Details",
+			"Business Owner",
+			"Incident Scope",
+			"Sensitivity Classification",
+			"Confidentiality Severity Level",
+			"Integrity Severity Level",
+			"Availability Severity Level",
 		}
 	}
 	// Convert the incident register data to [][]interface{} based on language setting
@@ -1532,6 +1546,12 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 				utility.GetStringValue(incident.QuickAction),
 				utility.GetStringValue(incident.InvestigationInitiatedAt),
 				utility.GetStringValue(incident.InvestigationDescription),
+				incident.BusinessOwnerFirstNameAr + " " + incident.BusinessOwnerLastNameAr,
+				incident.IncidentScopeTitleAr,
+				incident.IncidentSensitivityClassificationTitleAr,
+				incident.ConfidentialitySeverityLevelTitleAr,
+				incident.IntegritySeverityLevelTitleAr,
+				incident.AvailabilitySeverityLevelTitleAr,
 			}
 		} else {
 			// Populate row data in English
@@ -1550,6 +1570,12 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 				utility.GetStringValue(incident.QuickAction),
 				utility.GetStringValue(incident.InvestigationInitiatedAt),
 				utility.GetStringValue(incident.InvestigationDescription),
+				incident.BusinessOwnerFirstNameEn + " " + incident.BusinessOwnerLastNameEn,
+				incident.IncidentScopeTitleEn,
+				incident.IncidentSensitivityClassificationTitleEn,
+				incident.ConfidentialitySeverityLevelTitleEn,
+				incident.IntegritySeverityLevelTitleEn,
+				incident.AvailabilitySeverityLevelTitleEn,
 			}
 		}
 	}

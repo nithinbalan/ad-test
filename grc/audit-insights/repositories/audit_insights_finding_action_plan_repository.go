@@ -202,10 +202,10 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.A
 
 	// Apply target_date filters
 	if params.TargetDateFrom != "" {
-		query = query.Where("target_date >= ?", params.TargetDateFrom)
+		query = query.Where("audit_finding_action_plans.target_date >= ?", params.TargetDateFrom)
 	}
 	if params.TargetDateTo != "" {
-		query = query.Where("target_date <= ?", params.TargetDateTo)
+		query = query.Where("audit_finding_action_plans.target_date <= ?", params.TargetDateTo)
 	}
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("audit_finding_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -214,7 +214,7 @@ func (repo *AuditInsightsFindingActionPlanRepository) GetAll(params *auditDTOs.A
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "overdue":
-			query = query.Where("target_date < ?", time.Now())
+			query = query.Where("action_plan_statuses.is_closed = ? AND audit_finding_action_plans.target_date IS NOT NULL AND audit_finding_action_plans.target_date < ?", 0, time.Now())
 		case "completed":
 			query = query.Where("action_plan_statuses.type = ?", "completed")
 		case "in_progress":

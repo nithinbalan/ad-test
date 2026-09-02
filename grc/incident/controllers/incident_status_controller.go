@@ -26,8 +26,9 @@ func (isc *IncidentStatusController) GetAllIncidentStatuses(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	isIncident, _ := strconv.ParseBool(c.Query("is_incident"))
 
-	incidentStatuses, err := isc.service.GetAll(sort, sortBy, keyword, status)
+	incidentStatuses, err := isc.service.GetAll(sort, sortBy, keyword, status, isIncident)
 
 	if err != nil {
 		utility.SendInternalErrResp(isc.db, c, err.Error())

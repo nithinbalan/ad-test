@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type IncidentStatusRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IncidentStatus, error)
+	GetAll(sort string, sortBy string, keyword string, status string, isIncident bool) ([]*models.IncidentStatus, error)
 	GetByID(id uint) (*models.IncidentStatus, error)
 	GetByType(status string) (*models.IncidentStatus, error)
 }
@@ -26,7 +26,7 @@ func NewIncidentStatusRepository(db *gorm.DB) *IncidentStatusRepository {
 	}
 }
 
-func (repo *IncidentStatusRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IncidentStatus, error) {
+func (repo *IncidentStatusRepository) GetAll(sort string, sortBy string, keyword string, status string, isIncident bool) ([]*models.IncidentStatus, error) {
 
 	var incidentStatuses []*models.IncidentStatus
 
@@ -44,6 +44,10 @@ func (repo *IncidentStatusRepository) GetAll(sort string, sortBy string, keyword
 
 	if status == "active" || status == "inactive" {
 		query = query.Where("status = ?", status)
+	}
+
+	if isIncident {
+		query = query.Where("type NOT IN (?)", []string{"new", "closed"})
 	}
 
 	query = query.Order(sortBy + " " + sort)

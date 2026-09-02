@@ -25,6 +25,7 @@ type AuditableItemListDTO struct {
 	IncidentRegisterID              *uint  `json:"incident_register_id"`
 	ResponsibleUnitID               uint   `json:"responsible_unit_id"`
 	ComplianceRequirementID         *uint  `json:"compliance_requirement_id"`
+	ComplianceActionPlanID          *uint  `json:"compliance_action_plan_id"`
 	RiskRegisterID                  *uint  `json:"risk_register_id"`
 	UserID                          *uint  `json:"user_id"`
 	ProcessTitleEn                  string `json:"process_title_en"`
@@ -47,6 +48,7 @@ type AuditableItemListDTO struct {
 	IncidentRegisterTitle           string `json:"incident_register_title"`
 	ComplianceRequirementTitleEn    string `json:"compliance_requirement_title_en"`
 	ComplianceRequirementTitleAr    string `json:"compliance_requirement_title_ar"`
+	ComplianceActionPlanTitle       string `json:"compliance_action_plan_title"`
 	RiskRegisterTitle               string `json:"risk_register_title"`
 	UserFirstNameEn                 string `json:"user_first_name_en"`
 	UserFirstNameAr                 string `json:"user_first_name_ar"`
@@ -122,6 +124,7 @@ type AuditableItemDetailDTO struct {
 	DocumentID              *uint                                          `json:"document_id"`
 	IncidentRegisterID      *uint                                          `json:"incident_register_id"`
 	ComplianceRequirementID *uint                                          `json:"compliance_requirement_id"`
+	ComplianceActionPlanID  *uint                                          `json:"compliance_action_plan_id"`
 	RiskRegisterID          *uint                                          `json:"risk_register_id"`
 	ResponsibleUnitID       uint                                           `json:"responsible_unit_id"`
 	ResponsibleUserID       uint                                           `json:"responsible_user_id"`
@@ -131,6 +134,7 @@ type AuditableItemDetailDTO struct {
 	Document                *documentDTOs.DocumentDetailsDTO               `json:"document"`
 	IncidentRegister        *incidentDTOs.IncidentRegisterDetailDTO        `json:"incident_register"`
 	ComplianceRequirement   *complianceDTOs.ComplianceRequirementDetailDTO `json:"compliance_requirement"`
+	ComplianceActionPlan    *complianceDTOs.ComplianceActionPlanDetailDTO  `json:"compliance_action_plan"`
 	RiskRegister            *riskDTOs.RiskRegisterDetailDTO                `json:"risk_register"`
 	User                    *organizationDTOs.UserMinimalDTO               `json:"user"`
 	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO               `json:"responsible_unit"`

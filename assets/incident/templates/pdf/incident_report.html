@@ -73,6 +73,14 @@
                <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
                   <p
                      style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Sub Category: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{if .Data.IncidentSubCategory}}{{ .Data.IncidentSubCategory.TitleEn }}{{else}}-{{end}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
                      Severity Level: </p>
                   <p
                      style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
@@ -94,14 +102,14 @@
                   <p
                      style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
                      <span style="background: #E5F4F0;
-                             color: '{{.Data.IncidentStatus.ColorCode}}';
+                             color: {{.Data.IncidentStatus.ColorCode}};
                               padding: 4px 8px;
                               border-radius: 5px;
                               font-size: 12px;
                               line-height: normal;
                               display: inline-block;
                               border: 1px solid #AFD6CC;
-                              font-weight: 400;"> {{ .Data.IncidentStatus.Status }} </span>
+                              font-weight: 400;"> {{ .Data.IncidentStatus.TitleEn }} </span>
                   </p>
                </div>
                <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
@@ -153,6 +161,190 @@
                      style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
                      {{if .Data.Location}} {{.Data.Location}}{{else}}NA{{end}} </p>
                </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Incident Type: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{if .Data.IncidentType.TitleEn}} {{.Data.IncidentType.TitleEn}}{{else}}NA{{end}} </p>
+               </div>
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Responsible Unit: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{if .Data.ResponsibleUnit.TitleEn}} {{.Data.ResponsibleUnit.TitleEn}}{{else}}NA{{end}} </p>
+               </div>
+               {{if .Data.BusinessOwner}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Business Owner: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{ .Data.BusinessOwner.FirstNameEN }} {{ .Data.BusinessOwner.LastNameEN }} </p>
+               </div>
+               {{end}}
+               {{if .Data.IncidentScope}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Incident Scope: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.IncidentScope.TitleEn}} </p>
+               </div>
+               {{end}}
+               {{if .Data.QuickAction}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Quick Action: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.QuickAction}} </p>
+               </div>
+               {{end}}
+               {{if .Data.IsAcknowledge}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Acknowledgement Status: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     Acknowledged </p>
+               </div>
+               {{if .Data.AcknowledgedAt}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Acknowledged At: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.AcknowledgedAt.Format "2006-01-02 15:04"}} </p>
+               </div>
+               {{end}}
+               {{if .Data.AcknowledgedByUser}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Acknowledged By: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{ .Data.AcknowledgedByUser.FirstNameEN }} {{ .Data.AcknowledgedByUser.LastNameEN }} </p>
+               </div>
+               {{end}}
+               {{end}}
+               {{if .Data.IsSLATimeAchieved}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     SLA Status: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     Achieved </p>
+               </div>
+               {{else if .Data.IsSLATimeExceeded}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     SLA Status: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     Exceeded </p>
+               </div>
+               {{end}}
+               {{if .Data.ResponseTeamLead}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Response Team Lead: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{ .Data.ResponseTeamLead.FirstNameEN }} {{ .Data.ResponseTeamLead.LastNameEN }} </p>
+               </div>
+               {{end}}
+               {{if .Data.IncidentSensitivityClassification}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Sensitivity Classification: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{.Data.IncidentSensitivityClassification.TitleEn}} </p>
+               </div>
+               {{end}}
+               {{if .Data.ConfidentialitySeverityLevel}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Confidentiality Severity: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     <span style="background: #E5F4F0;
+                              color: {{.Data.ConfidentialitySeverityLevel.ColorCode}};
+                              padding: 4px 8px;
+                              border-radius: 5px;
+                              font-size: 12px;
+                              line-height: normal;
+                              display: inline-block;
+                              border: 1px solid #AFD6CC;
+                              font-weight: 400;"> {{.Data.ConfidentialitySeverityLevel.TitleEn}} </span> </p>
+               </div>
+               {{end}}
+               {{if .Data.IntegritySeverityLevel}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Integrity Severity: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     <span style="background: #E5F4F0;
+                              color: {{.Data.IntegritySeverityLevel.ColorCode}};
+                              padding: 4px 8px;
+                              border-radius: 5px;
+                              font-size: 12px;
+                              line-height: normal;
+                              display: inline-block;
+                              border: 1px solid #AFD6CC;
+                              font-weight: 400;"> {{.Data.IntegritySeverityLevel.TitleEn}} </span> </p>
+               </div>
+               {{end}}
+               {{if .Data.AvailabilitySeverityLevel}}
+               <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Availability Severity: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     <span style="background: #E5F4F0;
+                              color: {{.Data.AvailabilitySeverityLevel.ColorCode}};
+                              padding: 4px 8px;
+                              border-radius: 5px;
+                              font-size: 12px;
+                              line-height: normal;
+                              display: inline-block;
+                              border: 1px solid #AFD6CC;
+                              font-weight: 400;"> {{.Data.AvailabilitySeverityLevel.TitleEn}} </span> </p>
+               </div>
+               {{end}}
+               {{if .Data.ResponseTeamMembers}}
+               <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                     Response Team Members: </p>
+                  <p
+                     style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                     {{range .Data.ResponseTeamMembers}}
+                  <p
+                     style="margin: 0 0 5px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px; line-height: 1.5em; text-align: left; font-weight: 400;">
+                     • {{ .User.FirstNameEN }} {{ .User.LastNameEN }}
+                  </p>
+                     {{end}} </p>
+               </div>
+               {{end}}
             </div>
             <!-- <div style="width: 100%;  display: inline-block; vertical-align: top;">
                <p
@@ -162,7 +354,7 @@
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
                   .._.. </p>
             </div> -->
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
+            <!-- <div style="width: 100%;  display: inline-block; vertical-align: top;">
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
                   Supporting Documents: </p>
@@ -174,7 +366,7 @@
                   • {{.Name}}
                </p>
                {{end}} </p>
-            </div>
+            </div> -->
          </div>
 
 
@@ -251,6 +443,7 @@
             (gt (len .Data.Risks) 0)
             (gt (len .Data.AssociatedDocuments) 0)
             (gt (len .Data.Assets) 0)
+            (gt (len .Data.Vulnerabilities) 0)
             }}
             <h4 style="font-size: 18px; color: #050505; font-weight: 400; margin-top: 32px;">
                3. Associated Items
@@ -1214,7 +1407,7 @@
                     text-align: left;
                     ">
                            <span style="background: #E5F4F0;
-                   color: '{{$item.ControlEfficiencyStatusColorCode}}';
+                   color: '{{$item.ControlEffectivenessRatingColorCode}}';
                     padding: 4px 8px;
                     border-radius: 5px;
                     font-size: 12px;
@@ -1223,7 +1416,7 @@
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
                               {{if
-                              $item.ControlEfficiencyStatusTitleEn}}{{$item.ControlEfficiencyStatusTitleEn}}{{else}}NA{{end}}
+                              $item.ControlEffectivenessRatingTitleEn}}{{$item.ControlEffectivenessRatingTitleEn}}{{else}}NA{{end}}
                            </span>
                         </td>
                      </tr>
@@ -1568,6 +1761,46 @@
                               {{if $item.AssetStatusTitleEn}}{{$item.AssetStatusTitleEn}}{{else}}NA{{end}}
                            </span>
                         </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
+            {{end}}
+
+            <!-- vulnerability table -->
+            {{if gt (len .Data.Vulnerabilities) 0}}
+            <div style="margin-top: 24px;" class="keep-together">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 400;">
+                  <span> Vulnerabilities</span>
+               </p>
+               <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                  <thead>
+                     <tr style="border: 1px solid #eaedf2">
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">Ref No</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 23%;">Title</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Vulnerability Type</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">Status</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 13%;">Severity Level</th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Responsible User</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {{range $vIdx, $vuln := .Data.Vulnerabilities}}
+                     <tr style="border: 1px solid #eaedf2;">
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{add $vIdx 1}}</td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{$vuln.ReferenceNumber}}</td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{$vuln.TitleEn}}</td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{$vuln.VulnerabilityTypeTitleEn}}</td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px;">
+                           <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{$vuln.VulnerabilityStatusColorCode}}; color: #fff; font-size: 12px;">{{$vuln.VulnerabilityStatusTitleEn}}</span>
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px;">
+                           <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{$vuln.SeverityLevelColorCode}}; color: #fff; font-size: 12px;">{{$vuln.SeverityLevelTitleEn}}</span>
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; color: #1a1a1a;">{{$vuln.ResponsibleUserFirstNameEn}} {{$vuln.ResponsibleUserLastNameEn}}</td>
                      </tr>
                      {{end}}
                   </tbody>
@@ -2261,6 +2494,70 @@
                      <p
                         style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
                         {{.Data.IncidentClosure.Notes}} </p>
+                  </div>
+                  {{end}}
+
+                  {{if .Data.IncidentClosure.SubmittedByUser}}
+                  <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Submitted By: </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        {{ .Data.IncidentClosure.SubmittedByUser.FirstNameEN }} {{ .Data.IncidentClosure.SubmittedByUser.LastNameEN }} </p>
+                  </div>
+                  {{end}}
+
+                  {{if .Data.IncidentClosure.SubmittedAt}}
+                  <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Submitted At: </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        {{.Data.IncidentClosure.SubmittedAt.Format "2006-01-02 15:04"}} </p>
+                  </div>
+                  {{end}}
+
+                  {{if .Data.IncidentClosure.ApprovedByUser}}
+                  <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Approved By: </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        {{ .Data.IncidentClosure.ApprovedByUser.FirstNameEN }} {{ .Data.IncidentClosure.ApprovedByUser.LastNameEN }} </p>
+                  </div>
+                  {{end}}
+
+                  {{if .Data.IncidentClosure.ApprovedAt}}
+                  <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Approved At: </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        {{.Data.IncidentClosure.ApprovedAt.Format "2006-01-02 15:04"}} </p>
+                  </div>
+                  {{end}}
+
+                  {{if .Data.IncidentClosure.WorkflowStatus}}
+                  <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Workflow Status: </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        <span style="background: #E5F4F0;
+                                 color: {{.Data.IncidentClosure.WorkflowStatus.ColorCode}};
+                                 padding: 4px 8px;
+                                 border-radius: 5px;
+                                 font-size: 12px;
+                                 line-height: normal;
+                                 display: inline-block;
+                                 border: 1px solid #AFD6CC;
+                                 font-weight: 400;"> {{.Data.IncidentClosure.WorkflowStatus.TitleEn}} </span>
+                     </p>
                   </div>
                   {{end}}
                </div>
