@@ -24,13 +24,14 @@ import (
 type AuditServiceInterface interface {
 	GetAll(params *auditDTOs.AuditListQueryParamsDTO) (*auditDTOs.AuditListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDetailDTO, error)
-	GetByID(id uint) (*models.Audit, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Audit, error)
 	Create(currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error)
 	StatusUpdate(id uint, currentUserID uint, auditStatusID uint, tx utility.DatabaseTransaction) error
+	AdvanceAuditStatus(auditID uint, currentUserID uint, targetType string, tx utility.DatabaseTransaction) error
 
 	ExportAudits(data []*auditDTOs.AuditListDTO, currentUserID uint) (*os.File, error)
 }
@@ -78,8 +79,8 @@ func (as *AuditService) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (*audi
 	return as.repo.GetAll(params)
 }
 
-func (as *AuditService) GetByID(id uint) (*models.Audit, error) {
-	audit, err := as.repo.GetByID(id)
+func (as *AuditService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Audit, error) {
+	audit, err := as.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -135,7 +136,7 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 		tx.Rollback()
 		return 0, err
 	}
-	auditStatus, err := as.auditStatusSvc.GetByType("in-progress")
+	auditStatus, err := as.auditStatusSvc.GetByType("planning")
 	if err != nil {
 		return 0, err
 	}
@@ -214,9 +215,15 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 		tx.Rollback()
 		return 0, err
 	}
-	// Update Audit plan status in to in-progress
-	auditStatusID := auditStatus.ID
-	if err := as.auditPlanSvc.StatusUpdate(auditFormDTO.AuditPlanID, currentUserID, uint(auditStatusID), tx); err != nil {
+	// Update Audit plan status to in-progress. The audit plan only ever tracks
+	// published -> in-progress -> completed; it does not follow the audit's
+	// planning/fieldwork/reporting sub-stages.
+	auditPlanStatus, err := as.auditStatusSvc.GetByType("in-progress")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if err := as.auditPlanSvc.StatusUpdate(auditFormDTO.AuditPlanID, currentUserID, uint(auditPlanStatus.ID), tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -666,7 +673,7 @@ func (as *AuditService) GetAllAuditableItems(auditID uint, params *auditDTOs.Aud
 }
 
 func (as *AuditService) StatusUpdate(id uint, currentUserID uint, auditStatusID uint, tx utility.DatabaseTransaction) error {
-	existingAudit, err := as.GetByID(id)
+	existingAudit, err := as.GetByID(id, tx)
 	if err != nil {
 		return err
 	}
@@ -687,6 +694,49 @@ func (as *AuditService) StatusUpdate(id uint, currentUserID uint, auditStatusID 
 	}
 
 	return nil
+}
+
+func (as *AuditService) AdvanceAuditStatus(auditID uint, currentUserID uint, targetType string, tx utility.DatabaseTransaction) error {
+
+	auditStageRank := map[string]int{
+		"in-progress": 1,
+		"planning":    1,
+		"fieldwork":   2,
+		"reporting":   3,
+		"completed":   4,
+	}
+
+	targetRank, ok := auditStageRank[targetType]
+	if !ok {
+		return fmt.Errorf("unknown audit status stage: %s", targetType)
+	}
+
+	audit, err := as.GetByID(auditID, tx)
+	if err != nil {
+		return err
+	}
+
+	currentStatus, err := as.auditStatusSvc.GetByID(audit.AuditStatusID)
+	if err != nil {
+		return err
+	}
+
+	// Already at or past this stage — skip the update.
+	if auditStageRank[currentStatus.Type] >= targetRank {
+		return nil
+	}
+
+	targetStatus, err := as.auditStatusSvc.GetByType(targetType)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	audit.AuditStatusID = uint(targetStatus.ID)
+	audit.UpdatedAt = &now
+	audit.UpdatedBYID = &currentUserID
+
+	return as.repo.Update(audit, tx)
 }
 
 func (as *AuditService) ExportAudits(data []*auditDTOs.AuditListDTO, currentUserID uint) (*os.File, error) {

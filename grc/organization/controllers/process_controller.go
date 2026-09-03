@@ -56,6 +56,8 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		"location_ids",
 		"review_frequency_ids",
 		"workflow_status_ids",
+		"section_ids",
+		"sub_section_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

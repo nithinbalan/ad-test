@@ -12,6 +12,7 @@ type BusinessContinuityPlanListDTO struct {
 	ReferenceNumber                 string  `json:"reference_number"`
 	BusinessFunctionID              uint    `json:"business_function_id"`
 	BusinessFunctionTitle           string  `json:"business_function_title"`
+	ParentID                        *uint   `json:"parent_id"`
 	Version                         *int    `json:"version"`
 	IsLatestVersion                 *bool   `json:"is_latest_version"`
 	Purpose                         *string `json:"purpose"`
@@ -75,6 +76,10 @@ type BusinessContinuityPlanFormDTO struct {
 	Documents          []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
+type BusinessContinuityPlanCreateVersionDTO struct {
+	BcpID uint `json:"bcp_id" binding:"required"`
+}
+
 type BusinessContinuityPlanListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -97,6 +102,7 @@ type BusinessContinuityPlanDetailDTO struct {
 	ReferenceNumber    string                           `json:"reference_number"`
 	BusinessFunctionID uint                             `json:"business_function_id"`
 	BusinessFunction   BusinessFunctionDetailDTO        `json:"business_function"`
+	ParentID           *uint                            `json:"parent_id"`
 	Version            int                              `json:"version"`
 	IsLatestVersion    *bool                            `json:"is_latest_version"`
 	Purpose            *string                          `json:"purpose"`
@@ -275,4 +281,126 @@ type StaffAllocationUserDTO struct {
 	UserID   uint                             `json:"user_id"`
 	User     *organizationDTOs.UserMinimalDTO `json:"user"`
 	IsRemote bool                             `json:"is_remote"`
+}
+
+// BusinessContinuityPlanExportPDFDTO represents the data structure for BCP PDF export
+type BusinessContinuityPlanExportPDFDTO struct {
+	Title           string `json:"title"`
+	ReferenceNumber string `json:"reference_number"`
+	Version         int    `json:"version"`
+	CreatedAt       string `json:"created_at"`
+	GeneratedAt     string `json:"generated_at"`
+
+	// Created / Updated user
+	CreatedUserFirstNameEn string  `json:"created_user_first_name_en"`
+	CreatedUserLastNameEn  string  `json:"created_user_last_name_en"`
+	UpdatedUserFirstNameEn *string `json:"updated_user_first_name_en"`
+	UpdatedUserLastNameEn  *string `json:"updated_user_last_name_en"`
+	UpdatedAtString        *string `json:"updated_at"`
+
+	// Basic details
+	BusinessFunctionTitle string  `json:"business_function_title"`
+	Purpose               *string `json:"purpose"`
+	Scope                 *string `json:"scope"`
+	Objectives            *string `json:"objectives"`
+	Assumptions           *string `json:"assumptions"`
+
+	ResponsibleUserFirstNameEn string `json:"responsible_user_first_name_en"`
+	ResponsibleUserLastNameEn  string `json:"responsible_user_last_name_en"`
+	ResponsibleUnitTitleEn     string `json:"responsible_unit_title_en"`
+
+	BcpStatusTitleEn   string `json:"bcp_status_title_en"`
+	BcpStatusColorCode string `json:"bcp_status_color_code"`
+	BcpStatusType      string `json:"bcp_status_type"`
+
+	// BCP-level RTO/MTPD/RPO
+	Rto  string `json:"rto"`
+	Mtpd string `json:"mtpd"`
+	Rpo  string `json:"rpo"`
+
+	// Tables
+	TimeFrames                   []BCPTimeFrameExportDTO                `json:"time_frames"`
+	CriticalProcedureSummaries   []BCPCriticalProcedureSummaryExportDTO `json:"critical_procedure_summaries"`
+	InternalDependencies         []BCPInternalDependencyExportDTO       `json:"internal_dependencies"`
+	ExternalDependencies         []BCPExternalDependencyExportDTO       `json:"external_dependencies"`
+	CriticalStaff                []BCPCriticalStaffExportDTO            `json:"critical_staff"`
+	StaffAllocations             []BCPStaffAllocationExportDTO          `json:"staff_allocations"`
+	StaffAllocationBucketColumns []BCPOutageBucketColumnDTO             `json:"staff_allocation_bucket_columns"`
+	EquipmentList                []BCPEquipmentExportDTO                `json:"equipment_list"`
+	EquipmentToolColumns         []BCPEquipmentToolColumnDTO            `json:"equipment_tool_columns"`
+}
+
+// Table 1 — Time Frames
+type BCPTimeFrameExportDTO struct {
+	CriticalProcedureName string `json:"critical_procedure_name"`
+	Rto                   string `json:"rto"`
+	Mtpd                  string `json:"mtpd"`
+	Rpo                   string `json:"rpo"`
+	Rsp                   string `json:"rsp"`
+	AlternateSiteName     string `json:"alternate_site_name"`
+}
+
+// Table 2 — Critical Procedure Data Summary
+type BCPCriticalProcedureSummaryExportDTO struct {
+	CriticalProcedureName string   `json:"critical_procedure_name"`
+	ApplicationSystems    []string `json:"application_systems"`
+	ManualExecution       string   `json:"manual_execution"`
+	ManualSteps           string   `json:"manual_steps"`
+	ManualForms           []string `json:"manual_forms"`
+	ManualRequirements    string   `json:"manual_requirements"`
+	CriticalRecords       []string `json:"critical_records"`
+}
+
+// Table 3 — Internal Dependencies
+type BCPInternalDependencyExportDTO struct {
+	CriticalProcedureName     string `json:"critical_procedure_name"`
+	SupportingUnitTitle       string `json:"supporting_unit_title"`
+	DependencyTierTitle       string `json:"dependency_tier_title"`
+	DependencyPercentageRange string `json:"dependency_percentage_range"`
+	RequiredSupport           string `json:"required_support"`
+	Notes                     string `json:"notes"`
+}
+
+// Table 4 — External Dependencies
+type BCPExternalDependencyExportDTO struct {
+	CriticalProcedureName string `json:"critical_procedure_name"`
+	EntityName            string `json:"entity_name"`
+	EntityTypeTitle       string `json:"entity_type_title"`
+	DependencyTierTitle   string `json:"dependency_tier_title"`
+	SLARegisterTitle      string `json:"sla_register_title"`
+	InternalStakeholder   string `json:"internal_stakeholder"`
+	ContactNumber         string `json:"contact_number"`
+	ContactEmail          string `json:"contact_email"`
+}
+
+// Table 5 — Critical Staff
+type BCPCriticalStaffExportDTO struct {
+	CriticalProcedureName string `json:"critical_procedure_name"`
+	CriticalStaff         int    `json:"critical_staff"`
+}
+
+// Table 6 — Staff Allocations
+type BCPStaffAllocationExportDTO struct {
+	CriticalProcedureName string          `json:"critical_procedure_name"`
+	CriticalStaff         string          `json:"critical_staff"`
+	RemoteWork            string          `json:"remote_work"`
+	BucketUsers           map[uint]string `json:"bucket_users"`
+}
+
+type BCPOutageBucketColumnDTO struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	Order   int    `json:"order"`
+}
+
+// Table 7 — Equipment
+type BCPEquipmentExportDTO struct {
+	CriticalEmployee string          `json:"critical_employee"`
+	EquipmentStatus  map[uint]string `json:"equipment_status"`
+	NeedStatus       string          `json:"need_status"`
+}
+
+type BCPEquipmentToolColumnDTO struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
 }

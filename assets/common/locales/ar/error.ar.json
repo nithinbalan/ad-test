@@ -308,6 +308,26 @@
 {
   "id": "latest_must_be_failed",
   "translation": "لا يمكن إنشاء {{.Field}} جديد إلا إذا لم يكن هناك {{.Field}} حالي أو كانت نتيجة الأحدث 'راسب'."
+},
+{
+  "id": "empty_result",
+  "translation": "لم يتم العثور على الحوادث لهذا المعايير."
+},
+{
+  "id": "draft_exists",
+  "translation": "يوجد بالفعل {{.Field}} غير منشور. يرجى نشره قبل إنشاء {{.Field}} جديد."
+},
+{
+  "id": "already_published",
+  "translation": "تم نشر هذا {{.Field}} بالفعل."
+},
+{
+  "id": "no_requirements",
+  "translation": "لا يمكن نشر الإصدار دون {{.Field}} واحد على الأقل في قائمة التحقق."
+},
+{
+  "id": "version_published",
+  "translation": "لا يمكن تعديل {{.Field}} بعد نشره."
 }
 
 

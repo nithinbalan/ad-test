@@ -57,6 +57,7 @@ type SystemRegister struct {
 	UpdatedByUser             *User                            `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	SystemRegisterSLA         *SystemRegisterSLA               `gorm:"foreignKey:SystemRegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	SystemRegisterImpactTypes []*SystemRegisterImpactType      `gorm:"foreignKey:SystemRegisterID"`
+	ProcessSystemRegisters    []*ProcessSystemRegister         `gorm:"foreignKey:SystemRegisterID"`
 }
 
 func (SystemRegister) TableName() string {

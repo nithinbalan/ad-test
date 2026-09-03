@@ -440,7 +440,7 @@ func (ies *IncidentEvidenceService) GetIncidentEvidencePath(incidentRegisterID, 
 		return "", fmt.Errorf("error accessing file: %w", err)
 	}
 
-	if evidence.IsDownload && currentUserID != 0 {
+	if currentUserID != 0 {
 		history := &models.IncidentEvidenceDownloadHistory{
 			IncidentEvidenceID: evidence.ID,
 			DownloadedAt:       time.Now(),

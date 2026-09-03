@@ -320,6 +320,13 @@ func (repo *SystemRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.
 		Preload("VendorRTOUnit").
 		Preload("SystemRegisterSLA").
 		Preload("SystemRegisterSLA.SLARegister").
+		Preload("ProcessSystemRegisters.Process.ImpactAnalysisLevel").
+		Preload("ProcessSystemRegisters.Process.Division").
+		Preload("ProcessSystemRegisters.Process.ResponsibleUnit").
+		Preload("ProcessSystemRegisters.Process.Section").
+		Preload("ProcessSystemRegisters.Process.SubSection").
+		Preload("ProcessSystemRegisters.Process.ResponsibleUser").
+		Preload("ProcessSystemRegisters.Process.LifecycleStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&systemRegister, id)

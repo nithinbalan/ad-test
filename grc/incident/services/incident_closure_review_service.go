@@ -218,7 +218,7 @@ func (icrs *IncidentClosureReviewService) Submit(closureID uint, currentUserID u
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/incidents/%d/closure", appURL, closure.IncidentRegister.ID),
+				"RedirectURL":           fmt.Sprintf("%s/incident/register/%d/incident-closure", appURL, closure.IncidentRegister.ID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -588,7 +588,7 @@ func (icrs *IncidentClosureReviewService) sendApprovalNotification(closureID uin
 			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
 			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
 			"ApprovedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%s/incidents/%d/closure", appURL, incidentClosure.IncidentRegister.ID),
+			"RedirectURL":           fmt.Sprintf("%s/incident/register/%d/incident-closure", appURL, incidentClosure.IncidentRegister.ID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -671,7 +671,7 @@ func (icrs *IncidentClosureReviewService) notifyNextLevelUsers(closureID uint, n
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/incidents/%d/closure", appURL, incidentClosure.IncidentRegister.ID),
+				"RedirectURL":           fmt.Sprintf("%s/incident/register/%d/incident-closure", appURL, incidentClosure.IncidentRegister.ID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -745,7 +745,7 @@ func (icrs *IncidentClosureReviewService) sendRevertedNotification(closureID uin
 			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
 			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
 			"RejectedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%s/incidents/%d/closure", appURL, incidentClosure.IncidentRegister.ID),
+			"RedirectURL":           fmt.Sprintf("%s/incident/register/%d/incident-closure", appURL, incidentClosure.IncidentRegister.ID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

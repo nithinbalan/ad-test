@@ -19,6 +19,7 @@ type TestAndExerciseTestResult struct {
 	TestAndExercise           *TestAndExercise                          `gorm:"foreignKey:TestAndExerciseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents                 []TestAndExerciseTestResultDocument       `gorm:"foreignKey:TestAndExerciseTestResultID"`
 	TestResultSystemRegisters []TestAndExerciseTestResultSystemRegister `gorm:"foreignKey:TestAndExerciseTestResultID"`
+	PerformanceMeasures       []TestResultPerformanceMeasure            `gorm:"foreignKey:TestResultID"`
 	CreatedByUser             *User                                     `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser             *User                                     `gorm:"foreignKey:UpdatedBYID"`
 }

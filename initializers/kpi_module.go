@@ -16,7 +16,9 @@ type KPIModule struct {
 	AwarenessDashboardController            *controllers.AwarenessDashboardController
 	VulnerabilityDashboardController        *controllers.VulnerabilityDashboardController
 	DocumentDashboardController             *controllers.DocumentDashboardController
+	IncidentDashboardController             *controllers.IncidentDashboardController
 	IdentityAccessReviewDashboardController *controllers.IdentityAccessReviewDashboardController
+	AuditDashboardController                *controllers.AuditDashboardController
 
 	GrcDashboardSvc services.GRCDashboardServiceInterface
 }
@@ -51,9 +53,17 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *Organ
 	documentDashboardSvc := services.NewDocumentDashboardService(documentDashboardRepo)
 	documentDashboardController := controllers.NewDocumentDashboardController(documentDashboardSvc, db)
 
+	incidentDashboardRepo := repositories.NewIncidentDashboardRepository(db)
+	incidentDashboardSvc := services.NewIncidentDashboardService(incidentDashboardRepo)
+	incidentDashboardController := controllers.NewIncidentDashboardController(incidentDashboardSvc, db)
+
 	identityAccessReviewDashboardRepo := repositories.NewIdentityAccessReviewDashboardRepository(db)
 	identityAccessReviewDashboardSvc := services.NewIdentityAccessReviewDashboardService(identityAccessReviewDashboardRepo)
 	identityAccessReviewDashboardController := controllers.NewIdentityAccessReviewDashboardController(identityAccessReviewDashboardSvc, db)
+
+	auditDashboardRepo := repositories.NewAuditDashboardRepository(db)
+	auditDashboardSvc := services.NewAuditDashboardService(auditDashboardRepo, organizationModule.UserSettingSvc)
+	auditDashboardController := controllers.NewAuditDashboardController(auditDashboardSvc, db)
 
 	return &KPIModule{
 		GRCDashboardController:                  grcDashboardController,
@@ -63,7 +73,9 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *Organ
 		AwarenessDashboardController:            awarenessDashboardController,
 		VulnerabilityDashboardController:        vulnerabilityDashboardController,
 		DocumentDashboardController:             documentDashboardController,
+		IncidentDashboardController:             incidentDashboardController,
 		IdentityAccessReviewDashboardController: identityAccessReviewDashboardController,
+		AuditDashboardController:                auditDashboardController,
 
 		GrcDashboardSvc: grcDashboardSvc,
 	}

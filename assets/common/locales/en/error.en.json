@@ -314,6 +314,26 @@
 {
   "id": "latest_must_be_failed",
   "translation": "A new {{.Field}} can only be created if none exists or the latest has failed."
+},
+{
+  "id": "empty_result",
+  "translation": "Incidents not found for this criteria."
+},
+{
+  "id": "draft_exists",
+  "translation": "An unpublished {{.Field}} already exists. Please publish it before creating a new one."
+},
+{
+  "id": "already_published",
+  "translation": "This {{.Field}} has already been published."
+},
+{
+  "id": "no_requirements",
+  "translation": "A version cannot be published without at least one checklist {{.Field}}."
+},
+{
+  "id": "version_published",
+  "translation": "Cannot modify the {{.Field}} once it is published."
 }
 
 

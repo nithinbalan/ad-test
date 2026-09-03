@@ -318,6 +318,8 @@ type BIAProcessDetailDTO struct {
 	Description                     *string                                              `json:"description"`
 	ProcessGroup                    *organizationDTOs.ProcessGroupDTO                    `json:"process_group"`
 	ResponsibleUnit                 *settingsDTOs.OrganizationUnitDTO                    `json:"owner_unit"`
+	Section                         *settingsDTOs.OrganizationUnitDTO                    `json:"section"`
+	SubSection                      *settingsDTOs.OrganizationUnitDTO                    `json:"sub_section"`
 	ResponsibleUserID               *uint                                                `json:"owner_id"`
 	ResponsibleUser                 *organizationDTOs.UserMinimalDTO                     `json:"owner"`
 	CreatedByUser                   organizationDTOs.UserMinimalDTO                      `json:"created_by"`

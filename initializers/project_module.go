@@ -9,21 +9,24 @@ import (
 )
 
 type ProjectModule struct {
-	ProjectTypeController                   *controllers.ProjectTypeController
-	ProjectStatusController                 *controllers.ProjectStatusController
-	ProjectController                       *controllers.ProjectController
-	ProjectMilestoneController              *controllers.ProjectMilestoneController
-	ProjectActionPlanController             *controllers.ProjectActionPlanController
-	ProjectActionPlanStatusUpdateController *controllers.ProjectActionPlanStatusUpdateController
-	ProjectActionPlanCommentController      *controllers.ProjectActionPlanCommentController
-	ProjectAssociatedItemController         *controllers.ProjectAssociatedItemController
-	ProjectClassificationController         *controllers.ProjectClassificationController
-	ProjectPhaseController                  *controllers.ProjectPhaseController
-	ProjectChangeRequestController          *controllers.ProjectChangeRequestController
-	ProjectChangeRequestWorkflowController  *controllers.ProjectChangeRequestWorkflowController
-	ProjectChangeRequestReviewController    *controllers.ProjectChangeRequestReviewController
-	ProjectChangeRequestReviewCommentController *controllers.ProjectChangeRequestReviewCommentController
-	ProjectImpactAssessmentTypeController   *controllers.ProjectImpactAssessmentTypeController
+	ProjectTypeController                          *controllers.ProjectTypeController
+	ProjectStatusController                        *controllers.ProjectStatusController
+	ProjectController                              *controllers.ProjectController
+	ProjectMilestoneController                     *controllers.ProjectMilestoneController
+	ProjectActionPlanController                    *controllers.ProjectActionPlanController
+	ProjectActionPlanStatusUpdateController        *controllers.ProjectActionPlanStatusUpdateController
+	ProjectActionPlanCommentController             *controllers.ProjectActionPlanCommentController
+	ProjectAssociatedItemController                *controllers.ProjectAssociatedItemController
+	ProjectClassificationController                *controllers.ProjectClassificationController
+	ProjectPhaseController                         *controllers.ProjectPhaseController
+	ProjectChangeRequestController                 *controllers.ProjectChangeRequestController
+	ProjectChangeRequestWorkflowController         *controllers.ProjectChangeRequestWorkflowController
+	ProjectChangeRequestReviewController           *controllers.ProjectChangeRequestReviewController
+	ProjectChangeRequestReviewCommentController    *controllers.ProjectChangeRequestReviewCommentController
+	ProjectImpactAssessmentTypeController          *controllers.ProjectImpactAssessmentTypeController
+	ProjectSecurityGateClassificationController    *controllers.ProjectSecurityGateClassificationController
+	ProjectSecurityGateStageController             *controllers.ProjectSecurityGateStageController
+	ProjectSecurityGateChecklistTemplateController *controllers.ProjectSecurityGateChecklistTemplateController
 
 	projectSvc                          services.ProjectServiceInterface
 	projectMilestoneSvc                 services.ProjectMilestoneServiceInterface
@@ -163,22 +166,40 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	projectImpactAssessmentTypeSvc := services.NewProjectImpactAssessmentTypeService(projectImpactAssessmentTypeRepo)
 	projectImpactAssessmentTypeController := controllers.NewProjectImpactAssessmentTypeController(projectImpactAssessmentTypeSvc)
 
+	projectSecurityGateClassificationRepo := repositories.NewProjectSecurityGateClassificationRepository(db)
+	projectSecurityGateClassificationSvc := services.NewProjectSecurityGateClassificationService(projectSecurityGateClassificationRepo)
+	projectSecurityGateClassificationController := controllers.NewProjectSecurityGateClassificationController(projectSecurityGateClassificationSvc)
+
+	projectSecurityGateStageRepo := repositories.NewProjectSecurityGateStageRepository(db)
+	projectSecurityGateStageSvc := services.NewProjectSecurityGateStageService(projectSecurityGateStageRepo)
+	projectSecurityGateStageController := controllers.NewProjectSecurityGateStageController(projectSecurityGateStageSvc)
+
+	projectSecurityGateChecklistTemplateRepo := repositories.NewProjectSecurityGateChecklistTemplateRepository(db)
+	projectSecurityGateChecklistTemplateSvc := services.NewProjectSecurityGateChecklistTemplateService(
+		projectSecurityGateChecklistTemplateRepo,
+		sharedModule.ActivityLogService,
+	)
+	projectSecurityGateChecklistTemplateController := controllers.NewProjectSecurityGateChecklistTemplateController(projectSecurityGateChecklistTemplateSvc)
+
 	return &ProjectModule{
-		ProjectTypeController:                   projectTypeController,
-		ProjectStatusController:                 projectStatusController,
-		ProjectController:                       projectController,
-		ProjectMilestoneController:              projectMilestoneController,
-		ProjectChangeRequestController:          projectChangeRequestController,
-		ProjectChangeRequestWorkflowController:  projectChangeRequestWorkflowController,
-		ProjectChangeRequestReviewController:    projectChangeRequestReviewController,
-		ProjectChangeRequestReviewCommentController: projectChangeRequestReviewCommentController,
-		ProjectActionPlanController:             projectActionPlanController,
-		ProjectActionPlanStatusUpdateController: projectActionPlanStatusUpdateController,
-		ProjectActionPlanCommentController:      projectActionPlanCommentController,
-		ProjectAssociatedItemController:         projectAssociatedItemController,
-		ProjectClassificationController:         projectClassificationController,
-		ProjectPhaseController:                  projectPhaseController,
-		ProjectImpactAssessmentTypeController:   projectImpactAssessmentTypeController,
+		ProjectTypeController:                          projectTypeController,
+		ProjectStatusController:                        projectStatusController,
+		ProjectController:                              projectController,
+		ProjectMilestoneController:                     projectMilestoneController,
+		ProjectActionPlanController:                    projectActionPlanController,
+		ProjectActionPlanStatusUpdateController:        projectActionPlanStatusUpdateController,
+		ProjectActionPlanCommentController:             projectActionPlanCommentController,
+		ProjectAssociatedItemController:                projectAssociatedItemController,
+		ProjectClassificationController:                projectClassificationController,
+		ProjectPhaseController:                         projectPhaseController,
+		ProjectChangeRequestController:                 projectChangeRequestController,
+		ProjectChangeRequestWorkflowController:         projectChangeRequestWorkflowController,
+		ProjectChangeRequestReviewController:           projectChangeRequestReviewController,
+		ProjectChangeRequestReviewCommentController:    projectChangeRequestReviewCommentController,
+		ProjectImpactAssessmentTypeController:          projectImpactAssessmentTypeController,
+		ProjectSecurityGateClassificationController:    projectSecurityGateClassificationController,
+		ProjectSecurityGateStageController:             projectSecurityGateStageController,
+		ProjectSecurityGateChecklistTemplateController: projectSecurityGateChecklistTemplateController,
 
 		projectSvc:                          projectSvc,
 		projectMilestoneSvc:                 projectMilestoneSvc,

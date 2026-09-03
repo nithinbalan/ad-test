@@ -55,6 +55,8 @@ type Process struct {
 	AlternativeLocation                   *string `json:"alternative_location" gorm:"type:nvarchar(MAX);default:null"`
 	RushHour                              *string `json:"rush_hour" gorm:"type:varchar(100);default:null"`
 	ReviewFrequencyID                     *uint   `json:"review_frequency_id" gorm:"default:null"`
+	SectionID                             uint    `json:"section_id" gorm:"not null" binding:"required"`
+	SubSectionID                          *uint   `json:"sub_section_id" gorm:"default:null"`
 	IsCanBeDoneManually                   bool    `json:"is_can_be_done_manually" gorm:"not null;default:0"`
 	TimeToPerformProcedureManually        *string `json:"time_to_perform_procedure_manually" gorm:"type:varchar(100);default:null"`
 	StepsToPerformProcedureManually       *string `json:"steps_to_perform_procedure_manually" gorm:"type:nvarchar(MAX);default:null"`
@@ -73,6 +75,8 @@ type Process struct {
 	ProcessType     *BCMProcessType   `gorm:"foreignKey:ProcessTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Location        *Location         `gorm:"foreignKey:LocationID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ReviewFrequency *ReviewFrequency  `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Section         *OrganizationUnit `gorm:"foreignKey:SectionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SubSection      *OrganizationUnit `gorm:"foreignKey:SubSectionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	CreatedByUser                   *User                             `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser                   *User                             `gorm:"foreignKey:UpdatedBYID"`

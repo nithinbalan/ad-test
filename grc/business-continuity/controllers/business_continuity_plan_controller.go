@@ -2,13 +2,16 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -384,4 +387,101 @@ func (bcpc *BusinessContinuityPlanController) GetTestSummary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, testSummary)
+}
+
+func (bcpc *BusinessContinuityPlanController) CreateVersion(c *gin.Context) {
+	var dto businessContinuityDTOs.BusinessContinuityPlanCreateVersionDTO
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		return
+	}
+
+	id, err := bcpc.service.CreateVersion(currentUserID, &dto)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(bcpc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
+}
+
+func (bcpc *BusinessContinuityPlanController) GetVersionHistory(c *gin.Context) {
+	bcpIDStr := c.Param("id")
+	bcpID, err := strconv.ParseUint(bcpIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	bcpDetails, err := bcpc.service.GetReportFullDetailsByID(uint(bcpID))
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(bcpc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, bcpDetails)
+}
+
+func (bcpc *BusinessContinuityPlanController) ExportBusinessContinuityPlanToPDF(c *gin.Context) {
+	bcpIDStr := c.Param("id")
+	bcpID, err := strconv.ParseUint(bcpIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		return
+	}
+
+	fileName, err := bcpc.service.ExportBusinessContinuityPlanPDF(uint(bcpID), uint(currentUserID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(bcpc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	c.Header("Content-Type", "application/pdf")
+	c.File(fileName)
+	c.Writer.Flush()
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		if err := os.Remove(fileName); err != nil {
+			fmt.Printf("Failed to delete file %s: %v\n", fileName, err)
+		}
+	}()
 }

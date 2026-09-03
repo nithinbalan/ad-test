@@ -100,6 +100,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		organizationModule.ControlSvc,
 		organizationModule.UserSvc,
 		complianceModule.ComplianceRequirementSvc,
+		complianceModule.ComplianceActionPlanSvc,
 		riskModule.RiskRegisterSvc,
 		incidentModule.IncidentRegisterSvc,
 		documentModule.DocumentSvc,

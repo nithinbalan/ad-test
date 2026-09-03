@@ -22,7 +22,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessDashboardController := app.KPIModule.AwarenessDashboardController
 	vulnerabilityDashboardController := app.KPIModule.VulnerabilityDashboardController
 	documentDashboardController := app.KPIModule.DocumentDashboardController
+	incidentDashboardController := app.KPIModule.IncidentDashboardController
 	identityAccessReviewDashboardController := app.KPIModule.IdentityAccessReviewDashboardController
+	auditDashboardController := app.KPIModule.AuditDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -143,9 +145,34 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/document/by-responsible-unit", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentsByResponsibleUnit)
 	kpiRoutes.GET("/kpis/document/review-count-trend", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentDashboardController.GetDocumentReviewCountTrend)
 
+	// Incident Dashboard
+	kpiRoutes.GET("/kpis/incident/status-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentStatusSummary)
+	kpiRoutes.GET("/kpis/incident/severity-breakdown", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentSeverityBreakdown)
+	kpiRoutes.GET("/kpis/incident/acknowledgement-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentAcknowledgementSummary)
+	kpiRoutes.GET("/kpis/incident/sla-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentSLASummary)
+	kpiRoutes.GET("/kpis/incident/category-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentCategorySummary)
+	kpiRoutes.GET("/kpis/incident/type-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentTypeSummary)
+	kpiRoutes.GET("/kpis/incident/trend", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentTrend)
+	kpiRoutes.GET("/kpis/incident/action-plan-summary", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetIncidentActionPlanSummary)
+	kpiRoutes.GET("/kpis/incident/overdue-action-plans", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentDashboardController.GetOverdueActionPlans)
 	// Identity Access Review Dashboard
 	kpiRoutes.GET("/kpis/identity-access-review/summary", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetIdentityAccessReviewSummary)
 	kpiRoutes.GET("/kpis/identity-access-review/campaign-by-lifecycle", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetCampaignsByLifecycle)
 	kpiRoutes.GET("/kpis/identity-access-review/completion-by-system", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetCompletionBySystem)
 	kpiRoutes.GET("/kpis/identity-access-review/active-recent-campaigns", middlewares.RolePermissionMiddleware(db, "review_campaign", "view"), identityAccessReviewDashboardController.GetActiveAndRecentCampaigns)
+
+	// Audit Dashboard
+	kpiRoutes.GET("/kpis/audit/summary", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditSummary)
+	kpiRoutes.GET("/kpis/audit/status-breakdown", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditStatusBreakdown)
+	kpiRoutes.GET("/kpis/audit/status/:statusId", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditsByStatus)
+	kpiRoutes.GET("/kpis/audit/status/:statusId/export", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditsByStatusExport)
+
+	kpiRoutes.GET("/kpis/audit/findings/summary", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditFindingsSummary)
+	kpiRoutes.GET("/kpis/audit/findings/severity-breakdown", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditFindingsSeverityBreakdown)
+	kpiRoutes.GET("/kpis/audit/findings/severity/:severityId", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditFindingsListBySeverityLevel)
+	kpiRoutes.GET("/kpis/audit/findings/severity/:severityId/export", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditFindingsListBySeverityLevelExport)
+	kpiRoutes.GET("/kpis/audit/findings/trend", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetAuditFindingsTrend)
+
+	kpiRoutes.GET("/kpis/audit/action-plans/overdue", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetOverdueAuditActionPlans)
+	kpiRoutes.GET("/kpis/audit/action-plans/overdue/export", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetOverdueAuditActionPlansExport)
 }

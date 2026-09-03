@@ -1,0 +1,87 @@
+package dtos
+
+import (
+	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+)
+
+type PenetrationTestRetestListDTO struct {
+	ID                        uint    `json:"id"`
+	ReferenceNumber           string  `json:"reference_number"`
+	PenetrationTestID         uint    `json:"penetration_test_id"`
+	StartDate                 string  `json:"start_date"`
+	EndDate                   *string `json:"end_date"`
+	PenetrationTestExecutorID uint    `json:"penetration_test_executor_id"`
+	ExecutorTitleEn           string  `json:"executor_title_en"`
+	ExecutorTitleAr           string  `json:"executor_title_ar"`
+	Status                    string  `json:"status"`
+	Notes                     *string `json:"notes"`
+	RemainingCritical         int     `json:"remaining_critical"`
+	RemainingHigh             int     `json:"remaining_high"`
+	RemainingMedium           int     `json:"remaining_medium"`
+	RemainingLow              int     `json:"remaining_low"`
+	RemainingTotal            int     `json:"remaining_total"`
+}
+
+type PenetrationTestRetestFormDTO struct {
+	PenetrationTestID         uint    `json:"penetration_test_id" binding:"required"`
+	StartDate                 string  `json:"start_date" binding:"required,datetime=2006-01-02"`
+	EndDate                   *string `json:"end_date,omitempty" binding:"omitempty,datetime=2006-01-02"`
+	PenetrationTestExecutorID uint    `json:"penetration_test_executor_id" binding:"required"`
+	Status                    string  `json:"status" binding:"required,oneof=in-progress completed"`
+	Notes                     *string `json:"notes,omitempty"`
+	FindingIDs                []uint  `json:"finding_ids" binding:"required,min=1"`
+}
+
+type PenetrationTestRetestFindingFormDTO struct {
+	FindingID  uint `json:"finding_id" binding:"required"`
+	IsVerified bool `json:"is_verified"`
+}
+
+type PenetrationTestRetestFindingDTO struct {
+	ID                       uint       `json:"id"`
+	PenetrationTestFindingID uint       `json:"penetration_test_finding_id"`
+	FindingReferenceNumber   string     `json:"finding_reference_number"`
+	FindingTitle             string     `json:"finding_title"`
+	IsVerified               bool       `json:"is_verified"`
+	VerifiedAt               *time.Time `json:"verified_at"`
+}
+
+type PenetrationTestRetestDetailDTO struct {
+	ID                        uint                               `json:"id"`
+	ReferenceNumber           string                             `json:"reference_number"`
+	PenetrationTestID         uint                               `json:"penetration_test_id"`
+	StartDate                 time.Time                          `json:"start_date"`
+	EndDate                   *time.Time                         `json:"end_date"`
+	PenetrationTestExecutorID uint                               `json:"penetration_test_executor_id"`
+	PenetrationTestExecutor   PenetrationTestExecutorDTO         `json:"penetration_test_executor"`
+	Status                    string                             `json:"status"`
+	Notes                     *string                            `json:"notes"`
+	Findings                  []*PenetrationTestRetestFindingDTO `json:"findings"`
+	RemainingCritical         int                                `json:"remaining_critical"`
+	RemainingHigh             int                                `json:"remaining_high"`
+	RemainingMedium           int                                `json:"remaining_medium"`
+	RemainingLow              int                                `json:"remaining_low"`
+	RemainingTotal            int                                `json:"remaining_total"`
+	CreatedAt                 time.Time                          `json:"created_at"`
+	UpdatedAt                 *time.Time                         `json:"updated_at"`
+	CreatedByUser             organizationDTOs.UserMinimalDTO    `json:"created_by_user"`
+	UpdatedByUser             *organizationDTOs.UserMinimalDTO   `json:"updated_by_user"`
+}
+
+type PenetrationTestRetestListQueryParamsDTO struct {
+	Sort              string
+	SortBy            string
+	Keyword           string
+	Status            string
+	Page              int
+	PageSize          int
+	PenetrationTestID uint
+}
+
+type PenetrationTestRetestListResponseDTO struct {
+	Items      []*PenetrationTestRetestListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO    `json:"pagination"`
+}

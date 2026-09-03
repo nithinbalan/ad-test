@@ -10,8 +10,9 @@ type IncidentReportActionPlan struct {
 	ActionPlanTitle       string     `json:"action_plan_title" gorm:"type:nvarchar(255);not null"`
 	ActionPlanDescription *string    `json:"action_plan_description" gorm:"type:nvarchar(max)"`
 	TargetDate            *time.Time `json:"target_date" gorm:"type:date;null"`
-	ResponsibleUserNameEn string     `json:"responsible_user_name_en" gorm:"type:nvarchar(255);not null"`
-	ResponsibleUserNameAr string     `json:"responsible_user_name_ar" gorm:"type:nvarchar(255);not null"`
+
+	ResponsibleUserNameEn string `json:"responsible_user_name_en" gorm:"type:nvarchar(255);not null"`
+	ResponsibleUserNameAr string `json:"responsible_user_name_ar" gorm:"type:nvarchar(255);not null"`
 
 	SeverityLevelTitleEn *string `json:"severity_level_title_en" gorm:"type:nvarchar(255)"`
 	SeverityLevelTitleAr *string `json:"severity_level_title_ar" gorm:"type:nvarchar(255)"`

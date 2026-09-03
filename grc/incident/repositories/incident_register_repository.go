@@ -59,6 +59,8 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             incident_register.*,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
+            incident_sub_categories.title_en AS incident_sub_category_title_en,
+            incident_sub_categories.title_ar AS incident_sub_category_title_ar,
             incident_types.title_en AS incident_type_title_en,
             incident_types.title_ar AS incident_type_title_ar,
             incident_statuses.title_en AS incident_status_title_en,
@@ -162,6 +164,18 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 				query = query.Where("incident_register.incident_category_id IN (?)", values)
 			} else if columnName == "reported_user_id" {
 				query = query.Where("incident_register.reported_by IN (?)", values)
+			} else if columnName == "business_owner_id" {
+				query = query.Where("incident_register.business_owner_id IN (?)", values)
+			} else if columnName == "incident_scope_id" {
+				query = query.Where("incident_register.incident_scope_id IN (?)", values)
+			} else if columnName == "incident_sensitivity_classification_id" {
+				query = query.Where("incident_register.incident_sensitivity_classification_id IN (?)", values)
+			} else if columnName == "confidentiality_severity_level_id" {
+				query = query.Where("incident_register.confidentiality_severity_level_id IN (?)", values)
+			} else if columnName == "integrity_severity_level_id" {
+				query = query.Where("incident_register.integrity_severity_level_id IN (?)", values)
+			} else if columnName == "availability_severity_level_id" {
+				query = query.Where("incident_register.availability_severity_level_id IN (?)", values)
 			} else {
 				query = query.Where(columnName+" IN (?)", values)
 			}
@@ -201,9 +215,9 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			responsible_user.last_name_en LIKE ? OR
 			responsible_user.last_name_ar LIKE ? OR
 			responsible_user.email LIKE ? OR
-            responsible_user.initial LIKE ? OR
-            responsible_user.color LIKE ? OR
-            responsible_user.profile_image_path LIKE ? OR
+			responsible_user.initial LIKE ? OR
+			responsible_user.color LIKE ? OR
+			responsible_user.profile_image_path LIKE ? OR
 			reported_user.first_name_en LIKE ? OR
 			reported_user.first_name_ar LIKE ? OR
 			reported_user.last_name_en LIKE ? OR
@@ -212,14 +226,34 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
-    		updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
-			updated_user.last_name_ar LIKE ?)`,
+			updated_user.last_name_ar LIKE ? OR
+			business_owner.first_name_en LIKE ? OR
+			business_owner.first_name_ar LIKE ? OR
+			business_owner.last_name_en LIKE ? OR
+			business_owner.last_name_ar LIKE ? OR
+			business_owner.email LIKE ? OR
+			business_owner.initial LIKE ? OR
+			business_owner.color LIKE ? OR
+			business_owner.profile_image_path LIKE ? OR
+			incident_scopes.title_en LIKE ? OR
+			incident_scopes.title_ar LIKE ? OR
+			incident_sensitivity_classifications.title_en LIKE ? OR
+			incident_sensitivity_classifications.title_ar LIKE ? OR
+			confidentiality_severity_level.title_en LIKE ? OR
+			confidentiality_severity_level.title_ar LIKE ? OR
+			integrity_severity_level.title_en LIKE ? OR
+			integrity_severity_level.title_ar LIKE ? OR
+			availability_severity_level.title_en LIKE ? OR
+			availability_severity_level.title_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
@@ -272,6 +306,7 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 
 	result := db.
 		Preload("IncidentCategory").
+		Preload("IncidentSubCategory").
 		Preload("IncidentType").
 		Preload("IncidentStatus").
 		Preload("BusinessOwner").
@@ -763,6 +798,11 @@ func (repo *IncidentRegisterRepository) ForceDelete(id uint, tx ...utility.Datab
 		JOIN incident_closures ON incident_closures.id = incident_closure_review_comments.incident_closure_id
 		WHERE incident_closures.incident_register_id = ?`,
 
+		`DELETE incident_evidence_download_histories
+		FROM incident_evidence_download_histories
+		JOIN incident_evidences ON incident_evidences.id = incident_evidence_download_histories.incident_evidence_id
+		WHERE incident_evidences.incident_register_id = ?`,
+
 		`DELETE tasks
 		FROM tasks
 		JOIN incident_action_plans ON incident_action_plans.id = tasks.incident_action_plan_id
@@ -828,6 +868,7 @@ func (repo *IncidentRegisterRepository) ForceDelete(id uint, tx ...utility.Datab
 		`DELETE FROM bcp_incidents WHERE bcp_incidents.incident_register_id = ?`,
 		`DELETE FROM auditable_items WHERE auditable_items.incident_register_id = ?`,
 		`DELETE FROM audit_finding_incidents WHERE audit_finding_incidents.incident_register_id = ?`,
+		`DELETE FROM incident_evidences WHERE incident_evidences.incident_register_id = ?`,
 	}
 
 	// Delete the Risk register

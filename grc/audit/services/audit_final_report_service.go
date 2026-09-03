@@ -1060,6 +1060,14 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		tx.Rollback()
 		return 0, err
 	}
+
+	// Move the audit into reporting once the final report has been started
+	// (normally already reached via the draft report, but kept here as a direct guarantee)
+	if err := afrs.auditSvc.AdvanceAuditStatus(auditID, currentUserID, "reporting", tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	if len(actionPlans) > 0 {
@@ -1133,7 +1141,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 					"AssignedByFirstNameEn":       assignedBy.FirstNameEn,
 					"AssignedByLastNameEn":        assignedBy.LastNameEn,
 					"AssignedOn":                  time.Now().Format("2006-01-02"),
-					"RedirectURL":                 fmt.Sprintf("%s/audit/audit-findings/%d/action-plans", appURL, actionPlan.AuditFindingID),
+					"RedirectURL":                 fmt.Sprintf("%s/audit-insight/action-plans?action_plan_id=%d", appURL, actionPlan.ID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
