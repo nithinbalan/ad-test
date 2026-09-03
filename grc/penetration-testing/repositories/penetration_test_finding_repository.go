@@ -7,6 +7,7 @@ import (
 	"jethur/grc/models"
 	penetrationTestDTOs "jethur/grc/penetration-testing/dtos"
 	"jethur/utility"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -186,13 +187,29 @@ func (repo *PenetrationTestFindingRepository) Delete(id uint, tx ...utility.Data
 }
 
 func (repo *PenetrationTestFindingRepository) GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error) {
-	var count int64
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Model(&models.PenetrationTestFinding{}).Count(&count).Error; err != nil {
+
+	var lastReferenceNumber string
+	if err := db.Model(&models.PenetrationTestFinding{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).Error; err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("FIND-%03d", count+1), nil
+
+	lastDigits := "000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 3 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-3:]
+	}
+
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("FIND-%03d", lastReferenceID+1), nil
 }

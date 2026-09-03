@@ -32,9 +32,6 @@ type PenetrationTestService struct {
 	planSvc            PenetrationTestPlanServiceInterface
 	classificationSvc  PenetrationTestClassificationServiceInterface
 	executorSvc        PenetrationTestExecutorServiceInterface
-	readinessSvc       PenetrationTestEnvironmentReadinessServiceInterface
-	executionStatusSvc PenetrationTestExecutionStatusServiceInterface
-	securityResultSvc  PenetrationTestSecurityResultServiceInterface
 	userSvc            organizationServices.UserServiceInterface
 }
 
@@ -45,9 +42,6 @@ func NewPenetrationTestService(
 	planSvc PenetrationTestPlanServiceInterface,
 	classificationSvc PenetrationTestClassificationServiceInterface,
 	executorSvc PenetrationTestExecutorServiceInterface,
-	readinessSvc PenetrationTestEnvironmentReadinessServiceInterface,
-	executionStatusSvc PenetrationTestExecutionStatusServiceInterface,
-	securityResultSvc PenetrationTestSecurityResultServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 ) PenetrationTestServiceInterface {
 	return &PenetrationTestService{
@@ -57,9 +51,6 @@ func NewPenetrationTestService(
 		planSvc:            planSvc,
 		classificationSvc:  classificationSvc,
 		executorSvc:        executorSvc,
-		readinessSvc:       readinessSvc,
-		executionStatusSvc: executionStatusSvc,
-		securityResultSvc:  securityResultSvc,
 		userSvc:            userSvc,
 	}
 }
@@ -92,31 +83,37 @@ func (ptls *PenetrationTestService) GetFullDetailsByID(id uint) (*penetrationTes
 	detail.CreatedAt = value.CreatedAt
 	detail.UpdatedAt = value.UpdatedAt
 	if value.EnvironmentPreparation != nil {
-		detail.EnvironmentNotifyDate = value.EnvironmentPreparation.EnvironmentNotifyDate
-		detail.ExpectedReadyDate = value.EnvironmentPreparation.ExpectedReadyDate
-		detail.EnvironmentReadiness = penetrationTestDTOs.PenetrationTestEnvironmentReadinessDTO{
-			ID:      value.EnvironmentPreparation.EnvironmentReadiness.ID,
-			TitleEn: value.EnvironmentPreparation.EnvironmentReadiness.TitleEn,
-			TitleAr: value.EnvironmentPreparation.EnvironmentReadiness.TitleAr,
-			Status:  value.EnvironmentPreparation.EnvironmentReadiness.Status,
+		detail.EnvironmentNotifyDate = &value.EnvironmentPreparation.EnvironmentNotifyDate
+		detail.ExpectedReadyDate = &value.EnvironmentPreparation.ExpectedReadyDate
+		if value.EnvironmentPreparation.EnvironmentReadiness != nil {
+			detail.EnvironmentReadiness = &penetrationTestDTOs.PenetrationTestEnvironmentReadinessDTO{
+				ID:      value.EnvironmentPreparation.EnvironmentReadiness.ID,
+				TitleEn: value.EnvironmentPreparation.EnvironmentReadiness.TitleEn,
+				TitleAr: value.EnvironmentPreparation.EnvironmentReadiness.TitleAr,
+				Status:  value.EnvironmentPreparation.EnvironmentReadiness.Status,
+			}
 		}
 	}
 	if value.Execution != nil {
-		detail.TestStartDate = value.Execution.TestStartDate
-		detail.TestEndDate = value.Execution.TestEndDate
-		detail.ExecutionStatus = penetrationTestDTOs.PenetrationTestExecutionStatusDTO{
-			ID:      value.Execution.ExecutionStatus.ID,
-			TitleEn: value.Execution.ExecutionStatus.TitleEn,
-			TitleAr: value.Execution.ExecutionStatus.TitleAr,
-			Type:    value.Execution.ExecutionStatus.Type,
-			Status:  value.Execution.ExecutionStatus.Status,
+		detail.TestStartDate = &value.Execution.TestStartDate
+		detail.TestEndDate = &value.Execution.TestEndDate
+		if value.Execution.ExecutionStatus != nil {
+			detail.ExecutionStatus = &penetrationTestDTOs.PenetrationTestExecutionStatusDTO{
+				ID:      value.Execution.ExecutionStatus.ID,
+				TitleEn: value.Execution.ExecutionStatus.TitleEn,
+				TitleAr: value.Execution.ExecutionStatus.TitleAr,
+				Type:    value.Execution.ExecutionStatus.Type,
+				Status:  value.Execution.ExecutionStatus.Status,
+			}
 		}
-		detail.SecurityResult = penetrationTestDTOs.PenetrationTestSecurityResultDTO{
-			ID:      value.Execution.SecurityResult.ID,
-			TitleEn: value.Execution.SecurityResult.TitleEn,
-			TitleAr: value.Execution.SecurityResult.TitleAr,
-			Type:    value.Execution.SecurityResult.Type,
-			Status:  value.Execution.SecurityResult.Status,
+		if value.Execution.SecurityResult != nil {
+			detail.SecurityResult = &penetrationTestDTOs.PenetrationTestSecurityResultDTO{
+				ID:      value.Execution.SecurityResult.ID,
+				TitleEn: value.Execution.SecurityResult.TitleEn,
+				TitleAr: value.Execution.SecurityResult.TitleAr,
+				Type:    value.Execution.SecurityResult.Type,
+				Status:  value.Execution.SecurityResult.Status,
+			}
 		}
 	}
 	if value.ManagementSharing != nil {
@@ -125,6 +122,15 @@ func (ptls *PenetrationTestService) GetFullDetailsByID(id uint) (*penetrationTes
 		detail.ManagementResponseDate = value.ManagementSharing.ManagementResponseDate
 		detail.RemediationNotes = value.ManagementSharing.RemediationNotes
 	}
+	counts, err := ptls.repo.GetSeverityCounts(id)
+	if err != nil {
+		return nil, err
+	}
+	detail.CriticalCount = counts.CriticalCount
+	detail.HighCount = counts.HighCount
+	detail.MediumCount = counts.MediumCount
+	detail.LowCount = counts.LowCount
+	detail.TotalCount = counts.TotalCount
 	return detail, nil
 }
 
@@ -133,46 +139,6 @@ func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrat
 	if err := ptls.validatePenetrationTestFormDTO(formDTO); err != nil {
 		tx.Rollback()
 		return 0, err
-	}
-	environmentNotifyDate, err := utility.ParseMandatoryDate(formDTO.EnvironmentNotifyDate)
-	if err != nil {
-		tx.Rollback()
-		return 0, utility.NewValidationError(err, "invalid", "environment_notify_date")
-	}
-	expectedReadyDate, err := utility.ParseMandatoryDate(formDTO.ExpectedReadyDate)
-	if err != nil {
-		tx.Rollback()
-		return 0, utility.NewValidationError(err, "invalid", "expected_ready_date")
-	}
-	testStartDate, err := utility.ParseMandatoryDate(formDTO.TestStartDate)
-	if err != nil {
-		tx.Rollback()
-		return 0, utility.NewValidationError(err, "invalid", "test_start_date")
-	}
-	testEndDate, err := utility.ParseMandatoryDate(formDTO.TestEndDate)
-	if err != nil {
-		tx.Rollback()
-		return 0, utility.NewValidationError(err, "invalid", "test_end_date")
-	}
-	if testEndDate.Before(testStartDate) {
-		tx.Rollback()
-		return 0, utility.NewValidationError(fmt.Errorf("test end date cannot be before test start date"), "invalid", "test_end_date")
-	}
-	var managementNotifyDate *time.Time
-	if formDTO.ManagementNotifyDate != nil && *formDTO.ManagementNotifyDate != "" {
-		managementNotifyDate, err = utility.ParseDate(*formDTO.ManagementNotifyDate)
-		if err != nil {
-			tx.Rollback()
-			return 0, utility.NewValidationError(err, "invalid", "management_notify_date")
-		}
-	}
-	var managementResponseDate *time.Time
-	if formDTO.ManagementResponseDate != nil && *formDTO.ManagementResponseDate != "" {
-		managementResponseDate, err = utility.ParseDate(*formDTO.ManagementResponseDate)
-		if err != nil {
-			tx.Rollback()
-			return 0, utility.NewValidationError(err, "invalid", "management_response_date")
-		}
 	}
 	value := &models.PenetrationTest{
 		SystemApplicationName:           formDTO.SystemApplicationName,
@@ -186,49 +152,15 @@ func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrat
 		Scope:                           formDTO.Scope,
 	}
 	value.CreatedBYID = currentUserID
-	value.ReferenceNumber, err = ptls.repo.GenerateReferenceNumber(tx)
+	referenceNumber, err := ptls.repo.GenerateReferenceNumber(tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+	value.ReferenceNumber = referenceNumber
 
 	id, err := ptls.repo.Create(value, tx)
 	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	value.EnvironmentPreparation = &models.PenetrationTestEnvironmentPreparation{
-		PenetrationTestID:      id,
-		EnvironmentNotifyDate:  environmentNotifyDate,
-		ExpectedReadyDate:      expectedReadyDate,
-		EnvironmentReadinessID: formDTO.EnvironmentReadinessID,
-		CreatedBYID:            currentUserID,
-	}
-	value.Execution = &models.PenetrationTestExecution{
-		PenetrationTestID: id,
-		TestStartDate:     testStartDate,
-		TestEndDate:       testEndDate,
-		ExecutionStatusID: formDTO.ExecutionStatusID,
-		SecurityResultID:  formDTO.SecurityResultID,
-		CreatedBYID:       currentUserID,
-	}
-	value.ManagementSharing = &models.PenetrationTestManagementSharing{
-		PenetrationTestID:           id,
-		ResultsSharedWithManagement: formDTO.ResultsSharedWithManagement,
-		ManagementNotifyDate:        managementNotifyDate,
-		ManagementResponseDate:      managementResponseDate,
-		RemediationNotes:            formDTO.RemediationNotes,
-		CreatedBYID:                 currentUserID,
-	}
-	if _, err := ptls.repo.CreatePenetrationTestEnvironmentPreparation(value.EnvironmentPreparation, tx); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	if _, err := ptls.repo.CreatePenetrationTestExecution(value.Execution, tx); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	if _, err := ptls.repo.CreatePenetrationTestManagementSharing(value.ManagementSharing, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -269,143 +201,21 @@ func (ptls *PenetrationTestService) Update(id uint, currentUserID uint, form *pe
 		return err
 	}
 
-	environmentNotifyDate, err := utility.ParseMandatoryDate(form.EnvironmentNotifyDate)
-	if err != nil {
-		tx.Rollback()
-		return utility.NewValidationError(err, "invalid", "environment_notify_date")
-	}
-	expectedReadyDate, err := utility.ParseMandatoryDate(form.ExpectedReadyDate)
-	if err != nil {
-		tx.Rollback()
-		return utility.NewValidationError(err, "invalid", "expected_ready_date")
-	}
-	testStartDate, err := utility.ParseMandatoryDate(form.TestStartDate)
-	if err != nil {
-		tx.Rollback()
-		return utility.NewValidationError(err, "invalid", "test_start_date")
-	}
-	testEndDate, err := utility.ParseMandatoryDate(form.TestEndDate)
-	if err != nil {
-		tx.Rollback()
-		return utility.NewValidationError(err, "invalid", "test_end_date")
-	}
-	if testEndDate.Before(testStartDate) {
-		tx.Rollback()
-		return utility.NewValidationError(fmt.Errorf("test end date cannot be before test start date"), "invalid", "test_end_date")
-	}
-	var managementNotifyDate *time.Time
-	if form.ManagementNotifyDate != nil && *form.ManagementNotifyDate != "" {
-		managementNotifyDate, err = utility.ParseDate(*form.ManagementNotifyDate)
-		if err != nil {
-			tx.Rollback()
-			return utility.NewValidationError(err, "invalid", "management_notify_date")
-		}
-	}
-	var managementResponseDate *time.Time
-	if form.ManagementResponseDate != nil && *form.ManagementResponseDate != "" {
-		managementResponseDate, err = utility.ParseDate(*form.ManagementResponseDate)
-		if err != nil {
-			tx.Rollback()
-			return utility.NewValidationError(err, "invalid", "management_response_date")
-		}
-	}
-	updated := &models.PenetrationTest{
-		SystemApplicationName:           form.SystemApplicationName,
-		PenetrationTestTypeID:           form.PenetrationTestTypeID,
-		PenetrationTestPlanID:           form.PenetrationTestPlanID,
-		Year:                            form.Year,
-		Period:                          form.Period,
-		PenetrationTestClassificationID: form.PenetrationTestClassificationID,
-		PenetrationTestExecutorID:       form.PenetrationTestExecutorID,
-		CSResponsibleEmployeeID:         form.CSResponsibleEmployeeID,
-		Scope:                           form.Scope,
-	}
-	updated.EnvironmentPreparation = &models.PenetrationTestEnvironmentPreparation{
-		EnvironmentNotifyDate: environmentNotifyDate, ExpectedReadyDate: expectedReadyDate,
-		EnvironmentReadinessID: form.EnvironmentReadinessID,
-	}
-	updated.Execution = &models.PenetrationTestExecution{
-		TestStartDate: testStartDate, TestEndDate: testEndDate,
-		ExecutionStatusID: form.ExecutionStatusID,
-		SecurityResultID:  form.SecurityResultID,
-	}
-	updated.ManagementSharing = &models.PenetrationTestManagementSharing{
-		ResultsSharedWithManagement: form.ResultsSharedWithManagement,
-		ManagementNotifyDate:        managementNotifyDate, ManagementResponseDate: managementResponseDate,
-		RemediationNotes: form.RemediationNotes,
-	}
-	value.SystemApplicationName = updated.SystemApplicationName
-	value.PenetrationTestTypeID = updated.PenetrationTestTypeID
-	value.PenetrationTestPlanID = updated.PenetrationTestPlanID
-	value.Year = updated.Year
-	value.Period = updated.Period
-	value.PenetrationTestClassificationID = updated.PenetrationTestClassificationID
-	value.PenetrationTestExecutorID = updated.PenetrationTestExecutorID
-	value.CSResponsibleEmployeeID = updated.CSResponsibleEmployeeID
-	value.Scope = updated.Scope
+	value.SystemApplicationName = form.SystemApplicationName
+	value.PenetrationTestTypeID = form.PenetrationTestTypeID
+	value.PenetrationTestPlanID = form.PenetrationTestPlanID
+	value.Year = form.Year
+	value.Period = form.Period
+	value.PenetrationTestClassificationID = form.PenetrationTestClassificationID
+	value.PenetrationTestExecutorID = form.PenetrationTestExecutorID
+	value.CSResponsibleEmployeeID = form.CSResponsibleEmployeeID
+	value.Scope = form.Scope
 	value.UpdatedBYID = &currentUserID
 	now := time.Now()
 	value.UpdatedAt = &now
 	if err := ptls.repo.Update(value, tx); err != nil {
 		tx.Rollback()
 		return err
-	}
-	updated.EnvironmentPreparation.PenetrationTestID = id
-	updated.Execution.PenetrationTestID = id
-	updated.ManagementSharing.PenetrationTestID = id
-	updated.EnvironmentPreparation.UpdatedBYID = &currentUserID
-	updated.EnvironmentPreparation.UpdatedAt = &now
-	updated.Execution.UpdatedBYID = &currentUserID
-	updated.Execution.UpdatedAt = &now
-	updated.ManagementSharing.UpdatedBYID = &currentUserID
-	updated.ManagementSharing.UpdatedAt = &now
-	if value.EnvironmentPreparation != nil {
-		updated.EnvironmentPreparation.ID = value.EnvironmentPreparation.ID
-		updated.EnvironmentPreparation.CreatedBYID = value.EnvironmentPreparation.CreatedBYID
-		updated.EnvironmentPreparation.CreatedAt = value.EnvironmentPreparation.CreatedAt
-		if err := ptls.repo.UpdatePenetrationTestEnvironmentPreparation(updated.EnvironmentPreparation, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	} else {
-		updated.EnvironmentPreparation.CreatedBYID = currentUserID
-		updated.EnvironmentPreparation.CreatedAt = now
-		if _, err := ptls.repo.CreatePenetrationTestEnvironmentPreparation(updated.EnvironmentPreparation, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-	if value.Execution != nil {
-		updated.Execution.ID = value.Execution.ID
-		updated.Execution.CreatedBYID = value.Execution.CreatedBYID
-		updated.Execution.CreatedAt = value.Execution.CreatedAt
-		if err := ptls.repo.UpdatePenetrationTestExecution(updated.Execution, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	} else {
-		updated.Execution.CreatedBYID = currentUserID
-		updated.Execution.CreatedAt = now
-		if _, err := ptls.repo.CreatePenetrationTestExecution(updated.Execution, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-	if value.ManagementSharing != nil {
-		updated.ManagementSharing.ID = value.ManagementSharing.ID
-		updated.ManagementSharing.CreatedBYID = value.ManagementSharing.CreatedBYID
-		updated.ManagementSharing.CreatedAt = value.ManagementSharing.CreatedAt
-		if err := ptls.repo.UpdatePenetrationTestManagementSharing(updated.ManagementSharing, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	} else {
-		updated.ManagementSharing.CreatedBYID = currentUserID
-		updated.ManagementSharing.CreatedAt = now
-		if _, err := ptls.repo.CreatePenetrationTestManagementSharing(updated.ManagementSharing, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
 	}
 	if err := tx.Commit(); err != nil {
 		return utility.NewInternalServerError(err)
@@ -473,15 +283,6 @@ func (ptls *PenetrationTestService) validatePenetrationTestFormDTO(formDTO *pene
 	}
 	if _, err := ptls.userSvc.GetByID(formDTO.CSResponsibleEmployeeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("CS responsible employee does not exist"), "not_exist", "CS responsible employee")
-	}
-	if _, err := ptls.readinessSvc.GetByID(formDTO.EnvironmentReadinessID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("environment readiness does not exist"), "not_exist", "environment readiness")
-	}
-	if _, err := ptls.executionStatusSvc.GetByID(formDTO.ExecutionStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("execution status does not exist"), "not_exist", "execution status")
-	}
-	if _, err := ptls.securityResultSvc.GetByID(formDTO.SecurityResultID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("security result does not exist"), "not_exist", "security result")
 	}
 	return nil
 }
