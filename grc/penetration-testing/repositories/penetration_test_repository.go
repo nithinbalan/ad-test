@@ -105,30 +105,57 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 		`).
 		Joins("LEFT JOIN penetration_test_environment_preparations AS environment_preparations ON environment_preparations.penetration_test_id = penetration_tests.id").
 		Joins("LEFT JOIN penetration_test_executions AS executions ON executions.penetration_test_id = penetration_tests.id").
-		Joins("LEFT JOIN penetration_test_management_sharings AS management_sharings ON management_sharings.penetration_test_id = penetration_tests.id")
+		Joins("LEFT JOIN penetration_test_management_sharings AS management_sharings ON management_sharings.penetration_test_id = penetration_tests.id").
+		Joins("LEFT JOIN penetration_test_types ON penetration_test_types.id = penetration_tests.penetration_test_type_id").
+		Joins("LEFT JOIN penetration_test_classifications ON penetration_test_classifications.id = penetration_tests.penetration_test_classification_id").
+		Joins("LEFT JOIN penetration_test_plans ON penetration_test_plans.id = penetration_tests.penetration_test_plan_id").
+		Joins("LEFT JOIN penetration_test_executors ON penetration_test_executors.id = penetration_tests.penetration_test_executor_id")
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where("reference_number LIKE ? OR system_application_name LIKE ? OR scope LIKE ?", keyword, keyword, keyword)
 	}
 
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where("penetration_tests."+columnName+" IN (?)", values)
+		}
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "Q1", "Q2", "Q3", "Q4":
+			query = query.Where("penetration_tests.period = ?", filter)
+		case "all":
+			continue
+		}
+	}
+
 	if params.SortBy == "" {
-		params.SortBy = "created_at"
+		params.SortBy = "penetration_tests.created_at"
 	}
 	allowedSortColumns := map[string]bool{
-		"reference_number":        true,
-		"system_application_name": true,
-		"year":                    true,
-		"period":                  true,
-		"created_at":              true,
+		"penetration_tests.reference_number":        true,
+		"penetration_tests.system_application_name": true,
+		"penetration_tests.year":                    true,
+		"penetration_tests.period":                  true,
+		"penetration_tests.created_at":              true,
+		"penetration_test_types.title_en":           true,
+		"penetration_test_types.title_ar":           true,
+		"penetration_test_classifications.title_en": true,
+		"penetration_test_classifications.title_ar": true,
+		"penetration_test_plans.title_en":           true,
+		"penetration_test_plans.title_ar":           true,
+		"penetration_test_executors.title_en":       true,
+		"penetration_test_executors.title_ar":       true,
 	}
 	if !allowedSortColumns[params.SortBy] {
-		params.SortBy = "created_at"
+		params.SortBy = "penetration_tests.created_at"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "desc"
 	}
 
-	query = query.Order("penetration_tests." + params.SortBy + " " + params.Sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
