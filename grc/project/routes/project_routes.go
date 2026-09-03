@@ -34,6 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectSecurityGateClassificationController := app.ProjectModule.ProjectSecurityGateClassificationController
 	projectSecurityGateStageController := app.ProjectModule.ProjectSecurityGateStageController
 	projectSecurityGateChecklistTemplateController := app.ProjectModule.ProjectSecurityGateChecklistTemplateController
+	projectSecurityGateChecklistResponseStatusController := app.ProjectModule.ProjectSecurityGateChecklistResponseStatusController
 	projectWorkflowLevelController := app.ProjectModule.ProjectWorkflowLevelController
 
 	// Project Types
@@ -192,4 +193,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Project Workflow Levels
 	projectRoutes.POST("/project-workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectWorkflowLevelController.CreateWorkflowLevel)
 	projectRoutes.DELETE("/project-workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectWorkflowLevelController.DeleteWorkflowLevel)
+
+	// Project Security Gate Checklist Response Statuses
+	projectRoutes.GET("/project-security-gate-checklist-response-statuses", projectSecurityGateChecklistResponseStatusController.GetAllProjectSecurityGateChecklistResponseStatuses)
+	projectRoutes.GET("/project-security-gate-checklist-response-statuses/:id", projectSecurityGateChecklistResponseStatusController.GetProjectSecurityGateChecklistResponseStatusDetails)
 }
