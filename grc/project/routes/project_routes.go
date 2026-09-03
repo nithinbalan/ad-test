@@ -29,6 +29,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectSecurityGateClassificationController := app.ProjectModule.ProjectSecurityGateClassificationController
 	projectSecurityGateStageController := app.ProjectModule.ProjectSecurityGateStageController
 	projectSecurityGateChecklistTemplateController := app.ProjectModule.ProjectSecurityGateChecklistTemplateController
+	projectSecurityGateChecklistResponseStatusController := app.ProjectModule.ProjectSecurityGateChecklistResponseStatusController
 
 	// Project Type
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
@@ -151,4 +152,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.CreateProjectSecurityGateChecklistTemplateRequirement)
 	projectRoutes.PUT("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.UpdateProjectSecurityGateChecklistTemplateRequirement)
 	projectRoutes.DELETE("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.DeleteProjectSecurityGateChecklistTemplateRequirement)
+
+	// Project Security Gate Checklist Response Statuses
+	projectRoutes.GET("/project-security-gate-checklist-response-statuses", projectSecurityGateChecklistResponseStatusController.GetAllProjectSecurityGateChecklistResponseStatuses)
+	projectRoutes.GET("/project-security-gate-checklist-response-statuses/:id", projectSecurityGateChecklistResponseStatusController.GetProjectSecurityGateChecklistResponseStatusDetails)
 }
