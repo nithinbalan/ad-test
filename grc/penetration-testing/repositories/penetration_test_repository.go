@@ -30,7 +30,7 @@ type PenetrationTestSeverityCounts struct {
 	HighCount     int
 	MediumCount   int
 	LowCount      int
-	TotalFindings int
+	TotalCount    int
 }
 
 type PenetrationTestRepository struct {
@@ -101,7 +101,7 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 				SELECT COUNT(*)
 				FROM penetration_test_findings
 				WHERE penetration_test_findings.penetration_test_id = penetration_tests.id
-			) AS total_findings
+			) AS total_count
 		`).
 		Joins("LEFT JOIN penetration_test_environment_preparations AS environment_preparations ON environment_preparations.penetration_test_id = penetration_tests.id").
 		Joins("LEFT JOIN penetration_test_executions AS executions ON executions.penetration_test_id = penetration_tests.id").
@@ -266,7 +266,7 @@ func (repo *PenetrationTestRepository) GetSeverityCounts(penetrationTestID uint)
 	counts := &PenetrationTestSeverityCounts{}
 	if err := repo.db.Table("penetration_test_findings").
 		Select(`
-			COUNT(*) AS total_findings,
+			COUNT(*) AS total_count,
 			SUM(CASE WHEN severity_levels.type = 'critical' THEN 1 ELSE 0 END) AS critical_count,
 			SUM(CASE WHEN severity_levels.type = 'high' THEN 1 ELSE 0 END) AS high_count,
 			SUM(CASE WHEN severity_levels.type = 'medium' THEN 1 ELSE 0 END) AS medium_count,

@@ -97,28 +97,34 @@ func (ptes *PenetrationTestExecutionService) Create(penetrationTestID uint, curr
 	tx := ptes.repo.BeginTransaction()
 
 	if _, err := ptes.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if _, err := ptes.executionStatusSvc.GetByID(form.ExecutionStatusID); err != nil {
+		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid execution status"), "invalid", "execution_status_id")
 	}
 
 	if _, err := ptes.securityResultSvc.GetByID(form.SecurityResultID); err != nil {
+		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid security result"), "invalid", "security_result_id")
 	}
 
 	testStartDate, err := utility.ParseMandatoryDate(form.TestStartDate)
 	if err != nil {
+		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid test start date"), "invalid_date", "test_start_date")
 	}
 
 	testEndDate, err := utility.ParseMandatoryDate(form.TestEndDate)
 	if err != nil {
+		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid test end date"), "invalid_date", "test_end_date")
 	}
 
 	if testEndDate.Before(testStartDate) {
+		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("test end date cannot be before test start date"), "invalid_date", "test_end_date")
 	}
 
@@ -176,33 +182,40 @@ func (ptes *PenetrationTestExecutionService) Update(penetrationTestID uint, curr
 	tx := ptes.repo.BeginTransaction()
 
 	if _, err := ptes.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	existingExecution, err := ptes.GetByID(penetrationTestID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	if _, err := ptes.executionStatusSvc.GetByID(form.ExecutionStatusID); err != nil {
+		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("invalid execution status"), "invalid", "execution_status_id")
 	}
 
 	if _, err := ptes.securityResultSvc.GetByID(form.SecurityResultID); err != nil {
+		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("invalid security result"), "invalid", "security_result_id")
 	}
 
 	testStartDate, err := utility.ParseMandatoryDate(form.TestStartDate)
 	if err != nil {
+		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("invalid test start date"), "invalid_date", "test_start_date")
 	}
 
 	testEndDate, err := utility.ParseMandatoryDate(form.TestEndDate)
 	if err != nil {
+		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("invalid test end date"), "invalid_date", "test_end_date")
 	}
 
 	if testEndDate.Before(testStartDate) {
+		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("test end date cannot be before test start date"), "invalid_date", "test_end_date")
 	}
 
@@ -259,15 +272,18 @@ func (ptes *PenetrationTestExecutionService) Delete(penetrationTestID uint, curr
 	var deletedExecution []map[string]interface{}
 
 	if _, err := ptes.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	execution, err := ptes.GetByID(penetrationTestID)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if err = ptes.repo.Delete(execution.ID, tx); err != nil {
+		tx.Rollback()
 		failedId = execution.ID
 		return failedId, err
 	}

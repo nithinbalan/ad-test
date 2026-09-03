@@ -43,9 +43,6 @@ func NewPenetrationTestingModule(
 		planService,
 		classificationService,
 		executorService,
-		readinessService,
-		executionStatusService,
-		securityResultService,
 		organizationModule.UserSvc,
 	)
 	environmentPreparationService := services.NewPenetrationTestEnvironmentPreparationService(

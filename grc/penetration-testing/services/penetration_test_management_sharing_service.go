@@ -97,6 +97,7 @@ func (ptms *PenetrationTestManagementSharingService) Create(penetrationTestID ui
 	tx := ptms.repo.BeginTransaction()
 
 	if _, err := ptms.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -104,6 +105,7 @@ func (ptms *PenetrationTestManagementSharingService) Create(penetrationTestID ui
 	if form.ManagementNotifyDate != nil {
 		parsedDate, err := utility.ParseDate(*form.ManagementNotifyDate)
 		if err != nil {
+			tx.Rollback()
 			return 0, utility.NewValidationError(fmt.Errorf("invalid management notify date"), "invalid_date", "management_notify_date")
 		}
 		managementNotifyDate = parsedDate
@@ -113,6 +115,7 @@ func (ptms *PenetrationTestManagementSharingService) Create(penetrationTestID ui
 	if form.ManagementResponseDate != nil {
 		parsedDate, err := utility.ParseDate(*form.ManagementResponseDate)
 		if err != nil {
+			tx.Rollback()
 			return 0, utility.NewValidationError(fmt.Errorf("invalid management response date"), "invalid_date", "management_response_date")
 		}
 		managementResponseDate = parsedDate
@@ -172,11 +175,13 @@ func (ptms *PenetrationTestManagementSharingService) Update(penetrationTestID ui
 	tx := ptms.repo.BeginTransaction()
 
 	if _, err := ptms.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	existingManagementSharing, err := ptms.GetByID(penetrationTestID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -184,6 +189,7 @@ func (ptms *PenetrationTestManagementSharingService) Update(penetrationTestID ui
 	if form.ManagementNotifyDate != nil {
 		parsedDate, err := utility.ParseDate(*form.ManagementNotifyDate)
 		if err != nil {
+			tx.Rollback()
 			return utility.NewValidationError(fmt.Errorf("invalid management notify date"), "invalid_date", "management_notify_date")
 		}
 		managementNotifyDate = parsedDate
@@ -193,6 +199,7 @@ func (ptms *PenetrationTestManagementSharingService) Update(penetrationTestID ui
 	if form.ManagementResponseDate != nil {
 		parsedDate, err := utility.ParseDate(*form.ManagementResponseDate)
 		if err != nil {
+			tx.Rollback()
 			return utility.NewValidationError(fmt.Errorf("invalid management response date"), "invalid_date", "management_response_date")
 		}
 		managementResponseDate = parsedDate
@@ -251,15 +258,18 @@ func (ptms *PenetrationTestManagementSharingService) Delete(penetrationTestID ui
 	var deletedManagementSharing []map[string]interface{}
 
 	if _, err := ptms.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	managementSharing, err := ptms.GetByID(penetrationTestID)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if err = ptms.repo.Delete(managementSharing.ID, tx); err != nil {
+		tx.Rollback()
 		failedId = managementSharing.ID
 		return failedId, err
 	}

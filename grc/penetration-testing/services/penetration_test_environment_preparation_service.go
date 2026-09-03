@@ -94,20 +94,24 @@ func (ptps *PenetrationTestEnvironmentPreparationService) Create(penetrationTest
 	tx := ptps.repo.BeginTransaction()
 
 	if _, err := ptps.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if _, err := ptps.readinessSvc.GetByID(form.EnvironmentReadinessID); err != nil {
+		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid environment readiness"), "invalid", "environment_readiness_id")
 	}
 
 	environmentNotifyDate, err := utility.ParseMandatoryDate(form.EnvironmentNotifyDate)
 	if err != nil {
+		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid environment notify date"), "invalid_date", "environment_notify_date")
 	}
 
 	expectedReadyDate, err := utility.ParseMandatoryDate(form.ExpectedReadyDate)
 	if err != nil {
+		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid expected ready date"), "invalid_date", "expected_ready_date")
 	}
 
@@ -164,25 +168,30 @@ func (ptps *PenetrationTestEnvironmentPreparationService) Update(penetrationTest
 	tx := ptps.repo.BeginTransaction()
 
 	if _, err := ptps.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	existingEnvironmentPreparation, err := ptps.GetByID(penetrationTestID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	if _, err := ptps.readinessSvc.GetByID(form.EnvironmentReadinessID); err != nil {
+		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("invalid environment readiness"), "invalid", "environment_readiness_id")
 	}
 
 	environmentNotifyDate, err := utility.ParseMandatoryDate(form.EnvironmentNotifyDate)
 	if err != nil {
+		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("invalid environment notify date"), "invalid_date", "environment_notify_date")
 	}
 
 	expectedReadyDate, err := utility.ParseMandatoryDate(form.ExpectedReadyDate)
 	if err != nil {
+		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("invalid expected ready date"), "invalid_date", "expected_ready_date")
 	}
 
@@ -238,15 +247,18 @@ func (ptps *PenetrationTestEnvironmentPreparationService) Delete(penetrationTest
 	var deletedEnvironmentPreparation []map[string]interface{}
 
 	if _, err := ptps.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	environmentPreparation, err := ptps.GetByID(penetrationTestID)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if err = ptps.repo.Delete(environmentPreparation.ID, tx); err != nil {
+		tx.Rollback()
 		failedId = environmentPreparation.ID
 		return failedId, err
 	}

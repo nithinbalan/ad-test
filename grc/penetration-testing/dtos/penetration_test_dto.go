@@ -27,30 +27,19 @@ type PenetrationTestListDTO struct {
 	HighCount                       int    `json:"high_count"`
 	MediumCount                     int    `json:"medium_count"`
 	LowCount                        int    `json:"low_count"`
-	TotalFindings                   int    `json:"total_findings"`
+	TotalCount                      int    `json:"total_count"`
 }
 
 type PenetrationTestFormDTO struct {
-	SystemApplicationName           string  `json:"system_application_name" binding:"required,max=255"`
-	PenetrationTestTypeID           uint    `json:"penetration_test_type_id" binding:"required"`
-	PenetrationTestPlanID           uint    `json:"penetration_test_plan_id" binding:"required"`
-	Year                            int     `json:"year" binding:"required"`
-	Period                          string  `json:"period" binding:"required,oneof=Q1 Q2 Q3 Q4"`
-	PenetrationTestClassificationID uint    `json:"penetration_test_classification_id" binding:"required"`
-	PenetrationTestExecutorID       uint    `json:"penetration_test_executor_id" binding:"required"`
-	CSResponsibleEmployeeID         uint    `json:"cs_responsible_employee_id" binding:"required"`
-	Scope                           string  `json:"scope" binding:"required"`
-	EnvironmentNotifyDate           *string `json:"environment_notify_date,omitempty"`
-	ExpectedReadyDate               *string `json:"expected_ready_date,omitempty"`
-	EnvironmentReadinessID          *uint   `json:"environment_readiness_id,omitempty"`
-	TestStartDate                   *string `json:"test_start_date,omitempty"`
-	TestEndDate                     *string `json:"test_end_date,omitempty"`
-	ExecutionStatusID               *uint   `json:"execution_status_id,omitempty"`
-	SecurityResultID                *uint   `json:"security_result_id,omitempty"`
-	ResultsSharedWithManagement     bool    `json:"results_shared_with_management"`
-	ManagementNotifyDate            *string `json:"management_notify_date,omitempty"`
-	ManagementResponseDate          *string `json:"management_response_date,omitempty"`
-	RemediationNotes                *string `json:"remediation_notes,omitempty"`
+	SystemApplicationName           string `json:"system_application_name" binding:"required,max=255"`
+	PenetrationTestTypeID           uint   `json:"penetration_test_type_id" binding:"required"`
+	PenetrationTestPlanID           uint   `json:"penetration_test_plan_id" binding:"required"`
+	Year                            int    `json:"year" binding:"required"`
+	Period                          string `json:"period" binding:"required,oneof=Q1 Q2 Q3 Q4"`
+	PenetrationTestClassificationID uint   `json:"penetration_test_classification_id" binding:"required"`
+	PenetrationTestExecutorID       uint   `json:"penetration_test_executor_id" binding:"required"`
+	CSResponsibleEmployeeID         uint   `json:"cs_responsible_employee_id" binding:"required"`
+	Scope                           string `json:"scope" binding:"required"`
 }
 
 type PenetrationTestDetailDTO struct {
@@ -80,7 +69,7 @@ type PenetrationTestDetailDTO struct {
 	HighCount                     int                                     `json:"high_count"`
 	MediumCount                   int                                     `json:"medium_count"`
 	LowCount                      int                                     `json:"low_count"`
-	TotalFindings                 int                                     `json:"total_findings"`
+	TotalCount                    int                                     `json:"total_count"`
 	CreatedAt                     time.Time                               `json:"created_at"`
 	UpdatedAt                     *time.Time                              `json:"updated_at"`
 	CreatedByUser                 organizationDTOs.UserMinimalDTO         `json:"created_by_user"`

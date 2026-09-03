@@ -32,9 +32,6 @@ type PenetrationTestService struct {
 	planSvc            PenetrationTestPlanServiceInterface
 	classificationSvc  PenetrationTestClassificationServiceInterface
 	executorSvc        PenetrationTestExecutorServiceInterface
-	readinessSvc       PenetrationTestEnvironmentReadinessServiceInterface
-	executionStatusSvc PenetrationTestExecutionStatusServiceInterface
-	securityResultSvc  PenetrationTestSecurityResultServiceInterface
 	userSvc            organizationServices.UserServiceInterface
 }
 
@@ -45,9 +42,6 @@ func NewPenetrationTestService(
 	planSvc PenetrationTestPlanServiceInterface,
 	classificationSvc PenetrationTestClassificationServiceInterface,
 	executorSvc PenetrationTestExecutorServiceInterface,
-	readinessSvc PenetrationTestEnvironmentReadinessServiceInterface,
-	executionStatusSvc PenetrationTestExecutionStatusServiceInterface,
-	securityResultSvc PenetrationTestSecurityResultServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 ) PenetrationTestServiceInterface {
 	return &PenetrationTestService{
@@ -57,9 +51,6 @@ func NewPenetrationTestService(
 		planSvc:            planSvc,
 		classificationSvc:  classificationSvc,
 		executorSvc:        executorSvc,
-		readinessSvc:       readinessSvc,
-		executionStatusSvc: executionStatusSvc,
-		securityResultSvc:  securityResultSvc,
 		userSvc:            userSvc,
 	}
 }
@@ -139,7 +130,7 @@ func (ptls *PenetrationTestService) GetFullDetailsByID(id uint) (*penetrationTes
 	detail.HighCount = counts.HighCount
 	detail.MediumCount = counts.MediumCount
 	detail.LowCount = counts.LowCount
-	detail.TotalFindings = counts.TotalFindings
+	detail.TotalCount = counts.TotalCount
 	return detail, nil
 }
 
@@ -292,21 +283,6 @@ func (ptls *PenetrationTestService) validatePenetrationTestFormDTO(formDTO *pene
 	}
 	if _, err := ptls.userSvc.GetByID(formDTO.CSResponsibleEmployeeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("CS responsible employee does not exist"), "not_exist", "CS responsible employee")
-	}
-	if formDTO.EnvironmentReadinessID != nil {
-		if _, err := ptls.readinessSvc.GetByID(*formDTO.EnvironmentReadinessID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("environment readiness does not exist"), "not_exist", "environment readiness")
-		}
-	}
-	if formDTO.ExecutionStatusID != nil {
-		if _, err := ptls.executionStatusSvc.GetByID(*formDTO.ExecutionStatusID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("execution status does not exist"), "not_exist", "execution status")
-		}
-	}
-	if formDTO.SecurityResultID != nil {
-		if _, err := ptls.securityResultSvc.GetByID(*formDTO.SecurityResultID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("security result does not exist"), "not_exist", "security result")
-		}
 	}
 	return nil
 }
