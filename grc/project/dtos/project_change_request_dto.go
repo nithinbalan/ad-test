@@ -112,8 +112,6 @@ type ProjectChangeRequestDetailDTO struct {
 	ApprovedAtString      *string                            `json:"approved_at"`
 	RejectedByUser        *organizationDTOs.UserMinimalDTO   `json:"rejected_by_user"`
 	RejectedAtString      *string                            `json:"rejected_at"`
-	RevertedByUser        *organizationDTOs.UserMinimalDTO   `json:"reverted_by_user"`
-	RevertedAtString      *string                            `json:"reverted_at"`
 	CreatedByUser         organizationDTOs.UserMinimalDTO    `json:"created_by"`
 	UpdatedByUser         *organizationDTOs.UserMinimalDTO   `json:"updated_by"`
 	CreatedAt             time.Time                          `json:"created_at"`
@@ -143,7 +141,7 @@ type ProjectImpactAssessmentDTO struct {
 	RevisedBudget                 *float64                        `json:"revised_budget"`
 	CurrentResourceCount          *int                            `json:"current_resource_count"`
 	RevisedResourceCount          *int                            `json:"revised_resource_count"`
-	Description                   *string                         `json:"description"`
+	TechnicalComplexity           *string                         `json:"technical_complexity"`
 }
 
 type ProjectImpactAssessmentFormDTO struct {
@@ -154,7 +152,7 @@ type ProjectImpactAssessmentFormDTO struct {
 	RevisedBudget                 *float64 `json:"revised_budget"`
 	CurrentResourceCount          *int     `json:"current_resource_count"`
 	RevisedResourceCount          *int     `json:"revised_resource_count"`
-	Description                   *string  `json:"description"`
+	TechnicalComplexity           *string  `json:"technical_complexity"`
 }
 
 type ProjectChangeRequestFormDTO struct {

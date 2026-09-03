@@ -208,7 +208,6 @@ func (pcrr *ProjectChangeRequestRepository) GetFullDetailsByID(id uint) (*models
 		Preload("SubmittedByUser").
 		Preload("ApprovedByUser").
 		Preload("RejectedByUser").
-		Preload("RevertedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ImpactAssessments").

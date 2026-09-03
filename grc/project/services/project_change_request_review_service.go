@@ -211,8 +211,6 @@ func (pcrrs *ProjectChangeRequestReviewService) Resubmit(projectID uint, changeR
 	pcr.SubmittedAt = &currentDate
 	pcr.NextReviewLevel = &level
 	pcr.UpdatedBYID = &currentUserID
-	pcr.RevertedBYID = nil
-	pcr.RevertedAt = nil
 
 	if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {
 		tx.Rollback()
@@ -550,10 +548,7 @@ func (pcrrs *ProjectChangeRequestReviewService) Revert(projectID uint, changeReq
 	}
 
 	if previousLevel == 0 {
-		now := time.Now()
 		existingPCR.WorkflowStatusID = &revertStatus.ID
-		existingPCR.RevertedBYID = &currentUserID
-		existingPCR.RevertedAt = &now
 		existingPCR.NextReviewLevel = nil
 	} else {
 		existingPCR.NextReviewLevel = &previousLevel

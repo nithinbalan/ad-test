@@ -14,7 +14,7 @@ type ProjectImpactAssessment struct {
 	RevisedBudget                 *float64   `json:"revised_budget" gorm:"type:decimal(18,2);null"`
 	CurrentResourceCount          *int       `json:"current_resource_count" gorm:"null"`
 	RevisedResourceCount          *int       `json:"revised_resource_count" gorm:"null"`
-	Description                   *string    `json:"description" gorm:"type:nvarchar(max);null"`
+	TechnicalComplexity           *string    `json:"technical_complexity" gorm:"type:nvarchar(max);null"`
 
 	// Relationships
 	ProjectChangeRequest        *ProjectChangeRequest        `gorm:"foreignKey:ProjectChangeRequestID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
@@ -22,5 +22,5 @@ type ProjectImpactAssessment struct {
 }
 
 func (ProjectImpactAssessment) TableName() string {
-	return "project_impact_assessments"
+	return "project_change_request_impact_assessments"
 }

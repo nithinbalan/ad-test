@@ -15,8 +15,6 @@ type ProjectChangeRequestWorkflowListDTO struct {
 	ApprovedByUser         *organizationDTOs.UserMinimalDTO          `json:"approved_by_user"`
 	RejectedAt             *time.Time                                `json:"rejected_at"`
 	RejectedByUser         *organizationDTOs.UserMinimalDTO          `json:"rejected_by_user"`
-	RevertedAt             *time.Time                                `json:"reverted_at"`
-	RevertedByUser         *organizationDTOs.UserMinimalDTO          `json:"reverted_by_user"`
 	NextReviewLevel        *int                                      `json:"next_review_level"`
 	CurrentStatus          *masterDTOs.WorkflowStatusDTO             `json:"current_status"`
 	Workflows              []*ProjectChangeRequestWorkflowLevelDTO   `json:"workflows"`

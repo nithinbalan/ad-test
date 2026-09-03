@@ -23,28 +23,25 @@ type ProjectChangeRequest struct {
 	ApprovedAt            *time.Time `json:"approved_at" gorm:"type:datetime;null"`
 	RejectedBYID          *uint      `json:"rejected_by_id" gorm:"null"`
 	RejectedAt            *time.Time `json:"rejected_at" gorm:"type:datetime;null"`
-	RevertedBYID          *uint      `json:"reverted_by_id" gorm:"null"`
-	RevertedAt            *time.Time `json:"reverted_at" gorm:"type:datetime;null"`
 	CreatedBYID           uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID           *uint      `json:"updated_by_id" gorm:"null"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime;null"`
 
 	// Relationships
-	Project           *Project                                `gorm:"foreignKey:ProjectID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RequestedByUser   *User                                   `gorm:"foreignKey:RequestedByUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	WorkflowStatus    *WorkflowStatus                         `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	SubmittedByUser   *User                                   `gorm:"foreignKey:SubmittedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ApprovedByUser    *User                                   `gorm:"foreignKey:ApprovedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RejectedByUser    *User                                   `gorm:"foreignKey:RejectedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RevertedByUser    *User                                   `gorm:"foreignKey:RevertedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser     *User                                   `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:SET NULL"`
-	UpdatedByUser     *User                                   `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:SET NULL"`
-	ImpactAssessments []*ProjectImpactAssessment              `json:"impact_assessments" gorm:"foreignKey:ProjectChangeRequestID"`
-	Documents         []*ProjectChangeRequestDocument         `json:"documents" gorm:"foreignKey:ProjectChangeRequestID"`
-	Workflows         []*ProjectChangeRequestWorkflow         `json:"workflows" gorm:"foreignKey:ProjectChangeRequestID"`
-	Histories         []*ProjectChangeRequestWorkflowHistory  `json:"histories" gorm:"foreignKey:ProjectChangeRequestID"`
-	ReviewComments    []*ProjectChangeRequestReviewComment    `json:"review_comments" gorm:"foreignKey:ProjectChangeRequestID"`
+	Project           *Project                               `gorm:"foreignKey:ProjectID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RequestedByUser   *User                                  `gorm:"foreignKey:RequestedByUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	WorkflowStatus    *WorkflowStatus                        `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SubmittedByUser   *User                                  `gorm:"foreignKey:SubmittedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ApprovedByUser    *User                                  `gorm:"foreignKey:ApprovedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RejectedByUser    *User                                  `gorm:"foreignKey:RejectedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser     *User                                  `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:SET NULL"`
+	UpdatedByUser     *User                                  `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:SET NULL"`
+	ImpactAssessments []*ProjectImpactAssessment             `json:"impact_assessments" gorm:"foreignKey:ProjectChangeRequestID"`
+	Documents         []*ProjectChangeRequestDocument        `json:"documents" gorm:"foreignKey:ProjectChangeRequestID"`
+	Workflows         []*ProjectChangeRequestWorkflow        `json:"workflows" gorm:"foreignKey:ProjectChangeRequestID"`
+	Histories         []*ProjectChangeRequestWorkflowHistory `json:"histories" gorm:"foreignKey:ProjectChangeRequestID"`
+	ReviewComments    []*ProjectChangeRequestReviewComment   `json:"review_comments" gorm:"foreignKey:ProjectChangeRequestID"`
 }
 
 func (ProjectChangeRequest) TableName() string {

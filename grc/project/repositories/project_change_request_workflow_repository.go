@@ -37,7 +37,6 @@ func (pcrwr *ProjectChangeRequestWorkflowRepository) GetWorkflowList(projectChan
 		Preload("SubmittedByUser").
 		Preload("ApprovedByUser").
 		Preload("RejectedByUser").
-		Preload("RevertedByUser").
 		Preload("WorkflowStatus").
 		Preload("Workflows").
 		Preload("Workflows.WorkflowStatus").

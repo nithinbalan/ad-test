@@ -499,7 +499,7 @@ func parseImpactAssessments(forms []dtos.ProjectImpactAssessmentFormDTO) ([]*mod
 			RevisedBudget:                 f.RevisedBudget,
 			CurrentResourceCount:          f.CurrentResourceCount,
 			RevisedResourceCount:          f.RevisedResourceCount,
-			Description:                   f.Description,
+			TechnicalComplexity:           f.TechnicalComplexity,
 		}
 		impactAssessments = append(impactAssessments, ia)
 	}

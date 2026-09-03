@@ -131,8 +131,6 @@ func (pcrws *ProjectChangeRequestWorkflowService) GetWorkflowList(projectChangeR
 		ApprovedByUser:         pcrws.mapUserToDTO(pcr.ApprovedByUser),
 		RejectedAt:             pcr.RejectedAt,
 		RejectedByUser:         pcrws.mapUserToDTO(pcr.RejectedByUser),
-		RevertedAt:             pcr.RevertedAt,
-		RevertedByUser:         pcrws.mapUserToDTO(pcr.RevertedByUser),
 		NextReviewLevel:        pcr.NextReviewLevel,
 		CurrentStatus:          currentStatus,
 		Workflows:              []*projectDTOs.ProjectChangeRequestWorkflowLevelDTO{},
