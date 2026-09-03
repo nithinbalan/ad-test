@@ -172,6 +172,7 @@ type SystemRegisterDetailDTO struct {
 	VendorRTO                 *int                                  `json:"vendor_rto"`
 	VendorRTOUnit             *BusinessContinuityDurationUnitDTO    `json:"vendor_rto_unit"`
 	SystemRegisterSLA         *SystemRegisterSLADTO                 `json:"system_register_sla"`
+	CriticalProcesses         []*organizationDTOs.ProcessDetailDTO  `json:"critical_processes"`
 	CreatedAt                 time.Time                             `json:"created_at"`
 	UpdatedAt                 *time.Time                            `json:"updated_at"`
 	CreatedByUser             organizationDTOs.UserMinimalDTO       `json:"created_by"`

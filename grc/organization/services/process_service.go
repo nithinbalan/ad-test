@@ -186,6 +186,8 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		AlternativeLocation:                   processFormDTO.AlternativeLocation,
 		RushHour:                              processFormDTO.RushHour,
 		ReviewFrequencyID:                     processFormDTO.ReviewFrequencyID,
+		SectionID:                             processFormDTO.SectionID,
+		SubSectionID:                          processFormDTO.SubSectionID,
 		IsCanBeDoneManually:                   isCanBeDoneManually,
 		TimeToPerformProcedureManually:        processFormDTO.TimeToPerformProcedureManually,
 		StepsToPerformProcedureManually:       processFormDTO.StepsToPerformProcedureManually,
@@ -487,6 +489,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	process.AlternativeLocation = processFormDTO.AlternativeLocation
 	process.RushHour = processFormDTO.RushHour
 	process.ReviewFrequencyID = processFormDTO.ReviewFrequencyID
+	process.SectionID = processFormDTO.SectionID
+	process.SubSectionID = processFormDTO.SubSectionID
 	process.IsCanBeDoneManually = isCanBeDoneManually
 	process.TimeToPerformProcedureManually = processFormDTO.TimeToPerformProcedureManually
 	process.StepsToPerformProcedureManually = processFormDTO.StepsToPerformProcedureManually
@@ -546,6 +550,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			"alternative_location":                oldProcess.AlternativeLocation,
 			"rush_hour":                           oldProcess.RushHour,
 			"review_frequency":                    oldProcess.ReviewFrequency,
+			"section":                             oldProcess.Section,
+			"sub_section":                         oldProcess.SubSection,
 			"is_can_be_done_manually":             oldProcess.IsCanBeDoneManually,
 			"time_to_perform_procedure_manually":  oldProcess.TimeToPerformProcedureManually,
 			"steps_to_perform_procedure_manually": oldProcess.StepsToPerformProcedureManually,
@@ -568,6 +574,8 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			"alternative_location":                existingProcess.AlternativeLocation,
 			"rush_hour":                           existingProcess.RushHour,
 			"review_frequency":                    existingProcess.ReviewFrequency,
+			"section":                             existingProcess.Section,
+			"sub_section":                         existingProcess.SubSection,
 			"is_can_be_done_manually":             existingProcess.IsCanBeDoneManually,
 			"time_to_perform_procedure_manually":  existingProcess.TimeToPerformProcedureManually,
 			"steps_to_perform_procedure_manually": existingProcess.StepsToPerformProcedureManually,
@@ -1062,6 +1070,18 @@ func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTO
 	if processFormDTO.DivisionID != nil {
 		if _, err := ps.organizationUnitSvc.GetByID(*processFormDTO.DivisionID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("division does not exist"), "not_exist", "division")
+		}
+	}
+
+	// Validate Section (required)
+	if _, err := ps.organizationUnitSvc.GetByID(processFormDTO.SectionID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("section does not exist"), "not_exist", "section")
+	}
+
+	// Validate SubSection if provided
+	if processFormDTO.SubSectionID != nil {
+		if _, err := ps.organizationUnitSvc.GetByID(*processFormDTO.SubSectionID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("sub section does not exist"), "not_exist", "sub_section")
 		}
 	}
 

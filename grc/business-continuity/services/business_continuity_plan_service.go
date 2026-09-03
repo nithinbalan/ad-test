@@ -16,6 +16,7 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskServices "jethur/grc/risk/services"
+	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -37,6 +38,9 @@ type BusinessContinuityPlanServiceInterface interface {
 	GetDocumentPath(id uint, token string) (string, error)
 	GetBcpHeatmap(bcpId uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetTestSummary(bcpID uint) (*businessContinuityDTOs.BcpTestSummaryDTO, error)
+	ExportBusinessContinuityPlanPDF(id uint, currentUserID uint) (string, error)
+	GetReportFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BusinessContinuityPlanDetailDTO, error)
+	CreateVersion(currentUserID uint, dto *businessContinuityDTOs.BusinessContinuityPlanCreateVersionDTO) (uint, error)
 }
 
 // Service and implementations
@@ -48,6 +52,7 @@ type BusinessContinuityPlanService struct {
 	userSettingSvc      organizationServices.UserSettingServiceInterface
 	bcpStatusSvc        BcpStatusServiceInterface
 	riskHeatmapSvc      riskServices.RiskHeatmapServiceInterface
+	reportTemplateSvc   settingServices.ReportTemplateSettingServiceInterface
 }
 
 func NewBusinessContinuityPlanService(
@@ -58,6 +63,7 @@ func NewBusinessContinuityPlanService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	bcpStatusSvc BcpStatusServiceInterface,
 	riskHeatmapSvc riskServices.RiskHeatmapServiceInterface,
+	reportTemplateSvc settingServices.ReportTemplateSettingServiceInterface,
 ) BusinessContinuityPlanServiceInterface {
 	return &BusinessContinuityPlanService{
 		repo:                repo,
@@ -67,6 +73,7 @@ func NewBusinessContinuityPlanService(
 		userSettingSvc:      userSettingSvc,
 		bcpStatusSvc:        bcpStatusSvc,
 		riskHeatmapSvc:      riskHeatmapSvc,
+		reportTemplateSvc:   reportTemplateSvc,
 	}
 }
 
@@ -164,10 +171,13 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 		}
 	}
 
+	initialVersion := 1
+	isLatest := true
 	businessContinuityPlan := &models.BusinessContinuityPlan{
 		ReferenceNumber:    referenceNumber,
 		BusinessFunctionID: businessContinuityPlanFormDTO.BusinessFunctionID,
-		Version:            businessContinuityPlanFormDTO.Version,
+		Version:            &initialVersion,
+		IsLatestVersion:    &isLatest,
 		Purpose:            businessContinuityPlanFormDTO.Purpose,
 		Scope:              businessContinuityPlanFormDTO.Scope,
 		Objectives:         businessContinuityPlanFormDTO.Objectives,
@@ -1116,4 +1126,697 @@ func (bcps *BusinessContinuityPlanService) MarkAsCompleted(id uint, currentUserI
 	}()
 
 	return nil
+}
+
+func (bcps BusinessContinuityPlanService) GetReportFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BusinessContinuityPlanDetailDTO, error) {
+	// Initialize your DTO
+	var businessContinuityPlanDTO businessContinuityDTOs.BusinessContinuityPlanDetailDTO
+
+	businessContinuityPlan, err := bcps.repo.GetReportFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Load all equipment tools
+	equipmentTools, err := bcps.repo.GetAllEquipmentTools(tx...)
+	if err == nil {
+		businessContinuityPlan.EquipmentTools = equipmentTools
+	}
+
+	// Load all outage buckets
+	outageBuckets, err := bcps.repo.GetAllOutageBuckets(tx...)
+	if err == nil {
+		businessContinuityPlan.OutageBuckets = outageBuckets
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(businessContinuityPlan, &businessContinuityPlanDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	businessContinuityPlanDTO.CreatedAt = businessContinuityPlan.CreatedAt
+	businessContinuityPlanDTO.UpdatedAt = businessContinuityPlan.UpdatedAt
+
+	return &businessContinuityPlanDTO, nil
+}
+
+func (bcps *BusinessContinuityPlanService) CreateVersion(currentUserID uint, dto *businessContinuityDTOs.BusinessContinuityPlanCreateVersionDTO) (uint, error) {
+	tx := bcps.repo.BeginTransaction()
+
+	// Get the existing BCP
+	existingBcp, err := bcps.repo.GetByID(dto.BcpID)
+	if err != nil {
+		tx.Rollback()
+		return 0, utility.NewResourceNotFoundError(err, dto.BcpID)
+	}
+
+	// Mark all versions for this business function as not latest
+	if err := bcps.repo.MarkVersionsAsNotLatest(existingBcp.BusinessFunctionID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Calculate new version
+	currentVersion := 1
+	if existingBcp.Version != nil {
+		currentVersion = *existingBcp.Version
+	}
+	newVersion := currentVersion + 1
+	isLatest := true
+
+	// Determine parent ID: if existing has a parent, use that; otherwise use the existing BCP's ID
+	parentID := existingBcp.ID
+
+	bcpStatus, err := bcps.bcpStatusSvc.GetByType("draft")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Create the new version with the same reference number
+	newBcp := &models.BusinessContinuityPlan{
+		ReferenceNumber:    existingBcp.ReferenceNumber,
+		BusinessFunctionID: existingBcp.BusinessFunctionID,
+		ParentID:           &parentID,
+		Version:            &newVersion,
+		IsLatestVersion:    &isLatest,
+		Purpose:            existingBcp.Purpose,
+		Scope:              existingBcp.Scope,
+		Objectives:         existingBcp.Objectives,
+		Assumptions:        existingBcp.Assumptions,
+		BcpStatusID:        bcpStatus.ID,
+		ResponsibleUserID:  existingBcp.ResponsibleUserID,
+		ResponsibleUnitID:  existingBcp.ResponsibleUnitID,
+		Rto:                existingBcp.Rto,
+		RtoUnitId:          existingBcp.RtoUnitId,
+		Mtpd:               existingBcp.Mtpd,
+		MtpdUnitId:         existingBcp.MtpdUnitId,
+		Rpo:                existingBcp.Rpo,
+		RpoUnitId:          existingBcp.RpoUnitId,
+		IsCyber:            existingBcp.IsCyber,
+		CreatedBYID:        currentUserID,
+	}
+
+	newID, err := bcps.repo.Create(newBcp, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Get processes from business function (not from old BCP, as they may have changed)
+	businessFunctionDetails, err := bcps.businessFunctionSvc.GetFullDetailsByID(existingBcp.BusinessFunctionID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	for _, existingProcess := range businessFunctionDetails.Processes {
+		bcpProcess := &models.BcpProcess{
+			ProcessID:                existingProcess.ProcessID,
+			BusinessContinuityPlanID: newID,
+			RiskLevelID:              existingProcess.Process.RiskLevelId,
+			ImpactAnalysisLevelID:    existingProcess.Process.ImpactAnalysisLevelId,
+			RtoFromValue:             existingProcess.Process.RtoFromValue,
+			RtoToValue:               existingProcess.Process.RtoToValue,
+			RtoUnitId:                existingProcess.Process.RtoUnitId,
+			RtoCondition:             existingProcess.Process.RtoCondition,
+			MtpdFromValue:            existingProcess.Process.MtpdFromValue,
+			MtpdToValue:              existingProcess.Process.MtpdToValue,
+			MtpdUnitId:               existingProcess.Process.MtpdUnitId,
+			MtpdCondition:            existingProcess.Process.MtpdCondition,
+			RpoFromValue:             existingProcess.Process.RpoFromValue,
+			RpoToValue:               existingProcess.Process.RpoToValue,
+			RpoUnitId:                existingProcess.Process.RpoUnitId,
+			RpoCondition:             existingProcess.Process.RpoCondition,
+			RspFromValue:             existingProcess.Process.RspFromValue,
+			RspToValue:               existingProcess.Process.RspToValue,
+			RspUnitID:                existingProcess.Process.RspUnitId,
+			RspCondition:             existingProcess.Process.RspCondition,
+			CreatedBYID:              currentUserID,
+		}
+		bcpProcessID, err := bcps.repo.CreateBcpProcesses(bcpProcess, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		if err := bcps.snapshotProcessChildren(existingProcess.ProcessID, bcpProcessID, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	tx.Commit()
+
+	go func() {
+		newBcpDetails, err := bcps.GetFullDetailsByID(newID)
+		if err != nil {
+			utility.LogError("Failed to fetch new BCP version", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = bcps.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.BusinessContinuityPlan{}.TableName(),
+			newID,
+			newBcpDetails,
+			currentUserID,
+			"business_continuity",
+			"bcp",
+			"business_continuity_plan",
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.BusinessContinuityPlan{}.TableName(),
+				"recordID":  newID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return newID, nil
+}
+
+func (bcps *BusinessContinuityPlanService) ExportBusinessContinuityPlanPDF(id uint, currentUserID uint) (string, error) {
+	// Validate that template images are configured
+	if _, err := bcps.reportTemplateSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := bcps.reportTemplateSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover_image_missing")
+	}
+
+	bcpDTO, err := bcps.GetReportFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	createdAt := bcpDTO.CreatedAt.Format("02 Jan 2006")
+	generatedAt := time.Now().Format("Jan 02, 2006")
+	preparedFirst := bcpDTO.CreatedByUser.FirstNameEN
+	preparedLast := bcpDTO.CreatedByUser.LastNameEN
+
+	var responsibleFirst, responsibleLast string
+	if bcpDTO.ResponsibleUser != nil {
+		responsibleFirst = bcpDTO.ResponsibleUser.FirstNameEN
+		responsibleLast = bcpDTO.ResponsibleUser.LastNameEN
+	}
+
+	responsibleUnitTitle := bcpDTO.ResponsibleUnit.TitleEn
+
+	var updatedFirst, updatedLast, updatedAtStr *string
+	if bcpDTO.UpdatedByUser != nil {
+		f := bcpDTO.UpdatedByUser.FirstNameEN
+		l := bcpDTO.UpdatedByUser.LastNameEN
+		updatedFirst = &f
+		updatedLast = &l
+	}
+	if bcpDTO.UpdatedAt != nil {
+		s := bcpDTO.UpdatedAt.Format("02 Jan 2006")
+		updatedAtStr = &s
+	}
+
+	// BCP-level RTO/MTPD/RPO
+	bcpRto := bcpFormatWithUnitCondition(bcpDTO.RtoUnit, bcpDTO.Rto, nil, bcpDTO.RtoCondition)
+	bcpMtpd := bcpFormatWithUnitCondition(bcpDTO.MtpdUnit, bcpDTO.Mtpd, nil, bcpDTO.MtpdCondition)
+	bcpRpo := bcpFormatWithUnitCondition(bcpDTO.RpoUnit, bcpDTO.Rpo, nil, bcpDTO.RpoCondition)
+
+	// Build Table 1 — Time Frames
+	var timeFrames []businessContinuityDTOs.BCPTimeFrameExportDTO
+	for _, proc := range bcpDTO.Processes {
+		processTitle := proc.Process.TitleEn
+		alternateLocation := ""
+		if proc.Process.AlternativeLocation != nil {
+			alternateLocation = *proc.Process.AlternativeLocation
+		}
+		rto := bcpFormatWithUnitCondition(proc.RtoUnit, proc.RtoFromValue, proc.RtoToValue, proc.RtoCondition)
+		mtpd := bcpFormatWithUnitCondition(proc.MtpdUnit, proc.MtpdFromValue, proc.MtpdToValue, proc.MtpdCondition)
+		rpo := bcpFormatWithUnitCondition(proc.RpoUnit, proc.RpoFromValue, proc.RpoToValue, proc.RpoCondition)
+		rsp := bcpFormatWithUnitCondition(proc.RspUnit, proc.RspFromValue, proc.RspToValue, proc.RspCondition)
+
+		timeFrames = append(timeFrames, businessContinuityDTOs.BCPTimeFrameExportDTO{
+			CriticalProcedureName: processTitle,
+			Rto:                   rto,
+			Mtpd:                  mtpd,
+			Rpo:                   rpo,
+			Rsp:                   rsp,
+			AlternateSiteName:     alternateLocation,
+		})
+	}
+
+	// Build Table 2 — Critical Procedure Data Summary
+	var criticalProcedureSummaries []businessContinuityDTOs.BCPCriticalProcedureSummaryExportDTO
+	for _, proc := range bcpDTO.Processes {
+		processTitle := proc.Process.TitleEn
+
+		var appSystems []string
+		for _, sr := range proc.SystemRegisters {
+			if sr != nil {
+				appSystems = append(appSystems, sr.SystemRegister.TitleEn)
+			}
+		}
+
+		manualExecution := "No"
+		if proc.Process.IsCanBeDoneManually {
+			manualExecution = "Yes"
+		}
+
+		manualSteps := ""
+		if proc.Process.StepsToPerformProcedureManually != nil {
+			manualSteps = utility.StripHTMLTags(*proc.Process.StepsToPerformProcedureManually)
+		}
+
+		var manualForms []string
+		for _, mf := range proc.ManualProcedureForms {
+			if mf != nil {
+				manualForms = append(manualForms, mf.BCMManualProcedureForm.TitleEn)
+			}
+		}
+
+		manualRequirements := ""
+		if proc.Process.RequirementToPerformProcedureManually != nil {
+			manualRequirements = *proc.Process.RequirementToPerformProcedureManually
+		}
+
+		var criticalRecords []string
+		for _, er := range proc.ExecutionRecords {
+			if er != nil {
+				criticalRecords = append(criticalRecords, er.BCMExecutionRecord.TitleEn)
+			}
+		}
+
+		criticalProcedureSummaries = append(criticalProcedureSummaries, businessContinuityDTOs.BCPCriticalProcedureSummaryExportDTO{
+			CriticalProcedureName: processTitle,
+			ApplicationSystems:    appSystems,
+			ManualExecution:       manualExecution,
+			ManualSteps:           manualSteps,
+			ManualForms:           manualForms,
+			ManualRequirements:    manualRequirements,
+			CriticalRecords:       criticalRecords,
+		})
+	}
+
+	// Build Table 3 — Internal Dependencies (flat-mapped)
+	var internalDeps []businessContinuityDTOs.BCPInternalDependencyExportDTO
+	for _, proc := range bcpDTO.Processes {
+		processTitle := proc.Process.TitleEn
+		for _, dep := range proc.InternalDependencies {
+			if dep == nil {
+				continue
+			}
+			supportingUnit := ""
+			if dep.SupportingUnit != nil {
+				supportingUnit = dep.SupportingUnit.TitleEn
+			}
+			depTier := ""
+			if dep.DependencyTier != nil {
+				depTier = dep.DependencyTier.TitleEn
+			}
+			percentRange := ""
+			if dep.DependencyPercentageFrom != nil && dep.DependencyPercentageTo != nil {
+				percentRange = fmt.Sprintf("%d - %d", *dep.DependencyPercentageFrom, *dep.DependencyPercentageTo)
+			}
+			reqSupport := ""
+			if dep.RequiredSupport != nil {
+				reqSupport = *dep.RequiredSupport
+			}
+			notes := ""
+			if dep.Notes != nil {
+				notes = *dep.Notes
+			}
+			internalDeps = append(internalDeps, businessContinuityDTOs.BCPInternalDependencyExportDTO{
+				CriticalProcedureName:     processTitle,
+				SupportingUnitTitle:       supportingUnit,
+				DependencyTierTitle:       depTier,
+				DependencyPercentageRange: percentRange,
+				RequiredSupport:           reqSupport,
+				Notes:                     notes,
+			})
+		}
+	}
+
+	// Build Table 4 — External Dependencies (flat-mapped)
+	var externalDeps []businessContinuityDTOs.BCPExternalDependencyExportDTO
+	for _, proc := range bcpDTO.Processes {
+		processTitle := proc.Process.TitleEn
+		for _, dep := range proc.ExternalDependencies {
+			if dep == nil {
+				continue
+			}
+			entityType := ""
+			if dep.EntityType != nil {
+				entityType = dep.EntityType.TitleEn
+			}
+			depTier := ""
+			if dep.DependencyTier != nil {
+				depTier = dep.DependencyTier.TitleEn
+			}
+			slaTitle := ""
+			if dep.SLARegister != nil {
+				slaTitle = dep.SLARegister.TitleEn
+			}
+			stakeholder := ""
+			if dep.InternalStakeholder != nil {
+				stakeholder = *dep.InternalStakeholder
+			}
+			contactNum := ""
+			if dep.ContactNumber != nil {
+				contactNum = *dep.ContactNumber
+			}
+			contactEmail := ""
+			if dep.ContactEmail != nil {
+				contactEmail = *dep.ContactEmail
+			}
+			externalDeps = append(externalDeps, businessContinuityDTOs.BCPExternalDependencyExportDTO{
+				CriticalProcedureName: processTitle,
+				EntityName:            dep.EntityName,
+				EntityTypeTitle:       entityType,
+				DependencyTierTitle:   depTier,
+				SLARegisterTitle:      slaTitle,
+				InternalStakeholder:   stakeholder,
+				ContactNumber:         contactNum,
+				ContactEmail:          contactEmail,
+			})
+		}
+	}
+
+	// Build Table 5 — Critical Staff (aggregated per process)
+	var criticalStaff []businessContinuityDTOs.BCPCriticalStaffExportDTO
+	for _, proc := range bcpDTO.Processes {
+		processTitle := proc.Process.TitleEn
+		totalCritical := 0
+		for _, ea := range proc.EmployeeAnalyses {
+			if ea != nil && ea.CriticalCount != nil {
+				totalCritical += *ea.CriticalCount
+			}
+		}
+		criticalStaff = append(criticalStaff, businessContinuityDTOs.BCPCriticalStaffExportDTO{
+			CriticalProcedureName: processTitle,
+			CriticalStaff:         totalCritical,
+		})
+	}
+
+	// Build outage bucket columns (sorted by order)
+	var bucketColumns []businessContinuityDTOs.BCPOutageBucketColumnDTO
+	for _, ob := range bcpDTO.OutageBuckets {
+		bucketColumns = append(bucketColumns, businessContinuityDTOs.BCPOutageBucketColumnDTO{
+			ID:      ob.ID,
+			TitleEn: ob.TitleEn,
+			Order:   ob.Order,
+		})
+	}
+	for i := 0; i < len(bucketColumns); i++ {
+		for j := i + 1; j < len(bucketColumns); j++ {
+			if bucketColumns[j].Order < bucketColumns[i].Order {
+				bucketColumns[i], bucketColumns[j] = bucketColumns[j], bucketColumns[i]
+			}
+		}
+	}
+
+	// Build Table 6 — Staff Allocations (one row per allocation across all processes)
+	var staffAllocations []businessContinuityDTOs.BCPStaffAllocationExportDTO
+	for _, proc := range bcpDTO.Processes {
+		processTitle := proc.Process.TitleEn
+		for _, alloc := range proc.StaffAllocations {
+			if alloc == nil {
+				continue
+			}
+			critStaffStr := "--"
+			if alloc.BcpProcessEmployeeAnalysis != nil {
+				desTitle := ""
+				if alloc.BcpProcessEmployeeAnalysis.Designation != nil {
+					desTitle = alloc.BcpProcessEmployeeAnalysis.Designation.TitleEn
+				}
+				critCount := 0
+				if alloc.BcpProcessEmployeeAnalysis.CriticalCount != nil {
+					critCount = *alloc.BcpProcessEmployeeAnalysis.CriticalCount
+				}
+				critStaffStr = fmt.Sprintf("%s (%d)", desTitle, critCount)
+			}
+
+			remoteWork := "Onsite"
+			for _, ob := range alloc.OutageBuckets {
+				for _, u := range ob.Users {
+					if u.IsRemote {
+						remoteWork = "Remote"
+						break
+					}
+				}
+				if remoteWork == "Remote" {
+					break
+				}
+			}
+
+			bucketUsers := make(map[uint]string)
+			for _, ob := range alloc.OutageBuckets {
+				if len(ob.Users) == 0 {
+					bucketUsers[ob.OutageBucketID] = "--"
+					continue
+				}
+				var names []string
+				for _, u := range ob.Users {
+					if u.User != nil {
+						name := fmt.Sprintf("%s %s", u.User.FirstNameEN, u.User.LastNameEN)
+						names = append(names, name)
+					}
+				}
+				if len(names) > 0 {
+					bucketUsers[ob.OutageBucketID] = bcpJoinStrings(names, ", ")
+				} else {
+					bucketUsers[ob.OutageBucketID] = "--"
+				}
+			}
+
+			staffAllocations = append(staffAllocations, businessContinuityDTOs.BCPStaffAllocationExportDTO{
+				CriticalProcedureName: processTitle,
+				CriticalStaff:         critStaffStr,
+				RemoteWork:            remoteWork,
+				BucketUsers:           bucketUsers,
+			})
+		}
+	}
+
+	// Build remote user lookup for equipment table
+	remoteUserIDs := make(map[uint]bool)
+	for _, proc := range bcpDTO.Processes {
+		for _, alloc := range proc.StaffAllocations {
+			if alloc == nil {
+				continue
+			}
+			for _, ob := range alloc.OutageBuckets {
+				for _, u := range ob.Users {
+					if u.IsRemote {
+						remoteUserIDs[u.UserID] = true
+					}
+				}
+			}
+		}
+	}
+
+	// Build equipment tool columns
+	var equipToolColumns []businessContinuityDTOs.BCPEquipmentToolColumnDTO
+	for _, tool := range bcpDTO.EquipmentTools {
+		equipToolColumns = append(equipToolColumns, businessContinuityDTOs.BCPEquipmentToolColumnDTO{
+			ID:      tool.ID,
+			TitleEn: tool.TitleEn,
+		})
+	}
+
+	// Find portable_laptop tool ID for need_status logic
+	var portableLaptopToolID uint
+	for _, tool := range bcpDTO.EquipmentTools {
+		if tool.Type == "portable_laptop" {
+			portableLaptopToolID = tool.ID
+			break
+		}
+	}
+
+	// Build Table 7 — Equipment (one row per employee per analysis per process)
+	var equipmentList []businessContinuityDTOs.BCPEquipmentExportDTO
+	for _, proc := range bcpDTO.Processes {
+		for _, analysis := range proc.EmployeeAnalyses {
+			if analysis == nil {
+				continue
+			}
+			for _, emp := range analysis.Employees {
+				hasRemoteWork := remoteUserIDs[emp.UserID]
+
+				employeeName := fmt.Sprintf("%s %s", emp.User.FirstNameEN, emp.User.LastNameEN)
+				remoteLabel := "Onsite"
+				if hasRemoteWork {
+					remoteLabel = "Remote"
+				}
+				criticalEmployee := fmt.Sprintf("%s (%s)", employeeName, remoteLabel)
+
+				equipStatus := make(map[uint]string)
+				for _, tool := range bcpDTO.EquipmentTools {
+					status := "--"
+					for _, et := range emp.Tools {
+						if et.EquipmentTool.ID == tool.ID {
+							if et.IsHas {
+								status = "Has"
+							} else if et.IsNeeded {
+								status = "Needed"
+							}
+							break
+						}
+					}
+					equipStatus[tool.ID] = status
+				}
+
+				hasLaptop := false
+				if portableLaptopToolID > 0 {
+					for _, et := range emp.Tools {
+						if et.EquipmentTool.ID == portableLaptopToolID && et.IsHas {
+							hasLaptop = true
+							break
+						}
+					}
+				}
+
+				needStatus := "Not Applicable"
+				if !hasRemoteWork && hasLaptop {
+					needStatus = "Not Needed"
+				} else if hasRemoteWork && !hasLaptop {
+					needStatus = "Needs One"
+				} else if hasRemoteWork && hasLaptop {
+					needStatus = "Not Needed"
+				}
+
+				equipmentList = append(equipmentList, businessContinuityDTOs.BCPEquipmentExportDTO{
+					CriticalEmployee: criticalEmployee,
+					EquipmentStatus:  equipStatus,
+					NeedStatus:       needStatus,
+				})
+			}
+		}
+	}
+
+	viewModel := businessContinuityDTOs.BusinessContinuityPlanExportPDFDTO{
+		Title:                        bcpDTO.BusinessFunction.Title,
+		ReferenceNumber:              bcpDTO.ReferenceNumber,
+		Version:                      bcpDTO.Version,
+		CreatedAt:                    createdAt,
+		GeneratedAt:                  generatedAt,
+		CreatedUserFirstNameEn:       preparedFirst,
+		CreatedUserLastNameEn:        preparedLast,
+		UpdatedUserFirstNameEn:       updatedFirst,
+		UpdatedUserLastNameEn:        updatedLast,
+		UpdatedAtString:              updatedAtStr,
+		BusinessFunctionTitle:        bcpDTO.BusinessFunction.Title,
+		Purpose:                      bcpDTO.Purpose,
+		Scope:                        bcpDTO.Scope,
+		Objectives:                   bcpDTO.Objectives,
+		Assumptions:                  bcpDTO.Assumptions,
+		ResponsibleUserFirstNameEn:   responsibleFirst,
+		ResponsibleUserLastNameEn:    responsibleLast,
+		ResponsibleUnitTitleEn:       responsibleUnitTitle,
+		BcpStatusTitleEn:             bcpDTO.BcpStatus.TitleEn,
+		BcpStatusColorCode:           bcpDTO.BcpStatus.ColorCode,
+		BcpStatusType:                bcpDTO.BcpStatus.Type,
+		Rto:                          bcpRto,
+		Mtpd:                         bcpMtpd,
+		Rpo:                          bcpRpo,
+		TimeFrames:                   timeFrames,
+		CriticalProcedureSummaries:   criticalProcedureSummaries,
+		InternalDependencies:         internalDeps,
+		ExternalDependencies:         externalDeps,
+		CriticalStaff:                criticalStaff,
+		StaffAllocations:             staffAllocations,
+		StaffAllocationBucketColumns: bucketColumns,
+		EquipmentList:                equipmentList,
+		EquipmentToolColumns:         equipToolColumns,
+	}
+
+	// Body
+	bodyTemplates := []string{"business-continuity/templates/pdf/bcp_body.html"}
+	htmlContent, err := utility.GeneratePDFContent(viewModel, bodyTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	// Cover
+	coverTemplates := []string{"business-continuity/templates/pdf/bcp_cover.html"}
+	coverContent, err := utility.GeneratePDFContent(viewModel, coverTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate cover content: %w", err)
+	}
+
+	// Header
+	headerTemplates := []string{"business-continuity/templates/pdf/bcp_header.html"}
+	headerContent, err := utility.GeneratePDFContent(viewModel, headerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate header content: %w", err)
+	}
+
+	// Footer
+	footerTemplates := []string{"business-continuity/templates/pdf/bcp_footer.html"}
+	footerContent, err := utility.GeneratePDFContent(viewModel, footerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	pdfFileName := fmt.Sprintf("%s.pdf", viewModel.ReferenceNumber)
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
+}
+
+func bcpFormatWithUnitCondition(unit *businessContinuityDTOs.BusinessContinuityDurationUnitDTO, fromValue *int, toValue *int, condition *string) string {
+	if unit == nil || fromValue == nil {
+		return ""
+	}
+	unitName := unit.TitleEn
+	from := *fromValue
+
+	pluralUnit := unitName
+	if from != 1 {
+		pluralUnit = unitName + "s"
+	}
+
+	cond := ""
+	if condition != nil {
+		cond = *condition
+	}
+
+	switch cond {
+	case "exact":
+		return fmt.Sprintf("%d %s", from, pluralUnit)
+	case "range":
+		if toValue == nil {
+			return fmt.Sprintf("%d %s", from, pluralUnit)
+		}
+		to := *toValue
+		toPlural := unitName
+		if to != 1 {
+			toPlural = unitName + "s"
+		}
+		return fmt.Sprintf("%d-%d %s", from, to, toPlural)
+	case "greater_than":
+		return fmt.Sprintf("%d+ %s", from, pluralUnit)
+	case "less_than":
+		return fmt.Sprintf("%d %s or less", from, pluralUnit)
+	default:
+		return fmt.Sprintf("%d %s", from, pluralUnit)
+	}
+}
+
+func bcpJoinStrings(strs []string, sep string) string {
+	result := ""
+	for i, s := range strs {
+		if i > 0 {
+			result += sep
+		}
+		result += s
+	}
+	return result
 }

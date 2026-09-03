@@ -123,6 +123,12 @@ type ProcessListDTO struct {
 	ReviewFrequencyID                     *uint                            `json:"review_frequency_id"`
 	ReviewFrequencyTitleEn                *string                          `json:"review_frequency_title_en"`
 	ReviewFrequencyTitleAr                *string                          `json:"review_frequency_title_ar"`
+	SectionID                             *uint                            `json:"section_id"`
+	SectionTitleEn                        *string                          `json:"section_title_en"`
+	SectionTitleAr                        *string                          `json:"section_title_ar"`
+	SubSectionID                          *uint                            `json:"sub_section_id"`
+	SubSectionTitleEn                     *string                          `json:"sub_section_title_en"`
+	SubSectionTitleAr                     *string                          `json:"sub_section_title_ar"`
 	IsCanBeDoneManually                   bool                             `json:"is_can_be_done_manually"`
 	TimeToPerformProcedureManually        *string                          `json:"time_to_perform_procedure_manually"`
 	StepsToPerformProcedureManually       *string                          `json:"steps_to_perform_procedure_manually"`
@@ -206,6 +212,8 @@ type ProcessFormDTO struct {
 	AlternativeLocation                   *string `json:"alternative_location"`
 	RushHour                              *string `json:"rush_hour"`
 	ReviewFrequencyID                     *uint   `json:"review_frequency_id"`
+	SectionID                             uint    `json:"section_id" binding:"required"`
+	SubSectionID                          *uint   `json:"sub_section_id"`
 	IsCanBeDoneManually                   *bool   `json:"is_can_be_done_manually"`
 	TimeToPerformProcedureManually        *string `json:"time_to_perform_procedure_manually"`
 	StepsToPerformProcedureManually       *string `json:"steps_to_perform_procedure_manually"`
@@ -284,6 +292,10 @@ type ProcessDetailDTO struct {
 	RushHour                              *string                            `json:"rush_hour"`
 	ReviewFrequencyID                     *uint                              `json:"review_frequency_id"`
 	ReviewFrequency                       *masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
+	SectionID                             uint                               `json:"section_id"`
+	Section                               *settingsDTOs.OrganizationUnitDTO  `json:"section"`
+	SubSectionID                          *uint                              `json:"sub_section_id"`
+	SubSection                            *settingsDTOs.OrganizationUnitDTO  `json:"sub_section"`
 	IsCanBeDoneManually                   bool                               `json:"is_can_be_done_manually"`
 	TimeToPerformProcedureManually        *string                            `json:"time_to_perform_procedure_manually"`
 	StepsToPerformProcedureManually       *string                            `json:"steps_to_perform_procedure_manually"`

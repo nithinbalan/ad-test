@@ -48,6 +48,8 @@ type BusinessContinuityPlanRepositoryInterface interface {
 	DeleteBcpProcessChildrenByBcpProcessIDs(bcpProcessIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetAllEquipmentTools(tx ...utility.DatabaseTransaction) ([]models.ProcessEquipmentTool, error)
 	GetAllOutageBuckets(tx ...utility.DatabaseTransaction) ([]models.BCMBIAOutageBucket, error)
+	GetReportFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BusinessContinuityPlan, error)
+	MarkVersionsAsNotLatest(businessFunctionID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type BusinessContinuityPlanRepository struct {
@@ -153,6 +155,9 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 	} else {
 		query = query.Where("business_continuity_plans.is_cyber = ?", false)
 	}
+
+	// Only show latest versions in the list
+	query = query.Where("business_continuity_plans.is_latest_version = ?", true)
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -225,6 +230,86 @@ func (repo *BusinessContinuityPlanRepository) GetByID(id uint) (*models.Business
 }
 
 func (repo *BusinessContinuityPlanRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BusinessContinuityPlan, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var businessContinuityPlan *models.BusinessContinuityPlan
+
+	result := db.
+		Where("is_latest_version = ?", true).
+		Preload("BusinessFunction").
+		Preload("BusinessFunction.SeverityLevel").
+		Preload("BusinessFunction.ReviewFrequency").
+		Preload("BusinessFunction.ResponsibleUser").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
+		Preload("Documents").
+		Preload("BcpStatus").
+		Preload("RtoUnit").
+		Preload("MtpdUnit").
+		Preload("RpoUnit").
+		Preload("Processes").
+		Preload("Processes.ImpactAnalysisLevel").
+		Preload("Processes.RtoUnit").
+		Preload("Processes.MtpdUnit").
+		Preload("Processes.RpoUnit").
+		Preload("Processes.RspUnit").
+		Preload("Processes.Process").
+		Preload("Processes.Process.ResponsibleUser").
+		Preload("Processes.ExecutionRecords").
+		Preload("Processes.ExecutionRecords.BCMExecutionRecord").
+		Preload("Processes.ExecutionRecords.BCMExecutionRecord.OwnerEntity").
+		Preload("Processes.ExecutionRecords.BCMExecutionRecord.Location").
+		Preload("Processes.ExecutionRecords.BCMExecutionRecord.RecordType").
+		Preload("Processes.ManualProcedureForms").
+		Preload("Processes.ManualProcedureForms.BCMManualProcedureForm").
+		Preload("Processes.ManualProcedureForms.BCMManualProcedureForm.OwnerEntity").
+		Preload("Processes.ManualProcedureForms.BCMManualProcedureForm.Location").
+		Preload("Processes.SystemRegisters").
+		Preload("Processes.SystemRegisters.SystemRegister").
+		Preload("Processes.SystemRegisters.SystemRegister.RTOUnit").
+		Preload("Processes.SystemRegisters.SystemRegister.MTPDUnit").
+		Preload("Processes.SystemRegisters.SystemRegister.RPOUnit").
+		Preload("Processes.SystemRegisters.SystemRegister.RecoveryManager").
+		Preload("Processes.InternalDependencies").
+		Preload("Processes.InternalDependencies.SupportingUnit").
+		Preload("Processes.InternalDependencies.DependencyTier").
+		Preload("Processes.ExternalDependencies").
+		Preload("Processes.ExternalDependencies.EntityType").
+		Preload("Processes.ExternalDependencies.DependencyTier").
+		Preload("Processes.ExternalDependencies.SLARegister").
+		Preload("Processes.ExternalDependencies.VendorRTOUnit").
+		Preload("Processes.EmployeeAnalyses").
+		Preload("Processes.EmployeeAnalyses.Designation").
+		Preload("Processes.EmployeeAnalyses.Employees").
+		Preload("Processes.EmployeeAnalyses.Employees.User").
+		Preload("Processes.EmployeeAnalyses.Employees.Tools").
+		Preload("Processes.EmployeeAnalyses.Employees.Tools.EquipmentTool").
+		Preload("Processes.StaffAllocations").
+		Preload("Processes.StaffAllocations.BcpProcessEmployeeAnalysis").
+		Preload("Processes.StaffAllocations.OutageBuckets.OutageBucket").
+		Preload("Processes.StaffAllocations.OutageBuckets.Users.User").
+
+		// Preload("BcpRecoveryPlans").
+		// Preload("BcpRecoveryPlans.SeverityLevel").
+		// Preload("BcpRecoveryPlans.BcpProcess").
+		// Preload("BcpRecoveryPlans.BcpProcess.Process").
+		// Preload("BcpRecoveryPlans.TargetCompletionUnit").
+		// Preload("BcpCommunicationPlans").
+		// Preload("BcpCommunicationPlans.BcpProcess").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&businessContinuityPlan, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return businessContinuityPlan, nil
+}
+
+func (repo *BusinessContinuityPlanRepository) GetReportFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.BusinessContinuityPlan, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -372,8 +457,8 @@ func (repo *BusinessContinuityPlanRepository) GenerateReferenceNumber() (string,
 func (repo *BusinessContinuityPlanRepository) GetBusinessContinuityPlanByBusinessFunctionID(businessFunctionId uint) (*models.BusinessContinuityPlan, error) {
 	var businessContinuityPlan models.BusinessContinuityPlan
 
-	// Query the database to find if an businessContinuityPlan exists with the given BusinessFunctionId
-	result := repo.db.Where("business_function_id = ?", businessFunctionId).First(&businessContinuityPlan)
+	// Query the database to find if an businessContinuityPlan exists with the given BusinessFunctionId (only latest version)
+	result := repo.db.Where("business_function_id = ? AND is_latest_version = ?", businessFunctionId, true).First(&businessContinuityPlan)
 
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
@@ -386,6 +471,17 @@ func (repo *BusinessContinuityPlanRepository) GetBusinessContinuityPlanByBusines
 
 	// Return the found audit if it exists
 	return &businessContinuityPlan, nil
+}
+
+func (repo *BusinessContinuityPlanRepository) MarkVersionsAsNotLatest(businessFunctionID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Model(&models.BusinessContinuityPlan{}).
+		Where("business_function_id = ? AND is_latest_version = ?", businessFunctionID, true).
+		Update("is_latest_version", false).Error
 }
 
 func (repo *BusinessContinuityPlanRepository) CreateBcpProcesses(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) (uint, error) {

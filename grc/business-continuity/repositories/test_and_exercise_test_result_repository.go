@@ -26,6 +26,12 @@ type TestAndExerciseTestResultRepositoryInterface interface {
 	UpdateTestResultSystemRegister(item *models.TestAndExerciseTestResultSystemRegister, tx ...utility.DatabaseTransaction) error
 	AreAllTestResultSystemRegistersUpdated(testResultID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	UpdateTestAndExercise(testAndExercise *models.TestAndExercise, tx ...utility.DatabaseTransaction) error
+
+	CreatePerformanceMeasure(measure *models.TestResultPerformanceMeasure, tx ...utility.DatabaseTransaction) (uint, error)
+	GetPerformanceMeasureByID(id uint) (*models.TestResultPerformanceMeasure, error)
+	UpdatePerformanceMeasure(measure *models.TestResultPerformanceMeasure, tx ...utility.DatabaseTransaction) error
+	DeletePerformanceMeasure(id uint, tx ...utility.DatabaseTransaction) error
+	GetPerformanceMeasuresByTestResultID(testResultID uint) ([]*models.TestResultPerformanceMeasure, error)
 }
 
 type TestAndExerciseTestResultRepository struct {
@@ -94,6 +100,7 @@ func (repo *TestAndExerciseTestResultRepository) GetFullDetailsByID(testAndExerc
 		Preload("TestResultSystemRegisters.CommunicationFeedbackOption").
 		Preload("TestResultSystemRegisters.RecoveryFeedbackOption").
 		Preload("TestResultSystemRegisters.TestResultOption").
+		Preload("PerformanceMeasures").
 		Preload("CreatedByUser").
 		First(&testAndExerciseTestResult)
 
@@ -256,4 +263,57 @@ func (repo *TestAndExerciseTestResultRepository) UpdateTestAndExercise(testAndEx
 	}
 
 	return db.Save(testAndExercise).Error
+}
+
+func (repo *TestAndExerciseTestResultRepository) CreatePerformanceMeasure(measure *models.TestResultPerformanceMeasure, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(measure).Error; err != nil {
+		return 0, err
+	}
+
+	return measure.ID, nil
+}
+
+func (repo *TestAndExerciseTestResultRepository) GetPerformanceMeasureByID(id uint) (*models.TestResultPerformanceMeasure, error) {
+	var measure *models.TestResultPerformanceMeasure
+
+	result := repo.db.First(&measure, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return measure, nil
+}
+
+func (repo *TestAndExerciseTestResultRepository) UpdatePerformanceMeasure(measure *models.TestResultPerformanceMeasure, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(measure).Error
+}
+
+func (repo *TestAndExerciseTestResultRepository) DeletePerformanceMeasure(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Delete(&models.TestResultPerformanceMeasure{}, id).Error
+}
+
+func (repo *TestAndExerciseTestResultRepository) GetPerformanceMeasuresByTestResultID(testResultID uint) ([]*models.TestResultPerformanceMeasure, error) {
+	var measures []*models.TestResultPerformanceMeasure
+
+	result := repo.db.Where("test_result_id = ?", testResultID).Find(&measures)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return measures, nil
 }

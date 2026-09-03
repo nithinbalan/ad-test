@@ -2,12 +2,15 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -297,4 +300,46 @@ func (tec *TestAndExerciseController) GetTestResultSummary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, summary)
+}
+
+func (tec *TestAndExerciseController) ExportTestAndExercisePDF(c *gin.Context) {
+	idStr := c.Param("testAndExerciseId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tec.db, c, err.Error())
+		return
+	}
+
+	pdfFileName, err := tec.service.ExportTestAndExercisePDF(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(tec.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", pdfFileName))
+	c.Header("Content-Type", "application/pdf")
+	c.File(pdfFileName)
+	c.Writer.Flush()
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		if err := os.Remove(pdfFileName); err != nil {
+			fmt.Printf("Failed to delete file %s: %v\n", pdfFileName, err)
+		}
+	}()
 }

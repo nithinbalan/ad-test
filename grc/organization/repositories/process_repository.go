@@ -184,6 +184,12 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		processes.review_frequency_id,
 		review_frequencies.title_en AS review_frequency_title_en,
 		review_frequencies.title_ar AS review_frequency_title_ar,
+		processes.section_id,
+		sections.title_en AS section_title_en,
+		sections.title_ar AS section_title_ar,
+		processes.sub_section_id,
+		sub_sections.title_en AS sub_section_title_en,
+		sub_sections.title_ar AS sub_section_title_ar,
 		processes.is_can_be_done_manually,
 		processes.time_to_perform_procedure_manually,
 		processes.steps_to_perform_procedure_manually,
@@ -226,7 +232,9 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		Joins("LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id").
 		Joins("LEFT JOIN bcm_process_types ON bcm_process_types.id = processes.process_type_id").
 		Joins("LEFT JOIN locations ON locations.id = processes.location_id").
-		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = processes.review_frequency_id")
+		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = processes.review_frequency_id").
+		Joins("LEFT JOIN organization_units AS sections ON sections.id = processes.section_id").
+		Joins("LEFT JOIN organization_units AS sub_sections ON sub_sections.id = processes.sub_section_id")
 
 	// Apply dynamic filters to the query
 	filterColumnMap := map[string]string{
@@ -239,6 +247,8 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		"location_id":         "processes.location_id",
 		"review_frequency_id": "processes.review_frequency_id",
 		"workflow_status_id":  "bia_processes.workflow_status_id",
+		"section_id":          "processes.section_id",
+		"sub_section_id":      "processes.sub_section_id",
 	}
 	for paramName, values := range params.Filters {
 		if len(values) == 0 {
@@ -322,9 +332,13 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		 approved_by.first_name_en LIKE ? OR
 		 approved_by.first_name_ar LIKE ? OR
 		 approved_by.last_name_en LIKE ? OR
-		 approved_by.last_name_ar LIKE ?)`,
+		 approved_by.last_name_ar LIKE ? OR
+		 sections.title_en LIKE ? OR
+		 sections.title_ar LIKE ? OR
+		 sub_sections.title_en LIKE ? OR
+		 sub_sections.title_ar LIKE ?)`,
 			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw,
-			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw)
+			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw)
 	}
 
 	// Count total records for pagination
@@ -475,6 +489,8 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("ProcessType").
 		Preload("Location").
 		Preload("ReviewFrequency").
+		Preload("Section").
+		Preload("SubSection").
 		Preload("Risks").
 		Preload("RiskMatrixRating").
 		Preload("RiskMatrixRatingValue").

@@ -9,6 +9,9 @@ type TestAndExercise struct {
 	ReferenceNumber          string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
 	BusinessContinuityPlanID uint       `json:"business_continuity_id" binding:"required"`
 	BcpTestAndExerciseID     uint       `json:"bcp_test_and_exercise_id" binding:"required"`
+	Objective                *string    `json:"objective"`
+	Scenario                 *string    `json:"scenario"`
+	SuccessCriteria          *string    `json:"success_criteria"`
 	ResponsibleUserID        *uint      `json:"responsible_user_id" gorm:"not null" binding:"required"`
 	ResponsibleUnitID        *uint      `json:"responsible_unit_id" gorm:"not null" binding:"required"`
 	TestingDate              *time.Time `json:"testing_date"`

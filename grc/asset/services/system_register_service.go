@@ -10,6 +10,7 @@ import (
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 
@@ -75,6 +76,25 @@ func (srs *SystemRegisterService) GetFullDetailsByID(id uint, tx ...utility.Data
 	}
 
 	detail.CreatedAt = systemRegister.CreatedAt
+
+	// Map critical processes (processes with ImpactAnalysisLevel != non_applicable)
+	if systemRegister.ProcessSystemRegisters != nil && len(systemRegister.ProcessSystemRegisters) > 0 {
+		detail.CriticalProcesses = make([]*organizationDTOs.ProcessDetailDTO, 0)
+		for _, psr := range systemRegister.ProcessSystemRegisters {
+			if psr.Process != nil {
+				// Filter out processes with null ImpactAnalysisLevel or type = "non_applicable"
+				if psr.Process.ImpactAnalysisLevel == nil || psr.Process.ImpactAnalysisLevel.Type == "non_applicable" {
+					continue
+				}
+
+				var processDetail organizationDTOs.ProcessDetailDTO
+				if err := mapstructure.Decode(psr.Process, &processDetail); err != nil {
+					continue
+				}
+				detail.CriticalProcesses = append(detail.CriticalProcesses, &processDetail)
+			}
+		}
+	}
 
 	return &detail, nil
 }

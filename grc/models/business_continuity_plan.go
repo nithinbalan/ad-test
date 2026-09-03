@@ -8,6 +8,7 @@ type BusinessContinuityPlan struct {
 	ID                         uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ReferenceNumber            string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
 	BusinessFunctionID         uint       `json:"business_function_id" binding:"required"`
+	ParentID                   *uint      `json:"parent_id"`
 	Version                    *int       `json:"version"`
 	IsLatestVersion            *bool      `json:"is_latest_version" gorm:"not null;default:true"`
 	Purpose                    *string    `json:"purpose"`
@@ -31,21 +32,22 @@ type BusinessContinuityPlan struct {
 	UpdatedAt                  *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	BusinessFunction      *BusinessFunction      `gorm:"foreignKey:BusinessFunctionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Processes             []BcpProcess           `gorm:"foreignKey:BusinessContinuityPlanID"`
-	BcpStatus             *BcpStatus             `gorm:"foreignKey:BcpStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser       *User                  `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit       *OrganizationUnit      `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RtoUnit               *TimeUnit              `gorm:"foreignKey:RtoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	MtpdUnit              *TimeUnit              `gorm:"foreignKey:MtpdUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RpoUnit               *TimeUnit              `gorm:"foreignKey:RpoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Documents             []BcpDocument          `gorm:"foreignKey:BusinessContinuityPlanID"`
-	BcpRecoveryPlans      []BcpRecoveryPlan      `gorm:"foreignKey:BusinessContinuityPlanID"`
-	BcpCommunicationPlans []BcpCommunicationPlan `gorm:"foreignKey:BusinessContinuityPlanID"`
-	EquipmentTools        []ProcessEquipmentTool `gorm:"-"`
-	OutageBuckets         []BCMBIAOutageBucket   `gorm:"-"`
-	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
+	Parent                *BusinessContinuityPlan `gorm:"foreignKey:ParentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	BusinessFunction      *BusinessFunction       `gorm:"foreignKey:BusinessFunctionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Processes             []BcpProcess            `gorm:"foreignKey:BusinessContinuityPlanID"`
+	BcpStatus             *BcpStatus              `gorm:"foreignKey:BcpStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser       *User                   `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit       *OrganizationUnit       `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RtoUnit               *TimeUnit               `gorm:"foreignKey:RtoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	MtpdUnit              *TimeUnit               `gorm:"foreignKey:MtpdUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RpoUnit               *TimeUnit               `gorm:"foreignKey:RpoUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents             []BcpDocument           `gorm:"foreignKey:BusinessContinuityPlanID"`
+	BcpRecoveryPlans      []BcpRecoveryPlan       `gorm:"foreignKey:BusinessContinuityPlanID"`
+	BcpCommunicationPlans []BcpCommunicationPlan  `gorm:"foreignKey:BusinessContinuityPlanID"`
+	EquipmentTools        []ProcessEquipmentTool  `gorm:"-"`
+	OutageBuckets         []BCMBIAOutageBucket    `gorm:"-"`
+	CreatedByUser         *User                   `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser         *User                   `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by BusinessContinuityPlan to `business_continuity_plans`

@@ -87,7 +87,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcmBiaOutageBucketController := controllers.NewBCMBIAOutageBucketController(bcmBiaOutageBucketSvc)
 
 	bcmBiaImpactLevelRepo := repositories.NewBCMBIAImpactLevelRepository(db)
-	bcmBiaImpactLevelSvc := services.NewBCMBIAImpactLevelService(bcmBiaImpactLevelRepo)
+	bcmBiaImpactLevelSvc := services.NewBCMBIAImpactLevelService(bcmBiaImpactLevelRepo, sharedModule.ActivityLogService)
 	bcmBiaImpactLevelController := controllers.NewBCMBIAImpactLevelController(bcmBiaImpactLevelSvc)
 
 	businessImpactAssessmentRepo := repositories.NewBusinessImpactAssessmentRepository(db)
@@ -156,6 +156,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		organizationModule.UserSettingSvc,
 		bcpStatusSvc,
 		riskModule.RiskHeatMapSvc,
+		settingsModule.ReportTemplateSettingSvc,
 	)
 	businessContinuityPlanController := controllers.NewBusinessContinuityPlanController(businessContinuityPlanSvc)
 
@@ -196,7 +197,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	communicationActionPlanStatusController := controllers.NewCommunicationActionPlanStatusController(communicationActionPlanStatusSvc)
 
 	testAndExerciseRepo := repositories.NewTestAndExerciseRepository(db)
-	testAndExerciseSvc := services.NewTestAndExerciseService(testAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, bcpTestAndExerciseSvc, businessContinuityPlanSvc, testAndExerciseStatusSvc, communicationActionPlanStatusSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSettingSvc, taskModule.TaskService)
+	testAndExerciseSvc := services.NewTestAndExerciseService(testAndExerciseRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, bcpTestAndExerciseSvc, businessContinuityPlanSvc, testAndExerciseStatusSvc, communicationActionPlanStatusSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSettingSvc, taskModule.TaskService, settingsModule.ReportTemplateSettingSvc)
 	testAndExerciseController := controllers.NewTestAndExerciseController(testAndExerciseSvc)
 
 	testAndExerciseCommunicationActionPlanRepo := repositories.NewTestAndExerciseCommunicationActionPlanRepository(db)
