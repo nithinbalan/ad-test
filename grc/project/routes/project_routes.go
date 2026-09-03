@@ -35,6 +35,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectSecurityGateStageController := app.ProjectModule.ProjectSecurityGateStageController
 	projectSecurityGateChecklistTemplateController := app.ProjectModule.ProjectSecurityGateChecklistTemplateController
 	projectWorkflowLevelController := app.ProjectModule.ProjectWorkflowLevelController
+	projectDecisionLogController := app.ProjectModule.ProjectDecisionLogController
 
 	// Project Types
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
@@ -92,6 +93,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.PUT("/projects/:projectId/change-requests/:changeRequestId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewCommentController.UpdateComment)
 	projectRoutes.POST("/projects/:projectId/change-requests/:changeRequestId/review-comments/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewCommentController.DeleteComments)
 	projectRoutes.PUT("/projects/:projectId/change-requests/:changeRequestId/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectChangeRequestReviewCommentController.ResolveComment)
+
+	// Project Decision Logs
+	unauthenticatedRoutes.GET("/projects/:projectId/decision-logs/:decisionLogId/documents/:documentId/download", projectDecisionLogController.DownloadDocument)
+	unauthenticatedRoutes.GET("/projects/:projectId/decision-logs/:decisionLogId/documents/:documentId/preview", projectDecisionLogController.GetDocumentPreview)
+	projectRoutes.GET("/projects/:projectId/decision-logs", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDecisionLogController.GetAllDecisionLogs)
+	projectRoutes.GET("/projects/:projectId/decision-logs/:decisionLogId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDecisionLogController.GetDecisionLogDetails)
+	projectRoutes.POST("/projects/:projectId/decision-logs", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectDecisionLogController.CreateDecisionLog)
+	projectRoutes.PUT("/projects/:projectId/decision-logs/:decisionLogId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectDecisionLogController.UpdateDecisionLog)
+	projectRoutes.POST("/projects/:projectId/decision-logs/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectDecisionLogController.DeleteDecisionLogs)
 
 	// Project Action Plans
 	projectRoutes.GET("/project-action-plans", projectActionPlanController.GetAllProjectActionPlans)

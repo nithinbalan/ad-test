@@ -28,6 +28,7 @@ type ProjectModule struct {
 	ProjectSecurityGateStageController             *controllers.ProjectSecurityGateStageController
 	ProjectSecurityGateChecklistTemplateController *controllers.ProjectSecurityGateChecklistTemplateController
 	ProjectWorkflowLevelController                 *controllers.ProjectWorkflowLevelController
+	ProjectDecisionLogController                   *controllers.ProjectDecisionLogController
 
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
@@ -37,6 +38,7 @@ type ProjectModule struct {
 	projectChangeRequestReviewSvc        services.ProjectChangeRequestReviewServiceInterface
 	projectChangeRequestReviewCommentSvc services.ProjectChangeRequestReviewCommentServiceInterface
 	projectImpactAssessmentTypeSvc       services.ProjectImpactAssessmentTypeServiceInterface
+	projectDecisionLogSvc                services.ProjectDecisionLogServiceInterface
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule, settingsModule *SettingsModule) *ProjectModule {
@@ -185,6 +187,15 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 
 	projectWorkflowLevelController := controllers.NewProjectWorkflowLevelController(settingsModule.WorkflowSvc, db)
 
+	projectDecisionLogRepo := repositories.NewProjectDecisionLogRepository(db)
+	projectDecisionLogSvc := services.NewProjectDecisionLogService(
+		projectDecisionLogRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		projectSvc,
+	)
+	projectDecisionLogController := controllers.NewProjectDecisionLogController(projectDecisionLogSvc, db)
+
 	return &ProjectModule{
 		ProjectTypeController:                          projectTypeController,
 		ProjectStatusController:                        projectStatusController,
@@ -205,6 +216,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectSecurityGateStageController:             projectSecurityGateStageController,
 		ProjectSecurityGateChecklistTemplateController: projectSecurityGateChecklistTemplateController,
 		ProjectWorkflowLevelController:                 projectWorkflowLevelController,
+		ProjectDecisionLogController:                   projectDecisionLogController,
 
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,
@@ -214,5 +226,6 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectChangeRequestReviewSvc:        projectChangeRequestReviewSvc,
 		projectChangeRequestReviewCommentSvc: projectChangeRequestReviewCommentSvc,
 		projectImpactAssessmentTypeSvc:       projectImpactAssessmentTypeSvc,
+		projectDecisionLogSvc:                projectDecisionLogSvc,
 	}
 }
