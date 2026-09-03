@@ -192,7 +192,7 @@ func (ptc *PenetrationTestController) UpdatePenetrationTest(c *gin.Context) {
 
 func (ptc *PenetrationTestController) DeletePenetrationTests(c *gin.Context) {
 	var request struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
