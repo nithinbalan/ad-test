@@ -7,6 +7,7 @@ import (
 	"jethur/grc/models"
 	penetrationTestDTOs "jethur/grc/penetration-testing/dtos"
 	"jethur/utility"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -267,9 +268,25 @@ func (repo *PenetrationTestRetestRepository) GenerateReferenceNumber(penetration
 		return "", err
 	}
 
-	var count int64
-	if err := db.Model(&models.PenetrationTestRetest{}).Where("penetration_test_id = ?", penetrationTestID).Count(&count).Error; err != nil {
+	var lastReferenceNumber string
+	if err := db.Model(&models.PenetrationTestRetest{}).
+		Select("reference_number").
+		Where("penetration_test_id = ?", penetrationTestID).
+		Order("reference_number desc").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).Error; err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("RT-%s-%02d", penetrationTest.ReferenceNumber[3:], count+1), nil
+
+	lastDigits := "00"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 2 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-2:]
+	}
+
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("RT-%s-%02d", penetrationTest.ReferenceNumber[3:], lastReferenceID+1), nil
 }

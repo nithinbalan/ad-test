@@ -16,6 +16,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTest.GetPenetrationTestDetails)
 	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTest.CreatePenetrationTest)
 	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTest.UpdatePenetrationTest)
+	environmentPreparation := m.PenetrationTestEnvironmentPreparationController
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/environment-preparation", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), environmentPreparation.GetPenetrationTestEnvironmentPreparationDetails)
+	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/:id/environment-preparation", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), environmentPreparation.CreatePenetrationTestEnvironmentPreparation)
+	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id/environment-preparation", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), environmentPreparation.UpdatePenetrationTestEnvironmentPreparation)
+	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-logs/:id/environment-preparation", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), environmentPreparation.DeletePenetrationTestEnvironmentPreparations)
+	execution := m.PenetrationTestExecutionController
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/execution", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), execution.GetPenetrationTestExecutionDetails)
+	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/:id/execution", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), execution.CreatePenetrationTestExecution)
+	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id/execution", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), execution.UpdatePenetrationTestExecution)
+	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-logs/:id/execution", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), execution.DeletePenetrationTestExecutions)
+	managementSharing := m.PenetrationTestManagementSharingController
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/management-sharing", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), managementSharing.GetPenetrationTestManagementSharingDetails)
+	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/:id/management-sharing", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), managementSharing.CreatePenetrationTestManagementSharing)
+	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id/management-sharing", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), managementSharing.UpdatePenetrationTestManagementSharing)
+	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-logs/:id/management-sharing", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), managementSharing.DeletePenetrationTestManagementSharings)
 	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/delete", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTest.DeletePenetrationTests)
 	finding := m.PenetrationTestFindingController
 	penetrationTestingRoutes.GET("/penetration-test-findings", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), finding.GetAllPenetrationTestFindings)

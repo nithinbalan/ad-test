@@ -17,12 +17,17 @@ type PenetrationTestListDTO struct {
 	PenetrationTestClassificationID uint   `json:"penetration_test_classification_id"`
 	PenetrationTestExecutorID       uint   `json:"penetration_test_executor_id"`
 	CSResponsibleEmployeeID         uint   `json:"cs_responsible_employee_id"`
-	EnvironmentReadinessID          uint   `json:"environment_readiness_id"`
+	EnvironmentReadinessID          *uint  `json:"environment_readiness_id"`
 	TestStartDate                   string `json:"test_start_date"`
 	TestEndDate                     string `json:"test_end_date"`
-	ExecutionStatusID               uint   `json:"execution_status_id"`
-	SecurityResultID                uint   `json:"security_result_id"`
+	ExecutionStatusID               *uint  `json:"execution_status_id"`
+	SecurityResultID                *uint  `json:"security_result_id"`
 	ResultsSharedWithManagement     bool   `json:"results_shared_with_management"`
+	CriticalCount                   int    `json:"critical_count"`
+	HighCount                       int    `json:"high_count"`
+	MediumCount                     int    `json:"medium_count"`
+	LowCount                        int    `json:"low_count"`
+	TotalFindings                   int    `json:"total_findings"`
 }
 
 type PenetrationTestFormDTO struct {
@@ -35,13 +40,13 @@ type PenetrationTestFormDTO struct {
 	PenetrationTestExecutorID       uint    `json:"penetration_test_executor_id" binding:"required"`
 	CSResponsibleEmployeeID         uint    `json:"cs_responsible_employee_id" binding:"required"`
 	Scope                           string  `json:"scope" binding:"required"`
-	EnvironmentNotifyDate           string  `json:"environment_notify_date" binding:"required"`
-	ExpectedReadyDate               string  `json:"expected_ready_date" binding:"required"`
-	EnvironmentReadinessID          uint    `json:"environment_readiness_id" binding:"required"`
-	TestStartDate                   string  `json:"test_start_date" binding:"required"`
-	TestEndDate                     string  `json:"test_end_date" binding:"required"`
-	ExecutionStatusID               uint    `json:"execution_status_id" binding:"required"`
-	SecurityResultID                uint    `json:"security_result_id" binding:"required"`
+	EnvironmentNotifyDate           *string `json:"environment_notify_date,omitempty"`
+	ExpectedReadyDate               *string `json:"expected_ready_date,omitempty"`
+	EnvironmentReadinessID          *uint   `json:"environment_readiness_id,omitempty"`
+	TestStartDate                   *string `json:"test_start_date,omitempty"`
+	TestEndDate                     *string `json:"test_end_date,omitempty"`
+	ExecutionStatusID               *uint   `json:"execution_status_id,omitempty"`
+	SecurityResultID                *uint   `json:"security_result_id,omitempty"`
 	ResultsSharedWithManagement     bool    `json:"results_shared_with_management"`
 	ManagementNotifyDate            *string `json:"management_notify_date,omitempty"`
 	ManagementResponseDate          *string `json:"management_response_date,omitempty"`
@@ -49,32 +54,37 @@ type PenetrationTestFormDTO struct {
 }
 
 type PenetrationTestDetailDTO struct {
-	ID                            uint                                   `json:"id"`
-	ReferenceNumber               string                                 `json:"reference_number"`
-	SystemApplicationName         string                                 `json:"system_application_name"`
-	PenetrationTestType           PenetrationTestTypeDTO                 `json:"penetration_test_type"`
-	PenetrationTestPlan           PenetrationTestPlanDTO                 `json:"penetration_test_plan"`
-	PenetrationTestClassification PenetrationTestClassificationDTO       `json:"penetration_test_classification"`
-	PenetrationTestExecutor       PenetrationTestExecutorDTO             `json:"penetration_test_executor"`
-	CSResponsibleEmployee         organizationDTOs.UserMinimalDTO        `json:"cs_responsible_employee"`
-	Year                          int                                    `json:"year"`
-	Period                        string                                 `json:"period"`
-	Scope                         string                                 `json:"scope"`
-	EnvironmentNotifyDate         time.Time                              `json:"environment_notify_date"`
-	ExpectedReadyDate             time.Time                              `json:"expected_ready_date"`
-	EnvironmentReadiness          PenetrationTestEnvironmentReadinessDTO `json:"environment_readiness"`
-	TestStartDate                 time.Time                              `json:"test_start_date"`
-	TestEndDate                   time.Time                              `json:"test_end_date"`
-	ExecutionStatus               PenetrationTestExecutionStatusDTO      `json:"execution_status"`
-	SecurityResult                PenetrationTestSecurityResultDTO       `json:"security_result"`
-	ResultsSharedWithManagement   bool                                   `json:"results_shared_with_management"`
-	ManagementNotifyDate          *time.Time                             `json:"management_notify_date"`
-	ManagementResponseDate        *time.Time                             `json:"management_response_date"`
-	RemediationNotes              *string                                `json:"remediation_notes"`
-	CreatedAt                     time.Time                              `json:"created_at"`
-	UpdatedAt                     *time.Time                             `json:"updated_at"`
-	CreatedByUser                 organizationDTOs.UserMinimalDTO        `json:"created_by_user"`
-	UpdatedByUser                 *organizationDTOs.UserMinimalDTO       `json:"updated_by_user"`
+	ID                            uint                                    `json:"id"`
+	ReferenceNumber               string                                  `json:"reference_number"`
+	SystemApplicationName         string                                  `json:"system_application_name"`
+	PenetrationTestType           PenetrationTestTypeDTO                  `json:"penetration_test_type"`
+	PenetrationTestPlan           PenetrationTestPlanDTO                  `json:"penetration_test_plan"`
+	PenetrationTestClassification PenetrationTestClassificationDTO        `json:"penetration_test_classification"`
+	PenetrationTestExecutor       PenetrationTestExecutorDTO              `json:"penetration_test_executor"`
+	CSResponsibleEmployee         organizationDTOs.UserMinimalDTO         `json:"cs_responsible_employee"`
+	Year                          int                                     `json:"year"`
+	Period                        string                                  `json:"period"`
+	Scope                         string                                  `json:"scope"`
+	EnvironmentNotifyDate         *time.Time                              `json:"environment_notify_date"`
+	ExpectedReadyDate             *time.Time                              `json:"expected_ready_date"`
+	EnvironmentReadiness          *PenetrationTestEnvironmentReadinessDTO `json:"environment_readiness"`
+	TestStartDate                 *time.Time                              `json:"test_start_date"`
+	TestEndDate                   *time.Time                              `json:"test_end_date"`
+	ExecutionStatus               *PenetrationTestExecutionStatusDTO      `json:"execution_status"`
+	SecurityResult                *PenetrationTestSecurityResultDTO       `json:"security_result"`
+	ResultsSharedWithManagement   bool                                    `json:"results_shared_with_management"`
+	ManagementNotifyDate          *time.Time                              `json:"management_notify_date"`
+	ManagementResponseDate        *time.Time                              `json:"management_response_date"`
+	RemediationNotes              *string                                 `json:"remediation_notes"`
+	CriticalCount                 int                                     `json:"critical_count"`
+	HighCount                     int                                     `json:"high_count"`
+	MediumCount                   int                                     `json:"medium_count"`
+	LowCount                      int                                     `json:"low_count"`
+	TotalFindings                 int                                     `json:"total_findings"`
+	CreatedAt                     time.Time                               `json:"created_at"`
+	UpdatedAt                     *time.Time                              `json:"updated_at"`
+	CreatedByUser                 organizationDTOs.UserMinimalDTO         `json:"created_by_user"`
+	UpdatedByUser                 *organizationDTOs.UserMinimalDTO        `json:"updated_by_user"`
 }
 
 type PenetrationTestListQueryParamsDTO struct {
