@@ -93,6 +93,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		organizationModule.OrganizationUnitsSvc,
 	)
 	projectChangeRequestWorkflowSvc.SetProjectChangeRequestService(projectChangeRequestSvc)
+	projectChangeRequestSvc.SetWorkflowService(projectChangeRequestWorkflowSvc)
 	projectChangeRequestWorkflowController := controllers.NewProjectChangeRequestWorkflowController(projectChangeRequestWorkflowSvc, db)
 
 	projectChangeRequestReviewSvc := services.NewProjectChangeRequestReviewService(

@@ -411,14 +411,15 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
 			newResponsibleUserSubject := fmt.Sprintf("Project/%s: Responsibility Assigned", form.TitleEn)
 			newResponsibleUserEmailData := map[string]interface{}{
-				"FirstNameEn":          newResponsibleUser.FirstNameEn,
-				"LastNameEn":           newResponsibleUser.LastNameEn,
-				"ProjectTitle":         form.TitleEn,
-				"ProjectTitleAr":       form.TitleAr,
-				"ProjectDescription":   stripHTML(form.DescriptionEn),
-				"UpdatedByFirstNameEn": updatedByUser.FirstNameEn,
-				"UpdatedByLastNameEn":  updatedByUser.LastNameEn,
-				"RedirectURL":          fmt.Sprintf("%s/project/%d/overview", appURL, id),
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"ProjectTitle":          form.TitleEn,
+				"ProjectTitleAr":        form.TitleAr,
+				"ProjectDescription":    stripHTML(form.DescriptionEn),
+				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
+				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/project/%d/overview", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

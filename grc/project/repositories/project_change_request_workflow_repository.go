@@ -198,9 +198,40 @@ func (pcrwr *ProjectChangeRequestWorkflowRepository) CountApprovedParticipants(w
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
+
+	var resubmitID *uint
+	err := db.Raw(`
+        SELECT MAX(id)
+        FROM project_change_request_workflow_reviews
+        WHERE project_change_request_workflow_id = ?
+          AND workflow_status_id = (
+              SELECT id
+              FROM workflow_statuses
+              WHERE type = 'resubmit'
+          )
+    `, workflowID).Scan(&resubmitID).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	if resubmitID == nil {
+		resubmitID = new(uint)
+	}
+
 	var count int64
-	err := db.Model(&models.ProjectChangeRequestWorkflowParticipant{}).
-		Where("project_change_request_workflow_id = ? AND approval_status = ?", workflowID, "approved").
-		Count(&count).Error
-	return int(count), err
+	query := db.Model(&models.ProjectChangeRequestWorkflowReview{}).
+		Where("project_change_request_workflow_id = ? AND workflow_status_id = (SELECT id FROM workflow_statuses WHERE type = 'approve')", workflowID).
+		Distinct("created_by_id")
+
+	if *resubmitID > 0 {
+		query = query.Where("id > ?", *resubmitID)
+	}
+
+	err = query.Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
 }

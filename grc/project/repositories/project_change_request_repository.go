@@ -14,17 +14,20 @@ import (
 
 type ProjectChangeRequestRepositoryInterface interface {
 	GetAll(projectID uint, params *dtos.ProjectChangeRequestListQueryParamsDTO) (*dtos.ProjectChangeRequestListResponseDTO, error)
-	GetByID(id uint) (*models.ProjectChangeRequest, error)
-	GetFullDetailsByID(id uint) (*models.ProjectChangeRequest, error)
+	GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error)
+	GetFullDetailsByID(projectID uint, id uint) (*models.ProjectChangeRequest, error)
 	GenerateReferenceNumber() (string, error)
 	Create(changeRequest *models.ProjectChangeRequest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(changeRequest *models.ProjectChangeRequest, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
-	CreateImpactAssessments(impactAssessments []*models.ProjectImpactAssessment, tx ...utility.DatabaseTransaction) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	DeleteImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocuments(ids []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentsByChangeRequestID(changeRequestID uint, tx ...utility.DatabaseTransaction) error
+	DeleteWorkflowHistories(changeRequestID uint, tx ...utility.DatabaseTransaction) error
+	DeleteReviewComments(changeRequestID uint, tx ...utility.DatabaseTransaction) error
+	CreateImpactAssessments(impactAssessments []*models.ProjectImpactAssessment, tx ...utility.DatabaseTransaction) error
 	CreateDocuments(documents []*models.ProjectChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ProjectChangeRequestDocument, error)
-	DeleteDocuments(ids []*uint, tx ...utility.DatabaseTransaction) error
 	GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error)
 	BeginTransaction() utility.DatabaseTransaction
 }
@@ -190,16 +193,16 @@ func (pcrr *ProjectChangeRequestRepository) GetAll(projectID uint, params *dtos.
 	return response, nil
 }
 
-func (pcrr *ProjectChangeRequestRepository) GetByID(id uint) (*models.ProjectChangeRequest, error) {
+func (pcrr *ProjectChangeRequestRepository) GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error) {
 	var changeRequest models.ProjectChangeRequest
-	result := pcrr.db.First(&changeRequest, id)
+	result := pcrr.db.Where("project_id = ? AND id = ?", projectID, id).First(&changeRequest)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	return &changeRequest, nil
 }
 
-func (pcrr *ProjectChangeRequestRepository) GetFullDetailsByID(id uint) (*models.ProjectChangeRequest, error) {
+func (pcrr *ProjectChangeRequestRepository) GetFullDetailsByID(projectID uint, id uint) (*models.ProjectChangeRequest, error) {
 	var changeRequest models.ProjectChangeRequest
 	result := pcrr.db.
 		Preload("Project").
@@ -213,7 +216,8 @@ func (pcrr *ProjectChangeRequestRepository) GetFullDetailsByID(id uint) (*models
 		Preload("ImpactAssessments").
 		Preload("ImpactAssessments.ProjectImpactAssessmentType").
 		Preload("Documents").
-		First(&changeRequest, id)
+		Where("project_id = ? AND id = ?", projectID, id).
+		First(&changeRequest)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -308,27 +312,52 @@ func (pcrr *ProjectChangeRequestRepository) DeleteDocuments(ids []*uint, tx ...u
 	return db.Where("id IN (?)", ids).Delete(&models.ProjectChangeRequestDocument{}).Error
 }
 
-func (pcrr *ProjectChangeRequestRepository) Delete(id uint) error {
-	return pcrr.db.Transaction(func(tx *gorm.DB) error {
-		var changeRequest *models.ProjectChangeRequest
-		if err := tx.First(&changeRequest, id).Error; err != nil {
+func (pcrr *ProjectChangeRequestRepository) DeleteDocumentsByChangeRequestID(changeRequestID uint, tx ...utility.DatabaseTransaction) error {
+	db := pcrr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("project_change_request_id = ?", changeRequestID).Delete(&models.ProjectChangeRequestDocument{}).Error
+}
+
+func (pcrr *ProjectChangeRequestRepository) DeleteWorkflowHistories(changeRequestID uint, tx ...utility.DatabaseTransaction) error {
+	db := pcrr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("project_change_request_id = ?", changeRequestID).Delete(&models.ProjectChangeRequestWorkflowHistory{}).Error
+}
+
+func (pcrr *ProjectChangeRequestRepository) DeleteReviewComments(changeRequestID uint, tx ...utility.DatabaseTransaction) error {
+	db := pcrr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var commentIDs []uint
+	if err := db.Model(&models.ProjectChangeRequestReviewComment{}).
+		Where("project_change_request_id = ?", changeRequestID).
+		Pluck("id", &commentIDs).Error; err != nil {
+		return err
+	}
+	if len(commentIDs) > 0 {
+		if err := db.Where("project_change_request_review_comment_id IN (?)", commentIDs).
+			Delete(&models.ProjectChangeRequestReviewCommentDocument{}).Error; err != nil {
 			return err
 		}
-
-		if err := tx.Where("project_change_request_id = ?", id).Delete(&models.ProjectImpactAssessment{}).Error; err != nil {
+		if err := db.Where("project_change_request_id = ?", changeRequestID).
+			Delete(&models.ProjectChangeRequestReviewComment{}).Error; err != nil {
 			return err
 		}
+	}
+	return nil
+}
 
-		if err := tx.Where("project_change_request_id = ?", id).Delete(&models.ProjectChangeRequestDocument{}).Error; err != nil {
-			return err
-		}
-
-		if err := tx.Delete(&models.ProjectChangeRequest{}, id).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
+func (pcrr *ProjectChangeRequestRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := pcrr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Delete(&models.ProjectChangeRequest{}, id).Error
 }
 
 func (pcrr *ProjectChangeRequestRepository) GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error) {

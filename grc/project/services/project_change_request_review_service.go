@@ -245,7 +245,7 @@ func (pcrrs *ProjectChangeRequestReviewService) Resubmit(projectID uint, changeR
 
 	pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
 	if err == nil {
-		pcrrs.notifyNextLevelUsers(projectID, changeRequestID, workflowLevel, pcrDetail, currentUserID)
+		pcrrs.sendResubmitNotification(projectID, changeRequestID, workflowLevel, pcrDetail, currentUserID)
 	}
 
 	return nil
@@ -283,7 +283,7 @@ func (pcrrs *ProjectChangeRequestReviewService) Approve(projectID uint, changeRe
 	var nextWorkflowLevel *models.ProjectChangeRequestWorkflow
 
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual", "hod":
+	case "individual", "custom-roles", "hod":
 		if len(currentWorkflow.ProjectChangeRequestWorkflowParticipants) == 0 ||
 			currentUserID != currentWorkflow.ProjectChangeRequestWorkflowParticipants[0].UserID {
 			tx.Rollback()
@@ -468,7 +468,7 @@ func (pcrrs *ProjectChangeRequestReviewService) Revert(projectID uint, changeReq
 	}
 
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual", "hod":
+	case "individual", "custom-roles", "hod":
 		if len(currentWorkflow.ProjectChangeRequestWorkflowParticipants) == 0 ||
 			currentUserID != currentWorkflow.ProjectChangeRequestWorkflowParticipants[0].UserID {
 			tx.Rollback()
@@ -617,7 +617,7 @@ func (pcrrs *ProjectChangeRequestReviewService) Reject(projectID uint, changeReq
 	}
 
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual", "hod":
+	case "individual", "custom-roles", "hod":
 		if len(currentWorkflow.ProjectChangeRequestWorkflowParticipants) == 0 ||
 			currentUserID != currentWorkflow.ProjectChangeRequestWorkflowParticipants[0].UserID {
 			tx.Rollback()
@@ -808,6 +808,68 @@ func (pcrrs *ProjectChangeRequestReviewService) notifyNextLevelUsers(projectID u
 				EmailTo:              []string{reviewUser.Email},
 				Subject:              "Project Change Request Review Assigned",
 				TemplateRelativePath: "project/templates/email/project_change_request_workflow_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_change_request")
+		}
+	}()
+}
+
+func (pcrrs *ProjectChangeRequestReviewService) sendResubmitNotification(projectID uint, changeRequestID uint, workflowLevel *models.ProjectChangeRequestWorkflow, pcrDetail *projectDTOs.ProjectChangeRequestDetailDTO, currentUserID uint) {
+	go func() {
+		if workflowLevel == nil || pcrDetail == nil {
+			return
+		}
+
+		urlParam := fmt.Sprintf(`{"projectId":%d,"changeRequestId":%d}`, projectID, changeRequestID)
+		entity := "project-change-request-review"
+		action := "resubmitted"
+
+		resubmittedBy, err := pcrrs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch resubmitting user", map[string]interface{}{"error": err.Error()})
+			return
+		}
+
+		for _, participant := range workflowLevel.ProjectChangeRequestWorkflowParticipants {
+			reviewUser, err := pcrrs.userSvc.GetByID(participant.UserID)
+			if err != nil {
+				continue
+			}
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{participant.UserID},
+				ModuleIdentifier:     "project",
+				NotificationType:     string(commonDTOs.ReviewType),
+				HeadingEn:            "Project Change Request Review Resubmitted",
+				HeadingAr:            "تمت إعادة إرسال مراجعة طلب تغيير المشروع",
+				ReferenceNumber:      pcrDetail.ReferenceNumber,
+				TitleEn:              pcrDetail.Title,
+				TitleAr:              pcrDetail.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":              reviewUser.FirstNameEn,
+				"LastNameEn":               reviewUser.LastNameEn,
+				"Title":                    pcrDetail.Title,
+				"ReferenceNumber":          pcrDetail.ReferenceNumber,
+				"ResubmittedByFirstNameEn": resubmittedBy.FirstNameEn,
+				"ResubmittedByLastNameEn":  resubmittedBy.LastNameEn,
+				"ResubmittedAt":            time.Now().Format("2006-01-02"),
+				"RedirectURL":              fmt.Sprintf("%s/projects/%d/change-requests/%d", appURL, projectID, changeRequestID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{reviewUser.Email},
+				Subject:              "Project Change Request Review Resubmitted",
+				TemplateRelativePath: "project/templates/email/project_change_request_workflow_resubmit_user_mail.html",
 				EmailData:            emailData,
 			}
 

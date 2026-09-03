@@ -18,6 +18,7 @@ import (
 )
 
 type ProjectChangeRequestServiceInterface interface {
+	SetWorkflowService(workflowSvc ProjectChangeRequestWorkflowServiceInterface)
 	GetAll(projectID uint, params *dtos.ProjectChangeRequestListQueryParamsDTO) (*dtos.ProjectChangeRequestListResponseDTO, error)
 	GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error)
 	GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectChangeRequestDetailDTO, error)
@@ -32,6 +33,11 @@ type ProjectChangeRequestService struct {
 	activityLog logServices.ActivityLogServiceInterface
 	userSvc     organizationServices.UserServiceInterface
 	projectSvc  ProjectServiceInterface
+	workflowSvc ProjectChangeRequestWorkflowServiceInterface
+}
+
+func (pcrs *ProjectChangeRequestService) SetWorkflowService(workflowSvc ProjectChangeRequestWorkflowServiceInterface) {
+	pcrs.workflowSvc = workflowSvc
 }
 
 func NewProjectChangeRequestService(
@@ -59,7 +65,7 @@ func (pcrs *ProjectChangeRequestService) GetByID(projectID uint, id uint) (*mode
 	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
 		return nil, err
 	}
-	changeRequest, err := pcrs.repo.GetByID(id)
+	changeRequest, err := pcrs.repo.GetByID(projectID, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -76,7 +82,7 @@ func (pcrs *ProjectChangeRequestService) GetFullDetailsByID(projectID uint, id u
 		return nil, err
 	}
 
-	changeRequest, err := pcrs.repo.GetFullDetailsByID(id)
+	changeRequest, err := pcrs.repo.GetFullDetailsByID(projectID, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, &utility.ResourceNotFoundError{}
@@ -243,7 +249,7 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 		return err
 	}
 
-	changeRequest, err := pcrs.repo.GetByID(id)
+	changeRequest, err := pcrs.repo.GetByID(projectID, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &utility.ResourceNotFoundError{}
@@ -407,18 +413,53 @@ func (pcrs *ProjectChangeRequestService) Delete(projectID uint, ids []uint, curr
 		return nil, err
 	}
 
+	tx := pcrs.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedItems []map[string]interface{}
 
 	for _, id := range ids {
-		changeRequest, err := pcrs.repo.GetByID(id)
+		changeRequest, err := pcrs.repo.GetByID(projectID, id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
 
-		err = pcrs.repo.Delete(id)
+		// 1. Delete review comments and review comment documents
+		if err := pcrs.repo.DeleteReviewComments(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// 2. Delete workflow histories
+		if err := pcrs.repo.DeleteWorkflowHistories(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// 3. Delete workflows, reviews, and participants
+		if pcrs.workflowSvc != nil {
+			if err := pcrs.workflowSvc.DeleteAllWorkflowsForProjectChangeRequest(id, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		// 4. Delete impact assessments
+		if err := pcrs.repo.DeleteImpactAssessments(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// 5. Delete documents
+		if err := pcrs.repo.DeleteDocumentsByChangeRequestID(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// 6. Delete parent change request
+		err = pcrs.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -430,7 +471,18 @@ func (pcrs *ProjectChangeRequestService) Delete(projectID uint, ids []uint, curr
 			"reference_number": changeRequest.ReferenceNumber,
 			"title":            changeRequest.Title,
 		})
+	}
 
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	for _, id := range successfulIds {
 		folderPath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10))
 		if err := utility.RemoveFolder(folderPath); err != nil {
 			utility.LogError("Failed to remove change request storage folder", map[string]interface{}{
