@@ -153,34 +153,15 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 		}
 	}
 
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	if params.SortBy == "" {
-		params.SortBy = "penetration_tests.created_at"
-	}
-	allowedSortColumns := map[string]bool{
-		"penetration_tests.reference_number":        true,
-		"penetration_tests.system_application_name": true,
-		"penetration_tests.year":                    true,
-		"penetration_tests.period":                  true,
-		"penetration_tests.created_at":              true,
-		"penetration_test_types.title_en":           true,
-		"penetration_test_types.title_ar":           true,
-		"penetration_test_classifications.title_en": true,
-		"penetration_test_classifications.title_ar": true,
-		"penetration_test_plans.title_en":           true,
-		"penetration_test_plans.title_ar":           true,
-		"penetration_test_executors.title_en":       true,
-		"penetration_test_executors.title_ar":       true,
-	}
-	if !allowedSortColumns[params.SortBy] {
 		params.SortBy = "penetration_tests.created_at"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "desc"
-	}
-
-	query = query.Order(params.SortBy + " " + params.Sort)
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
 	}
 	if params.Page < 1 {
 		params.Page = 1
@@ -188,6 +169,8 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 	if params.PageSize < 1 {
 		params.PageSize = 10
 	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
 	if err := query.Offset((params.Page - 1) * params.PageSize).Limit(params.PageSize).Find(&penetrationTests).Error; err != nil {
 		return nil, err
 	}
