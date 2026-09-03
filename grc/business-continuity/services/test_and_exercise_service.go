@@ -25,6 +25,7 @@ import (
 type TestAndExerciseServiceInterface interface {
 	GetAll(params *businessContinuityDTOs.TestAndExerciseListQueryParamsDTO, currentUserID uint) (*businessContinuityDTOs.TestAndExerciseListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseDetailDTO, error)
+	GetFullDetailsForReportByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseDetailDTO, error)
 	GetByID(id uint) (*models.TestAndExercise, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.TestAndExerciseFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, TestAndExercise *businessContinuityDTOs.TestAndExerciseFormDTO) error
@@ -126,6 +127,45 @@ func (tes TestAndExerciseService) GetFullDetailsByID(id uint, tx ...utility.Data
 	if testAndExercise.TestingDate != nil {
 		testingDate := testAndExercise.TestingDate.Format("2006-01-02")
 		testAndExerciseDTO.TestingDateString = testingDate
+	}
+
+	testAndExerciseDTO.CreatedAt = testAndExercise.CreatedAt
+	testAndExerciseDTO.UpdatedAt = testAndExercise.UpdatedAt
+
+	return &testAndExerciseDTO, nil
+}
+
+func (tes TestAndExerciseService) GetFullDetailsForReportByID(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.TestAndExerciseDetailDTO, error) {
+	// Initialize your DTO
+	var testAndExerciseDTO businessContinuityDTOs.TestAndExerciseDetailDTO
+
+	testAndExercise, err := tes.repo.GetFullDetailsForReportByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(testAndExercise, &testAndExerciseDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	if testAndExercise.TestingDate != nil {
+		testingDate := testAndExercise.TestingDate.Format("2006-01-02")
+		testAndExerciseDTO.TestingDateString = testingDate
+	}
+
+	for i, rap := range testAndExercise.TestAndExerciseRecoveryActionPlans {
+		if i < len(testAndExerciseDTO.TestAndExerciseRecoveryActionPlans) {
+			testAndExerciseDTO.TestAndExerciseRecoveryActionPlans[i].TargetDate = rap.TargetDate
+			if rap.TargetDate != nil {
+				t := rap.TargetDate.Format("2006-01-02")
+				testAndExerciseDTO.TestAndExerciseRecoveryActionPlans[i].TargetDateString = &t
+			}
+		}
 	}
 
 	testAndExerciseDTO.CreatedAt = testAndExercise.CreatedAt
@@ -1016,8 +1056,8 @@ func (tes *TestAndExerciseService) ExportTestAndExercisePDF(id uint, currentUser
 		return "", utility.NewForbiddenError("cover_image_missing")
 	}
 
-	// Get complete Test & Exercise details
-	testExerciseDTO, err := tes.GetFullDetailsByID(id)
+	// Get complete Test & Exercise details for report
+	testExerciseDTO, err := tes.GetFullDetailsForReportByID(id)
 	if err != nil {
 		return "", err
 	}
@@ -1093,63 +1133,62 @@ func (tes *TestAndExerciseService) ExportTestAndExercisePDF(id uint, currentUser
 
 		// Build System Registers table
 		for _, sr := range testExerciseDTO.TestAndExerciseTestResult.TestResultSystemRegisters {
-			systemTitle := sr.SystemRegister.TitleEn
-			testCompletionDate := sr.TestCompletionDateString
-
-			commFeedbackTitle := sr.CommunicationFeedbackOption.TitleEn
-			commFeedbackColor := sr.CommunicationFeedbackOption.ColorCode
-
-			recoveryFeedbackTitle := sr.RecoveryFeedbackOption.TitleEn
-			recoveryFeedbackColor := sr.RecoveryFeedbackOption.ColorCode
-
-			testResultTitle := sr.TestResultOption.TitleEn
-			testResultColor := sr.TestResultOption.ColorCode
+			systemTitle := ""
+			if sr.SystemRegister.ID != 0 {
+				systemTitle = sr.SystemRegister.TitleEn
+			}
 
 			systemRegisters = append(systemRegisters, businessContinuityDTOs.TestAndExerciseSystemRegisterExportDTO{
-				SystemTitle:                      systemTitle,
-				TestCompletionDate:               testCompletionDate,
-				CommunicationFeedbackOptionTitle: commFeedbackTitle,
-				CommunicationFeedbackOptionColor: commFeedbackColor,
-				RecoveryFeedbackOptionTitle:      recoveryFeedbackTitle,
-				RecoveryFeedbackOptionColor:      recoveryFeedbackColor,
-				TestResultOptionTitle:            testResultTitle,
-				TestResultOptionColor:            testResultColor,
+				SystemTitle: systemTitle,
 			})
 		}
 	}
 
 	// Build Recovery Action Plans table
 	var recoveryActionPlans []businessContinuityDTOs.TestAndExerciseRecoveryActionPlanExportDTO
+	var actionPlans []businessContinuityDTOs.TestAndExerciseRecoveryActionPlanExportDTO
 	for _, rap := range testExerciseDTO.TestAndExerciseRecoveryActionPlans {
-		processTitle := ""
-		if rap.Process != nil {
-			processTitle = rap.Process.TitleEn
+		bcpPhaseTitle := ""
+		if rap.BcpPhase.ID != 0 {
+			bcpPhaseTitle = rap.BcpPhase.TitleEn
 		}
 		systemTitle := ""
 		if rap.SystemRegister != nil {
 			systemTitle = rap.SystemRegister.TitleEn
 		}
-		bcpPhaseTitle := rap.BcpPhase.TitleEn
 		severityLevel := ""
 		if rap.SeverityLevel != nil {
 			severityLevel = rap.SeverityLevel.TitleEn
 		}
 		responsibleUser := fmt.Sprintf("%s %s", rap.ResponsibleUser.FirstNameEN, rap.ResponsibleUser.LastNameEN)
-		responsibleUnit := rap.ResponsibleUnit.TitleEn
 		targetDate := ""
-		if rap.TargetDateString != nil {
-			targetDate = *rap.TargetDateString
+		if rap.TargetDate != nil {
+			targetDate = rap.TargetDate.Format("Jan 02, 2006")
+		}
+		percentage := ""
+		if rap.Percentage != nil {
+			percentage = fmt.Sprintf("%d", *rap.Percentage)
+		}
+		statusTitle := ""
+		if rap.ActionPlanStatus != nil {
+			statusTitle = rap.ActionPlanStatus.TitleEn
 		}
 
-		recoveryActionPlans = append(recoveryActionPlans, businessContinuityDTOs.TestAndExerciseRecoveryActionPlanExportDTO{
-			ProcessTitle:    processTitle,
-			SystemTitle:     systemTitle,
+		item := businessContinuityDTOs.TestAndExerciseRecoveryActionPlanExportDTO{
+			Title:           rap.Title,
 			BcpPhaseTitle:   bcpPhaseTitle,
+			SystemTitle:     systemTitle,
 			SeverityLevel:   severityLevel,
 			ResponsibleUser: responsibleUser,
-			ResponsibleUnit: responsibleUnit,
 			TargetDate:      targetDate,
-		})
+			Percentage:      percentage,
+			StatusTitle:     statusTitle,
+		}
+		if rap.IsRecovery {
+			recoveryActionPlans = append(recoveryActionPlans, item)
+		} else {
+			actionPlans = append(actionPlans, item)
+		}
 	}
 
 	// Build Communication Action Plans table
@@ -1210,8 +1249,8 @@ func (tes *TestAndExerciseService) ExportTestAndExercisePDF(id uint, currentUser
 	}
 
 	responsibleUnitTitle := ""
-	if testExerciseDTO.BusinessContinuityPlan.ResponsibleUnit.ID != 0 {
-		responsibleUnitTitle = testExerciseDTO.BusinessContinuityPlan.ResponsibleUnit.TitleEn
+	if testExerciseDTO.ResponsibleUnit != nil && testExerciseDTO.ResponsibleUnit.ID != 0 {
+		responsibleUnitTitle = testExerciseDTO.ResponsibleUnit.TitleEn
 	}
 
 	viewModel := businessContinuityDTOs.TestAndExerciseExportPDFDTO{
@@ -1242,6 +1281,7 @@ func (tes *TestAndExerciseService) ExportTestAndExercisePDF(id uint, currentUser
 		PerformanceMeasures:        performanceMeasures,
 		SystemRegisters:            systemRegisters,
 		RecoveryActionPlans:        recoveryActionPlans,
+		ActionPlans:                actionPlans,
 		CommunicationActionPlans:   communicationActionPlans,
 	}
 

@@ -90,6 +90,8 @@ type TestAndExerciseDetailDTO struct {
 	BusinessContinuityPlan                  BusinessContinuityPlanDetailDTO              `json:"business_continuity_plan"`
 	ResponsibleUserID                       uint                                         `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ResponsibleUser                         *organizationDTOs.UserMinimalDTO             `json:"responsible_user"`
+	ResponsibleUnitID                       uint                                         `json:"responsible_unit_id"`
+	ResponsibleUnit                         *settingsDTOs.OrganizationUnitDTO            `json:"responsible_unit"`
 	BcpTestAndExerciseID                    uint                                         `json:"bcp_test_and_exercise_id"`
 	BcpTestAndExercise                      *BcpTestAndExerciseDetailDTO                 `json:"bcp_test_and_exercise"`
 	Objective                               *string                                      `json:"objective"`
@@ -142,6 +144,7 @@ type TestAndExerciseProcessDTO struct {
 type TestAndExerciseRecoveryActionPlanDTO struct {
 	ID                *uint                              `json:"id"`
 	TestAndExerciseID uint                               `json:"test_and_exercise_id"`
+	Title             string                             `json:"title"`
 	ProcessID         *uint                              `json:"process_id"`
 	Process           *organizationDTOs.ProcessDetailDTO `json:"process"`
 	SystemRegisterID  *uint                              `json:"system_register_id"`
@@ -153,7 +156,11 @@ type TestAndExerciseRecoveryActionPlanDTO struct {
 	ResponsibleUser   organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
 	ResponsibleUnitID uint                               `json:"responsible_unit_id"`
 	ResponsibleUnit   settingsDTOs.OrganizationUnitDTO   `json:"responsible_unit"`
+	TargetDate        *time.Time                         `json:"-"`
 	TargetDateString  *string                            `json:"target_date"`
+	Percentage        *int                               `json:"percentage"`
+	ActionPlanStatus  *masterDTOs.ActionPlanStatusDTO    `json:"action_plan_status"`
+	IsRecovery        bool                               `json:"is_recovery"`
 }
 
 type TestAndExerciseCommunicationActionPlanDTO struct {
@@ -254,6 +261,7 @@ type TestAndExerciseExportPDFDTO struct {
 	PerformanceMeasures        []TestAndExercisePerformanceMeasureExportDTO
 	SystemRegisters            []TestAndExerciseSystemRegisterExportDTO
 	RecoveryActionPlans        []TestAndExerciseRecoveryActionPlanExportDTO
+	ActionPlans                []TestAndExerciseRecoveryActionPlanExportDTO
 	CommunicationActionPlans   []TestAndExerciseCommunicationActionPlanExportDTO
 }
 
@@ -276,13 +284,14 @@ type TestAndExerciseSystemRegisterExportDTO struct {
 }
 
 type TestAndExerciseRecoveryActionPlanExportDTO struct {
-	ProcessTitle    string
-	SystemTitle     string
+	Title           string
 	BcpPhaseTitle   string
+	SystemTitle     string
 	SeverityLevel   string
 	ResponsibleUser string
-	ResponsibleUnit string
 	TargetDate      string
+	Percentage      string
+	StatusTitle     string
 }
 
 type TestAndExerciseCommunicationActionPlanExportDTO struct {
