@@ -413,8 +413,6 @@ func (pcrs *ProjectChangeRequestService) Delete(projectID uint, ids []uint, curr
 		return nil, err
 	}
 
-	tx := pcrs.repo.BeginTransaction()
-
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedItems []map[string]interface{}
@@ -426,14 +424,18 @@ func (pcrs *ProjectChangeRequestService) Delete(projectID uint, ids []uint, curr
 			continue
 		}
 
+		tx := pcrs.repo.BeginTransaction()
+
 		// 1. Delete review comments and review comment documents
 		if err := pcrs.repo.DeleteReviewComments(id, tx); err != nil {
+			tx.Rollback()
 			failedIds = append(failedIds, id)
 			continue
 		}
 
 		// 2. Delete workflow histories
 		if err := pcrs.repo.DeleteWorkflowHistories(id, tx); err != nil {
+			tx.Rollback()
 			failedIds = append(failedIds, id)
 			continue
 		}
@@ -441,6 +443,7 @@ func (pcrs *ProjectChangeRequestService) Delete(projectID uint, ids []uint, curr
 		// 3. Delete workflows, reviews, and participants
 		if pcrs.workflowSvc != nil {
 			if err := pcrs.workflowSvc.DeleteAllWorkflowsForProjectChangeRequest(id, tx); err != nil {
+				tx.Rollback()
 				failedIds = append(failedIds, id)
 				continue
 			}
@@ -448,12 +451,14 @@ func (pcrs *ProjectChangeRequestService) Delete(projectID uint, ids []uint, curr
 
 		// 4. Delete impact assessments
 		if err := pcrs.repo.DeleteImpactAssessments(id, tx); err != nil {
+			tx.Rollback()
 			failedIds = append(failedIds, id)
 			continue
 		}
 
 		// 5. Delete documents
 		if err := pcrs.repo.DeleteDocumentsByChangeRequestID(id, tx); err != nil {
+			tx.Rollback()
 			failedIds = append(failedIds, id)
 			continue
 		}
@@ -461,6 +466,12 @@ func (pcrs *ProjectChangeRequestService) Delete(projectID uint, ids []uint, curr
 		// 6. Delete parent change request
 		err = pcrs.repo.Delete(id, tx)
 		if err != nil {
+			tx.Rollback()
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		if err := tx.Commit(); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
@@ -471,18 +482,7 @@ func (pcrs *ProjectChangeRequestService) Delete(projectID uint, ids []uint, curr
 			"reference_number": changeRequest.ReferenceNumber,
 			"title":            changeRequest.Title,
 		})
-	}
 
-	if len(failedIds) > 0 {
-		tx.Rollback()
-		return failedIds, nil
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	for _, id := range successfulIds {
 		folderPath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10))
 		if err := utility.RemoveFolder(folderPath); err != nil {
 			utility.LogError("Failed to remove change request storage folder", map[string]interface{}{

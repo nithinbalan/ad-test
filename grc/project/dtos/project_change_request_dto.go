@@ -50,12 +50,6 @@ type ProjectChangeRequestListDTO struct {
 	RejectedUserFirstNameAr     *string `json:"rejected_user_first_name_ar"`
 	RejectedUserLastNameEn      *string `json:"rejected_user_last_name_en"`
 	RejectedUserLastNameAr      *string `json:"rejected_user_last_name_ar"`
-	RevertedAt                  *string `json:"reverted_at"`
-	RevertedUserID              *uint   `json:"reverted_user_id"`
-	RevertedUserFirstNameEn     *string `json:"reverted_user_first_name_en"`
-	RevertedUserFirstNameAr     *string `json:"reverted_user_first_name_ar"`
-	RevertedUserLastNameEn      *string `json:"reverted_user_last_name_en"`
-	RevertedUserLastNameAr      *string `json:"reverted_user_last_name_ar"`
 	CreatedUserID               uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`
