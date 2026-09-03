@@ -27,15 +27,16 @@ type ProjectModule struct {
 	ProjectSecurityGateClassificationController    *controllers.ProjectSecurityGateClassificationController
 	ProjectSecurityGateStageController             *controllers.ProjectSecurityGateStageController
 	ProjectSecurityGateChecklistTemplateController *controllers.ProjectSecurityGateChecklistTemplateController
+	ProjectWorkflowLevelController                 *controllers.ProjectWorkflowLevelController
 
-	projectSvc                          services.ProjectServiceInterface
-	projectMilestoneSvc                 services.ProjectMilestoneServiceInterface
-	projectActionPlanSvc                services.ProjectActionPlanServiceInterface
-	projectChangeRequestSvc             services.ProjectChangeRequestServiceInterface
+	projectSvc                           services.ProjectServiceInterface
+	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
+	projectActionPlanSvc                 services.ProjectActionPlanServiceInterface
+	projectChangeRequestSvc              services.ProjectChangeRequestServiceInterface
 	projectChangeRequestWorkflowSvc      services.ProjectChangeRequestWorkflowServiceInterface
 	projectChangeRequestReviewSvc        services.ProjectChangeRequestReviewServiceInterface
 	projectChangeRequestReviewCommentSvc services.ProjectChangeRequestReviewCommentServiceInterface
-	projectImpactAssessmentTypeSvc      services.ProjectImpactAssessmentTypeServiceInterface
+	projectImpactAssessmentTypeSvc       services.ProjectImpactAssessmentTypeServiceInterface
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule, settingsModule *SettingsModule) *ProjectModule {
@@ -181,6 +182,8 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectSecurityGateChecklistTemplateController := controllers.NewProjectSecurityGateChecklistTemplateController(projectSecurityGateChecklistTemplateSvc)
 
+	projectWorkflowLevelController := controllers.NewProjectWorkflowLevelController(settingsModule.WorkflowSvc, db)
+
 	return &ProjectModule{
 		ProjectTypeController:                          projectTypeController,
 		ProjectStatusController:                        projectStatusController,
@@ -200,14 +203,15 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectSecurityGateClassificationController:    projectSecurityGateClassificationController,
 		ProjectSecurityGateStageController:             projectSecurityGateStageController,
 		ProjectSecurityGateChecklistTemplateController: projectSecurityGateChecklistTemplateController,
+		ProjectWorkflowLevelController:                 projectWorkflowLevelController,
 
-		projectSvc:                          projectSvc,
-		projectMilestoneSvc:                 projectMilestoneSvc,
-		projectActionPlanSvc:                projectActionPlanSvc,
-		projectChangeRequestSvc:             projectChangeRequestSvc,
+		projectSvc:                           projectSvc,
+		projectMilestoneSvc:                  projectMilestoneSvc,
+		projectActionPlanSvc:                 projectActionPlanSvc,
+		projectChangeRequestSvc:              projectChangeRequestSvc,
 		projectChangeRequestWorkflowSvc:      projectChangeRequestWorkflowSvc,
 		projectChangeRequestReviewSvc:        projectChangeRequestReviewSvc,
 		projectChangeRequestReviewCommentSvc: projectChangeRequestReviewCommentSvc,
-		projectImpactAssessmentTypeSvc:      projectImpactAssessmentTypeSvc,
+		projectImpactAssessmentTypeSvc:       projectImpactAssessmentTypeSvc,
 	}
 }

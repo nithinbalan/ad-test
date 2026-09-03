@@ -34,7 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectSecurityGateClassificationController := app.ProjectModule.ProjectSecurityGateClassificationController
 	projectSecurityGateStageController := app.ProjectModule.ProjectSecurityGateStageController
 	projectSecurityGateChecklistTemplateController := app.ProjectModule.ProjectSecurityGateChecklistTemplateController
-
+	projectWorkflowLevelController := app.ProjectModule.ProjectWorkflowLevelController
 
 	// Project Types
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
@@ -188,4 +188,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.CreateProjectSecurityGateChecklistTemplateRequirement)
 	projectRoutes.PUT("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.UpdateProjectSecurityGateChecklistTemplateRequirement)
 	projectRoutes.DELETE("/project-security-gate-checklist-templates/:templateId/versions/:versionId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectSecurityGateChecklistTemplateController.DeleteProjectSecurityGateChecklistTemplateRequirement)
+
+	// Project Workflow Levels
+	projectRoutes.POST("/project-workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectWorkflowLevelController.CreateWorkflowLevel)
+	projectRoutes.DELETE("/project-workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "project_setting", "modify"), projectWorkflowLevelController.DeleteWorkflowLevel)
 }
