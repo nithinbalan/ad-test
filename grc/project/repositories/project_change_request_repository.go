@@ -101,12 +101,6 @@ func (pcrr *ProjectChangeRequestRepository) GetAll(projectID uint, params *dtos.
 			rejected_user.first_name_ar AS rejected_user_first_name_ar,
 			rejected_user.last_name_en AS rejected_user_last_name_en,
 			rejected_user.last_name_ar AS rejected_user_last_name_ar,
-			CONVERT(VARCHAR, project_change_requests.reverted_at, 23) AS reverted_at,
-			reverted_user.id AS reverted_user_id,
-			reverted_user.first_name_en AS reverted_user_first_name_en,
-			reverted_user.first_name_ar AS reverted_user_first_name_ar,
-			reverted_user.last_name_en AS reverted_user_last_name_en,
-			reverted_user.last_name_ar AS reverted_user_last_name_ar,
 			updated_user.id AS updated_user_id,
 			updated_user.first_name_en AS updated_user_first_name_en,
 			updated_user.first_name_ar AS updated_user_first_name_ar,
@@ -123,7 +117,6 @@ func (pcrr *ProjectChangeRequestRepository) GetAll(projectID uint, params *dtos.
 		Joins(`LEFT JOIN users AS submitted_user ON project_change_requests.submitted_by_id = submitted_user.id`).
 		Joins(`LEFT JOIN users AS approved_user ON project_change_requests.approved_by_id = approved_user.id`).
 		Joins(`LEFT JOIN users AS rejected_user ON project_change_requests.rejected_by_id = rejected_user.id`).
-		Joins(`LEFT JOIN users AS reverted_user ON project_change_requests.reverted_by_id = reverted_user.id`).
 		Joins(`LEFT JOIN users AS created_user ON project_change_requests.created_by_id = created_user.id`).
 		Joins(`LEFT JOIN users AS updated_user ON project_change_requests.updated_by_id = updated_user.id`)
 

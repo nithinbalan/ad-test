@@ -239,7 +239,7 @@ func (ptrec *PenetrationTestRetestController) CompletePenetrationTestRetest(c *g
 
 func (ptrec *PenetrationTestRetestController) DeletePenetrationTestRetests(c *gin.Context) {
 	var request struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 	if err := c.ShouldBindJSON(&request); err != nil {
 		utility.SendInvalidErrResp(c, err)

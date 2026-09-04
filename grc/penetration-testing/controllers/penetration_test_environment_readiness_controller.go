@@ -122,7 +122,7 @@ func (pterc *PenetrationTestEnvironmentReadinessController) UpdatePenetrationTes
 
 func (pterc *PenetrationTestEnvironmentReadinessController) DeletePenetrationTestEnvironmentReadinesses(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -147,7 +147,7 @@ func (pterc *PenetrationTestEnvironmentReadinessController) DeletePenetrationTes
 
 func (pterc *PenetrationTestEnvironmentReadinessController) ActivatePenetrationTestEnvironmentReadinesses(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -171,7 +171,7 @@ func (pterc *PenetrationTestEnvironmentReadinessController) ActivatePenetrationT
 
 func (pterc *PenetrationTestEnvironmentReadinessController) DeactivatePenetrationTestEnvironmentReadinesses(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -122,7 +122,7 @@ func (ptec *PenetrationTestExecutorController) UpdatePenetrationTestExecutor(c *
 
 func (ptec *PenetrationTestExecutorController) DeletePenetrationTestExecutors(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -147,7 +147,7 @@ func (ptec *PenetrationTestExecutorController) DeletePenetrationTestExecutors(c 
 
 func (ptec *PenetrationTestExecutorController) ActivatePenetrationTestExecutors(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -171,7 +171,7 @@ func (ptec *PenetrationTestExecutorController) ActivatePenetrationTestExecutors(
 
 func (ptec *PenetrationTestExecutorController) DeactivatePenetrationTestExecutors(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
