@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -353,8 +354,6 @@ func (pdls *ProjectDecisionLogService) Delete(projectID uint, ids []uint, curren
 		return nil, err
 	}
 
-	tx := pdls.repo.BeginTransaction()
-
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedItems []map[string]interface{}
@@ -366,10 +365,9 @@ func (pdls *ProjectDecisionLogService) Delete(projectID uint, ids []uint, curren
 			continue
 		}
 
-		// 1. Delete documents
+		// 1. Delete review comments and review comment documents
 		tx := pdls.repo.BeginTransaction()
 
-		// 1. Delete review comments and review comment documents
 		if err := pdls.repo.DeleteReviewComments(id, tx); err != nil {
 			tx.Rollback()
 			failedIds = append(failedIds, id)
@@ -399,7 +397,6 @@ func (pdls *ProjectDecisionLogService) Delete(projectID uint, ids []uint, curren
 			continue
 		}
 
-		// 2. Delete parent decision log
 		// 5. Delete parent decision log
 		if err := pdls.repo.Delete(id, tx); err != nil {
 			tx.Rollback()
@@ -421,12 +418,7 @@ func (pdls *ProjectDecisionLogService) Delete(projectID uint, ids []uint, curren
 	}
 
 	if len(failedIds) > 0 {
-		tx.Rollback()
 		return failedIds, nil
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, err
 	}
 
 	for _, id := range successfulIds {
@@ -440,26 +432,20 @@ func (pdls *ProjectDecisionLogService) Delete(projectID uint, ids []uint, curren
 		}
 	}
 
-	if len(successfulIds) > 0 {
-		go func() {
-			err := pdls.activityLog.LogBulkActivities(
+	go func() {
+		for _, item := range deletedItems {
+			_ = pdls.activityLog.LogActivity(
 				models.DeleteAction,
 				models.ProjectDecisionLog{}.TableName(),
-				successfulIds,
-				deletedItems,
+				item["id"].(uint),
+				item,
 				currentUserID,
-				nil,
+				"project", "project_register", "", nil,
 			)
-			if err != nil {
-				utility.LogError("Failed to log bulk delete project decision logs activity", map[string]interface{}{
-					"recordIDs": successfulIds,
-					"error":     err.Error(),
-				})
-			}
-		}()
-	}
+		}
+	}()
 
-	return failedIds, nil
+	return nil, nil
 }
 
 func (pdls *ProjectDecisionLogService) GetSummary(projectID uint) (*dtos.ProjectDecisionLogSummaryDTO, error) {
@@ -490,8 +476,9 @@ func (pdls *ProjectDecisionLogService) GetDocumentPath(projectID uint, decisionL
 		return "", &utility.ResourceNotFoundError{}
 	}
 
-	storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "decision-logs", strconv.FormatUint(uint64(decisionLogID), 10), "documents", document.Name)
-	fullPath := filepath.Join(os.Getenv("STORAGE_ABSOLUTE_PATH"), storagePath)
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "decision-logs", strconv.FormatUint(uint64(decisionLogID), 10), "documents")
+	fullPath := filepath.Join(baseStoragePath, storagePath, document.Name)
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return "", &utility.ResourceNotFoundError{}
 	}

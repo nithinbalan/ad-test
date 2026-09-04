@@ -116,10 +116,10 @@ func (pdlws *ProjectDecisionLogWorkflowService) GetWorkflowList(projectDecisionL
 		return nil, err
 	}
 
-	var currentStatus *masterDTOs.WorkflowStatusDTO
+	var workflowStatus *masterDTOs.WorkflowStatusDTO
 	if pdl.WorkflowStatus != nil {
 		st := pdlws.mapWorkflowStatusToDTO(pdl.WorkflowStatus)
-		currentStatus = &st
+		workflowStatus = &st
 	}
 
 	dto := &projectDTOs.ProjectDecisionLogWorkflowListDTO{
@@ -132,18 +132,18 @@ func (pdlws *ProjectDecisionLogWorkflowService) GetWorkflowList(projectDecisionL
 		RejectedAt:           pdl.RejectedAt,
 		RejectedByUser:       pdlws.mapUserToDTO(pdl.RejectedByUser),
 		NextReviewLevel:      pdl.NextReviewLevel,
-		CurrentStatus:        currentStatus,
+		WorkflowStatus:       workflowStatus,
 		Workflows:            []*projectDTOs.ProjectDecisionLogWorkflowLevelDTO{},
 		History:              []*projectDTOs.ProjectDecisionLogWorkflowHistoryDTO{},
 	}
 
 	for _, workflow := range pdl.Workflows {
 		workflowDTO := &projectDTOs.ProjectDecisionLogWorkflowLevelDTO{
-			Level:         workflow.Level,
-			ApprovalType:  workflow.ApprovalTypes,
-			CurrentStatus: pdlws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
-			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
-			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
+			Level:          workflow.Level,
+			ApprovalType:   workflow.ApprovalTypes,
+			WorkflowStatus: pdlws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
+			ReviewUsers:    []*organizationDTOs.UserMinimalDTO{},
+			ApprovedUsers:  []*organizationDTOs.UserMinimalDTO{},
 		}
 
 		for _, participant := range workflow.ProjectDecisionLogWorkflowParticipants {

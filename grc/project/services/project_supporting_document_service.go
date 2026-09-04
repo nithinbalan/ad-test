@@ -396,9 +396,6 @@ func (psds *ProjectSupportingDocumentService) GetDocumentPath(projectID uint, su
 	}
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	if baseStoragePath == "" {
-		baseStoragePath = os.Getenv("STORAGE_ABSOLUTE_PATH")
-	}
 	storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "supporting-documents", strconv.FormatUint(uint64(supportingDocID), 10), "documents")
 	fullPath := filepath.Join(baseStoragePath, storagePath, document.Name)
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {

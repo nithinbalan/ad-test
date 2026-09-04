@@ -53,7 +53,7 @@ func NewProjectDecisionLogReviewService(
 	}
 }
 
-func (pdlrs *ProjectDecisionLogReviewService) createReviewWithHistory(workflowID uint,decisionLogID uint,level int,workflowStatusID uint,comment *string,currentUserID uint,tx utility.DatabaseTransaction,) error {
+func (pdlrs *ProjectDecisionLogReviewService) createReviewWithHistory(workflowID uint, decisionLogID uint, level int, workflowStatusID uint, comment *string, currentUserID uint, tx utility.DatabaseTransaction) error {
 	review := &models.ProjectDecisionLogWorkflowReview{
 		ProjectDecisionLogWorkflowID: workflowID,
 		WorkflowStatusID:             workflowStatusID,
