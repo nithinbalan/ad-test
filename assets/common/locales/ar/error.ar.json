@@ -328,6 +328,10 @@
 {
   "id": "version_published",
   "translation": "لا يمكن تعديل {{.Field}} بعد نشره."
+},
+{
+  "id": "no_published_version",
+  "translation": "لا يوجد {{.Field}} منشور لقائمة التحقق لهذه المرحلة."
 }
 
 

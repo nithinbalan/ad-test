@@ -10,7 +10,7 @@ import (
 
 type ProjectSecurityGateClassificationRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ProjectSecurityGateClassification, error)
-	GetByID(id uint) (*models.ProjectSecurityGateClassification, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error)
 	GetByType(classificationType string) (*models.ProjectSecurityGateClassification, error)
 }
 
@@ -48,9 +48,14 @@ func (repo *ProjectSecurityGateClassificationRepository) GetAll(sort string, sor
 	return classifications, result.Error
 }
 
-func (repo *ProjectSecurityGateClassificationRepository) GetByID(id uint) (*models.ProjectSecurityGateClassification, error) {
+func (repo *ProjectSecurityGateClassificationRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var classification *models.ProjectSecurityGateClassification
-	result := repo.db.First(&classification, id)
+	result := db.First(&classification, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)

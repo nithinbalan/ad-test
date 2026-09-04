@@ -37,6 +37,7 @@ type UserServiceInterface interface {
 	GetAllUsersWithPrimaryUnit(params *userDTOs.PrimaryUnitUserListQueryParamsDTO) (*userDTOs.PrimaryUnitUserListResponseDTO, error)
 	GetAllUsers() ([]*userDTOs.UserPrimaryDetailsDTO, error)
 	GetByID(id uint) (*models.User, error)
+	GetByIDWithTx(id uint, tx utility.DatabaseTransaction) (*models.User, error)
 	GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, error)
 	GetByEmail(email string) (*models.User, error)
 	Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error)
@@ -247,6 +248,19 @@ func (us *UserService) GetAllUsersWithPrimaryUnit(params *userDTOs.PrimaryUnitUs
 
 func (us *UserService) GetByID(id uint) (*models.User, error) {
 	user, err := us.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (us *UserService) GetByIDWithTx(id uint, tx utility.DatabaseTransaction) (*models.User, error) {
+	user, err := us.repo.GetByIDWithTx(id, tx)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

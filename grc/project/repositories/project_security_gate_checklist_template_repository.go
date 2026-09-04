@@ -12,15 +12,17 @@ type ProjectSecurityGateChecklistTemplateRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll() ([]*models.ProjectSecurityGateChecklistTemplate, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplate, error)
+	GetByStageID(stageID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplate, error)
 	GetDetailsByID(id uint) (*models.ProjectSecurityGateChecklistTemplate, error)
 	GetVersionByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error)
+	GetLatestPublishedVersionByTemplateID(templateID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error)
 	GetMaxVersionByTemplateID(templateID uint, tx ...utility.DatabaseTransaction) (int, error)
 	ExistsVersionByStatus(templateID uint, status string, tx ...utility.DatabaseTransaction) (bool, error)
 	CreateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error)
 	UpdateVersion(version *models.ProjectSecurityGateChecklistTemplateVersion, tx ...utility.DatabaseTransaction) error
 	GetRequirementByID(id uint) (*models.ProjectSecurityGateChecklistTemplateRequirement, error)
 	CreateRequirement(requirement *models.ProjectSecurityGateChecklistTemplateRequirement) (*models.ProjectSecurityGateChecklistTemplateRequirement, error)
-	UpdateRequirement(id uint, requirement *models.ProjectSecurityGateChecklistTemplateRequirement) (*models.ProjectSecurityGateChecklistTemplateRequirement, error)
+	UpdateRequirement(requirement *models.ProjectSecurityGateChecklistTemplateRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteRequirement(id uint) error
 }
 
@@ -57,6 +59,24 @@ func (repo *ProjectSecurityGateChecklistTemplateRepository) GetByID(id uint, tx 
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return template, nil
+}
+
+func (repo *ProjectSecurityGateChecklistTemplateRepository) GetByStageID(stageID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplate, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var template *models.ProjectSecurityGateChecklistTemplate
+	result := db.Where("stage_id = ?", stageID).First(&template)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, stageID)
 	} else if result.Error != nil {
 		return nil, result.Error
 	}
@@ -105,6 +125,31 @@ func (repo *ProjectSecurityGateChecklistTemplateRepository) GetVersionByID(id ui
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return version, nil
+}
+
+func (repo *ProjectSecurityGateChecklistTemplateRepository) GetLatestPublishedVersionByTemplateID(templateID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var version *models.ProjectSecurityGateChecklistTemplateVersion
+
+	result := db.
+		Preload("Requirements", func(db *gorm.DB) *gorm.DB {
+			return db.Order("id asc")
+		}).
+		Where("template_id = ? AND status = ?", templateID, "published").
+		Order("version desc").
+		First(&version)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
 	} else if result.Error != nil {
 		return nil, result.Error
 	}
@@ -192,21 +237,13 @@ func (repo *ProjectSecurityGateChecklistTemplateRepository) CreateRequirement(re
 	return requirement, result.Error
 }
 
-func (repo *ProjectSecurityGateChecklistTemplateRepository) UpdateRequirement(id uint, updatedRequirement *models.ProjectSecurityGateChecklistTemplateRequirement) (*models.ProjectSecurityGateChecklistTemplateRequirement, error) {
-	var requirement *models.ProjectSecurityGateChecklistTemplateRequirement
-	if err := repo.db.First(&requirement, id).Error; err != nil {
-		return nil, err
+func (repo *ProjectSecurityGateChecklistTemplateRepository) UpdateRequirement(requirement *models.ProjectSecurityGateChecklistTemplateRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
 	}
 
-	if err := repo.db.Model(&requirement).Updates(map[string]interface{}{
-		"title_en":    updatedRequirement.TitleEn,
-		"title_ar":    updatedRequirement.TitleAr,
-		"is_critical": updatedRequirement.IsCritical,
-	}).Error; err != nil {
-		return nil, err
-	}
-
-	return requirement, nil
+	return db.Save(requirement).Error
 }
 
 func (repo *ProjectSecurityGateChecklistTemplateRepository) DeleteRequirement(id uint) error {

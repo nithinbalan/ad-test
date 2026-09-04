@@ -10,7 +10,7 @@ import (
 
 type ProjectSecurityGateStageRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ProjectSecurityGateStage, error)
-	GetByID(id uint) (*models.ProjectSecurityGateStage, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error)
 	GetByType(stageType string) (*models.ProjectSecurityGateStage, error)
 }
 
@@ -48,9 +48,14 @@ func (repo *ProjectSecurityGateStageRepository) GetAll(sort string, sortBy strin
 	return stages, result.Error
 }
 
-func (repo *ProjectSecurityGateStageRepository) GetByID(id uint) (*models.ProjectSecurityGateStage, error) {
+func (repo *ProjectSecurityGateStageRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var stage *models.ProjectSecurityGateStage
-	result := repo.db.First(&stage, id)
+	result := db.First(&stage, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)

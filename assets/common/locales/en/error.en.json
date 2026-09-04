@@ -334,6 +334,10 @@
 {
   "id": "version_published",
   "translation": "Cannot modify the {{.Field}} once it is published."
+},
+{
+  "id": "no_published_version",
+  "translation": "No published checklist {{.Field}} exists for this stage."
 }
 
 

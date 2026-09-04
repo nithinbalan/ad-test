@@ -16,7 +16,9 @@ import (
 type ProjectSecurityGateChecklistTemplateServiceInterface interface {
 	GetAll() ([]*dtos.ProjectSecurityGateChecklistTemplateDTO, error)
 	GetByID(id uint) (*models.ProjectSecurityGateChecklistTemplate, error)
+	GetByStageID(stageID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplate, error)
 	GetDetailsByID(id uint) (*dtos.ProjectSecurityGateChecklistTemplateDetailDTO, error)
+	GetLatestPublishedVersionByTemplateID(templateID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error)
 	CreateVersion(templateID uint, currentUserID uint) (uint, error)
 	PublishVersion(templateID uint, id uint, currentUserID uint) error
 	CreateRequirement(templateID uint, versionID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistTemplateRequirementFormDTO) (uint, error)
@@ -59,6 +61,14 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) GetAll() ([]*dtos.Pro
 
 func (psgcts *ProjectSecurityGateChecklistTemplateService) GetByID(id uint) (*models.ProjectSecurityGateChecklistTemplate, error) {
 	return psgcts.repo.GetByID(id)
+}
+
+func (psgcts *ProjectSecurityGateChecklistTemplateService) GetByStageID(stageID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplate, error) {
+	return psgcts.repo.GetByStageID(stageID, tx...)
+}
+
+func (psgcts *ProjectSecurityGateChecklistTemplateService) GetLatestPublishedVersionByTemplateID(templateID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistTemplateVersion, error) {
+	return psgcts.repo.GetLatestPublishedVersionByTemplateID(templateID, tx...)
 }
 
 func (psgcts *ProjectSecurityGateChecklistTemplateService) GetDetailsByID(id uint) (*dtos.ProjectSecurityGateChecklistTemplateDetailDTO, error) {
@@ -317,12 +327,11 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) UpdateRequirement(tem
 		"is_critical": existing.IsCritical,
 	}
 
-	_, err = psgcts.repo.UpdateRequirement(id, &models.ProjectSecurityGateChecklistTemplateRequirement{
-		TitleEn:    form.TitleEn,
-		TitleAr:    form.TitleAr,
-		IsCritical: form.IsCritical,
-	})
-	if err != nil {
+	existing.TitleEn = form.TitleEn
+	existing.TitleAr = form.TitleAr
+	existing.IsCritical = form.IsCritical
+
+	if err = psgcts.repo.UpdateRequirement(existing); err != nil {
 		return err
 	}
 

@@ -23,6 +23,9 @@ type ProjectModule struct {
 	ProjectSecurityGateStageController                   *controllers.ProjectSecurityGateStageController
 	ProjectSecurityGateChecklistTemplateController       *controllers.ProjectSecurityGateChecklistTemplateController
 	ProjectSecurityGateChecklistResponseStatusController *controllers.ProjectSecurityGateChecklistResponseStatusController
+	ProjectSecurityGateReadinessStatusController         *controllers.ProjectSecurityGateReadinessStatusController
+	ProjectSecurityGateController                        *controllers.ProjectSecurityGateController
+	ProjectSecurityGateChecklistController               *controllers.ProjectSecurityGateChecklistController
 
 	projectSvc           services.ProjectServiceInterface
 	projectMilestoneSvc  services.ProjectMilestoneServiceInterface
@@ -126,6 +129,33 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	projectSecurityGateChecklistResponseStatusSvc := services.NewProjectSecurityGateChecklistResponseStatusService(projectSecurityGateChecklistResponseStatusRepo)
 	projectSecurityGateChecklistResponseStatusController := controllers.NewProjectSecurityGateChecklistResponseStatusController(projectSecurityGateChecklistResponseStatusSvc)
 
+	projectSecurityGateReadinessStatusRepo := repositories.NewProjectSecurityGateReadinessStatusRepository(db)
+	projectSecurityGateReadinessStatusSvc := services.NewProjectSecurityGateReadinessStatusService(projectSecurityGateReadinessStatusRepo)
+	projectSecurityGateReadinessStatusController := controllers.NewProjectSecurityGateReadinessStatusController(projectSecurityGateReadinessStatusSvc)
+
+	projectSecurityGateRepo := repositories.NewProjectSecurityGateRepository(db)
+	projectSecurityGateSvc := services.NewProjectSecurityGateService(
+		projectSecurityGateRepo,
+		projectSecurityGateStageSvc,
+		projectSecurityGateClassificationSvc,
+		projectSecurityGateChecklistTemplateSvc,
+		projectSecurityGateReadinessStatusSvc,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+	)
+	projectSecurityGateController := controllers.NewProjectSecurityGateController(projectSecurityGateSvc)
+
+	projectSecurityGateChecklistRepo := repositories.NewProjectSecurityGateChecklistRepository(db)
+	projectSecurityGateChecklistSvc := services.NewProjectSecurityGateChecklistService(
+		projectSecurityGateChecklistRepo,
+		projectSecurityGateChecklistResponseStatusSvc,
+		sharedModule.ActivityLogService,
+	)
+	projectSecurityGateChecklistController := controllers.NewProjectSecurityGateChecklistController(projectSecurityGateChecklistSvc)
+
+	projectSecurityGateSvc.SetChecklistService(projectSecurityGateChecklistSvc)
+	projectSecurityGateChecklistSvc.SetSecurityGateService(projectSecurityGateSvc)
+
 	return &ProjectModule{
 		ProjectTypeController:                                projectTypeController,
 		ProjectStatusController:                              projectStatusController,
@@ -141,6 +171,9 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectSecurityGateStageController:                   projectSecurityGateStageController,
 		ProjectSecurityGateChecklistTemplateController:       projectSecurityGateChecklistTemplateController,
 		ProjectSecurityGateChecklistResponseStatusController: projectSecurityGateChecklistResponseStatusController,
+		ProjectSecurityGateReadinessStatusController:         projectSecurityGateReadinessStatusController,
+		ProjectSecurityGateController:                        projectSecurityGateController,
+		ProjectSecurityGateChecklistController:               projectSecurityGateChecklistController,
 
 		projectSvc:           projectSvc,
 		projectMilestoneSvc:  projectMilestoneSvc,
