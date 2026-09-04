@@ -9,6 +9,7 @@ import (
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes := router.Group("/")
 	penetrationTestingRoutes.Use(middlewares.AuthMiddleware(app.DB))
+	unauthenticatedRoutes := router.Group("/")
 	db := app.DB
 	m := app.PenetrationTestingModule
 	penetrationTest := m.PenetrationTestController
@@ -38,6 +39,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes.POST("/penetration-test-findings", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), finding.CreatePenetrationTestFinding)
 	penetrationTestingRoutes.PUT("/penetration-test-findings/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), finding.UpdatePenetrationTestFinding)
 	penetrationTestingRoutes.POST("/penetration-test-findings/delete", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), finding.DeletePenetrationTestFindings)
+	findingStatusUpdate := m.PenetrationTestFindingStatusUpdateController
+	penetrationTestingRoutes.GET("/penetration-test-findings/:id/status-updates", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), findingStatusUpdate.GetAllPenetrationTestFindingStatusUpdates)
+	penetrationTestingRoutes.GET("/penetration-test-findings/:id/status-updates/latest", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), findingStatusUpdate.GetLatestPenetrationTestFindingStatusUpdate)
+	penetrationTestingRoutes.POST("/penetration-test-findings/:id/status-updates", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), findingStatusUpdate.CreatePenetrationTestFindingStatusUpdate)
+	penetrationTestingRoutes.PUT("/penetration-test-findings/:id/status-updates/:statusUpdateId", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), findingStatusUpdate.UpdatePenetrationTestFindingStatusUpdate)
+	unauthenticatedRoutes.GET("/penetration-test-findings/:id/status-updates/:statusUpdateId/document-preview", findingStatusUpdate.GetPenetrationTestFindingStatusUpdateDocumentPreview)
+	unauthenticatedRoutes.GET("/penetration-test-findings/:id/status-updates/:statusUpdateId/document-download", findingStatusUpdate.DownloadPenetrationTestFindingStatusUpdateDocument)
 	retest := m.PenetrationTestRetestController
 	penetrationTestingRoutes.GET("/penetration-test-retests", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), retest.GetAllPenetrationTestRetests)
 	penetrationTestingRoutes.GET("/penetration-test-retests/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), retest.GetPenetrationTestRetestDetails)

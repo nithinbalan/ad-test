@@ -125,7 +125,7 @@ func (ptes *PenetrationTestExecutionService) Create(penetrationTestID uint, curr
 
 	if testEndDate.Before(testStartDate) {
 		tx.Rollback()
-		return 0, utility.NewValidationError(fmt.Errorf("test end date cannot be before test start date"), "invalid_date", "test_end_date")
+		return 0, utility.NewValidationError(fmt.Errorf("test end date cannot be before test start date"), "test_end_before_start", "test_end_date")
 	}
 
 	execution := &models.PenetrationTestExecution{
@@ -216,7 +216,7 @@ func (ptes *PenetrationTestExecutionService) Update(penetrationTestID uint, curr
 
 	if testEndDate.Before(testStartDate) {
 		tx.Rollback()
-		return utility.NewValidationError(fmt.Errorf("test end date cannot be before test start date"), "invalid_date", "test_end_date")
+		return utility.NewValidationError(fmt.Errorf("test end date cannot be before test start date"), "test_end_before_start", "test_end_date")
 	}
 
 	existingExecution.TestStartDate = testStartDate

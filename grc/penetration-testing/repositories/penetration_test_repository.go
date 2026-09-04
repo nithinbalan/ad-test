@@ -245,9 +245,6 @@ func (repo *PenetrationTestRepository) Delete(id uint, tx ...utility.DatabaseTra
 		}
 		return err
 	}
-	if err := repo.DeletePenetrationTestDetails(id, tx...); err != nil {
-		return err
-	}
 	return db.Delete(&models.PenetrationTest{}, id).Error
 }
 

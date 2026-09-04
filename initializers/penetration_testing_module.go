@@ -13,6 +13,7 @@ type PenetrationTestingModule struct {
 	PenetrationTestExecutionController              *controllers.PenetrationTestExecutionController
 	PenetrationTestManagementSharingController      *controllers.PenetrationTestManagementSharingController
 	PenetrationTestFindingController                *controllers.PenetrationTestFindingController
+	PenetrationTestFindingStatusUpdateController    *controllers.PenetrationTestFindingStatusUpdateController
 	PenetrationTestRetestController                 *controllers.PenetrationTestRetestController
 	PenetrationTestTypeController                   *controllers.PenetrationTestTypeController
 	PenetrationTestPlanController                   *controllers.PenetrationTestPlanController
@@ -71,12 +72,20 @@ func NewPenetrationTestingModule(
 		masterModule.ActionPlanStatusSvc,
 		organizationModule.UserSvc,
 	)
+	penetrationTestFindingStatusUpdateService := services.NewPenetrationTestFindingStatusUpdateService(
+		repositories.NewPenetrationTestFindingStatusUpdateRepository(db),
+		sharedModule.ActivityLogService,
+		penetrationTestFindingService,
+		masterModule.ActionPlanStatusSvc,
+	)
 	penetrationTestRetestService := services.NewPenetrationTestRetestService(
 		repositories.NewPenetrationTestRetestRepository(db),
 		sharedModule.ActivityLogService,
 		penetrationTestService,
 		penetrationTestFindingService,
 		executorService,
+		masterModule.ActionPlanStatusSvc,
+		repositories.NewPenetrationTestFindingStatusUpdateRepository(db),
 	)
 	return &PenetrationTestingModule{
 		PenetrationTestController:                       controllers.NewPenetrationTestController(penetrationTestService),
@@ -84,6 +93,7 @@ func NewPenetrationTestingModule(
 		PenetrationTestExecutionController:              controllers.NewPenetrationTestExecutionController(executionService),
 		PenetrationTestManagementSharingController:      controllers.NewPenetrationTestManagementSharingController(managementSharingService),
 		PenetrationTestFindingController:                controllers.NewPenetrationTestFindingController(penetrationTestFindingService),
+		PenetrationTestFindingStatusUpdateController:    controllers.NewPenetrationTestFindingStatusUpdateController(penetrationTestFindingStatusUpdateService),
 		PenetrationTestRetestController:                 controllers.NewPenetrationTestRetestController(penetrationTestRetestService),
 		PenetrationTestTypeController:                   controllers.NewPenetrationTestTypeController(typeService),
 		PenetrationTestPlanController:                   controllers.NewPenetrationTestPlanController(planService),
