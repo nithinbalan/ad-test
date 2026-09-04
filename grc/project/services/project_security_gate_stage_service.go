@@ -9,7 +9,7 @@ import (
 type ProjectSecurityGateStageServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ProjectSecurityGateStage, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error)
-	GetByType(stageType string) (*models.ProjectSecurityGateStage, error)
+	GetByType(stageType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error)
 }
 
 type ProjectSecurityGateStageService struct {
@@ -30,6 +30,6 @@ func (psgss *ProjectSecurityGateStageService) GetByID(id uint, tx ...utility.Dat
 	return psgss.repo.GetByID(id, tx...)
 }
 
-func (psgss *ProjectSecurityGateStageService) GetByType(stageType string) (*models.ProjectSecurityGateStage, error) {
-	return psgss.repo.GetByType(stageType)
+func (psgss *ProjectSecurityGateStageService) GetByType(stageType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error) {
+	return psgss.repo.GetByType(stageType, tx...)
 }

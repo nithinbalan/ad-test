@@ -9,7 +9,7 @@ import (
 type ProjectSecurityGateClassificationServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ProjectSecurityGateClassification, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error)
-	GetByType(classificationType string) (*models.ProjectSecurityGateClassification, error)
+	GetByType(classificationType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error)
 }
 
 type ProjectSecurityGateClassificationService struct {
@@ -30,6 +30,6 @@ func (psgcs *ProjectSecurityGateClassificationService) GetByID(id uint, tx ...ut
 	return psgcs.repo.GetByID(id, tx...)
 }
 
-func (psgcs *ProjectSecurityGateClassificationService) GetByType(classificationType string) (*models.ProjectSecurityGateClassification, error) {
-	return psgcs.repo.GetByType(classificationType)
+func (psgcs *ProjectSecurityGateClassificationService) GetByType(classificationType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error) {
+	return psgcs.repo.GetByType(classificationType, tx...)
 }

@@ -11,7 +11,7 @@ import (
 type ProjectSecurityGateClassificationRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ProjectSecurityGateClassification, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error)
-	GetByType(classificationType string) (*models.ProjectSecurityGateClassification, error)
+	GetByType(classificationType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error)
 }
 
 type ProjectSecurityGateClassificationRepository struct {
@@ -66,10 +66,15 @@ func (repo *ProjectSecurityGateClassificationRepository) GetByID(id uint, tx ...
 	return classification, result.Error
 }
 
-func (repo *ProjectSecurityGateClassificationRepository) GetByType(classificationType string) (*models.ProjectSecurityGateClassification, error) {
+func (repo *ProjectSecurityGateClassificationRepository) GetByType(classificationType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var classification *models.ProjectSecurityGateClassification
 
-	result := repo.db.Where("type = ?", classificationType).First(&classification)
+	result := db.Where("type = ?", classificationType).First(&classification)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, "Project Security Gate Classification with type "+classificationType)

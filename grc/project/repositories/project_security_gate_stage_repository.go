@@ -11,7 +11,7 @@ import (
 type ProjectSecurityGateStageRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ProjectSecurityGateStage, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error)
-	GetByType(stageType string) (*models.ProjectSecurityGateStage, error)
+	GetByType(stageType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error)
 }
 
 type ProjectSecurityGateStageRepository struct {
@@ -66,10 +66,15 @@ func (repo *ProjectSecurityGateStageRepository) GetByID(id uint, tx ...utility.D
 	return stage, result.Error
 }
 
-func (repo *ProjectSecurityGateStageRepository) GetByType(stageType string) (*models.ProjectSecurityGateStage, error) {
+func (repo *ProjectSecurityGateStageRepository) GetByType(stageType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var stage *models.ProjectSecurityGateStage
 
-	result := repo.db.Where("type = ?", stageType).First(&stage)
+	result := db.Where("type = ?", stageType).First(&stage)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, "Project Security Gate Stage with type "+stageType)
