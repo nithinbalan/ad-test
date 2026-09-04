@@ -14,6 +14,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTest := m.PenetrationTestController
 	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTest.GetAllPenetrationTests)
 	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTest.GetPenetrationTestDetails)
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/severity-breakdown", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTest.GetPenetrationTestSeverityBreakdown)
 	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTest.CreatePenetrationTest)
 	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTest.UpdatePenetrationTest)
 	environmentPreparation := m.PenetrationTestEnvironmentPreparationController

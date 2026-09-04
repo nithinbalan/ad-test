@@ -23,6 +23,7 @@ type PenetrationTestRepositoryInterface interface {
 	DeletePenetrationTestDetails(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
 	GetSeverityCounts(penetrationTestID uint) (*PenetrationTestSeverityCounts, error)
+	GetSeverityBreakdown(penetrationTestID uint) (*penetrationTestDTOs.PenetrationTestSeverityBreakdownDTO, error)
 }
 
 type PenetrationTestSeverityCounts struct {
@@ -311,4 +312,40 @@ func (repo *PenetrationTestRepository) GetSeverityCounts(penetrationTestID uint)
 		return nil, err
 	}
 	return counts, nil
+}
+
+func (repo *PenetrationTestRepository) GetSeverityBreakdown(penetrationTestID uint) (*penetrationTestDTOs.PenetrationTestSeverityBreakdownDTO, error) {
+	result := &penetrationTestDTOs.PenetrationTestSeverityBreakdownDTO{
+		SeverityLevels: []penetrationTestDTOs.PenetrationTestSeverityCountDTO{},
+	}
+
+	if err := repo.db.Table("penetration_test_findings").
+		Where("penetration_test_id = ?", penetrationTestID).
+		Count(&result.TotalFindings).Error; err != nil {
+		return nil, err
+	}
+
+	if err := repo.db.Table("severity_levels sl").
+		Select(`
+			sl.id,
+			sl.title_en,
+			sl.title_ar,
+			sl.color_code,
+			sl.type,
+			COUNT(ptf.id) AS count
+		`).
+		Joins("LEFT JOIN penetration_test_findings ptf ON ptf.severity_level_id = sl.id AND ptf.penetration_test_id = ?", penetrationTestID).
+		Group("sl.id, sl.title_en, sl.title_ar, sl.color_code, sl.type, sl.weight").
+		Order("sl.weight DESC, sl.id").
+		Scan(&result.SeverityLevels).Error; err != nil {
+		return nil, err
+	}
+
+	for i := range result.SeverityLevels {
+		if result.TotalFindings > 0 {
+			result.SeverityLevels[i].Percentage = float64(result.SeverityLevels[i].Count) * 100 / float64(result.TotalFindings)
+		}
+	}
+
+	return result, nil
 }
