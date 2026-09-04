@@ -1314,7 +1314,10 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 		"Ref. No.",
 		"Title",
 		"Description",
-		"Responsible Unit",
+		"Sector",
+		"Department",
+		"Section",
+		"Sub Section",
 		"Process Owner",
 		"Type",
 		"Location",
@@ -1361,7 +1364,10 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 				process.ReferenceNumber,
 				process.TitleAr,
 				utility.GetStringValue(process.Description),
+				utility.GetStringValue(process.DivisionTitleAr),
 				utility.GetStringValue(process.OwnerUnitTitleAr),
+				utility.GetStringValue(process.SectionTitleAr),
+				utility.GetStringValue(process.SubSectionTitleAr),
 				fmt.Sprintf("%s %s", utility.GetStringValue(process.OwnerFirstNameAr), utility.GetStringValue(process.OwnerLastNameAr)),
 				utility.GetStringValue(process.ProcessTypeTitleAr),
 				utility.GetStringValue(process.LocationTitleAr),
@@ -1382,7 +1388,10 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 				process.ReferenceNumber,
 				process.TitleEn,
 				utility.GetStringValue(process.Description),
+				utility.GetStringValue(process.DivisionTitleEn),
 				utility.GetStringValue(process.OwnerUnitTitleEn),
+				utility.GetStringValue(process.SectionTitleEn),
+				utility.GetStringValue(process.SubSectionTitleEn),
 				fmt.Sprintf("%s %s", utility.GetStringValue(process.OwnerFirstNameEn), utility.GetStringValue(process.OwnerLastNameEn)),
 				utility.GetStringValue(process.ProcessTypeTitleEn),
 				utility.GetStringValue(process.LocationTitleEn),
@@ -1424,6 +1433,7 @@ func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 		"ExecutionRecords", "SystemRegister", "CanBeDoneManually",
 		"TimeToPerformProcedureManually", "StepsToPerformProcedureManually",
 		"RequirementToPerformProcedureManually", "ManualProcedureForms",
+		"Section", "SubSection",
 	}
 	templateData := [][]interface{}{} // Empty template data
 
@@ -1467,6 +1477,36 @@ func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 	for _, unit := range departmentUnits {
 		if unit.TitleEn != "" {
 			departmentData = append(departmentData, []interface{}{unit.TitleEn})
+		}
+	}
+
+	// Sheet: Section (level=3 org units)
+	sectionParams := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort: "title_en", SortBy: "title_en", Keyword: "", ParentUnitIDs: []uint{}, Level: 3,
+	}
+	sectionUnits, err := ps.organizationUnitSvc.GetAll(sectionParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch sections: %v", err)
+	}
+	sectionData := [][]interface{}{{"Section"}}
+	for _, unit := range sectionUnits {
+		if unit.TitleEn != "" {
+			sectionData = append(sectionData, []interface{}{unit.TitleEn})
+		}
+	}
+
+	// Sheet: SubSection (level=4 org units)
+	subSectionParams := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort: "title_en", SortBy: "title_en", Keyword: "", ParentUnitIDs: []uint{}, Level: 4,
+	}
+	subSectionUnits, err := ps.organizationUnitSvc.GetAll(subSectionParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch sub sections: %v", err)
+	}
+	subSectionData := [][]interface{}{{"SubSection"}}
+	for _, unit := range subSectionUnits {
+		if unit.TitleEn != "" {
+			subSectionData = append(subSectionData, []interface{}{unit.TitleEn})
 		}
 	}
 
@@ -1556,8 +1596,10 @@ func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 		"Frequency":            true,
 		"ExecutionRecords":     true,
 		"SystemRegister":       true,
-		"ManualProcedureForms": true,
 		"CanBeDoneManually":    true,
+		"ManualProcedureForms": true,
+		"Section":              true,
+		"SubSection":           true,
 	}
 
 	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
@@ -1571,8 +1613,10 @@ func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
 		"Frequency":            frequencyData,
 		"ExecutionRecords":     execRecordsData,
 		"SystemRegister":       systemRegisterData,
-		"ManualProcedureForms": manualFormsData,
 		"CanBeDoneManually":    canBeDoneManuallyData,
+		"ManualProcedureForms": manualFormsData,
+		"Section":              sectionData,
+		"SubSection":           subSectionData,
 	}, dropDownConfig)
 	if err != nil {
 		return nil, err
@@ -1600,6 +1644,7 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 		"ExecutionRecords", "SystemRegister", "CanBeDoneManually",
 		"TimeToPerformProcedureManually", "StepsToPerformProcedureManually",
 		"RequirementToPerformProcedureManually", "ManualProcedureForms",
+		"Section", "SubSection",
 	}
 	snakeCaseHeaders := []string{
 		"title_en", "title_ar", "description",
@@ -1609,6 +1654,7 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 		"execution_records", "system_register", "can_be_done_manually",
 		"time_to_perform_procedure_manually", "steps_to_perform_procedure_manually",
 		"requirement_to_perform_procedure_manually", "manual_procedure_forms",
+		"section", "sub_section",
 	}
 
 	// Validate headers
@@ -1663,6 +1709,7 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 	for _, record := range validatedData {
 		processFormDTO := &organizationDTOs.ProcessFormDTO{
 			OwnerUnitID:                           record["owner_unit_id"].(uint),
+			SectionID:                             record["section_id"].(uint),
 			TitleEn:                               record["title_en"].(string),
 			TitleAr:                               record["title_ar"].(string),
 			Description:                           utility.GetOptionalStringValue(record["description"]),
@@ -1679,6 +1726,9 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 		}
 		if divisionID, ok := record["division_id"].(uint); ok {
 			processFormDTO.DivisionID = &divisionID
+		}
+		if subSectionID, ok := record["sub_section_id"].(uint); ok {
+			processFormDTO.SubSectionID = &subSectionID
 		}
 		if processTypeID, ok := record["process_type_id"].(uint); ok {
 			processFormDTO.ProcessTypeID = &processTypeID
@@ -1728,6 +1778,7 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 		"execution_records", "system_register", "can_be_done_manually",
 		"time_to_perform_procedure_manually", "steps_to_perform_procedure_manually",
 		"requirement_to_perform_procedure_manually", "manual_procedure_forms",
+		"section", "sub_section",
 	}
 
 	// Fetch user full names → IDs
@@ -1765,6 +1816,32 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 	departmentTitles := make(map[string]uint)
 	for _, unit := range departmentUnits {
 		departmentTitles[strings.TrimSpace(unit.TitleEn)] = unit.ID
+	}
+
+	// Fetch section titles (level=3) → IDs
+	sectionParams := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort: "", SortBy: "", Keyword: "", ParentUnitIDs: []uint{}, Level: 3,
+	}
+	sectionUnits, err := ps.organizationUnitSvc.GetAll(sectionParams)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching sections: %v", err)
+	}
+	sectionTitles := make(map[string]uint)
+	for _, unit := range sectionUnits {
+		sectionTitles[strings.TrimSpace(unit.TitleEn)] = unit.ID
+	}
+
+	// Fetch sub section titles (level=4) → IDs
+	subSectionParams := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort: "", SortBy: "", Keyword: "", ParentUnitIDs: []uint{}, Level: 4,
+	}
+	subSectionUnits, err := ps.organizationUnitSvc.GetAll(subSectionParams)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching sub sections: %v", err)
+	}
+	subSectionTitles := make(map[string]uint)
+	for _, unit := range subSectionUnits {
+		subSectionTitles[strings.TrimSpace(unit.TitleEn)] = unit.ID
 	}
 
 	// Fetch location titles → IDs
@@ -1858,11 +1935,29 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 				}
 
 			case "division":
+				if value == "" {
+					rowErrors["division"] = "Field is required"
+				} else if id, exists := divisionTitles[value]; !exists {
+					rowErrors["division"] = fmt.Sprintf("Invalid division: %s", value)
+				} else {
+					processedRecord["division_id"] = id
+				}
+
+			case "section":
+				if value == "" {
+					rowErrors["section"] = "Field is required"
+				} else if id, exists := sectionTitles[value]; !exists {
+					rowErrors["section"] = fmt.Sprintf("Invalid section: %s", value)
+				} else {
+					processedRecord["section_id"] = id
+				}
+
+			case "sub_section":
 				if value != "" {
-					if id, exists := divisionTitles[value]; !exists {
-						rowErrors["division"] = fmt.Sprintf("Invalid division: %s", value)
+					if id, exists := subSectionTitles[value]; !exists {
+						rowErrors["sub_section"] = fmt.Sprintf("Invalid sub section: %s", value)
 					} else {
-						processedRecord["division_id"] = id
+						processedRecord["sub_section_id"] = id
 					}
 				}
 
@@ -1888,12 +1983,12 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 				}
 
 			case "location":
-				if value != "" {
-					if id, exists := locationTitles[value]; !exists {
-						rowErrors["location"] = fmt.Sprintf("Invalid location: %s", value)
-					} else {
-						processedRecord["location_id"] = id
-					}
+				if value == "" {
+					rowErrors["location"] = "Field is required"
+				} else if id, exists := locationTitles[value]; !exists {
+					rowErrors["location"] = fmt.Sprintf("Invalid location: %s", value)
+				} else {
+					processedRecord["location_id"] = id
 				}
 
 			case "frequency":
