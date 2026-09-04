@@ -108,6 +108,37 @@ func (pdlc *ProjectDecisionLogController) GetAllDecisionLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, decisionLogs)
 }
 
+func (pdlc *ProjectDecisionLogController) GetProjectDecisionLogSummary(c *gin.Context) {
+	projectIDStr := c.Param("projectId")
+	var projectID uint64
+	var err error
+
+	if projectIDStr != "" {
+		projectID, err = strconv.ParseUint(projectIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	}
+
+	summary, err := pdlc.service.GetSummary(uint(projectID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(pdlc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
+
 func (pdlc *ProjectDecisionLogController) GetDecisionLogDetails(c *gin.Context) {
 	projectIDStr := c.Param("projectId")
 	projectID, err := strconv.ParseUint(projectIDStr, 10, 64)
