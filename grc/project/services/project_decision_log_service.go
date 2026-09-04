@@ -8,6 +8,7 @@ import (
 	"time"
 
 	logServices "jethur/grc/logs/services"
+	masterDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
@@ -20,6 +21,7 @@ import (
 )
 
 type ProjectDecisionLogServiceInterface interface {
+	SetWorkflowService(workflowSvc ProjectDecisionLogWorkflowServiceInterface)
 	GetAll(projectID uint, params *dtos.ProjectDecisionLogListQueryParamsDTO) (*dtos.ProjectDecisionLogListResponseDTO, error)
 	GetByID(projectID uint, id uint) (*models.ProjectDecisionLog, error)
 	GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectDecisionLogDetailDTO, error)
@@ -27,6 +29,7 @@ type ProjectDecisionLogServiceInterface interface {
 	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectDecisionLogFormDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(projectID uint, decisionLogID uint, documentID uint, token string) (string, error)
+	GetSummary(projectID uint) (*dtos.ProjectDecisionLogSummaryDTO, error)
 }
 
 type ProjectDecisionLogService struct {
@@ -34,6 +37,7 @@ type ProjectDecisionLogService struct {
 	activityLog logServices.ActivityLogServiceInterface
 	userSvc     organizationServices.UserServiceInterface
 	projectSvc  ProjectServiceInterface
+	workflowSvc ProjectDecisionLogWorkflowServiceInterface
 }
 
 func NewProjectDecisionLogService(
@@ -48,6 +52,10 @@ func NewProjectDecisionLogService(
 		userSvc:     userSvc,
 		projectSvc:  projectSvc,
 	}
+}
+
+func (pdls *ProjectDecisionLogService) SetWorkflowService(workflowSvc ProjectDecisionLogWorkflowServiceInterface) {
+	pdls.workflowSvc = workflowSvc
 }
 
 func (pdls *ProjectDecisionLogService) GetAll(projectID uint, params *dtos.ProjectDecisionLogListQueryParamsDTO) (*dtos.ProjectDecisionLogListResponseDTO, error) {
@@ -333,13 +341,47 @@ func (pdls *ProjectDecisionLogService) Delete(projectID uint, ids []uint, curren
 		}
 
 		// 1. Delete documents
+		tx := pdls.repo.BeginTransaction()
+
+		// 1. Delete review comments and review comment documents
+		if err := pdls.repo.DeleteReviewComments(id, tx); err != nil {
+			tx.Rollback()
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// 2. Delete workflow histories
+		if err := pdls.repo.DeleteWorkflowHistories(id, tx); err != nil {
+			tx.Rollback()
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// 3. Delete workflows, reviews, and participants
+		if pdls.workflowSvc != nil {
+			if err := pdls.workflowSvc.DeleteAllWorkflowsForProjectDecisionLog(id, tx); err != nil {
+				tx.Rollback()
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		// 4. Delete documents
 		if err := pdls.repo.DeleteDocumentsByDecisionLogID(id, tx); err != nil {
+			tx.Rollback()
 			failedIds = append(failedIds, id)
 			continue
 		}
 
 		// 2. Delete parent decision log
+		// 5. Delete parent decision log
 		if err := pdls.repo.Delete(id, tx); err != nil {
+			tx.Rollback()
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		if err := tx.Commit(); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
@@ -394,6 +436,16 @@ func (pdls *ProjectDecisionLogService) Delete(projectID uint, ids []uint, curren
 	return failedIds, nil
 }
 
+func (pdls *ProjectDecisionLogService) GetSummary(projectID uint) (*dtos.ProjectDecisionLogSummaryDTO, error) {
+	if projectID != 0 {
+		if _, err := pdls.projectSvc.GetByID(projectID); err != nil {
+			return nil, err
+		}
+	}
+
+	return pdls.repo.GetSummary(projectID)
+}
+
 func (pdls *ProjectDecisionLogService) GetDocumentPath(projectID uint, decisionLogID uint, documentID uint, token string) (string, error) {
 	if _, err := pdls.projectSvc.GetByID(projectID); err != nil {
 		return "", err
@@ -427,6 +479,21 @@ func (pdls *ProjectDecisionLogService) mapToDetailDTO(decisionLog *models.Projec
 		_ = mapstructure.Decode(decisionLog.RequestedByUser, &requestedByUser)
 	}
 
+	var submittedByUser *organizationDTOs.UserMinimalDTO
+	if decisionLog.SubmittedByUser != nil {
+		_ = mapstructure.Decode(decisionLog.SubmittedByUser, &submittedByUser)
+	}
+
+	var approvedByUser *organizationDTOs.UserMinimalDTO
+	if decisionLog.ApprovedByUser != nil {
+		_ = mapstructure.Decode(decisionLog.ApprovedByUser, &approvedByUser)
+	}
+
+	var rejectedByUser *organizationDTOs.UserMinimalDTO
+	if decisionLog.RejectedByUser != nil {
+		_ = mapstructure.Decode(decisionLog.RejectedByUser, &rejectedByUser)
+	}
+
 	var createdByUser *organizationDTOs.UserMinimalDTO
 	if decisionLog.CreatedByUser != nil {
 		_ = mapstructure.Decode(decisionLog.CreatedByUser, &createdByUser)
@@ -435,6 +502,18 @@ func (pdls *ProjectDecisionLogService) mapToDetailDTO(decisionLog *models.Projec
 	var updatedByUser *organizationDTOs.UserMinimalDTO
 	if decisionLog.UpdatedByUser != nil {
 		_ = mapstructure.Decode(decisionLog.UpdatedByUser, &updatedByUser)
+	}
+
+	var workflowStatusDTO *masterDTOs.WorkflowStatusDTO
+	if decisionLog.WorkflowStatus != nil {
+		workflowStatusDTO = &masterDTOs.WorkflowStatusDTO{
+			ID:        decisionLog.WorkflowStatus.ID,
+			TitleEn:   decisionLog.WorkflowStatus.TitleEn,
+			TitleAr:   decisionLog.WorkflowStatus.TitleAr,
+			Type:      decisionLog.WorkflowStatus.Type,
+			ColorCode: decisionLog.WorkflowStatus.ColorCode,
+			Status:    decisionLog.WorkflowStatus.Status,
+		}
 	}
 
 	var documents []*dtos.ProjectDecisionLogDocumentDTO
@@ -450,6 +529,24 @@ func (pdls *ProjectDecisionLogService) mapToDetailDTO(decisionLog *models.Projec
 		})
 	}
 
+	var submittedAtStr *string
+	if decisionLog.SubmittedAt != nil {
+		str := decisionLog.SubmittedAt.Format("2006-01-02 15:04:05")
+		submittedAtStr = &str
+	}
+
+	var approvedAtStr *string
+	if decisionLog.ApprovedAt != nil {
+		str := decisionLog.ApprovedAt.Format("2006-01-02 15:04:05")
+		approvedAtStr = &str
+	}
+
+	var rejectedAtStr *string
+	if decisionLog.RejectedAt != nil {
+		str := decisionLog.RejectedAt.Format("2006-01-02 15:04:05")
+		rejectedAtStr = &str
+	}
+
 	var updatedAtStr *string
 	if decisionLog.UpdatedAt != nil {
 		str := decisionLog.UpdatedAt.Format("2006-01-02 15:04:05")
@@ -457,18 +554,26 @@ func (pdls *ProjectDecisionLogService) mapToDetailDTO(decisionLog *models.Projec
 	}
 
 	return &dtos.ProjectDecisionLogDetailDTO{
-		ID:              decisionLog.ID,
-		ReferenceNumber: decisionLog.ReferenceNumber,
-		ProjectID:       decisionLog.ProjectID,
-		Decision:        decisionLog.Decision,
-		DecisionNotes:   decisionLog.DecisionNotes,
-		Reason:          decisionLog.Reason,
-		DecisionDate:    decisionLog.DecisionDate.Format("2006-01-02"),
-		RequestedByUser: requestedByUser,
-		CreatedByUser:   createdByUser,
-		UpdatedByUser:   updatedByUser,
-		CreatedAt:       decisionLog.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:       updatedAtStr,
-		Documents:       documents,
+		ID:                decisionLog.ID,
+		ReferenceNumber:   decisionLog.ReferenceNumber,
+		ProjectID:         decisionLog.ProjectID,
+		Decision:          decisionLog.Decision,
+		DecisionNotes:     decisionLog.DecisionNotes,
+		Reason:            decisionLog.Reason,
+		DecisionDate:      decisionLog.DecisionDate.Format("2006-01-02"),
+		RequestedByUser:   requestedByUser,
+		WorkflowStatus:    workflowStatusDTO,
+		NextReviewLevel:   decisionLog.NextReviewLevel,
+		SubmittedByUser:   submittedByUser,
+		SubmittedAtString: submittedAtStr,
+		ApprovedByUser:    approvedByUser,
+		ApprovedAtString:  approvedAtStr,
+		RejectedByUser:    rejectedByUser,
+		RejectedAtString:  rejectedAtStr,
+		CreatedByUser:     createdByUser,
+		UpdatedByUser:     updatedByUser,
+		CreatedAt:         decisionLog.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:         updatedAtStr,
+		Documents:         documents,
 	}, nil
 }

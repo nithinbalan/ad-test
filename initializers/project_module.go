@@ -30,6 +30,9 @@ type ProjectModule struct {
 	ProjectSecurityGateChecklistResponseStatusController *controllers.ProjectSecurityGateChecklistResponseStatusController
 	ProjectWorkflowLevelController                       *controllers.ProjectWorkflowLevelController
 	ProjectDecisionLogController                         *controllers.ProjectDecisionLogController
+	ProjectDecisionLogWorkflowController                 *controllers.ProjectDecisionLogWorkflowController
+	ProjectDecisionLogReviewController                   *controllers.ProjectDecisionLogReviewController
+	ProjectDecisionLogReviewCommentController            *controllers.ProjectDecisionLogReviewCommentController
 
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
@@ -40,6 +43,9 @@ type ProjectModule struct {
 	projectChangeRequestReviewCommentSvc services.ProjectChangeRequestReviewCommentServiceInterface
 	projectImpactAssessmentTypeSvc       services.ProjectImpactAssessmentTypeServiceInterface
 	projectDecisionLogSvc                services.ProjectDecisionLogServiceInterface
+	projectDecisionLogWorkflowSvc        services.ProjectDecisionLogWorkflowServiceInterface
+	projectDecisionLogReviewSvc          services.ProjectDecisionLogReviewServiceInterface
+	projectDecisionLogReviewCommentSvc   services.ProjectDecisionLogReviewCommentServiceInterface
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule, settingsModule *SettingsModule) *ProjectModule {
@@ -107,6 +113,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		masterModule.WorkflowStatusSvc,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
+		projectSvc,
 	)
 	projectChangeRequestReviewController := controllers.NewProjectChangeRequestReviewController(projectChangeRequestReviewSvc, db)
 
@@ -201,6 +208,44 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectDecisionLogController := controllers.NewProjectDecisionLogController(projectDecisionLogSvc, db)
 
+	projectDecisionLogWorkflowRepo := repositories.NewProjectDecisionLogWorkflowRepository(db)
+	projectDecisionLogReviewRepo := repositories.NewProjectDecisionLogReviewRepository(db)
+	projectDecisionLogWorkflowSvc := services.NewProjectDecisionLogWorkflowService(
+		projectDecisionLogWorkflowRepo,
+		projectDecisionLogReviewRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+		commonModule.NotificationService,
+		organizationModule.OrganizationUnitsSvc,
+	)
+	projectDecisionLogWorkflowSvc.SetProjectDecisionLogService(projectDecisionLogSvc)
+	projectDecisionLogSvc.SetWorkflowService(projectDecisionLogWorkflowSvc)
+	projectDecisionLogWorkflowController := controllers.NewProjectDecisionLogWorkflowController(projectDecisionLogWorkflowSvc, db)
+
+	projectDecisionLogReviewSvc := services.NewProjectDecisionLogReviewService(
+		projectDecisionLogReviewRepo,
+		sharedModule.ActivityLogService,
+		projectDecisionLogSvc,
+		projectDecisionLogWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+	)
+	projectDecisionLogReviewController := controllers.NewProjectDecisionLogReviewController(projectDecisionLogReviewSvc, db)
+
+	projectDecisionLogReviewCommentRepo := repositories.NewProjectDecisionLogReviewCommentRepository(db)
+	projectDecisionLogReviewCommentSvc := services.NewProjectDecisionLogReviewCommentService(
+		projectDecisionLogReviewCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		projectDecisionLogSvc,
+		masterModule.CommentStatusSvc,
+	)
+	projectDecisionLogReviewCommentController := controllers.NewProjectDecisionLogReviewCommentController(projectDecisionLogReviewCommentSvc, db)
+
 	return &ProjectModule{
 		ProjectTypeController:                                projectTypeController,
 		ProjectStatusController:                              projectStatusController,
@@ -223,6 +268,9 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectSecurityGateChecklistResponseStatusController: projectSecurityGateChecklistResponseStatusController,
 		ProjectWorkflowLevelController:                       projectWorkflowLevelController,
 		ProjectDecisionLogController:                         projectDecisionLogController,
+		ProjectDecisionLogWorkflowController:                 projectDecisionLogWorkflowController,
+		ProjectDecisionLogReviewController:                   projectDecisionLogReviewController,
+		ProjectDecisionLogReviewCommentController:            projectDecisionLogReviewCommentController,
 
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,
@@ -233,5 +281,8 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectChangeRequestReviewCommentSvc: projectChangeRequestReviewCommentSvc,
 		projectImpactAssessmentTypeSvc:       projectImpactAssessmentTypeSvc,
 		projectDecisionLogSvc:                projectDecisionLogSvc,
+		projectDecisionLogWorkflowSvc:        projectDecisionLogWorkflowSvc,
+		projectDecisionLogReviewSvc:          projectDecisionLogReviewSvc,
+		projectDecisionLogReviewCommentSvc:   projectDecisionLogReviewCommentSvc,
 	}
 }
