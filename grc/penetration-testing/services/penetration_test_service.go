@@ -246,6 +246,11 @@ func (ptls *PenetrationTestService) Delete(ids []uint, currentUserID uint) ([]ui
 			continue
 		}
 		tx := ptls.repo.BeginTransaction()
+		if err := ptls.repo.DeletePenetrationTestDetails(id, tx); err != nil {
+			tx.Rollback()
+			failedIDs = append(failedIDs, id)
+			continue
+		}
 		if err := ptls.repo.Delete(id, tx); err != nil {
 			tx.Rollback()
 			failedIDs = append(failedIDs, id)

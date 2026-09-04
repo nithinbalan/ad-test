@@ -8,6 +8,7 @@ type PenetrationTestFinding struct {
 	PenetrationTestID     uint       `json:"penetration_test_id" gorm:"not null" binding:"required"`
 	Title                 string     `json:"title" gorm:"type:nvarchar(255);not null" binding:"required"`
 	ActionPlanStatusID    uint       `json:"action_plan_status_id" gorm:"not null" binding:"required"`
+	Percentage            *uint      `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	SeverityLevelID       uint       `json:"severity_level_id" gorm:"not null" binding:"required"`
 	Description           string     `json:"description" gorm:"type:nvarchar(max);not null" binding:"required"`
 	Recommendation        string     `json:"recommendation" gorm:"type:nvarchar(max);not null" binding:"required"`
@@ -18,12 +19,13 @@ type PenetrationTestFinding struct {
 	UpdatedBYID           *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 	UpdatedAt             *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
-	PenetrationTest  *PenetrationTest  `json:"penetration_test,omitempty" gorm:"foreignKey:PenetrationTestID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *SeverityLevel    `json:"severity_level,omitempty" gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner            *User             `json:"owner,omitempty" gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `json:"action_plan_status,omitempty" gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `json:"created_by_user,omitempty" gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser    *User             `json:"updated_by_user,omitempty" gorm:"foreignKey:UpdatedBYID"`
+	PenetrationTest         *PenetrationTest                      `json:"penetration_test,omitempty" gorm:"foreignKey:PenetrationTestID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel           *SeverityLevel                        `json:"severity_level,omitempty" gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Owner                   *User                                 `json:"owner,omitempty" gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus        *ActionPlanStatus                     `json:"action_plan_status,omitempty" gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatusUpdates []*PenetrationTestFindingStatusUpdate `gorm:"foreignKey:PenetrationTestFindingID"`
+	CreatedByUser           *User                                 `json:"created_by_user,omitempty" gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser           *User                                 `json:"updated_by_user,omitempty" gorm:"foreignKey:UpdatedBYID"`
 }
 
 func (PenetrationTestFinding) TableName() string {

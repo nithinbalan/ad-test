@@ -19,7 +19,9 @@ type PenetrationTestFindingRepositoryInterface interface {
 	Create(penetrationTestFinding *models.PenetrationTestFinding, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(penetrationTestFinding *models.PenetrationTestFinding, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	DeletePenetrationTestFindingStatusUpdates(findingID uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
+	CreateInitialPenetrationTestFindingStatusUpdate(value *models.PenetrationTestFindingStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 }
 
 type PenetrationTestFindingRepository struct {
@@ -47,10 +49,13 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 			penetration_test_findings.penetration_test_id,
 			penetration_test_findings.title,
 			penetration_test_findings.action_plan_status_id,
+			penetration_test_findings.percentage,
 			action_plan_statuses.title_en AS action_plan_status_title_en,
 			action_plan_statuses.title_ar AS action_plan_status_title_ar,
 			action_plan_statuses.color_code AS action_plan_status_color_code,
 			action_plan_statuses.type AS action_plan_status_type,
+			penetration_test_findings.description,
+			penetration_test_findings.recommendation,
 			penetration_test_findings.severity_level_id,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
@@ -60,6 +65,10 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 			owner_user.last_name_en AS owner_last_name_en,
 			owner_user.first_name_ar AS owner_first_name_ar,
 			owner_user.last_name_ar AS owner_last_name_ar,
+			owner_user.initial AS owner_initial,
+			owner_user.color AS owner_color,
+			owner_user.email AS owner_email,
+			owner_user.profile_image_path AS owner_profile_image_path,
 			CONVERT(varchar(10), penetration_test_findings.target_remediation_date, 23) AS target_remediation_date,
 			CONVERT(varchar(30), penetration_test_findings.created_at, 126) AS created_at,
 			CONVERT(varchar(30), penetration_test_findings.updated_at, 126) AS updated_at
@@ -84,23 +93,40 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("penetration_test_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "new":
+			query = query.Where("action_plan_statuses.type = ?", "new")
+		case "in_progress":
+			query = query.Where("action_plan_statuses.type = ?", "in_progress")
+		case "completed":
+			query = query.Where("action_plan_statuses.type = ?", "completed")
+		case "on_hold":
+			query = query.Where("action_plan_statuses.type = ?", "on_hold")
+		case "terminated":
+			query = query.Where("action_plan_statuses.type = ?", "terminated")
+		case "close":
+			query = query.Where("action_plan_statuses.type = ?", "close")
+		case "reopen":
+			query = query.Where("action_plan_statuses.type = ?", "reopen")
+		}
+	}
+
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "created_at"
-	}
-	allowedSortColumns := map[string]bool{
-		"reference_number":        true,
-		"title":                   true,
-		"severity_level_id":       true,
-		"action_plan_status_id":   true,
-		"target_remediation_date": true,
-		"created_at":              true,
-	}
-	if !allowedSortColumns[params.SortBy] {
-		params.SortBy = "created_at"
+		params.SortBy = "penetration_test_findings.created_at"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "desc"
@@ -112,7 +138,7 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 		params.PageSize = 10
 	}
 
-	query = query.Order("penetration_test_findings." + params.SortBy + " " + params.Sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 	if err := query.Offset((params.Page - 1) * params.PageSize).Limit(params.PageSize).Find(&penetrationTestFindings).Error; err != nil {
 		return nil, err
 	}
@@ -186,6 +212,22 @@ func (repo *PenetrationTestFindingRepository) Delete(id uint, tx ...utility.Data
 	return db.Delete(&models.PenetrationTestFinding{}, id).Error
 }
 
+func (repo *PenetrationTestFindingRepository) DeletePenetrationTestFindingStatusUpdates(findingID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	statusUpdateIDs := db.Model(&models.PenetrationTestFindingStatusUpdate{}).
+		Select("id").
+		Where("penetration_test_finding_id = ?", findingID)
+	if err := db.Where("penetration_test_finding_status_update_id IN (?)", statusUpdateIDs).
+		Delete(&models.PenetrationTestFindingStatusUpdateDocument{}).Error; err != nil {
+		return err
+	}
+	return db.Where("penetration_test_finding_id = ?", findingID).
+		Delete(&models.PenetrationTestFindingStatusUpdate{}).Error
+}
+
 func (repo *PenetrationTestFindingRepository) GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -212,4 +254,15 @@ func (repo *PenetrationTestFindingRepository) GenerateReferenceNumber(tx ...util
 	}
 
 	return fmt.Sprintf("FIND-%03d", lastReferenceID+1), nil
+}
+
+func (repo *PenetrationTestFindingRepository) CreateInitialPenetrationTestFindingStatusUpdate(value *models.PenetrationTestFindingStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(value).Error; err != nil {
+		return 0, err
+	}
+	return value.ID, nil
 }

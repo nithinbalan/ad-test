@@ -8,21 +8,32 @@ import (
 )
 
 type PenetrationTestRetestListDTO struct {
-	ID                        uint    `json:"id"`
-	ReferenceNumber           string  `json:"reference_number"`
-	PenetrationTestID         uint    `json:"penetration_test_id"`
-	StartDate                 string  `json:"start_date"`
-	EndDate                   *string `json:"end_date"`
-	PenetrationTestExecutorID uint    `json:"penetration_test_executor_id"`
-	ExecutorTitleEn           string  `json:"executor_title_en"`
-	ExecutorTitleAr           string  `json:"executor_title_ar"`
-	Status                    string  `json:"status"`
-	Notes                     *string `json:"notes"`
-	RemainingCritical         int     `json:"remaining_critical"`
-	RemainingHigh             int     `json:"remaining_high"`
-	RemainingMedium           int     `json:"remaining_medium"`
-	RemainingLow              int     `json:"remaining_low"`
-	RemainingTotal            int     `json:"remaining_total"`
+	ID                          uint    `json:"id"`
+	ReferenceNumber             string  `json:"reference_number"`
+	PenetrationTestID           uint    `json:"penetration_test_id"`
+	StartDate                   string  `json:"start_date"`
+	EndDate                     *string `json:"end_date"`
+	PenetrationTestExecutorID   uint    `json:"penetration_test_executor_id"`
+	ExecutorTitleEn             string  `json:"executor_title_en"`
+	ExecutorTitleAr             string  `json:"executor_title_ar"`
+	Status                      string  `json:"status"`
+	Notes                       *string `json:"notes"`
+	RemainingCritical           int     `json:"remaining_critical"`
+	RemainingHigh               int     `json:"remaining_high"`
+	RemainingMedium             int     `json:"remaining_medium"`
+	RemainingLow                int     `json:"remaining_low"`
+	RemainingTotal              int     `json:"remaining_total"`
+	CreatedAt                   string  `json:"created_at"`
+	UpdatedAt                   *string `json:"updated_at"`
+	CreatedByID                 uint    `json:"created_by_id"`
+	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
+	CreatedUserLastNameEn       string  `json:"created_user_last_name_en"`
+	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameAr       string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string  `json:"created_user_initial"`
+	CreatedUserColor            string  `json:"created_user_color"`
+	CreatedUserEmail            string  `json:"created_user_email"`
+	CreatedUserProfileImagePath string  `json:"created_user_profile_image_path"`
 }
 
 type PenetrationTestRetestFormDTO struct {
@@ -79,6 +90,10 @@ type PenetrationTestRetestListQueryParamsDTO struct {
 	Page              int
 	PageSize          int
 	PenetrationTestID uint
+	Filters           map[string][]string
+	QuickFilter       []string
+	DateFrom          string
+	DateTo            string
 }
 
 type PenetrationTestRetestListResponseDTO struct {
