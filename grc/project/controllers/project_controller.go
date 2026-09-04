@@ -89,6 +89,8 @@ func (pc *ProjectController) GetAllProjects(c *gin.Context) {
 		"project_classification_en": "project_classifications.title_en",
 		"project_classification_ar": "project_classifications.title_ar",
 		"budget":                    "projects.budget",
+		"number_of_resources":       "projects.number_of_resources",
+		"completion_percentage":     "projects.completion_percentage",
 	}
 
 	sortField, valid := validSortFields[sortBy]
@@ -157,11 +159,13 @@ func (pc *ProjectController) GetProjectDetails(c *gin.Context) {
 
 	project, err := pc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
-		switch err.(type) {
+		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
-			utility.SendInternalErrResp(pc.db, c, err.Error())
+			utility.SendInternalErrResp(pc.db, c, e.Error())
 		}
 		return
 	}
@@ -187,6 +191,8 @@ func (pc *ProjectController) CreateProject(c *gin.Context) {
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(pc.db, c, e.Error())
 		}
@@ -222,6 +228,8 @@ func (pc *ProjectController) UpdateProject(c *gin.Context) {
 			utility.SendNotFoundErrResp(c)
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(pc.db, c, e.Error())
 		}
@@ -248,7 +256,14 @@ func (pc *ProjectController) DeleteProjects(c *gin.Context) {
 
 	failedIDs, err := pc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, err.Error())
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+		}
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
@@ -280,6 +295,8 @@ func (pc *ProjectController) UpdateProjectStatus(c *gin.Context) {
 			utility.SendNotFoundErrResp(c)
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(pc.db, c, e.Error())
 		}

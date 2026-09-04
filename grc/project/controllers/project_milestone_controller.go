@@ -47,19 +47,22 @@ func (pmc *ProjectMilestoneController) GetAllProjectMilestones(c *gin.Context) {
 	quickFilter := c.QueryArray("quick_filter")
 
 	allowedParams := []string{
-		"project_id",
-		"project_milestone_status_id",
-		"created_by_id",
-		"updated_by_id",
+		"project_ids",
+		"project_milestone_status_ids",
+		"project_phase_ids",
+		"created_by_ids",
+		"updated_by_ids",
 	}
 
 	validSortFields := map[string]string{
-		"id":           "project_milestones.id",
-		"title_en":     "project_milestones.title_en",
-		"title_ar":     "project_milestones.title_ar",
-		"planned_date": "project_milestones.planned_date",
-		"actual_date":  "project_milestones.actual_date",
-		"status":       "project_milestones.project_milestone_status_id",
+		"id":                     "project_milestones.id",
+		"title_en":               "project_milestones.title_en",
+		"title_ar":               "project_milestones.title_ar",
+		"planned_date":           "project_milestones.planned_date",
+		"actual_date":            "project_milestones.actual_date",
+		"status":                 "project_milestones.project_milestone_status_id",
+		"project_phase_title_en": "phase.title_en",
+		"project_phase_title_ar": "phase.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -202,6 +205,47 @@ func (pmc *ProjectMilestoneController) UpdateProjectMilestone(c *gin.Context) {
 			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pmc.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}
+
+func (pmc *ProjectMilestoneController) UpdateProjectMilestoneStatus(c *gin.Context) {
+	var form projectDTOs.ProjectMilestoneStatusUpdateDTO
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	milestoneID, err := strconv.ParseUint(c.Param("milestoneId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pmc.db, c, err.Error())
+		return
+	}
+	err = pmc.service.UpdateStatus(uint(projectID), uint(milestoneID), currentUserID, &form)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(pmc.db, c, e.Error())

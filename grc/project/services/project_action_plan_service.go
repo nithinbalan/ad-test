@@ -162,7 +162,7 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 	}
 
 	if ProjectActionPlanFormDTO.ResponsibleUserID != 0 {
-		delegateeID, err := paps.delegateeUserSvc.AssignDelegateeIfPermitted(ProjectActionPlanFormDTO.ResponsibleUserID, "project_management")
+		delegateeID, err := paps.delegateeUserSvc.AssignDelegateeIfPermitted(ProjectActionPlanFormDTO.ResponsibleUserID, "project_register")
 		if err != nil {
 			return 0, err
 		}
@@ -210,7 +210,7 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 			"percentage":           ProjectActionPlanFormDTO.Percentage,
 			"project_milestone_id": ProjectActionPlanFormDTO.ProjectMilestoneID,
 		}
-		err := paps.activityLogSvc.LogActivity(models.CreateAction, models.ProjectActionPlan{}.TableName(), id, activityData, currentUserID, "", "", "", nil)
+		err := paps.activityLogSvc.LogActivity(models.CreateAction, models.ProjectActionPlan{}.TableName(), id, activityData, currentUserID, "project", "project_register", "action_plan", nil)
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -231,7 +231,7 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{ProjectActionPlanFormDTO.ResponsibleUserID},
-			ModuleIdentifier:     "organization",
+			ModuleIdentifier:     "project",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Project Action Plan Responsibility Assigned",
 			HeadingAr:            "تم تعيين مسؤولية خطة عمل المشروع",
@@ -350,7 +350,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 
 	if ProjectActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ProjectActionPlanFormDTO.ResponsibleUserID {
 		existingProjectActionPlan.DelegateeUserID = nil
-		delegateeID, err := paps.delegateeUserSvc.AssignDelegateeIfPermitted(ProjectActionPlanFormDTO.ResponsibleUserID, "project_management")
+		delegateeID, err := paps.delegateeUserSvc.AssignDelegateeIfPermitted(ProjectActionPlanFormDTO.ResponsibleUserID, "project_register")
 		if err != nil {
 			return err
 		}
@@ -429,7 +429,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"project", "project_register", "action_plan", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -452,7 +452,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{oldResponsibleUserID},
-				ModuleIdentifier:     "organization",
+				ModuleIdentifier:     "project",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Project Action Plan Responsibility Removed",
 				HeadingAr:            "تمت إزالة مسؤولية خطة العمل",
@@ -469,7 +469,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{ProjectActionPlanFormDTO.ResponsibleUserID},
-				ModuleIdentifier:     "organization",
+				ModuleIdentifier:     "project",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Project Action Plan Responsibility Assigned",
 				HeadingAr:            "تم تعيين مسؤولية خطة العمل",

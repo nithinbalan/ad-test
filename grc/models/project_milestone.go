@@ -18,12 +18,14 @@ type ProjectMilestone struct {
 	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime;null"`
 	ProjectMilestoneStatusID uint       `json:"project_milestone_status_id" gorm:"not null"`
+	ProjectPhaseID           *uint      `json:"project_phase_id" gorm:"null"`
 
 	// Relationships
 	Project                *Project                `gorm:"foreignKey:ProjectID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser          *User                   `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	UpdatedByUser          *User                   `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	ProjectMilestoneStatus *ProjectMilestoneStatus `gorm:"foreignKey:ProjectMilestoneStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ProjectPhase           *ProjectPhase           `gorm:"foreignKey:ProjectPhaseID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
 func (ProjectMilestone) TableName() string {

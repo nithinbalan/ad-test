@@ -24,6 +24,7 @@ type ProjectMilestoneServiceInterface interface {
 	GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectMilestoneDetailDTO, error)
 	Create(projectID uint, currentUserID uint, form *dtos.ProjectMilestoneFormDTO) (uint, error)
 	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectMilestoneFormDTO) error
+	UpdateStatus(projectID uint, id uint, currentUserID uint, form *dtos.ProjectMilestoneStatusUpdateDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -125,6 +126,7 @@ func (pms *ProjectMilestoneService) Create(projectID uint, currentUserID uint, f
 		PlannedDate:              plannedDate,
 		ActualDate:               actualDate,
 		ProjectMilestoneStatusID: form.ProjectMilestoneStatusID,
+		ProjectPhaseID:           form.ProjectPhaseID,
 		CreatedBYID:              currentUserID,
 		CreatedAt:                time.Now(),
 	}
@@ -132,6 +134,13 @@ func (pms *ProjectMilestoneService) Create(projectID uint, currentUserID uint, f
 	id, err := pms.repo.Create(milestone)
 	if err != nil {
 		return 0, err
+	}
+
+	if err := pms.repo.UpdateProjectCompletionPercentage(projectID); err != nil {
+		utility.LogError("Failed to update project completion percentage", map[string]interface{}{
+			"projectID": projectID,
+			"error":     err.Error(),
+		})
 	}
 
 	go func() {
@@ -144,8 +153,9 @@ func (pms *ProjectMilestoneService) Create(projectID uint, currentUserID uint, f
 			"planned_date":                form.PlannedDate,
 			"actual_date":                 form.ActualDate,
 			"project_milestone_status_id": form.ProjectMilestoneStatusID,
+			"project_phase_id":            form.ProjectPhaseID,
 		}
-		err := pms.activityLog.LogActivity(models.CreateAction, models.ProjectMilestone{}.TableName(), id, activityData, currentUserID, "", "", "", nil)
+		err := pms.activityLog.LogActivity(models.CreateAction, models.ProjectMilestone{}.TableName(), id, activityData, currentUserID, "project", "project_register", "", nil)
 		if err != nil {
 			utility.LogError("Failed to log create milestone activity", map[string]interface{}{
 				"recordID": id,
@@ -175,6 +185,7 @@ func (pms *ProjectMilestoneService) Update(projectID uint, id uint, currentUserI
 		"planned_date":                milestone.PlannedDate,
 		"actual_date":                 milestone.ActualDate,
 		"project_milestone_status_id": milestone.ProjectMilestoneStatusID,
+		"project_phase_id":            milestone.ProjectPhaseID,
 	}
 
 	plannedDate, actualDate, err := parseMilestoneDates(form)
@@ -189,12 +200,20 @@ func (pms *ProjectMilestoneService) Update(projectID uint, id uint, currentUserI
 	milestone.PlannedDate = plannedDate
 	milestone.ActualDate = actualDate
 	milestone.ProjectMilestoneStatusID = form.ProjectMilestoneStatusID
+	milestone.ProjectPhaseID = form.ProjectPhaseID
 	milestone.UpdatedBYID = &currentUserID
 	milestone.UpdatedAt = timePtr(time.Now())
 
 	err = pms.repo.Update(milestone)
 	if err != nil {
 		return err
+	}
+
+	if err := pms.repo.UpdateProjectCompletionPercentage(projectID); err != nil {
+		utility.LogError("Failed to update project completion percentage", map[string]interface{}{
+			"projectID": projectID,
+			"error":     err.Error(),
+		})
 	}
 
 	go func() {
@@ -206,12 +225,81 @@ func (pms *ProjectMilestoneService) Update(projectID uint, id uint, currentUserI
 			"planned_date":                form.PlannedDate,
 			"actual_date":                 form.ActualDate,
 			"project_milestone_status_id": form.ProjectMilestoneStatusID,
+			"project_phase_id":            form.ProjectPhaseID,
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
 		if len(changes) > 0 {
-			err := pms.activityLog.LogActivity(models.UpdateAction, models.ProjectMilestone{}.TableName(), id, changes, currentUserID, "", "", "", nil)
+			err := pms.activityLog.LogActivity(models.UpdateAction, models.ProjectMilestone{}.TableName(), id, changes, currentUserID, "project", "project_register", "", nil)
 			if err != nil {
 				utility.LogError("Failed to log update milestone activity", map[string]interface{}{
+					"recordID": id,
+					"error":    err.Error(),
+				})
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (pms *ProjectMilestoneService) UpdateStatus(projectID uint, id uint, currentUserID uint, form *dtos.ProjectMilestoneStatusUpdateDTO) error {
+	if _, err := pms.projectSvc.GetByID(projectID); err != nil {
+		return err
+	}
+
+	milestone, err := pms.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &utility.ResourceNotFoundError{}
+		}
+		return err
+	}
+
+	if _, err := pms.milestoneStatusSvc.GetByID(form.ProjectMilestoneStatusID); err != nil {
+		return utility.NewValidationError(err, "invalid_status", "project_milestone_status_id")
+	}
+
+	var actualDate *time.Time
+	if form.ActualDate != nil && *form.ActualDate != "" {
+		ad, err := utility.ParseDate(*form.ActualDate)
+		if err != nil {
+			return utility.NewValidationError(err, "invalid_date", "actual_date")
+		}
+		actualDate = ad
+	}
+
+	oldData := map[string]interface{}{
+		"project_milestone_status_id": milestone.ProjectMilestoneStatusID,
+		"actual_date":                 milestone.ActualDate,
+	}
+
+	milestone.ProjectMilestoneStatusID = form.ProjectMilestoneStatusID
+	milestone.ActualDate = actualDate
+	milestone.UpdatedBYID = &currentUserID
+	milestone.UpdatedAt = timePtr(time.Now())
+
+	err = pms.repo.Update(milestone)
+	if err != nil {
+		return err
+	}
+
+	if err := pms.repo.UpdateProjectCompletionPercentage(projectID); err != nil {
+		utility.LogError("Failed to update project completion percentage", map[string]interface{}{
+			"projectID": projectID,
+			"error":     err.Error(),
+		})
+	}
+
+	go func() {
+		newData := map[string]interface{}{
+			"project_milestone_status_id": form.ProjectMilestoneStatusID,
+			"actual_date":                 form.ActualDate,
+		}
+		changes := utility.CompareFieldChanges(oldData, newData)
+		if len(changes) > 0 {
+			err := pms.activityLog.LogActivity(models.UpdateAction, models.ProjectMilestone{}.TableName(), id, changes, currentUserID, "project", "project_register", "", nil)
+			if err != nil {
+				utility.LogError("Failed to log update milestone status activity", map[string]interface{}{
 					"recordID": id,
 					"error":    err.Error(),
 				})
@@ -242,10 +330,10 @@ func (pms *ProjectMilestoneService) Delete(projectID uint, ids []uint, currentUs
 		err = pms.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
+			continue
 		}
 
+		successfulIds = append(successfulIds, id)
 		deletedMilestones = append(deletedMilestones, map[string]interface{}{
 			"id":       id,
 			"title_en": milestone.TitleEn,
@@ -254,6 +342,13 @@ func (pms *ProjectMilestoneService) Delete(projectID uint, ids []uint, currentUs
 	}
 
 	if len(successfulIds) > 0 {
+		if err := pms.repo.UpdateProjectCompletionPercentage(projectID); err != nil {
+			utility.LogError("Failed to update project completion percentage", map[string]interface{}{
+				"projectID": projectID,
+				"error":     err.Error(),
+			})
+		}
+
 		go func() {
 			err := pms.activityLog.LogBulkActivities(
 				models.DeleteAction,
