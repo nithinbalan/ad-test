@@ -20,6 +20,7 @@ type PenetrationTestServiceInterface interface {
 	GetAll(params *penetrationTestDTOs.PenetrationTestListQueryParamsDTO) (*penetrationTestDTOs.PenetrationTestListResponseDTO, error)
 	GetByID(id uint) (*models.PenetrationTest, error)
 	GetFullDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestDetailDTO, error)
+	GetSeverityBreakdown(id uint) (*penetrationTestDTOs.PenetrationTestSeverityBreakdownDTO, error)
 	Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -132,6 +133,13 @@ func (ptls *PenetrationTestService) GetFullDetailsByID(id uint) (*penetrationTes
 	detail.LowCount = counts.LowCount
 	detail.TotalCount = counts.TotalCount
 	return detail, nil
+}
+
+func (ptls *PenetrationTestService) GetSeverityBreakdown(id uint) (*penetrationTestDTOs.PenetrationTestSeverityBreakdownDTO, error) {
+	if _, err := ptls.GetByID(id); err != nil {
+		return nil, err
+	}
+	return ptls.repo.GetSeverityBreakdown(id)
 }
 
 func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFormDTO) (uint, error) {

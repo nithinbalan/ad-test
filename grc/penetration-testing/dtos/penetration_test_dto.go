@@ -96,6 +96,21 @@ type PenetrationTestDetailDTO struct {
 	UpdatedByUser                 *organizationDTOs.UserMinimalDTO        `json:"updated_by_user"`
 }
 
+type PenetrationTestSeverityCountDTO struct {
+	ID         uint    `json:"id"`
+	TitleEn    string  `json:"title_en"`
+	TitleAr    string  `json:"title_ar"`
+	ColorCode  string  `json:"color_code"`
+	Type       string  `json:"type"`
+	Count      int64   `json:"count"`
+	Percentage float64 `json:"percentage"`
+}
+
+type PenetrationTestSeverityBreakdownDTO struct {
+	TotalFindings  int64                             `json:"total_findings"`
+	SeverityLevels []PenetrationTestSeverityCountDTO `json:"severity_levels"`
+}
+
 type PenetrationTestListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string

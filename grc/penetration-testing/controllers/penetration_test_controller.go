@@ -121,6 +121,28 @@ func (ptc *PenetrationTestController) GetPenetrationTestDetails(c *gin.Context) 
 	c.JSON(http.StatusOK, penetrationTest)
 }
 
+func (ptc *PenetrationTestController) GetPenetrationTestSeverityBreakdown(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	breakdown, err := ptc.service.GetSeverityBreakdown(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(ptc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, breakdown)
+}
+
 func (ptc *PenetrationTestController) CreatePenetrationTest(c *gin.Context) {
 	var formDTO penetrationTestDTOs.PenetrationTestFormDTO
 
