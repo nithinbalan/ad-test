@@ -26,6 +26,7 @@ type ProjectChangeRequestServiceInterface interface {
 	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error)
+	GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error)
 }
 
 type ProjectChangeRequestService struct {
@@ -556,4 +557,8 @@ func parseImpactAssessments(forms []dtos.ProjectImpactAssessmentFormDTO) ([]*mod
 		impactAssessments = append(impactAssessments, ia)
 	}
 	return impactAssessments, nil
+}
+
+func (pcrs *ProjectChangeRequestService) GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error) {
+	return pcrs.repo.GetImpactAssessments(changeRequestID, tx...)
 }
