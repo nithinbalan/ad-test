@@ -57,17 +57,37 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 			penetration_tests.reference_number,
 			penetration_tests.system_application_name,
 			penetration_tests.penetration_test_type_id,
+			penetration_test_types.title_en AS penetration_test_type_title_en,
+			penetration_test_types.title_ar AS penetration_test_type_title_ar,
 			penetration_tests.penetration_test_plan_id,
+			penetration_test_plans.title_en AS penetration_test_plan_title_en,
+			penetration_test_plans.title_ar AS penetration_test_plan_title_ar,
 			penetration_tests.year,
 			penetration_tests.period,
 			penetration_tests.penetration_test_classification_id,
+			penetration_test_classifications.title_en AS penetration_test_classification_title_en,
+			penetration_test_classifications.title_ar AS penetration_test_classification_title_ar,
 			penetration_tests.penetration_test_executor_id,
+			penetration_test_executors.title_en AS penetration_test_executor_title_en,
+			penetration_test_executors.title_ar AS penetration_test_executor_title_ar,
 			penetration_tests.cs_responsible_employee_id,
+			cs_responsible_employee.first_name_en AS cs_responsible_employee_first_name_en,
+			cs_responsible_employee.first_name_ar AS cs_responsible_employee_first_name_ar,
+			cs_responsible_employee.last_name_en AS cs_responsible_employee_last_name_en,
+			cs_responsible_employee.last_name_ar AS cs_responsible_employee_last_name_ar,
+			cs_responsible_employee.initial AS cs_responsible_employee_initial,
+			cs_responsible_employee.color AS cs_responsible_employee_color,
+			cs_responsible_employee.email AS cs_responsible_employee_email,
+			cs_responsible_employee.profile_image_path AS cs_responsible_employee_profile_image_path,
 			environment_preparations.environment_readiness_id,
 			executions.test_start_date,
 			executions.test_end_date,
 			executions.execution_status_id,
+			execution_statuses.title_en AS execution_status_title_en,
+			execution_statuses.title_ar AS execution_status_title_ar,
 			executions.security_result_id,
+			security_results.title_en AS security_result_title_en,
+			security_results.title_ar AS security_result_title_ar,
 			management_sharings.results_shared_with_management,
 			(
 				SELECT COUNT(*)
@@ -105,32 +125,43 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 		`).
 		Joins("LEFT JOIN penetration_test_environment_preparations AS environment_preparations ON environment_preparations.penetration_test_id = penetration_tests.id").
 		Joins("LEFT JOIN penetration_test_executions AS executions ON executions.penetration_test_id = penetration_tests.id").
-		Joins("LEFT JOIN penetration_test_management_sharings AS management_sharings ON management_sharings.penetration_test_id = penetration_tests.id")
+		Joins("LEFT JOIN penetration_test_execution_statuses AS execution_statuses ON execution_statuses.id = executions.execution_status_id").
+		Joins("LEFT JOIN penetration_test_security_results AS security_results ON security_results.id = executions.security_result_id").
+		Joins("LEFT JOIN penetration_test_management_sharings AS management_sharings ON management_sharings.penetration_test_id = penetration_tests.id").
+		Joins("LEFT JOIN penetration_test_types ON penetration_test_types.id = penetration_tests.penetration_test_type_id").
+		Joins("LEFT JOIN penetration_test_classifications ON penetration_test_classifications.id = penetration_tests.penetration_test_classification_id").
+		Joins("LEFT JOIN penetration_test_plans ON penetration_test_plans.id = penetration_tests.penetration_test_plan_id").
+		Joins("LEFT JOIN penetration_test_executors ON penetration_test_executors.id = penetration_tests.penetration_test_executor_id").
+		Joins("LEFT JOIN users AS cs_responsible_employee ON cs_responsible_employee.id = penetration_tests.cs_responsible_employee_id")
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where("reference_number LIKE ? OR system_application_name LIKE ? OR scope LIKE ?", keyword, keyword, keyword)
 	}
 
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where("penetration_tests."+columnName+" IN (?)", values)
+		}
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "Q1", "Q2", "Q3", "Q4":
+			query = query.Where("penetration_tests.period = ?", filter)
+		case "all":
+			continue
+		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	if params.SortBy == "" {
-		params.SortBy = "created_at"
-	}
-	allowedSortColumns := map[string]bool{
-		"reference_number":        true,
-		"system_application_name": true,
-		"year":                    true,
-		"period":                  true,
-		"created_at":              true,
-	}
-	if !allowedSortColumns[params.SortBy] {
-		params.SortBy = "created_at"
+		params.SortBy = "penetration_tests.created_at"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "desc"
-	}
-
-	query = query.Order("penetration_tests." + params.SortBy + " " + params.Sort)
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
 	}
 	if params.Page < 1 {
 		params.Page = 1
@@ -138,6 +169,8 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 	if params.PageSize < 1 {
 		params.PageSize = 10
 	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
 	if err := query.Offset((params.Page - 1) * params.PageSize).Limit(params.PageSize).Find(&penetrationTests).Error; err != nil {
 		return nil, err
 	}

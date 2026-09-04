@@ -7,27 +7,47 @@ import (
 )
 
 type PenetrationTestListDTO struct {
-	ID                              uint   `json:"id"`
-	ReferenceNumber                 string `json:"reference_number"`
-	SystemApplicationName           string `json:"system_application_name"`
-	PenetrationTestTypeID           uint   `json:"penetration_test_type_id"`
-	PenetrationTestPlanID           uint   `json:"penetration_test_plan_id"`
-	Year                            int    `json:"year"`
-	Period                          string `json:"period"`
-	PenetrationTestClassificationID uint   `json:"penetration_test_classification_id"`
-	PenetrationTestExecutorID       uint   `json:"penetration_test_executor_id"`
-	CSResponsibleEmployeeID         uint   `json:"cs_responsible_employee_id"`
-	EnvironmentReadinessID          *uint  `json:"environment_readiness_id"`
-	TestStartDate                   string `json:"test_start_date"`
-	TestEndDate                     string `json:"test_end_date"`
-	ExecutionStatusID               *uint  `json:"execution_status_id"`
-	SecurityResultID                *uint  `json:"security_result_id"`
-	ResultsSharedWithManagement     bool   `json:"results_shared_with_management"`
-	CriticalCount                   int    `json:"critical_count"`
-	HighCount                       int    `json:"high_count"`
-	MediumCount                     int    `json:"medium_count"`
-	LowCount                        int    `json:"low_count"`
-	TotalCount                      int    `json:"total_count"`
+	ID                                    uint    `json:"id"`
+	ReferenceNumber                       string  `json:"reference_number"`
+	SystemApplicationName                 string  `json:"system_application_name"`
+	PenetrationTestTypeID                 uint    `json:"penetration_test_type_id"`
+	PenetrationTestTypeTitleEn            string  `json:"penetration_test_type_title_en"`
+	PenetrationTestTypeTitleAr            string  `json:"penetration_test_type_title_ar"`
+	PenetrationTestPlanID                 uint    `json:"penetration_test_plan_id"`
+	PenetrationTestPlanTitleEn            string  `json:"penetration_test_plan_title_en"`
+	PenetrationTestPlanTitleAr            string  `json:"penetration_test_plan_title_ar"`
+	Year                                  int     `json:"year"`
+	Period                                string  `json:"period"`
+	PenetrationTestClassificationID       uint    `json:"penetration_test_classification_id"`
+	PenetrationTestClassificationTitleEn  string  `json:"penetration_test_classification_title_en"`
+	PenetrationTestClassificationTitleAr  string  `json:"penetration_test_classification_title_ar"`
+	PenetrationTestExecutorID             uint    `json:"penetration_test_executor_id"`
+	PenetrationTestExecutorTitleEn        string  `json:"penetration_test_executor_title_en"`
+	PenetrationTestExecutorTitleAr        string  `json:"penetration_test_executor_title_ar"`
+	CSResponsibleEmployeeID               uint    `json:"cs_responsible_employee_id"`
+	CSResponsibleEmployeeFirstNameEn      string  `json:"cs_responsible_employee_first_name_en"`
+	CSResponsibleEmployeeFirstNameAr      string  `json:"cs_responsible_employee_first_name_ar"`
+	CSResponsibleEmployeeLastNameEn       string  `json:"cs_responsible_employee_last_name_en"`
+	CSResponsibleEmployeeLastNameAr       string  `json:"cs_responsible_employee_last_name_ar"`
+	CSResponsibleEmployeeInitial          string  `json:"cs_responsible_employee_initial"`
+	CSResponsibleEmployeeColor            string  `json:"cs_responsible_employee_color"`
+	CSResponsibleEmployeeEmail            string  `json:"cs_responsible_employee_email"`
+	CSResponsibleEmployeeProfileImagePath string  `json:"cs_responsible_employee_profile_image_path"`
+	EnvironmentReadinessID                *uint   `json:"environment_readiness_id"`
+	TestStartDate                         string  `json:"test_start_date"`
+	TestEndDate                           string  `json:"test_end_date"`
+	ExecutionStatusID                     *uint   `json:"execution_status_id"`
+	ExecutionStatusTitleEn                *string `json:"execution_status_title_en"`
+	ExecutionStatusTitleAr                *string `json:"execution_status_title_ar"`
+	SecurityResultID                      *uint   `json:"security_result_id"`
+	SecurityResultTitleEn                 *string `json:"security_result_title_en"`
+	SecurityResultTitleAr                 *string `json:"security_result_title_ar"`
+	ResultsSharedWithManagement           bool    `json:"results_shared_with_management"`
+	CriticalCount                         int     `json:"critical_count"`
+	HighCount                             int     `json:"high_count"`
+	MediumCount                           int     `json:"medium_count"`
+	LowCount                              int     `json:"low_count"`
+	TotalCount                            int     `json:"total_count"`
 }
 
 type PenetrationTestFormDTO struct {
@@ -77,12 +97,14 @@ type PenetrationTestDetailDTO struct {
 }
 
 type PenetrationTestListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Status   string
-	Page     int
-	PageSize int
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Status      string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	QuickFilter []string
 }
 
 type PenetrationTestListResponseDTO struct {
