@@ -97,9 +97,21 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 				FROM penetration_test_retest_findings
 				WHERE penetration_test_retest_findings.penetration_test_retest_id = penetration_test_retests.id
 				AND penetration_test_retest_findings.is_verified = 0
-			) AS remaining_total
+			) AS remaining_total,
+			CONVERT(varchar(30), penetration_test_retests.created_at, 126) AS created_at,
+			CONVERT(varchar(30), penetration_test_retests.updated_at, 126) AS updated_at,
+			penetration_test_retests.created_by_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path
 		`).
-		Joins("LEFT JOIN penetration_test_executors ON penetration_test_executors.id = penetration_test_retests.penetration_test_executor_id")
+		Joins("LEFT JOIN penetration_test_executors ON penetration_test_executors.id = penetration_test_retests.penetration_test_executor_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = penetration_test_retests.created_by_id")
 
 	if params.PenetrationTestID > 0 {
 		query = query.Where("penetration_test_retests.penetration_test_id = ?", params.PenetrationTestID)
@@ -117,21 +129,30 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 		query = query.Where("penetration_test_retests.status = ?", params.Status)
 	}
 
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("penetration_test_retests.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "in_progress":
+			query = query.Where("penetration_test_retests.status = ?", "in-progress")
+		case "completed":
+			query = query.Where("penetration_test_retests.status = ?", "completed")
+		}
+	}
+
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "start_date"
-	}
-	allowedSortColumns := map[string]bool{
-		"reference_number": true,
-		"start_date":       true,
-		"end_date":         true,
-		"status":           true,
-	}
-	if !allowedSortColumns[params.SortBy] {
-		params.SortBy = "start_date"
+		params.SortBy = "penetration_test_retests.start_date"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "desc"
@@ -143,7 +164,7 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 		params.PageSize = 10
 	}
 
-	query = query.Order("penetration_test_retests." + params.SortBy + " " + params.Sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 	if err := query.Offset((params.Page - 1) * params.PageSize).Limit(params.PageSize).Find(&penetrationTestRetests).Error; err != nil {
 		return nil, err
 	}

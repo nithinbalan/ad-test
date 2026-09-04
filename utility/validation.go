@@ -699,10 +699,30 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "retest_already_completed":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "retest_already_completed",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+
 		case "already_published":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
 				MessageID: "already_published",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+
+		case "retest_already_active":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "retest_already_active",
 				TemplateData: map[string]interface{}{
 					"Field": translatedFieldName,
 				},
@@ -726,6 +746,13 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 				TemplateData: map[string]interface{}{
 					"Field": translatedFieldName,
 				},
+			})
+			errors = append(errors, errorMessage)
+
+		case "test_end_before_start":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "test_end_before_start",
 			})
 			errors = append(errors, errorMessage)
 

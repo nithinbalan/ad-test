@@ -24,6 +24,7 @@ type PenetrationTestFindingServiceInterface interface {
 	Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFindingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(id uint, currentUserID uint, statusID uint, percentage *uint, tx utility.DatabaseTransaction) error
 }
 
 type PenetrationTestFindingService struct {
@@ -95,13 +96,14 @@ func (ptfs *PenetrationTestFindingService) Create(currentUserID uint, formDTO *p
 		targetRemediationDate, err = utility.ParseDate(*formDTO.TargetRemediationDate)
 		if err != nil {
 			tx.Rollback()
-			return 0, utility.NewValidationError(err, "invalid", "target_remediation_date")
+			return 0, utility.NewValidationError(err, "invalid_date", "target remediation date")
 		}
 	}
 	value := &models.PenetrationTestFinding{
 		PenetrationTestID:     formDTO.PenetrationTestID,
 		Title:                 formDTO.Title,
 		ActionPlanStatusID:    formDTO.ActionPlanStatusID,
+		Percentage:            formDTO.Percentage,
 		SeverityLevelID:       formDTO.SeverityLevelID,
 		Description:           formDTO.Description,
 		Recommendation:        formDTO.Recommendation,
@@ -122,22 +124,31 @@ func (ptfs *PenetrationTestFindingService) Create(currentUserID uint, formDTO *p
 		tx.Rollback()
 		return 0, err
 	}
+	if _, err := ptfs.repo.CreateInitialPenetrationTestFindingStatusUpdate(&models.PenetrationTestFindingStatusUpdate{
+		PenetrationTestFindingID: id,
+		ActionPlanStatusID:       formDTO.ActionPlanStatusID,
+		Percentage:               formDTO.Percentage,
+		Comment:                  "Initial action plan status",
+		CreatedBYID:              currentUserID,
+		CreatedAt:                time.Now(),
+	}, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	if err := tx.Commit(); err != nil {
 		return 0, err
 	}
 
-	if ptfs.activityLogSvc != nil {
-		go func() {
-			existingEntry, err := ptfs.GetFullDetailsByID(id)
-			if err != nil {
-				utility.LogError("Failed to fetch penetration test finding", map[string]interface{}{"error": err.Error()})
-				return
-			}
-			if err := ptfs.activityLogSvc.LogActivity(models.CreateAction, models.PenetrationTestFinding{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "create penetration test finding", nil); err != nil {
-				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
-			}
-		}()
-	}
+	go func() {
+		existingEntry, err := ptfs.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch penetration test finding", map[string]interface{}{"error": err.Error()})
+			return
+		}
+		if err := ptfs.activityLogSvc.LogActivity(models.CreateAction, models.PenetrationTestFinding{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "create penetration test finding", nil); err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
 	return id, nil
 }
 
@@ -161,13 +172,14 @@ func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, f
 		targetRemediationDate, err = utility.ParseDate(*form.TargetRemediationDate)
 		if err != nil {
 			tx.Rollback()
-			return utility.NewValidationError(err, "invalid", "target_remediation_date")
+			return utility.NewValidationError(err, "invalid_date", "target remediation date")
 		}
 	}
 	updated := &models.PenetrationTestFinding{
 		PenetrationTestID:     form.PenetrationTestID,
 		Title:                 form.Title,
 		ActionPlanStatusID:    form.ActionPlanStatusID,
+		Percentage:            form.Percentage,
 		SeverityLevelID:       form.SeverityLevelID,
 		Description:           form.Description,
 		Recommendation:        form.Recommendation,
@@ -190,18 +202,16 @@ func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, f
 		return err
 	}
 
-	if ptfs.activityLogSvc != nil {
-		go func() {
-			existingEntry, err := ptfs.GetFullDetailsByID(id)
-			if err != nil {
-				utility.LogError("Failed to fetch penetration test finding", map[string]interface{}{"error": err.Error()})
-				return
-			}
-			if err := ptfs.activityLogSvc.LogActivity(models.UpdateAction, models.PenetrationTestFinding{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "update penetration test finding", nil); err != nil {
-				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
-			}
-		}()
-	}
+	go func() {
+		existingEntry, err := ptfs.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch penetration test finding", map[string]interface{}{"error": err.Error()})
+			return
+		}
+		if err := ptfs.activityLogSvc.LogActivity(models.UpdateAction, models.PenetrationTestFinding{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "update penetration test finding", nil); err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
 	return nil
 }
 
@@ -218,6 +228,11 @@ func (ptfs *PenetrationTestFindingService) Delete(ids []uint, currentUserID uint
 		}
 
 		tx := ptfs.repo.BeginTransaction()
+		if err := ptfs.repo.DeletePenetrationTestFindingStatusUpdates(id, tx); err != nil {
+			tx.Rollback()
+			failedIDs = append(failedIDs, id)
+			continue
+		}
 		if err := ptfs.repo.Delete(id, tx); err != nil {
 			tx.Rollback()
 			failedIDs = append(failedIDs, id)
@@ -230,23 +245,40 @@ func (ptfs *PenetrationTestFindingService) Delete(ids []uint, currentUserID uint
 
 		successfulIDs = append(successfulIDs, id)
 		deleted = append(deleted, map[string]interface{}{
-			"id":               id,
-			"reference_number": value.ReferenceNumber,
-			"title":            value.Title,
+			"id":    id,
+			"title": value.Title,
 		})
 	}
 
-	if len(successfulIDs) > 0 && ptfs.activityLogSvc != nil {
-		go ptfs.activityLogSvc.LogBulkActivities(
-			models.DeleteAction,
-			models.PenetrationTestFinding{}.TableName(),
-			successfulIDs,
-			deleted,
-			currentUserID,
-			nil,
-		)
+	if len(successfulIDs) > 0 {
+		go func() {
+			err := ptfs.activityLogSvc.LogBulkActivities(
+				models.DeleteAction,
+				models.PenetrationTestFinding{}.TableName(),
+				successfulIDs,
+				deleted,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log bulk delete activity", map[string]interface{}{"error": err.Error()})
+			}
+		}()
 	}
 	return failedIDs, nil
+}
+
+func (ptfs *PenetrationTestFindingService) StatusUpdate(id uint, currentUserID uint, statusID uint, percentage *uint, tx utility.DatabaseTransaction) error {
+	finding, err := ptfs.repo.GetByID(id, tx)
+	if err != nil {
+		return err
+	}
+	finding.ActionPlanStatusID = statusID
+	finding.Percentage = percentage
+	finding.UpdatedBYID = &currentUserID
+	now := time.Now()
+	finding.UpdatedAt = &now
+	return ptfs.repo.Update(finding, tx)
 }
 
 func (ptfs *PenetrationTestFindingService) validatePenetrationTestFindingFormDTO(formDTO *penetrationTestDTOs.PenetrationTestFindingFormDTO) error {
