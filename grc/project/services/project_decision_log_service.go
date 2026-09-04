@@ -8,9 +8,7 @@ import (
 	"time"
 
 	logServices "jethur/grc/logs/services"
-	masterDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/models"
-	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	dtos "jethur/grc/project/dtos"
 	"jethur/grc/project/repositories"
@@ -85,7 +83,35 @@ func (pdls *ProjectDecisionLogService) GetFullDetailsByID(projectID uint, id uin
 		return nil, err
 	}
 
-	return pdls.mapToDetailDTO(decisionLog)
+	var detailDTO dtos.ProjectDecisionLogDetailDTO
+	if err := mapstructure.Decode(decisionLog, &detailDTO); err != nil {
+		return nil, err
+	}
+
+	decisionDateStr := decisionLog.DecisionDate.Format("2006-01-02")
+	detailDTO.DecisionDate = &decisionDateStr
+
+	if decisionLog.SubmittedAt != nil {
+		str := decisionLog.SubmittedAt.Format("2006-01-02 15:04:05")
+		detailDTO.SubmittedAtString = &str
+	}
+	if decisionLog.ApprovedAt != nil {
+		str := decisionLog.ApprovedAt.Format("2006-01-02 15:04:05")
+		detailDTO.ApprovedAtString = &str
+	}
+	if decisionLog.RejectedAt != nil {
+		str := decisionLog.RejectedAt.Format("2006-01-02 15:04:05")
+		detailDTO.RejectedAtString = &str
+	}
+
+	detailDTO.CreatedAt = decisionLog.CreatedAt
+	detailDTO.UpdatedAt = decisionLog.UpdatedAt
+
+	if detailDTO.Documents == nil {
+		detailDTO.Documents = []*dtos.ProjectDecisionLogDocumentDTO{}
+	}
+
+	return &detailDTO, nil
 }
 
 func (pdls *ProjectDecisionLogService) Create(projectID uint, currentUserID uint, form *dtos.ProjectDecisionLogFormDTO) (uint, error) {
@@ -471,109 +497,4 @@ func (pdls *ProjectDecisionLogService) GetDocumentPath(projectID uint, decisionL
 	}
 
 	return fullPath, nil
-}
-
-func (pdls *ProjectDecisionLogService) mapToDetailDTO(decisionLog *models.ProjectDecisionLog) (*dtos.ProjectDecisionLogDetailDTO, error) {
-	var requestedByUser *organizationDTOs.UserMinimalDTO
-	if decisionLog.RequestedByUser != nil {
-		_ = mapstructure.Decode(decisionLog.RequestedByUser, &requestedByUser)
-	}
-
-	var submittedByUser *organizationDTOs.UserMinimalDTO
-	if decisionLog.SubmittedByUser != nil {
-		_ = mapstructure.Decode(decisionLog.SubmittedByUser, &submittedByUser)
-	}
-
-	var approvedByUser *organizationDTOs.UserMinimalDTO
-	if decisionLog.ApprovedByUser != nil {
-		_ = mapstructure.Decode(decisionLog.ApprovedByUser, &approvedByUser)
-	}
-
-	var rejectedByUser *organizationDTOs.UserMinimalDTO
-	if decisionLog.RejectedByUser != nil {
-		_ = mapstructure.Decode(decisionLog.RejectedByUser, &rejectedByUser)
-	}
-
-	var createdByUser *organizationDTOs.UserMinimalDTO
-	if decisionLog.CreatedByUser != nil {
-		_ = mapstructure.Decode(decisionLog.CreatedByUser, &createdByUser)
-	}
-
-	var updatedByUser *organizationDTOs.UserMinimalDTO
-	if decisionLog.UpdatedByUser != nil {
-		_ = mapstructure.Decode(decisionLog.UpdatedByUser, &updatedByUser)
-	}
-
-	var workflowStatusDTO *masterDTOs.WorkflowStatusDTO
-	if decisionLog.WorkflowStatus != nil {
-		workflowStatusDTO = &masterDTOs.WorkflowStatusDTO{
-			ID:        decisionLog.WorkflowStatus.ID,
-			TitleEn:   decisionLog.WorkflowStatus.TitleEn,
-			TitleAr:   decisionLog.WorkflowStatus.TitleAr,
-			Type:      decisionLog.WorkflowStatus.Type,
-			ColorCode: decisionLog.WorkflowStatus.ColorCode,
-			Status:    decisionLog.WorkflowStatus.Status,
-		}
-	}
-
-	var documents []*dtos.ProjectDecisionLogDocumentDTO
-	for _, doc := range decisionLog.Documents {
-		documents = append(documents, &dtos.ProjectDecisionLogDocumentDTO{
-			ID:           doc.ID,
-			Name:         doc.Name,
-			OriginalName: doc.OriginalName,
-			Size:         doc.Size,
-			Type:         doc.Type,
-			URL:          doc.URL,
-			Token:        doc.Token,
-		})
-	}
-
-	var submittedAtStr *string
-	if decisionLog.SubmittedAt != nil {
-		str := decisionLog.SubmittedAt.Format("2006-01-02 15:04:05")
-		submittedAtStr = &str
-	}
-
-	var approvedAtStr *string
-	if decisionLog.ApprovedAt != nil {
-		str := decisionLog.ApprovedAt.Format("2006-01-02 15:04:05")
-		approvedAtStr = &str
-	}
-
-	var rejectedAtStr *string
-	if decisionLog.RejectedAt != nil {
-		str := decisionLog.RejectedAt.Format("2006-01-02 15:04:05")
-		rejectedAtStr = &str
-	}
-
-	var updatedAtStr *string
-	if decisionLog.UpdatedAt != nil {
-		str := decisionLog.UpdatedAt.Format("2006-01-02 15:04:05")
-		updatedAtStr = &str
-	}
-
-	return &dtos.ProjectDecisionLogDetailDTO{
-		ID:                decisionLog.ID,
-		ReferenceNumber:   decisionLog.ReferenceNumber,
-		ProjectID:         decisionLog.ProjectID,
-		Decision:          decisionLog.Decision,
-		DecisionNotes:     decisionLog.DecisionNotes,
-		Reason:            decisionLog.Reason,
-		DecisionDate:      decisionLog.DecisionDate.Format("2006-01-02"),
-		RequestedByUser:   requestedByUser,
-		WorkflowStatus:    workflowStatusDTO,
-		NextReviewLevel:   decisionLog.NextReviewLevel,
-		SubmittedByUser:   submittedByUser,
-		SubmittedAtString: submittedAtStr,
-		ApprovedByUser:    approvedByUser,
-		ApprovedAtString:  approvedAtStr,
-		RejectedByUser:    rejectedByUser,
-		RejectedAtString:  rejectedAtStr,
-		CreatedByUser:     createdByUser,
-		UpdatedByUser:     updatedByUser,
-		CreatedAt:         decisionLog.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:         updatedAtStr,
-		Documents:         documents,
-	}, nil
 }

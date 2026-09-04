@@ -4,6 +4,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
 )
 
 type ProjectDecisionLogListDTO struct {
@@ -76,7 +77,7 @@ type ProjectDecisionLogDetailDTO struct {
 	Decision          string                           `json:"decision"`
 	DecisionNotes     *string                          `json:"decision_notes"`
 	Reason            *string                          `json:"reason"`
-	DecisionDate      string                           `json:"decision_date"`
+	DecisionDate      *string                          `json:"decision_date"`
 	RequestedByUser   *organizationDTOs.UserMinimalDTO `json:"requested_by_user"`
 	WorkflowStatus    *masterDTOs.WorkflowStatusDTO    `json:"workflow_status"`
 	NextReviewLevel   *int                             `json:"next_review_level"`
@@ -88,8 +89,8 @@ type ProjectDecisionLogDetailDTO struct {
 	RejectedAtString  *string                          `json:"rejected_at"`
 	CreatedByUser     *organizationDTOs.UserMinimalDTO `json:"created_by_user"`
 	UpdatedByUser     *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
-	CreatedAt         string                           `json:"created_at"`
-	UpdatedAt         *string                          `json:"updated_at"`
+	CreatedAt         time.Time                        `json:"created_at"`
+	UpdatedAt         *time.Time                       `json:"updated_at"`
 	Documents         []*ProjectDecisionLogDocumentDTO `json:"documents"`
 }
 

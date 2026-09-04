@@ -40,6 +40,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectDecisionLogWorkflowController := app.ProjectModule.ProjectDecisionLogWorkflowController
 	projectDecisionLogReviewController := app.ProjectModule.ProjectDecisionLogReviewController
 	projectDecisionLogReviewCommentController := app.ProjectModule.ProjectDecisionLogReviewCommentController
+	projectSupportingDocumentController := app.ProjectModule.ProjectSupportingDocumentController
 
 	// Project Types
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
@@ -125,6 +126,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.PUT("/projects/:projectId/decision-logs/:decisionLogId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectDecisionLogReviewCommentController.UpdateComment)
 	projectRoutes.POST("/projects/:projectId/decision-logs/:decisionLogId/review-comments/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectDecisionLogReviewCommentController.DeleteComments)
 	projectRoutes.PUT("/projects/:projectId/decision-logs/:decisionLogId/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectDecisionLogReviewCommentController.ResolveComment)
+
+	// Project Supporting Documents
+	unauthenticatedRoutes.GET("/projects/:projectId/supporting-documents/:supportingDocumentId/documents/:documentId/download", projectSupportingDocumentController.DownloadDocument)
+	unauthenticatedRoutes.GET("/projects/:projectId/supporting-documents/:supportingDocumentId/documents/:documentId/preview", projectSupportingDocumentController.GetDocumentPreview)
+	projectRoutes.GET("/projects/:projectId/supporting-documents", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectSupportingDocumentController.GetAllSupportingDocuments)
+	projectRoutes.GET("/projects/:projectId/supporting-documents/:supportingDocumentId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectSupportingDocumentController.GetSupportingDocumentDetails)
+	projectRoutes.POST("/projects/:projectId/supporting-documents", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectSupportingDocumentController.CreateSupportingDocument)
+	projectRoutes.PUT("/projects/:projectId/supporting-documents/:supportingDocumentId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectSupportingDocumentController.UpdateSupportingDocument)
+	projectRoutes.POST("/projects/:projectId/supporting-documents/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectSupportingDocumentController.DeleteSupportingDocuments)
 
 	// Project Action Plans
 	projectRoutes.GET("/project-action-plans", projectActionPlanController.GetAllProjectActionPlans)

@@ -33,6 +33,7 @@ type ProjectModule struct {
 	ProjectDecisionLogWorkflowController                 *controllers.ProjectDecisionLogWorkflowController
 	ProjectDecisionLogReviewController                   *controllers.ProjectDecisionLogReviewController
 	ProjectDecisionLogReviewCommentController            *controllers.ProjectDecisionLogReviewCommentController
+	ProjectSupportingDocumentController                  *controllers.ProjectSupportingDocumentController
 
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
@@ -46,6 +47,7 @@ type ProjectModule struct {
 	projectDecisionLogWorkflowSvc        services.ProjectDecisionLogWorkflowServiceInterface
 	projectDecisionLogReviewSvc          services.ProjectDecisionLogReviewServiceInterface
 	projectDecisionLogReviewCommentSvc   services.ProjectDecisionLogReviewCommentServiceInterface
+	projectSupportingDocumentSvc         services.ProjectSupportingDocumentServiceInterface
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule, settingsModule *SettingsModule) *ProjectModule {
@@ -246,6 +248,15 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectDecisionLogReviewCommentController := controllers.NewProjectDecisionLogReviewCommentController(projectDecisionLogReviewCommentSvc, db)
 
+	projectSupportingDocumentRepo := repositories.NewProjectSupportingDocumentRepository(db)
+	projectSupportingDocumentSvc := services.NewProjectSupportingDocumentService(
+		projectSupportingDocumentRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		projectSvc,
+	)
+	projectSupportingDocumentController := controllers.NewProjectSupportingDocumentController(projectSupportingDocumentSvc, db)
+
 	return &ProjectModule{
 		ProjectTypeController:                                projectTypeController,
 		ProjectStatusController:                              projectStatusController,
@@ -271,6 +282,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectDecisionLogWorkflowController:                 projectDecisionLogWorkflowController,
 		ProjectDecisionLogReviewController:                   projectDecisionLogReviewController,
 		ProjectDecisionLogReviewCommentController:            projectDecisionLogReviewCommentController,
+		ProjectSupportingDocumentController:                  projectSupportingDocumentController,
 
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,
@@ -284,5 +296,6 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectDecisionLogWorkflowSvc:        projectDecisionLogWorkflowSvc,
 		projectDecisionLogReviewSvc:          projectDecisionLogReviewSvc,
 		projectDecisionLogReviewCommentSvc:   projectDecisionLogReviewCommentSvc,
+		projectSupportingDocumentSvc:         projectSupportingDocumentSvc,
 	}
 }
