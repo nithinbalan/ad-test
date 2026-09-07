@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -217,32 +216,31 @@ func (pdlr *ProjectDecisionLogRepository) GetFullDetailsByID(projectID uint, id 
 }
 
 func (pdlr *ProjectDecisionLogRepository) GenerateReferenceNumber() (string, error) {
-	var lastRecord models.ProjectDecisionLog
-	currentYear := time.Now().Year()
-	prefix := fmt.Sprintf("DL-%d-", currentYear)
-
-	err := pdlr.db.
-		Where("reference_number LIKE ?", prefix+"%").
-		Order("id DESC").
-		First(&lastRecord).Error
+	var lastReferenceNumber string
+	err := pdlr.db.Model(&models.ProjectDecisionLog{}).
+		Select("reference_number").
+		Where("reference_number IS NOT NULL").
+		Order("reference_number DESC").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Sprintf("%s%06d", prefix, 1), nil
-		}
 		return "", err
 	}
 
-	lastRef := lastRecord.ReferenceNumber
-	if len(lastRef) > len(prefix) {
-		lastNumStr := lastRef[len(prefix):]
-		lastNum, err := strconv.Atoi(lastNumStr)
-		if err == nil {
-			return fmt.Sprintf("%s%06d", prefix, lastNum+1), nil
-		}
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
 	}
 
-	return fmt.Sprintf("%s%06d", prefix, 1), nil
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("DL-%d-%04d", currentYear, lastReferenceID+1), nil
 }
 
 func (pdlr *ProjectDecisionLogRepository) Create(decisionLog *models.ProjectDecisionLog, tx ...utility.DatabaseTransaction) (uint, error) {

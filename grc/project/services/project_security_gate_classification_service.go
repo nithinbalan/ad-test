@@ -3,12 +3,13 @@ package services
 import (
 	"jethur/grc/models"
 	"jethur/grc/project/repositories"
+	"jethur/utility"
 )
 
 type ProjectSecurityGateClassificationServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ProjectSecurityGateClassification, error)
-	GetByID(id uint) (*models.ProjectSecurityGateClassification, error)
-	GetByType(classificationType string) (*models.ProjectSecurityGateClassification, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error)
+	GetByType(classificationType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error)
 }
 
 type ProjectSecurityGateClassificationService struct {
@@ -25,10 +26,10 @@ func (psgcs *ProjectSecurityGateClassificationService) GetAll(sort string, sortB
 	return psgcs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (psgcs *ProjectSecurityGateClassificationService) GetByID(id uint) (*models.ProjectSecurityGateClassification, error) {
-	return psgcs.repo.GetByID(id)
+func (psgcs *ProjectSecurityGateClassificationService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error) {
+	return psgcs.repo.GetByID(id, tx...)
 }
 
-func (psgcs *ProjectSecurityGateClassificationService) GetByType(classificationType string) (*models.ProjectSecurityGateClassification, error) {
-	return psgcs.repo.GetByType(classificationType)
+func (psgcs *ProjectSecurityGateClassificationService) GetByType(classificationType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateClassification, error) {
+	return psgcs.repo.GetByType(classificationType, tx...)
 }

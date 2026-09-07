@@ -11,7 +11,7 @@ import (
 type ProjectSecurityGateChecklistResponseStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ProjectSecurityGateChecklistResponseStatus, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistResponseStatus, error)
-	GetByType(responseStatusType string) (*models.ProjectSecurityGateChecklistResponseStatus, error)
+	GetByType(responseStatusType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistResponseStatus, error)
 }
 
 type ProjectSecurityGateChecklistResponseStatusRepository struct {
@@ -66,10 +66,15 @@ func (repo *ProjectSecurityGateChecklistResponseStatusRepository) GetByID(id uin
 	return responseStatus, result.Error
 }
 
-func (repo *ProjectSecurityGateChecklistResponseStatusRepository) GetByType(responseStatusType string) (*models.ProjectSecurityGateChecklistResponseStatus, error) {
+func (repo *ProjectSecurityGateChecklistResponseStatusRepository) GetByType(responseStatusType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistResponseStatus, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var responseStatus *models.ProjectSecurityGateChecklistResponseStatus
 
-	result := repo.db.Where("type = ?", responseStatusType).First(&responseStatus)
+	result := db.Where("type = ?", responseStatusType).First(&responseStatus)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, "Project Security Gate Checklist Response Status with type "+responseStatusType)

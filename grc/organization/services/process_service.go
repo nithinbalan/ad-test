@@ -1781,6 +1781,30 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 		"section", "sub_section",
 	}
 
+	fieldDisplayNames := map[string]string{
+		"title_en":                            "Title En",
+		"title_ar":                            "Title Ar",
+		"description":                         "Description",
+		"division":                            "Division",
+		"department":                          "Department",
+		"responsible_user":                    "Responsible User",
+		"execution_automation":                "Execution Automation",
+		"type":                                "Type",
+		"location":                            "Location",
+		"alternative_location":                "Alternative Location",
+		"rush_hour":                           "Rush Hour",
+		"frequency":                           "Frequency",
+		"execution_records":                   "Execution Records",
+		"system_register":                     "System Register",
+		"can_be_done_manually":                "Can Be Done Manually",
+		"time_to_perform_procedure_manually":  "Time To Perform Procedure Manually",
+		"steps_to_perform_procedure_manually": "Steps To Perform Procedure Manually",
+		"requirement_to_perform_procedure_manually": "Requirement To Perform Procedure Manually",
+		"manual_procedure_forms":                    "Manual Procedure Forms",
+		"section":                                   "Section",
+		"sub_section":                               "Sub Section",
+	}
+
 	// Fetch user full names → IDs
 	users, err := ps.userSvc.GetAllUsers()
 	if err != nil {
@@ -1976,7 +2000,7 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 				} else {
 					normalized := strings.ToLower(value)
 					if normalized != "automatic" && normalized != "manual" {
-						rowErrors["execution_automation"] = "Must be 'automatic' or 'manual'"
+						rowErrors["execution_automation"] = fmt.Sprintf("%s must be 'automatic' or 'manual'", fieldDisplayNames["execution_automation"])
 					} else {
 						processedRecord["execution_automation"] = normalized
 					}
@@ -2013,12 +2037,12 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 					}
 					normalized := strings.ToLower(v)
 					if normalized != "yes" && normalized != "no" {
-						rowErrors["can_be_done_manually"] = "Must be 'yes' or 'no'"
+						rowErrors["can_be_done_manually"] = fmt.Sprintf("%s must be 'yes' or 'no'", fieldDisplayNames["can_be_done_manually"])
 						break
 					}
 					isCanBeDoneManually = normalized == "yes"
 				default:
-					rowErrors["can_be_done_manually"] = "Must be 'yes' or 'no'"
+					rowErrors["can_be_done_manually"] = fmt.Sprintf("%s must be 'yes' or 'no'", fieldDisplayNames["can_be_done_manually"])
 				}
 				if _, hasError := rowErrors["can_be_done_manually"]; !hasError {
 					processedRecord["can_be_done_manually"] = isCanBeDoneManually
@@ -2098,6 +2122,17 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 			}
 			if v, _ := record["steps_to_perform_procedure_manually"].(string); strings.TrimSpace(v) == "" {
 				rowErrors["steps_to_perform_procedure_manually"] = "Field is required when 'Can Be Done Manually' is yes"
+			}
+		}
+
+		// Replace generic "Field is required" messages with human-readable labels
+		for key, errValue := range rowErrors {
+			if errStr, ok := errValue.(string); ok {
+				if errStr == "Field is required" {
+					rowErrors[key] = fmt.Sprintf("%s field is required", fieldDisplayNames[key])
+				} else if strings.HasPrefix(errStr, "Field is required") {
+					rowErrors[key] = strings.Replace(errStr, "Field is required", fmt.Sprintf("%s field is required", fieldDisplayNames[key]), 1)
+				}
 			}
 		}
 

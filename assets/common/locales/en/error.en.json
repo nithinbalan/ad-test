@@ -346,6 +346,14 @@
 {
   "id": "test_end_before_start",
   "translation": "Test end date must be on or after the test start date."
+},
+{
+  "id": "no_published_version",
+  "translation": "No published checklist {{.Field}} exists for this stage."
+},
+{
+  "id": "stage_change_not_allowed",
+  "translation": "Stage cannot be changed after the security gate is created."
 }
 
 
