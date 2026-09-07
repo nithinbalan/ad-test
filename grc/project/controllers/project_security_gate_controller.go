@@ -26,7 +26,7 @@ func NewProjectSecurityGateController(service services.ProjectSecurityGateServic
 }
 
 func (psgc *ProjectSecurityGateController) GetAllProjectSecurityGates(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
+	sort := c.DefaultQuery("sort_order", "desc")
 	sortBy := c.DefaultQuery("sort_by", "project_title_en")
 	keyword := c.Query("keyword")
 

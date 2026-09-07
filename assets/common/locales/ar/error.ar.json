@@ -344,6 +344,10 @@
 {
   "id": "no_published_version",
   "translation": "لا يوجد {{.Field}} منشور لقائمة التحقق لهذه المرحلة."
+},
+{
+  "id": "stage_change_not_allowed",
+  "translation": "لا يمكن تغيير المرحلة بعد إنشاء بوابة الأمان."
 }
 
 

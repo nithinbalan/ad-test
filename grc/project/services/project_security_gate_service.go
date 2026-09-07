@@ -226,6 +226,14 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 		return err
 	}
 
+	if existing.StageID != form.StageID {
+		return utility.NewValidationError(
+			fmt.Errorf("stage cannot be changed"),
+			"stage_change_not_allowed",
+			"stage_id",
+		)
+	}
+
 	if _, err = psgs.stageSvc.GetByID(form.StageID, tx); err != nil {
 		return err
 	}

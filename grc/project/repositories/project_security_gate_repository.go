@@ -105,6 +105,14 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 		return nil, err
 	}
 
+	if params.Page < 1 {
+		params.Page = 1
+	}
+
+	if params.PageSize < 1 {
+		params.PageSize = 10
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize

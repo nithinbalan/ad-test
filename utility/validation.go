@@ -766,6 +766,13 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "stage_change_not_allowed":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "stage_change_not_allowed",
+			})
+			errors = append(errors, errorMessage)
+
 		}
 
 		return errors
