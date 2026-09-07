@@ -126,7 +126,7 @@ type ProjectDecisionLogListQueryParamsDTO struct {
 }
 
 type ProjectDecisionLogListResponseDTO struct {
-	Data       []*ProjectDecisionLogListDTO `json:"data"`
+	Items      []*ProjectDecisionLogListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 

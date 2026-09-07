@@ -172,10 +172,14 @@ func (pdlr *ProjectDecisionLogRepository) GetAll(projectID uint, params *dtos.Pr
 		return nil, err
 	}
 
+	if decisionLogs == nil {
+		decisionLogs = []*dtos.ProjectDecisionLogListDTO{}
+	}
+
 	totalPages := int(math.Ceil(float64(totalCount) / float64(params.PageSize)))
 
 	response := &dtos.ProjectDecisionLogListResponseDTO{
-		Data: decisionLogs,
+		Items: decisionLogs,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
