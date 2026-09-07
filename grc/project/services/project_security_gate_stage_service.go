@@ -3,12 +3,13 @@ package services
 import (
 	"jethur/grc/models"
 	"jethur/grc/project/repositories"
+	"jethur/utility"
 )
 
 type ProjectSecurityGateStageServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ProjectSecurityGateStage, error)
-	GetByID(id uint) (*models.ProjectSecurityGateStage, error)
-	GetByType(stageType string) (*models.ProjectSecurityGateStage, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error)
+	GetByType(stageType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error)
 }
 
 type ProjectSecurityGateStageService struct {
@@ -25,10 +26,10 @@ func (psgss *ProjectSecurityGateStageService) GetAll(sort string, sortBy string,
 	return psgss.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (psgss *ProjectSecurityGateStageService) GetByID(id uint) (*models.ProjectSecurityGateStage, error) {
-	return psgss.repo.GetByID(id)
+func (psgss *ProjectSecurityGateStageService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error) {
+	return psgss.repo.GetByID(id, tx...)
 }
 
-func (psgss *ProjectSecurityGateStageService) GetByType(stageType string) (*models.ProjectSecurityGateStage, error) {
-	return psgss.repo.GetByType(stageType)
+func (psgss *ProjectSecurityGateStageService) GetByType(stageType string, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateStage, error) {
+	return psgss.repo.GetByType(stageType, tx...)
 }

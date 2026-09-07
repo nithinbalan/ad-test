@@ -19,6 +19,7 @@ type UserRepositoryInterface interface {
 	GetUsersWithPrimaryUnit(primaryLevelID uint, params *userDTOs.PrimaryUnitUserListQueryParamsDTO) (*userDTOs.PrimaryUnitUserListResponseDTO, error)
 	GetAllUsers(primaryOrgUnitField string) ([]*userDTOs.UserPrimaryDetailsDTO, error)
 	GetByID(id uint) (*models.User, error)
+	GetByIDWithTx(id uint, tx utility.DatabaseTransaction) (*models.User, error)
 	GetFullDetailsByID(id uint) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
 	Create(user *models.User, tx ...utility.DatabaseTransaction) (uint, error)
@@ -360,6 +361,22 @@ func (repo *UserRepository) GetByID(id uint) (*models.User, error) {
 		return nil, result.Error
 	}
 
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return user, nil
+}
+
+func (repo *UserRepository) GetByIDWithTx(id uint, tx utility.DatabaseTransaction) (*models.User, error) {
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
+
+	var user *models.User
+
+	result := db.First(&user, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
