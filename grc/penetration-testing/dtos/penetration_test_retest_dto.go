@@ -4,6 +4,7 @@ import (
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 )
 
@@ -43,21 +44,31 @@ type PenetrationTestRetestFormDTO struct {
 	PenetrationTestExecutorID uint    `json:"penetration_test_executor_id" binding:"required"`
 	Status                    string  `json:"status" binding:"required,oneof=in-progress completed"`
 	Notes                     *string `json:"notes,omitempty"`
-	FindingIDs                []uint  `json:"finding_ids" binding:"required,min=1"`
+	FindingIDs                []uint  `json:"finding_ids" binding:"omitempty"`
 }
 
-type PenetrationTestRetestFindingFormDTO struct {
-	FindingID  uint `json:"finding_id" binding:"required"`
-	IsVerified bool `json:"is_verified"`
+type PenetrationTestRetestFindingUpdateFormDTO struct {
+	FindingIDs []uint `json:"finding_ids" binding:"required,min=1"`
+}
+
+type PenetrationTestRetestFindingSaveFormDTO struct {
+	Comment   string                        `json:"comment" binding:"required"`
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
+}
+
+type PenetrationTestRetestFindingResultFormDTO struct {
+	Result string `json:"result" binding:"required,oneof=pass fail"`
 }
 
 type PenetrationTestRetestFindingDTO struct {
-	ID                       uint       `json:"id"`
-	PenetrationTestFindingID uint       `json:"penetration_test_finding_id"`
-	FindingReferenceNumber   string     `json:"finding_reference_number"`
-	FindingTitle             string     `json:"finding_title"`
-	IsVerified               bool       `json:"is_verified"`
-	VerifiedAt               *time.Time `json:"verified_at"`
+	ID                       uint                                           `json:"id"`
+	PenetrationTestFindingID uint                                           `json:"penetration_test_finding_id"`
+	FindingReferenceNumber   string                                         `json:"finding_reference_number"`
+	FindingTitle             string                                         `json:"finding_title"`
+	Comment                  *string                                        `json:"comment"`
+	Result                   *string                                        `json:"result"`
+	ResultAt                 *time.Time                                     `json:"result_at"`
+	Documents                []*models.PenetrationTestRetestFindingDocument `json:"documents"`
 }
 
 type PenetrationTestRetestDetailDTO struct {
