@@ -330,26 +330,38 @@ func (rupeds *RiskUpdatePlanERMDeptService) MapControlsToTimeline(planID uint, c
 	// All pre-validation passed, start transaction
 	tx := rupeds.repo.BeginTransaction()
 
-	// Delete all existing control mappings for this timeline
-	if err := rupeds.repo.DeleteAllControlMappingsByTimelineID(timeline.ID, tx); err != nil {
+	// Get already-mapped control IDs so we keep existing controls and only add new ones
+	existingControlIDs, err := rupeds.repo.GetControlIDsByTimelineID(timeline.ID, tx)
+	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Create new control mappings
+	existingControlMap := make(map[uint]bool, len(existingControlIDs))
+	for _, controlID := range existingControlIDs {
+		existingControlMap[controlID] = true
+	}
+
+	// Create mappings only for controls that are not already mapped
 	controlMappings := make([]*models.RiskUpdatePlanControl, 0, len(formDTO.ControlIDs))
 	for _, controlID := range formDTO.ControlIDs {
+		if existingControlMap[controlID] {
+			continue
+		}
 		controlMappings = append(controlMappings, &models.RiskUpdatePlanControl{
 			RiskUpdatePlanTimelineID: timeline.ID,
 			ControlID:                controlID,
 			CreatedBYID:              &currentUserID,
 			CreatedAt:                time.Now(),
 		})
+		existingControlMap[controlID] = true
 	}
 
-	if err := rupeds.repo.CreateControlMappings(controlMappings, tx); err != nil {
-		tx.Rollback()
-		return err
+	if len(controlMappings) > 0 {
+		if err := rupeds.repo.CreateControlMappings(controlMappings, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	return tx.Commit()
