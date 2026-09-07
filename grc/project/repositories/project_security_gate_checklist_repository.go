@@ -17,11 +17,15 @@ type ProjectSecurityGateChecklistRepositoryInterface interface {
 	GetSummaryBySecurityGateID(securityGateID uint) (*projectDTOs.ProjectSecurityGateChecklistSummaryDTO, error)
 	GetAll(securityGateID uint, params *projectDTOs.ProjectSecurityGateChecklistListQueryParamsDTO) (*projectDTOs.ProjectSecurityGateChecklistListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklist, error)
+	GetFullDetailsByID(id uint) (*models.ProjectSecurityGateChecklist, error)
 	DeleteBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponse(checklist *models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error
 	CreateResponseDocuments(documents []*models.ProjectSecurityGateChecklistResponseDocument, tx ...utility.DatabaseTransaction) error
 	GetResponseDocumentByID(id uint) (*models.ProjectSecurityGateChecklistResponseDocument, error)
 	DeleteResponseDocuments(documentIDs []*uint, tx ...utility.DatabaseTransaction) error
+
+	DeleteChecklistControls(checklistID uint, tx ...utility.DatabaseTransaction) error
+	CreateChecklistControls(controls []*models.ProjectSecurityGateChecklistControl, tx ...utility.DatabaseTransaction) error
 }
 
 type ProjectSecurityGateChecklistRepository struct {
@@ -189,11 +193,33 @@ func (repo *ProjectSecurityGateChecklistRepository) GetByID(id uint, tx ...utili
 
 	var checklist *models.ProjectSecurityGateChecklist
 	result := db.
+		Preload("Documents").
+		First(&checklist, id)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return checklist, nil
+}
+
+func (repo *ProjectSecurityGateChecklistRepository) GetFullDetailsByID(id uint) (*models.ProjectSecurityGateChecklist, error) {
+	var checklist *models.ProjectSecurityGateChecklist
+	result := repo.db.
 		Preload("Requirement").
 		Preload("ResponseStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Documents").
+		Preload("Comments", func(db *gorm.DB) *gorm.DB {
+			return db.Order("project_security_gate_checklist_comments.created_at DESC")
+		}).
+		Preload("Comments.CreatedByUser").
+		Preload("Comments.Documents").
+		Preload("Controls").
+		Preload("Controls.Control").
 		First(&checklist, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -260,4 +286,26 @@ func (repo *ProjectSecurityGateChecklistRepository) DeleteResponseDocuments(docu
 	}
 
 	return db.Where("id IN (?)", documentIDs).Delete(&models.ProjectSecurityGateChecklistResponseDocument{}).Error
+}
+
+func (repo *ProjectSecurityGateChecklistRepository) DeleteChecklistControls(checklistID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("checklist_id = ?", checklistID).Delete(&models.ProjectSecurityGateChecklistControl{}).Error
+}
+
+func (repo *ProjectSecurityGateChecklistRepository) CreateChecklistControls(controls []*models.ProjectSecurityGateChecklistControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if len(controls) == 0 {
+		return nil
+	}
+
+	return db.Create(&controls).Error
 }

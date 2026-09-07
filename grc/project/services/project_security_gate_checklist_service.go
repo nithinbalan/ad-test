@@ -9,8 +9,11 @@ import (
 	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/grc/project/dtos"
 	"jethur/grc/project/repositories"
 	"jethur/utility"
@@ -29,23 +32,27 @@ type ProjectSecurityGateChecklistServiceInterface interface {
 	CreateChecklistResponse(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistResponseFormDTO) (uint, error)
 	UpdateChecklistResponse(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistResponseFormDTO) error
 	GetResponseDocumentPath(securityGateID uint, checklistID uint, token string) (string, error)
+	UpdateChecklistControls(securityGateID uint, checklistID uint, currentUserID uint, form *commonDTOs.AssociatedControlMapDTO) error
 }
 
 type ProjectSecurityGateChecklistService struct {
 	repo              repositories.ProjectSecurityGateChecklistRepositoryInterface
 	securityGateSvc   ProjectSecurityGateServiceInterface
 	responseStatusSvc ProjectSecurityGateChecklistResponseStatusServiceInterface
+	controlSvc        organizationServices.ControlServiceInterface
 	activityLog       logServices.ActivityLogServiceInterface
 }
 
 func NewProjectSecurityGateChecklistService(
 	repo repositories.ProjectSecurityGateChecklistRepositoryInterface,
 	responseStatusSvc ProjectSecurityGateChecklistResponseStatusServiceInterface,
+	controlSvc organizationServices.ControlServiceInterface,
 	activityLog logServices.ActivityLogServiceInterface,
 ) ProjectSecurityGateChecklistServiceInterface {
 	return &ProjectSecurityGateChecklistService{
 		repo:              repo,
 		responseStatusSvc: responseStatusSvc,
+		controlSvc:        controlSvc,
 		activityLog:       activityLog,
 	}
 }
@@ -71,9 +78,13 @@ func (psgcs *ProjectSecurityGateChecklistService) GetChecklistSummary(securityGa
 }
 
 func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGateID uint, checklistID uint) (*dtos.ProjectSecurityGateChecklistDetailDTO, error) {
-	checklist, err := psgcs.GetByID(securityGateID, checklistID)
+	checklist, err := psgcs.repo.GetFullDetailsByID(checklistID)
 	if err != nil {
 		return nil, err
+	}
+
+	if checklist.SecurityGateID != securityGateID {
+		return nil, &utility.ResourceNotFoundError{}
 	}
 
 	var detail dtos.ProjectSecurityGateChecklistDetailDTO
@@ -83,6 +94,25 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 
 	detail.CreatedAt = checklist.CreatedAt
 	detail.UpdatedAt = checklist.UpdatedAt
+
+	for i := range detail.Comments {
+		if i < len(checklist.Comments) {
+			detail.Comments[i].CreatedAt = checklist.Comments[i].CreatedAt
+		}
+	}
+
+	detail.Controls = make([]*organizationDTOs.ControlMinimalListDTO, 0, len(checklist.Controls))
+	for _, mapping := range checklist.Controls {
+		if mapping.Control == nil {
+			continue
+		}
+
+		var controlDTO organizationDTOs.ControlMinimalListDTO
+		if err := mapstructure.Decode(mapping.Control, &controlDTO); err != nil {
+			return nil, err
+		}
+		detail.Controls = append(detail.Controls, &controlDTO)
+	}
 
 	return &detail, nil
 }
@@ -411,6 +441,86 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 		)
 		if activityErr != nil {
 			log.Printf("Failed to log update activity: %v", activityErr)
+		}
+	}()
+
+	return err
+}
+
+func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistControls(securityGateID uint, checklistID uint, currentUserID uint, form *commonDTOs.AssociatedControlMapDTO) (err error) {
+	tx := psgcs.repo.BeginTransaction()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+	}()
+
+	if _, err = psgcs.GetByID(securityGateID, checklistID, tx); err != nil {
+		return err
+	}
+
+	now := time.Now()
+	seen := make(map[uint]bool, len(form.ControlIDs))
+	controls := make([]*models.ProjectSecurityGateChecklistControl, 0, len(form.ControlIDs))
+
+	for _, controlID := range form.ControlIDs {
+		if seen[controlID] {
+			err = utility.NewValidationError(
+				fmt.Errorf("duplicate control ID: %d", controlID),
+				"duplicate",
+				"control_id",
+			)
+			return err
+		}
+		seen[controlID] = true
+
+		if _, err = psgcs.controlSvc.GetByID(controlID, tx); err != nil {
+			return err
+		}
+
+		controls = append(controls, &models.ProjectSecurityGateChecklistControl{
+			ChecklistID: checklistID,
+			ControlID:   controlID,
+			CreatedBYID: currentUserID,
+			CreatedAt:   now,
+		})
+	}
+
+	if err = psgcs.repo.DeleteChecklistControls(checklistID, tx); err != nil {
+		return err
+	}
+
+	if err = psgcs.repo.CreateChecklistControls(controls, tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	go func() {
+		activityErr := psgcs.activityLog.LogActivity(
+			models.UpdateAction,
+			// Log against the parent checklist
+			models.ProjectSecurityGateChecklist{}.TableName(),
+			checklistID,
+			map[string]interface{}{
+				"checklist_id": checklistID,
+				"control_ids":  form.ControlIDs,
+			},
+			currentUserID,
+			//@todo add module id and sub module id once module and submodule are ready
+			"", "", "project_security_gate_checklist_control_map", nil,
+		)
+		if activityErr != nil {
+			log.Printf("Failed to log activity: %v", activityErr)
 		}
 	}()
 

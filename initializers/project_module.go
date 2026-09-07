@@ -37,6 +37,7 @@ type ProjectModule struct {
 	ProjectSecurityGateReadinessStatusController         *controllers.ProjectSecurityGateReadinessStatusController
 	ProjectSecurityGateController                        *controllers.ProjectSecurityGateController
 	ProjectSecurityGateChecklistController               *controllers.ProjectSecurityGateChecklistController
+	ProjectSecurityGateChecklistCommentController        *controllers.ProjectSecurityGateChecklistCommentController
 
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
@@ -280,12 +281,22 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	projectSecurityGateChecklistSvc := services.NewProjectSecurityGateChecklistService(
 		projectSecurityGateChecklistRepo,
 		projectSecurityGateChecklistResponseStatusSvc,
+		organizationModule.ControlSvc,
 		sharedModule.ActivityLogService,
 	)
 	projectSecurityGateChecklistController := controllers.NewProjectSecurityGateChecklistController(projectSecurityGateChecklistSvc)
 
+	// setters for checklist and security gate
 	projectSecurityGateSvc.SetChecklistService(projectSecurityGateChecklistSvc)
 	projectSecurityGateChecklistSvc.SetSecurityGateService(projectSecurityGateSvc)
+
+	projectSecurityGateChecklistCommentRepo := repositories.NewProjectSecurityGateChecklistCommentRepository(db)
+	projectSecurityGateChecklistCommentSvc := services.NewProjectSecurityGateChecklistCommentService(
+		projectSecurityGateChecklistCommentRepo,
+		projectSecurityGateChecklistSvc,
+		sharedModule.ActivityLogService,
+	)
+	projectSecurityGateChecklistCommentController := controllers.NewProjectSecurityGateChecklistCommentController(projectSecurityGateChecklistCommentSvc)
 
 	return &ProjectModule{
 		ProjectTypeController:                                projectTypeController,
@@ -316,6 +327,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectSecurityGateReadinessStatusController:         projectSecurityGateReadinessStatusController,
 		ProjectSecurityGateController:                        projectSecurityGateController,
 		ProjectSecurityGateChecklistController:               projectSecurityGateChecklistController,
+		ProjectSecurityGateChecklistCommentController:        projectSecurityGateChecklistCommentController,
 
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,
