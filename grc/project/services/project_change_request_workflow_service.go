@@ -116,10 +116,10 @@ func (pcrws *ProjectChangeRequestWorkflowService) GetWorkflowList(projectChangeR
 		return nil, err
 	}
 
-	var currentStatus *masterDTOs.WorkflowStatusDTO
+	var workflowStatus *masterDTOs.WorkflowStatusDTO
 	if pcr.WorkflowStatus != nil {
 		st := pcrws.mapWorkflowStatusToDTO(pcr.WorkflowStatus)
-		currentStatus = &st
+		workflowStatus = &st
 	}
 
 	dto := &projectDTOs.ProjectChangeRequestWorkflowListDTO{
@@ -132,18 +132,18 @@ func (pcrws *ProjectChangeRequestWorkflowService) GetWorkflowList(projectChangeR
 		RejectedAt:             pcr.RejectedAt,
 		RejectedByUser:         pcrws.mapUserToDTO(pcr.RejectedByUser),
 		NextReviewLevel:        pcr.NextReviewLevel,
-		CurrentStatus:          currentStatus,
+		WorkflowStatus:         workflowStatus,
 		Workflows:              []*projectDTOs.ProjectChangeRequestWorkflowLevelDTO{},
 		History:                []*projectDTOs.ProjectChangeRequestWorkflowHistoryDTO{},
 	}
 
 	for _, workflow := range pcr.Workflows {
 		workflowDTO := &projectDTOs.ProjectChangeRequestWorkflowLevelDTO{
-			Level:         workflow.Level,
-			ApprovalType:  workflow.ApprovalTypes,
-			CurrentStatus: pcrws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
-			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
-			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
+			Level:          workflow.Level,
+			ApprovalType:   workflow.ApprovalTypes,
+			WorkflowStatus: pcrws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
+			ReviewUsers:    []*organizationDTOs.UserMinimalDTO{},
+			ApprovedUsers:  []*organizationDTOs.UserMinimalDTO{},
 		}
 
 		for _, participant := range workflow.ProjectChangeRequestWorkflowParticipants {

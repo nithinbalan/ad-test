@@ -31,6 +31,7 @@ type ProjectChangeRequestReviewService struct {
 	workflowStatusSvc masterServices.WorkflowStatusServiceInterface
 	userSvc           organizationSvc.UserServiceInterface
 	notificationSvc   commonServices.NotificationServiceInterface
+	projectSvc        ProjectServiceInterface
 }
 
 func NewProjectChangeRequestReviewService(
@@ -41,6 +42,7 @@ func NewProjectChangeRequestReviewService(
 	workflowStatusSvc masterServices.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	projectSvc ProjectServiceInterface,
 ) ProjectChangeRequestReviewServiceInterface {
 	return &ProjectChangeRequestReviewService{
 		repo:              repo,
@@ -50,6 +52,7 @@ func NewProjectChangeRequestReviewService(
 		workflowStatusSvc: workflowStatusSvc,
 		userSvc:           userSvc,
 		notificationSvc:   notificationSvc,
+		projectSvc:        projectSvc,
 	}
 }
 
@@ -325,6 +328,11 @@ func (pcrrs *ProjectChangeRequestReviewService) Approve(projectID uint, changeRe
 			existingPCR.ApprovedBYID = &currentUserID
 			existingPCR.ApprovedAt = &approvedAt
 			existingPCR.NextReviewLevel = nil
+
+			if err := pcrrs.applyImpactAssessmentToProject(projectID, changeRequestID, currentUserID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
 		} else {
 			existingPCR.NextReviewLevel = &nextWorkflowLevel.Level
 		}
@@ -397,6 +405,11 @@ func (pcrrs *ProjectChangeRequestReviewService) Approve(projectID uint, changeRe
 			existingPCR.ApprovedBYID = &currentUserID
 			existingPCR.ApprovedAt = &approvedAt
 			existingPCR.NextReviewLevel = nil
+
+			if err := pcrrs.applyImpactAssessmentToProject(projectID, changeRequestID, currentUserID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
 		} else {
 			existingPCR.NextReviewLevel = &nextWorkflowLevel.Level
 		}
@@ -492,6 +505,20 @@ func (pcrrs *ProjectChangeRequestReviewService) Revert(projectID uint, changeReq
 	if err := pcrrs.createReviewWithHistory(currentWorkflow.ID, changeRequestID, currentWorkflow.Level, revertStatus.ID, comment, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Delete any existing approval reviews on the current level that was reverted
+	var currentLevelApprovalReviewIDs []*uint
+	for _, r := range currentWorkflow.ProjectChangeRequestWorkflowReviews {
+		if r.WorkflowStatus != nil && r.WorkflowStatus.Type == "approve" {
+			currentLevelApprovalReviewIDs = append(currentLevelApprovalReviewIDs, &r.ID)
+		}
+	}
+	if len(currentLevelApprovalReviewIDs) > 0 {
+		if err := pcrrs.workflowSvc.DeleteWorkflowReviews(currentLevelApprovalReviewIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	projectChangeRequestWorkflow, err := pcrrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
@@ -984,4 +1011,50 @@ func (pcrrs *ProjectChangeRequestReviewService) sendRejectNotification(projectID
 
 		_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_change_request")
 	}()
+}
+
+func (pcrrs *ProjectChangeRequestReviewService) applyImpactAssessmentToProject(projectID uint, changeRequestID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
+	project, err := pcrrs.projectSvc.GetProjectByID(projectID, tx)
+	if err != nil {
+		return err
+	}
+
+	impactAssessments, err := pcrrs.projectCRSvc.GetImpactAssessments(changeRequestID, tx)
+	if err != nil {
+		return err
+	}
+
+	projectUpdated := false
+	for _, ia := range impactAssessments {
+		if ia.ProjectImpactAssessmentType != nil {
+			switch ia.ProjectImpactAssessmentType.Type {
+			case "timeline":
+				if ia.RevisedDate != nil {
+					project.EndDate = *ia.RevisedDate
+					projectUpdated = true
+				}
+			case "budget":
+				if ia.RevisedBudget != nil {
+					project.Budget = ia.RevisedBudget
+					projectUpdated = true
+				}
+			case "resources":
+				if ia.RevisedResourceCount != nil {
+					project.NumberOfResources = ia.RevisedResourceCount
+					projectUpdated = true
+				}
+			}
+		}
+	}
+
+	if projectUpdated {
+		now := time.Now()
+		project.UpdatedBYID = &currentUserID
+		project.UpdatedAt = &now
+		if err := pcrrs.projectSvc.UpdateProject(project, tx); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -26,6 +26,7 @@ type ProjectChangeRequestRepositoryInterface interface {
 	DeleteWorkflowHistories(changeRequestID uint, tx ...utility.DatabaseTransaction) error
 	DeleteReviewComments(changeRequestID uint, tx ...utility.DatabaseTransaction) error
 	CreateImpactAssessments(impactAssessments []*models.ProjectImpactAssessment, tx ...utility.DatabaseTransaction) error
+	GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error)
 	CreateDocuments(documents []*models.ProjectChangeRequestDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ProjectChangeRequestDocument, error)
 	GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error)
@@ -158,6 +159,10 @@ func (pcrr *ProjectChangeRequestRepository) GetAll(projectID uint, params *dtos.
 			project_change_requests.description LIKE ? OR
 			project_change_requests.business_justification LIKE ?)
 		`, keyword, keyword, keyword, keyword)
+	}
+
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
@@ -343,6 +348,22 @@ func (pcrr *ProjectChangeRequestRepository) DeleteReviewComments(changeRequestID
 		}
 	}
 	return nil
+}
+
+func (pcrr *ProjectChangeRequestRepository) GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error) {
+	db := pcrr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var impactAssessments []*models.ProjectImpactAssessment
+	err := db.
+		Preload("ProjectImpactAssessmentType").
+		Where("project_change_request_id = ?", changeRequestID).
+		Find(&impactAssessments).Error
+	if err != nil {
+		return nil, err
+	}
+	return impactAssessments, nil
 }
 
 func (pcrr *ProjectChangeRequestRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {

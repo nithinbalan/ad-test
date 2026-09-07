@@ -25,9 +25,11 @@ import (
 type ProjectServiceInterface interface {
 	GetAll(params *dtos.ProjectListQueryParamsDTO) (*dtos.ProjectListResponseDTO, error)
 	GetByID(id uint) (*models.Project, error)
+	GetProjectByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectDetailDTO, error)
 	Create(currentUserID uint, form *dtos.ProjectFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *dtos.ProjectFormDTO) error
+	UpdateProject(project *models.Project, tx ...utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	UpdateStatus(id uint, currentUserID uint, form *dtos.ProjectStatusUpdateDTO) error
 	ExportProjects(data []*dtos.ProjectListDTO, currentUserID uint) (*os.File, error)
@@ -76,6 +78,21 @@ func (s *ProjectService) GetByID(id uint) (*models.Project, error) {
 		return nil, err
 	}
 	return project, nil
+}
+
+func (s *ProjectService) GetProjectByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error) {
+	project, err := s.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, &utility.ResourceNotFoundError{}
+		}
+		return nil, err
+	}
+	return project, nil
+}
+
+func (s *ProjectService) UpdateProject(project *models.Project, tx ...utility.DatabaseTransaction) error {
+	return s.repo.Update(project, tx...)
 }
 
 func (s *ProjectService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectDetailDTO, error) {
