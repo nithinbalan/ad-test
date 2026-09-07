@@ -26,6 +26,7 @@ type ProjectChangeRequestServiceInterface interface {
 	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error)
+	GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error)
 }
 
 type ProjectChangeRequestService struct {
@@ -211,7 +212,9 @@ func (pcrs *ProjectChangeRequestService) Create(projectID uint, currentUserID ui
 		}
 	}
 
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
 
 	for _, doc := range documents {
 		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
@@ -367,7 +370,9 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 		}
 	}
 
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 
 	for _, doc := range documents {
 		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
@@ -556,4 +561,8 @@ func parseImpactAssessments(forms []dtos.ProjectImpactAssessmentFormDTO) ([]*mod
 		impactAssessments = append(impactAssessments, ia)
 	}
 	return impactAssessments, nil
+}
+
+func (pcrs *ProjectChangeRequestService) GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error) {
+	return pcrs.repo.GetImpactAssessments(changeRequestID, tx...)
 }

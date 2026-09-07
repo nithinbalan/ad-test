@@ -142,6 +142,9 @@ func (r *ProjectRepository) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dto
 	}
 
 	// Apply sorting
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Apply pagination

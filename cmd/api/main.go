@@ -33,6 +33,7 @@ import (
 	settingRoutes "jethur/grc/settings/routes"
 	strategyRoutes "jethur/grc/strategy/routes"
 	taskRoutes "jethur/grc/task/routes"
+	threatIntelligenceRoutes "jethur/grc/threat-intelligence/routes"
 	tprmRoutes "jethur/grc/tprm/routes"
 
 	violationReportRoutes "jethur/grc/violation-report/routes"
@@ -118,6 +119,7 @@ func main() {
 	identityAccessReviewRoutes.RegisterRoutes(app, r)
 	securityOperationsRoutes.RegisterRoutes(app, r)
 	penetrationTestingRoutes.RegisterRoutes(app, r)
+	threatIntelligenceRoutes.RegisterRoutes(app, r)
 
 	if err := r.Run(":" + port); err != nil {
 		utility.LogFatal("Failed to run server", map[string]interface{}{
