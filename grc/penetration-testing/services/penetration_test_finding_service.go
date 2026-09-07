@@ -99,11 +99,15 @@ func (ptfs *PenetrationTestFindingService) Create(currentUserID uint, formDTO *p
 			return 0, utility.NewValidationError(err, "invalid_date", "target remediation date")
 		}
 	}
+	actionPlanStatus, err := ptfs.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	value := &models.PenetrationTestFinding{
 		PenetrationTestID:     formDTO.PenetrationTestID,
 		Title:                 formDTO.Title,
-		ActionPlanStatusID:    formDTO.ActionPlanStatusID,
-		Percentage:            formDTO.Percentage,
+		ActionPlanStatusID:    actionPlanStatus.ID,
 		SeverityLevelID:       formDTO.SeverityLevelID,
 		Description:           formDTO.Description,
 		Recommendation:        formDTO.Recommendation,
@@ -126,8 +130,7 @@ func (ptfs *PenetrationTestFindingService) Create(currentUserID uint, formDTO *p
 	}
 	if _, err := ptfs.repo.CreateInitialPenetrationTestFindingStatusUpdate(&models.PenetrationTestFindingStatusUpdate{
 		PenetrationTestFindingID: id,
-		ActionPlanStatusID:       formDTO.ActionPlanStatusID,
-		Percentage:               formDTO.Percentage,
+		ActionPlanStatusID:       actionPlanStatus.ID,
 		Comment:                  "Initial action plan status",
 		CreatedBYID:              currentUserID,
 		CreatedAt:                time.Now(),
@@ -159,9 +162,6 @@ func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, f
 		tx.Rollback()
 		return err
 	}
-	if form.ActionPlanStatusID == 0 {
-		form.ActionPlanStatusID = existing.ActionPlanStatusID
-	}
 	if err := ptfs.validatePenetrationTestFindingFormDTO(form); err != nil {
 		tx.Rollback()
 		return err
@@ -178,8 +178,8 @@ func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, f
 	updated := &models.PenetrationTestFinding{
 		PenetrationTestID:     form.PenetrationTestID,
 		Title:                 form.Title,
-		ActionPlanStatusID:    form.ActionPlanStatusID,
-		Percentage:            form.Percentage,
+		ActionPlanStatusID:    existing.ActionPlanStatusID,
+		Percentage:            existing.Percentage,
 		SeverityLevelID:       form.SeverityLevelID,
 		Description:           form.Description,
 		Recommendation:        form.Recommendation,
@@ -287,12 +287,6 @@ func (ptfs *PenetrationTestFindingService) validatePenetrationTestFindingFormDTO
 	}
 	if _, err := ptfs.severityLevelSvc.GetByID(formDTO.SeverityLevelID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
-	}
-	if formDTO.ActionPlanStatusID == 0 {
-		return utility.NewValidationError(fmt.Errorf("action plan status is required"), "required", "action plan status")
-	}
-	if _, err := ptfs.actionPlanStatusSvc.GetByID(formDTO.ActionPlanStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 	if _, err := ptfs.userSvc.GetByID(formDTO.OwnerID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("owner does not exist"), "not_exist", "owner")
