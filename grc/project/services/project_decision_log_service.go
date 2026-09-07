@@ -90,7 +90,7 @@ func (pdls *ProjectDecisionLogService) GetFullDetailsByID(projectID uint, id uin
 	}
 
 	decisionDateStr := decisionLog.DecisionDate.Format("2006-01-02")
-	detailDTO.DecisionDate = &decisionDateStr
+	detailDTO.DecisionDateString = &decisionDateStr
 
 	if decisionLog.SubmittedAt != nil {
 		str := decisionLog.SubmittedAt.Format("2006-01-02 15:04:05")
