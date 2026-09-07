@@ -486,6 +486,20 @@ func (pdlrs *ProjectDecisionLogReviewService) Revert(projectID uint, decisionLog
 		return err
 	}
 
+	// Delete any existing approval reviews on the current level that was reverted
+	var currentLevelApprovalReviewIDs []*uint
+	for _, r := range currentWorkflow.ProjectDecisionLogWorkflowReviews {
+		if r.WorkflowStatus != nil && r.WorkflowStatus.Type == "approve" {
+			currentLevelApprovalReviewIDs = append(currentLevelApprovalReviewIDs, &r.ID)
+		}
+	}
+	if len(currentLevelApprovalReviewIDs) > 0 {
+		if err := pdlrs.workflowSvc.DeleteWorkflowReviews(currentLevelApprovalReviewIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	projectDecisionLogWorkflow, err := pdlrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
 	if err != nil {
 		tx.Rollback()

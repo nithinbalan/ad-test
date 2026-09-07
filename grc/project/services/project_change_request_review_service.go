@@ -507,6 +507,20 @@ func (pcrrs *ProjectChangeRequestReviewService) Revert(projectID uint, changeReq
 		return err
 	}
 
+	// Delete any existing approval reviews on the current level that was reverted
+	var currentLevelApprovalReviewIDs []*uint
+	for _, r := range currentWorkflow.ProjectChangeRequestWorkflowReviews {
+		if r.WorkflowStatus != nil && r.WorkflowStatus.Type == "approve" {
+			currentLevelApprovalReviewIDs = append(currentLevelApprovalReviewIDs, &r.ID)
+		}
+	}
+	if len(currentLevelApprovalReviewIDs) > 0 {
+		if err := pcrrs.workflowSvc.DeleteWorkflowReviews(currentLevelApprovalReviewIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	projectChangeRequestWorkflow, err := pcrrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
 	if err != nil {
 		tx.Rollback()
