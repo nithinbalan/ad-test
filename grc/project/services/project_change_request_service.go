@@ -262,7 +262,7 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 		return err
 	}
 
-	changeRequest, err := pcrs.repo.GetByID(projectID, id)
+	changeRequest, err := pcrs.repo.GetFullDetailsByID(projectID, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &utility.ResourceNotFoundError{}
@@ -324,12 +324,16 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 		}
 	}
 
-	var documents []*models.ProjectChangeRequestDocument
-	var deleteDocumentIDs []*uint
-	var documentsToDelete []*models.ProjectChangeRequestDocument
-
+	// Document handling
+	var existingDocsToKeep []*uint
+	var newDocsToCreate []*models.ProjectChangeRequestDocument
 	for _, doc := range form.Documents {
-		if doc.IsNewFile != nil && *doc.IsNewFile {
+		if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			continue
+		}
+		if doc.ID != nil && (doc.IsNewFile == nil || !*doc.IsNewFile) {
+			existingDocsToKeep = append(existingDocsToKeep, doc.ID)
+		} else if doc.FileName != "" {
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
@@ -348,33 +352,36 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 				CreatedByID:            currentUserID,
 				CreatedAt:              time.Now(),
 			}
-			documents = append(documents, document)
-		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			if doc.ID != nil {
-				existingDocument, err := pcrs.repo.GetDocumentByID(*doc.ID)
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
-						tx.Rollback()
-						return utility.NewResourceNotFoundError(err, id)
-					}
-					tx.Rollback()
-					return err
-				}
-				documentsToDelete = append(documentsToDelete, existingDocument)
-				deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
-			}
+			newDocsToCreate = append(newDocsToCreate, document)
 		}
 	}
 
-	if len(documents) > 0 {
-		if err := pcrs.repo.CreateDocuments(documents, tx); err != nil {
+	var docsToDelete []*uint
+	var documentsToDelete []*models.ProjectChangeRequestDocument
+	for _, doc := range changeRequest.Documents {
+		keep := false
+		for _, keepID := range existingDocsToKeep {
+			if keepID != nil && *keepID == doc.ID {
+				keep = true
+				break
+			}
+		}
+		if !keep {
+			docID := doc.ID
+			docsToDelete = append(docsToDelete, &docID)
+			documentsToDelete = append(documentsToDelete, doc)
+		}
+	}
+
+	if len(docsToDelete) > 0 {
+		if err := pcrs.repo.DeleteDocuments(docsToDelete, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 
-	if len(deleteDocumentIDs) > 0 {
-		if err := pcrs.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
+	if len(newDocsToCreate) > 0 {
+		if err := pcrs.repo.CreateDocuments(newDocsToCreate, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -384,17 +391,17 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 		return err
 	}
 
-	for _, doc := range documents {
+	for _, doc := range newDocsToCreate {
 		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
-			return err
+			utility.LogError("Failed to store document file", map[string]interface{}{"error": err.Error(), "doc": doc.Name})
 		}
 	}
 
 	for _, doc := range documentsToDelete {
 		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
-			return err
+			utility.LogError("Failed to remove document file", map[string]interface{}{"error": err.Error(), "doc": doc.Name})
 		}
 	}
 

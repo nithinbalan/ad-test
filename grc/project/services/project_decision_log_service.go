@@ -256,9 +256,12 @@ func (pdls *ProjectDecisionLogService) Update(projectID uint, id uint, currentUs
 	var existingDocsToKeep []*uint
 	var newDocsToCreate []*models.ProjectDecisionLogDocument
 	for _, doc := range form.Documents {
-		if doc.ID != nil {
+		if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			continue
+		}
+		if doc.ID != nil && (doc.IsNewFile == nil || !*doc.IsNewFile) {
 			existingDocsToKeep = append(existingDocsToKeep, doc.ID)
-		} else {
+		} else if doc.FileName != "" {
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
