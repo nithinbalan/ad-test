@@ -73,7 +73,7 @@ func NewApp(db *gorm.DB) *App {
 	consultationRequestModule := NewConsultationRequestModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule, documentModule)
 	violationReportModule := NewViolationReportModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule, assetModule)
 	identityAccessReviewModule := NewIdentityAccessReviewModule(db, sharedModule, organizationModule, settingsModule, masterModule, taskModule, commonModule)
-	securityOperationsModule := NewSecurityOperationsModule(db, sharedModule, settingsModule, organizationModule)
+	securityOperationsModule := NewSecurityOperationsModule(db, sharedModule, settingsModule, organizationModule, commonModule)
 	penetrationTestingModule := NewPenetrationTestingModule(db, sharedModule, masterModule, organizationModule)
 	threatIntelligenceModule := NewThreatIntelligenceModule(db, sharedModule)
 
