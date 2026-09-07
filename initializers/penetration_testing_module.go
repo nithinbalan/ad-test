@@ -23,6 +23,7 @@ type PenetrationTestingModule struct {
 	PenetrationTestExecutionStatusController        *controllers.PenetrationTestExecutionStatusController
 	PenetrationTestSecurityResultController         *controllers.PenetrationTestSecurityResultController
 	PenetrationTestSupportingDocumentController     *controllers.PenetrationTestSupportingDocumentController
+	PenetrationTestClosureController                *controllers.PenetrationTestClosureController
 }
 
 func NewPenetrationTestingModule(
@@ -94,6 +95,12 @@ func NewPenetrationTestingModule(
 		organizationModule.UserSvc,
 		penetrationTestService,
 	)
+	closureService := services.NewPenetrationTestClosureService(
+		repositories.NewPenetrationTestClosureRepository(db),
+		sharedModule.ActivityLogService,
+		penetrationTestService,
+		organizationModule.UserSvc,
+	)
 	return &PenetrationTestingModule{
 		PenetrationTestController:                       controllers.NewPenetrationTestController(penetrationTestService),
 		PenetrationTestEnvironmentPreparationController: controllers.NewPenetrationTestEnvironmentPreparationController(environmentPreparationService),
@@ -110,5 +117,6 @@ func NewPenetrationTestingModule(
 		PenetrationTestExecutionStatusController:        controllers.NewPenetrationTestExecutionStatusController(executionStatusService),
 		PenetrationTestSecurityResultController:         controllers.NewPenetrationTestSecurityResultController(securityResultService),
 		PenetrationTestSupportingDocumentController:     controllers.NewPenetrationTestSupportingDocumentController(supportingDocumentService, db),
+		PenetrationTestClosureController:                controllers.NewPenetrationTestClosureController(closureService),
 	}
 }
