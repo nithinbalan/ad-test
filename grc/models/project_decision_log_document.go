@@ -10,7 +10,7 @@ type ProjectDecisionLogDocument struct {
 	URL                  string     `json:"url" gorm:"type:varchar(255)"`
 	Name                 string     `json:"name" binding:"required" gorm:"type:varchar(100);not null"`
 	Size                 int        `json:"size" gorm:"not null"`
-	Token                string     `json:"token" gorm:"type:varchar(100);not null"`
+	Token                string     `json:"token" gorm:"type:varchar(max);not null"`
 	OriginalName         *string    `json:"original_name" gorm:"type:nvarchar(255)"`
 	Type                 string     `json:"type" gorm:"type:varchar(100);not null"`
 	CreatedByID          uint       `json:"created_by_id" gorm:"not null"`

@@ -108,20 +108,6 @@ func (pdls *ProjectDecisionLogService) GetFullDetailsByID(projectID uint, id uin
 	detailDTO.CreatedAt = decisionLog.CreatedAt
 	detailDTO.UpdatedAt = decisionLog.UpdatedAt
 
-	detailDTO.Documents = make([]*dtos.ProjectDecisionLogDocumentDTO, 0, len(decisionLog.Documents))
-	for _, doc := range decisionLog.Documents {
-		docDTO := &dtos.ProjectDecisionLogDocumentDTO{
-			ID:           doc.ID,
-			URL:          doc.URL,
-			Name:         doc.Name,
-			OriginalName: doc.OriginalName,
-			Type:         doc.Type,
-			Size:         doc.Size,
-			Token:        doc.Token,
-		}
-		detailDTO.Documents = append(detailDTO.Documents, docDTO)
-	}
-
 	return &detailDTO, nil
 }
 
@@ -270,9 +256,12 @@ func (pdls *ProjectDecisionLogService) Update(projectID uint, id uint, currentUs
 	var existingDocsToKeep []*uint
 	var newDocsToCreate []*models.ProjectDecisionLogDocument
 	for _, doc := range form.Documents {
-		if doc.ID != nil {
+		if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			continue
+		}
+		if doc.ID != nil && (doc.IsNewFile == nil || !*doc.IsNewFile) {
 			existingDocsToKeep = append(existingDocsToKeep, doc.ID)
-		} else {
+		} else if doc.FileName != "" {
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
