@@ -14,6 +14,8 @@ type ProjectListDTO struct {
 	DescriptionAr                   *string  `json:"description_ar"`
 	Budget                          *float64 `json:"budget"`
 	Scope                           *string  `json:"scope"`
+	NumberOfResources               *int     `json:"number_of_resources"`
+	CompletionPercentage            *float64 `json:"completion_percentage"`
 	ProjectTypeTitleEn              string   `json:"project_type_title_en"`
 	ProjectTypeTitleAr              string   `json:"project_type_title_ar"`
 	ProjectStatusTitleEn            string   `json:"project_status_title_en"`
@@ -86,6 +88,7 @@ type ProjectFormDTO struct {
 	DescriptionAr           *string  `json:"description_ar"`
 	Budget                  *float64 `json:"budget"`
 	Scope                   *string  `json:"scope"`
+	NumberOfResources       *int     `json:"number_of_resources"`
 	ResponsibleUserID       uint     `json:"responsible_user_id" binding:"required"`
 	StartDate               string   `json:"start_date" binding:"required,datetime=2006-01-02"`
 	EndDate                 string   `json:"end_date" binding:"required,datetime=2006-01-02"`
@@ -103,6 +106,8 @@ type ProjectDetailDTO struct {
 	DescriptionAr           *string                          `json:"description_ar"`
 	Budget                  *float64                         `json:"budget"`
 	Scope                   *string                          `json:"scope"`
+	NumberOfResources       *int                             `json:"number_of_resources"`
+	CompletionPercentage    *float64                         `json:"completion_percentage"`
 	StartDateString         string                           `json:"start_date"`
 	EndDateString           string                           `json:"end_date"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO  `json:"responsible_user"`

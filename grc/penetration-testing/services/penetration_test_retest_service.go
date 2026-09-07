@@ -6,6 +6,7 @@ import (
 	"time"
 
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	penetrationTestDTOs "jethur/grc/penetration-testing/dtos"
 	"jethur/grc/penetration-testing/repositories"
@@ -32,6 +33,8 @@ type PenetrationTestRetestService struct {
 	penetrationTestSvc        PenetrationTestServiceInterface
 	penetrationTestFindingSvc PenetrationTestFindingServiceInterface
 	executorSvc               PenetrationTestExecutorServiceInterface
+	actionPlanStatusSvc       masterServices.ActionPlanStatusServiceInterface
+	statusUpdateRepo          repositories.PenetrationTestFindingStatusUpdateRepositoryInterface
 }
 
 func NewPenetrationTestRetestService(
@@ -40,6 +43,8 @@ func NewPenetrationTestRetestService(
 	penetrationTestSvc PenetrationTestServiceInterface,
 	penetrationTestFindingSvc PenetrationTestFindingServiceInterface,
 	executorSvc PenetrationTestExecutorServiceInterface,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	statusUpdateRepo repositories.PenetrationTestFindingStatusUpdateRepositoryInterface,
 ) PenetrationTestRetestServiceInterface {
 	return &PenetrationTestRetestService{
 		repo:                      repo,
@@ -47,6 +52,8 @@ func NewPenetrationTestRetestService(
 		penetrationTestSvc:        penetrationTestSvc,
 		penetrationTestFindingSvc: penetrationTestFindingSvc,
 		executorSvc:               executorSvc,
+		actionPlanStatusSvc:       actionPlanStatusSvc,
+		statusUpdateRepo:          statusUpdateRepo,
 	}
 }
 
@@ -144,7 +151,7 @@ func (ptrs *PenetrationTestRetestService) Create(currentUserID uint, formDTO *pe
 		return 0, err
 	}
 	if active != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("an active re-test already exists"), "invalid", "penetration_test_id")
+		return 0, utility.NewValidationError(fmt.Errorf("an active re-test already exists"), "retest_already_active", "re-test")
 	}
 	tx := ptrs.repo.BeginTransaction()
 	value.ReferenceNumber, err = ptrs.repo.GenerateReferenceNumber(value.PenetrationTestID, tx)
@@ -230,7 +237,7 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 	}
 	if existing.Status == "completed" {
 		tx.Rollback()
-		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be updated"), "invalid", "status")
+		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be updated"), "retest_already_completed", "re-test")
 	}
 	updated.ID = existing.ID
 	updated.ReferenceNumber = existing.ReferenceNumber
@@ -285,7 +292,7 @@ func (ptrs *PenetrationTestRetestService) VerifyFinding(id uint, currentUserID u
 	}
 	if existing.Status == "completed" {
 		tx.Rollback()
-		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be changed"), "invalid", "status")
+		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be changed"), "retest_already_completed", "re-test")
 	}
 	for _, retestFinding := range existing.RetestFindings {
 		if retestFinding.PenetrationTestFindingID == formDTO.FindingID {
@@ -299,6 +306,29 @@ func (ptrs *PenetrationTestRetestService) VerifyFinding(id uint, currentUserID u
 			if err := ptrs.repo.UpdateRetestFinding(retestFinding, tx); err != nil {
 				tx.Rollback()
 				return err
+			}
+			if formDTO.IsVerified {
+				closedStatus, err := ptrs.actionPlanStatusSvc.GetByType("close")
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+				percentage := uint(100)
+				if err := ptrs.penetrationTestFindingSvc.StatusUpdate(formDTO.FindingID, currentUserID, closedStatus.ID, &percentage, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+				if _, err := ptrs.statusUpdateRepo.Create(&models.PenetrationTestFindingStatusUpdate{
+					PenetrationTestFindingID: formDTO.FindingID,
+					ActionPlanStatusID:       closedStatus.ID,
+					Percentage:               &percentage,
+					Comment:                  "Finding verified and closed through re-test",
+					CreatedBYID:              currentUserID,
+					CreatedAt:                time.Now(),
+				}, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 			if err := tx.Commit(); err != nil {
 				return utility.NewInternalServerError(err)
@@ -331,7 +361,7 @@ func (ptrs *PenetrationTestRetestService) Complete(id uint, currentUserID uint) 
 	}
 	if value.Status == "completed" {
 		tx.Rollback()
-		return utility.NewValidationError(fmt.Errorf("re-test is already completed"), "invalid", "status")
+		return utility.NewValidationError(fmt.Errorf("re-test is already completed"), "retest_already_completed", "re-test")
 	}
 	now := time.Now()
 	value.Status = "completed"
@@ -341,6 +371,35 @@ func (ptrs *PenetrationTestRetestService) Complete(id uint, currentUserID uint) 
 	if err := ptrs.repo.Update(value, tx); err != nil {
 		tx.Rollback()
 		return err
+	}
+	closedStatus, err := ptrs.actionPlanStatusSvc.GetByType("close")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	percentage := uint(100)
+	for _, retestFinding := range value.RetestFindings {
+		if !retestFinding.IsVerified {
+			continue
+		}
+		if retestFinding.PenetrationTestFinding != nil && retestFinding.PenetrationTestFinding.ActionPlanStatusID == closedStatus.ID {
+			continue
+		}
+		if err := ptrs.penetrationTestFindingSvc.StatusUpdate(retestFinding.PenetrationTestFindingID, currentUserID, closedStatus.ID, &percentage, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if _, err := ptrs.statusUpdateRepo.Create(&models.PenetrationTestFindingStatusUpdate{
+			PenetrationTestFindingID: retestFinding.PenetrationTestFindingID,
+			ActionPlanStatusID:       closedStatus.ID,
+			Percentage:               &percentage,
+			Comment:                  "Finding verified and closed through re-test completion",
+			CreatedBYID:              currentUserID,
+			CreatedAt:                time.Now(),
+		}, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return utility.NewInternalServerError(err)

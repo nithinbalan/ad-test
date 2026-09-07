@@ -336,6 +336,18 @@
   "translation": "Cannot modify the {{.Field}} once it is published."
 },
 {
+  "id": "retest_already_completed",
+  "translation": "The {{.Field}} has already been completed."
+},
+{
+  "id": "retest_already_active",
+  "translation": "An active {{.Field}} already exists."
+},
+{
+  "id": "test_end_before_start",
+  "translation": "Test end date must be on or after the test start date."
+},
+{
   "id": "no_published_version",
   "translation": "No published checklist {{.Field}} exists for this stage."
 }

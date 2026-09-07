@@ -43,6 +43,8 @@ func (r *ProjectRepository) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dto
 			projects.description_ar,
 			projects.budget,
 			projects.scope,
+			projects.number_of_resources,
+			projects.completion_percentage,
 			CONVERT(VARCHAR, projects.start_date, 23) AS start_date,
 			CONVERT(VARCHAR, projects.end_date, 23) AS end_date,
 			project_types.id AS project_type_id,

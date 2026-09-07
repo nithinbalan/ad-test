@@ -29,12 +29,23 @@ func (ptrec *PenetrationTestRetestController) GetAllPenetrationTestRetests(c *gi
 	sortBy := c.DefaultQuery("sort_by", "start_date")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	allowedParams := []string{
+		"penetration_test_executor_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	validSortFields := map[string]string{
-		"reference_number": "reference_number",
-		"start_date":       "start_date",
-		"end_date":         "end_date",
-		"status":           "status",
+		"reference_number":  "penetration_test_retests.reference_number",
+		"start_date":        "penetration_test_retests.start_date",
+		"end_date":          "penetration_test_retests.end_date",
+		"status":            "penetration_test_retests.status",
+		"executor_title_en": "penetration_test_executors.title_en",
+		"executor_title_ar": "penetration_test_executors.title_ar",
+		"created_at":        "penetration_test_retests.created_at",
 	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -79,6 +90,10 @@ func (ptrec *PenetrationTestRetestController) GetAllPenetrationTestRetests(c *gi
 		Page:              page,
 		PageSize:          pageSize,
 		PenetrationTestID: uint(penetrationTestID),
+		Filters:           filters,
+		QuickFilter:       quickFilter,
+		DateFrom:          dateFrom,
+		DateTo:            dateTo,
 	}
 	retests, err := ptrec.service.GetAll(&queryParams)
 	if err != nil {
@@ -239,7 +254,7 @@ func (ptrec *PenetrationTestRetestController) CompletePenetrationTestRetest(c *g
 
 func (ptrec *PenetrationTestRetestController) DeletePenetrationTestRetests(c *gin.Context) {
 	var request struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 	if err := c.ShouldBindJSON(&request); err != nil {
 		utility.SendInvalidErrResp(c, err)

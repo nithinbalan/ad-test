@@ -12,6 +12,7 @@ type Project struct {
 	DescriptionAr           *string    `json:"description_ar" gorm:"type:text;null"`
 	Budget                  *float64   `json:"budget" gorm:"type:decimal(18,2);default:null"`
 	Scope                   *string    `json:"scope" gorm:"type:nvarchar(max);default:null"`
+	NumberOfResources       *int       `json:"number_of_resources" gorm:"default:null"`
 	ResponsibleUserID       uint       `json:"responsible_user_id" gorm:"not null"`
 	StartDate               time.Time  `json:"start_date" gorm:"type:date;not null"`
 	EndDate                 time.Time  `json:"end_date" gorm:"type:date;not null"`
@@ -19,6 +20,7 @@ type Project struct {
 	ProjectStatusID         uint       `json:"project_status_id" gorm:"not null"`
 	ProjectPhaseID          *uint      `json:"project_phase_id" gorm:"default:null"`
 	ProjectClassificationID *uint      `json:"project_classification_id" gorm:"default:null"`
+	CompletionPercentage    *float64   `json:"completion_percentage" gorm:"type:decimal(5,2);default:null"`
 	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;null"`
 	CreatedBYID             uint       `json:"created_by_id" gorm:"not null"`

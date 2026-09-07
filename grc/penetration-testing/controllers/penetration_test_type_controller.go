@@ -122,7 +122,7 @@ func (pttc *PenetrationTestTypeController) UpdatePenetrationTestType(c *gin.Cont
 
 func (pttc *PenetrationTestTypeController) DeletePenetrationTestTypes(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -147,7 +147,7 @@ func (pttc *PenetrationTestTypeController) DeletePenetrationTestTypes(c *gin.Con
 
 func (pttc *PenetrationTestTypeController) ActivatePenetrationTestTypes(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -171,7 +171,7 @@ func (pttc *PenetrationTestTypeController) ActivatePenetrationTestTypes(c *gin.C
 
 func (pttc *PenetrationTestTypeController) DeactivatePenetrationTestTypes(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {

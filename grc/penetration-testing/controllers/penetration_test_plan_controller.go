@@ -122,7 +122,7 @@ func (ptpc *PenetrationTestPlanController) UpdatePenetrationTestPlan(c *gin.Cont
 
 func (ptpc *PenetrationTestPlanController) DeletePenetrationTestPlans(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -147,7 +147,7 @@ func (ptpc *PenetrationTestPlanController) DeletePenetrationTestPlans(c *gin.Con
 
 func (ptpc *PenetrationTestPlanController) ActivatePenetrationTestPlans(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -171,7 +171,7 @@ func (ptpc *PenetrationTestPlanController) ActivatePenetrationTestPlans(c *gin.C
 
 func (ptpc *PenetrationTestPlanController) DeactivatePenetrationTestPlans(c *gin.Context) {
 	var req struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -29,13 +29,30 @@ func (ptc *PenetrationTestController) GetAllPenetrationTests(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	allowedParams := []string{
+		"penetration_test_type_ids",
+		"penetration_test_plan_ids",
+		"penetration_test_classification_ids",
+		"penetration_test_executor_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	validSortFields := map[string]string{
-		"reference_number":        "reference_number",
-		"system_application_name": "system_application_name",
-		"year":                    "year",
-		"period":                  "period",
-		"created_at":              "created_at",
+		"reference_number":        "penetration_tests.reference_number",
+		"system_application_name": "penetration_tests.system_application_name",
+		"year":                    "penetration_tests.year",
+		"period":                  "penetration_tests.period",
+		"created_at":              "penetration_tests.created_at",
+		"test_type_en":            "penetration_test_types.title_en",
+		"test_type_ar":            "penetration_test_types.title_ar",
+		"classification_en":       "penetration_test_classifications.title_en",
+		"classification_ar":       "penetration_test_classifications.title_ar",
+		"test_plan_en":            "penetration_test_plans.title_en",
+		"test_plan_ar":            "penetration_test_plans.title_ar",
+		"executor_en":             "penetration_test_executors.title_en",
+		"executor_ar":             "penetration_test_executors.title_ar",
 	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -64,12 +81,14 @@ func (ptc *PenetrationTestController) GetAllPenetrationTests(c *gin.Context) {
 	}
 
 	queryParams := penetrationTestDTOs.PenetrationTestListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Status:   status,
-		Page:     page,
-		PageSize: pageSize,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 	penetrationTests, err := ptc.service.GetAll(&queryParams)
 	if err != nil {
@@ -100,6 +119,28 @@ func (ptc *PenetrationTestController) GetPenetrationTestDetails(c *gin.Context) 
 	}
 
 	c.JSON(http.StatusOK, penetrationTest)
+}
+
+func (ptc *PenetrationTestController) GetPenetrationTestSeverityBreakdown(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	breakdown, err := ptc.service.GetSeverityBreakdown(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(ptc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, breakdown)
 }
 
 func (ptc *PenetrationTestController) CreatePenetrationTest(c *gin.Context) {
@@ -173,7 +214,7 @@ func (ptc *PenetrationTestController) UpdatePenetrationTest(c *gin.Context) {
 
 func (ptc *PenetrationTestController) DeletePenetrationTests(c *gin.Context) {
 	var request struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {

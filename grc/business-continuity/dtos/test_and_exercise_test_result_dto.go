@@ -37,16 +37,17 @@ type TestAndExerciseProcessesFormDTO struct {
 }
 
 type TestAndExerciseTestResultDetailDTO struct {
-	ID                        uint                                    `json:"id"`
-	TestAndExercise           TestAndExerciseDetailDTO                `json:"test_and_exercise"`
-	TestObservations          *string                                 `json:"test_observations"`
-	Recommendations           *string                                 `json:"recommendations"`
-	Findings                  *string                                 `json:"findings"`
-	Documents                 []*TestAndExerciseTestResultDocumentDTO `json:"documents" gorm:"-"`
-	TestResultSystemRegisters []*TestResultSystemRegisterDetailDTO    `json:"test_result_system_registers"`
-	CreatedAt                 time.Time                               `json:"created_at"`
-	UpdatedAt                 *time.Time                              `json:"updated_at"`
-	CreatedByUser             organizationDTOs.UserMinimalDTO         `json:"created_by_user"`
+	ID                        uint                                     `json:"id"`
+	TestAndExercise           TestAndExerciseDetailDTO                 `json:"test_and_exercise"`
+	TestObservations          *string                                  `json:"test_observations"`
+	Recommendations           *string                                  `json:"recommendations"`
+	Findings                  *string                                  `json:"findings"`
+	Documents                 []*TestAndExerciseTestResultDocumentDTO  `json:"documents" gorm:"-"`
+	TestResultSystemRegisters []*TestResultSystemRegisterDetailDTO     `json:"test_result_system_registers"`
+	PerformanceMeasures       []*TestResultPerformanceMeasureDetailDTO `json:"performance_measures"`
+	CreatedAt                 time.Time                                `json:"created_at"`
+	UpdatedAt                 *time.Time                               `json:"updated_at"`
+	CreatedByUser             organizationDTOs.UserMinimalDTO          `json:"created_by_user"`
 }
 
 type TestResultSystemRegisterDetailDTO struct {
@@ -117,4 +118,24 @@ type SystemDTO struct {
 	ID      uint   `json:"id"`
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
+}
+
+type TestResultPerformanceMeasureFormDTO struct {
+	Criterion      *string `json:"criterion"`
+	Target         *string `json:"target"`
+	AchievedResult *string `json:"achieved_result"`
+	Remarks        *string `json:"remarks"`
+}
+
+type TestResultPerformanceMeasureBulkCreateDTO struct {
+	PerformanceMeasures []*TestResultPerformanceMeasureFormDTO `json:"performance_measures" binding:"required,dive"`
+}
+
+type TestResultPerformanceMeasureDetailDTO struct {
+	ID             uint    `json:"id"`
+	TestResultID   uint    `json:"test_result_id"`
+	Criterion      *string `json:"criterion"`
+	Target         *string `json:"target"`
+	AchievedResult *string `json:"achieved_result"`
+	Remarks        *string `json:"remarks"`
 }

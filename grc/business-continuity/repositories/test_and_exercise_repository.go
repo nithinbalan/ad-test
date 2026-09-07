@@ -17,6 +17,7 @@ type TestAndExerciseRepositoryInterface interface {
 	GetAll(params *businessContinuityDTOs.TestAndExerciseListQueryParamsDTO) (*businessContinuityDTOs.TestAndExerciseListResponseDTO, error)
 	GetByID(id uint) (*models.TestAndExercise, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.TestAndExercise, error)
+	GetFullDetailsForReportByID(id uint, tx ...utility.DatabaseTransaction) (*models.TestAndExercise, error)
 	Create(TestAndExercise *models.TestAndExercise, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(TestAndExercise *models.TestAndExercise, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -261,6 +262,70 @@ func (repo *TestAndExerciseRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("TestAndExerciseCommunicationActionPlans").
 		Preload("TestAndExerciseStatus").
 		Preload("TestAndExerciseTestResult").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.SystemRegister").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.CommunicationFeedbackOption").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.RecoveryFeedbackOption").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.TestResultOption").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&TestAndExercise, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return TestAndExercise, nil
+}
+
+func (repo *TestAndExerciseRepository) GetFullDetailsForReportByID(id uint, tx ...utility.DatabaseTransaction) (*models.TestAndExercise, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var TestAndExercise *models.TestAndExercise
+
+	result := db.
+		Preload("BusinessContinuityPlan").
+		Preload("BusinessContinuityPlan.BusinessFunction").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
+		Preload("BcpTestAndExercise").
+		Preload("TestAndExerciseProcesses").
+		Preload("TestAndExerciseProcesses.Process").
+		Preload("TestAndExerciseProcesses.PlannedRtoUnit").
+		Preload("TestAndExerciseProcesses.PlannedMtpdUnit").
+		Preload("TestAndExerciseProcesses.PlannedRpoUnit").
+		Preload("TestAndExerciseProcesses.ActualRtoUnit").
+		Preload("TestAndExerciseProcesses.ActualMtpdUnit").
+		Preload("TestAndExerciseProcesses.ActualRpoUnit").
+		Preload("TestAndExerciseProcesses.Timeliness").
+		Preload("TestAndExerciseSystemRegisters").
+		Preload("TestAndExerciseSystemRegisters.SystemRegister").
+		Preload("TestAndExerciseSystemRegisters.PlannedRtoUnit").
+		Preload("TestAndExerciseSystemRegisters.PlannedMtpdUnit").
+		Preload("TestAndExerciseSystemRegisters.PlannedRpoUnit").
+		Preload("TestAndExerciseSystemRegisters.ActualRtoUnit").
+		Preload("TestAndExerciseSystemRegisters.ActualMtpdUnit").
+		Preload("TestAndExerciseSystemRegisters.ActualRpoUnit").
+		Preload("TestAndExerciseSystemRegisters.Timeliness").
+		Preload("TestAndExerciseRecoveryActionPlans").
+		Preload("TestAndExerciseRecoveryActionPlans.Process").
+		Preload("TestAndExerciseRecoveryActionPlans.SystemRegister").
+		Preload("TestAndExerciseRecoveryActionPlans.BcpPhase").
+		Preload("TestAndExerciseRecoveryActionPlans.SeverityLevel").
+		Preload("TestAndExerciseRecoveryActionPlans.ResponsibleUser").
+		Preload("TestAndExerciseRecoveryActionPlans.ResponsibleUnit").
+		Preload("TestAndExerciseRecoveryActionPlans.ActionPlanStatus").
+		Preload("TestAndExerciseCommunicationActionPlans").
+		Preload("TestAndExerciseCommunicationActionPlans.Process").
+		Preload("TestAndExerciseCommunicationActionPlans.SystemRegister").
+		Preload("TestAndExerciseCommunicationActionPlans.BcpPhase").
+		Preload("TestAndExerciseCommunicationActionPlans.ResponsibleUser").
+		Preload("TestAndExerciseCommunicationActionPlans.ResponsibleUnit").
+		Preload("TestAndExerciseStatus").
+		Preload("TestAndExerciseTestResult").
+		Preload("TestAndExerciseTestResult.PerformanceMeasures").
 		Preload("TestAndExerciseTestResult.TestResultSystemRegisters").
 		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.SystemRegister").
 		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.CommunicationFeedbackOption").

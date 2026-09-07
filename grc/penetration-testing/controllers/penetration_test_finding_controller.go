@@ -28,13 +28,26 @@ func (ptfc *PenetrationTestFindingController) GetAllPenetrationTestFindings(c *g
 	sort := c.DefaultQuery("sort_order", "desc")
 	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	allowedParams := []string{
+		"action_plan_status_ids",
+		"severity_level_ids",
+		"owner_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	validSortFields := map[string]string{
-		"reference_number":        "reference_number",
-		"title":                   "title",
-		"severity_level_id":       "severity_level_id",
-		"target_remediation_date": "target_remediation_date",
-		"created_at":              "created_at",
+		"reference_number":        "penetration_test_findings.reference_number",
+		"title":                   "penetration_test_findings.title",
+		"severity":                "severity_levels.weight",
+		"status_en":               "action_plan_statuses.title_en",
+		"status_ar":               "action_plan_statuses.title_ar",
+		"percentage":              "penetration_test_findings.percentage",
+		"target_remediation_date": "penetration_test_findings.target_remediation_date",
+		"created_at":              "penetration_test_findings.created_at",
 	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -78,6 +91,10 @@ func (ptfc *PenetrationTestFindingController) GetAllPenetrationTestFindings(c *g
 		Page:              page,
 		PageSize:          pageSize,
 		PenetrationTestID: uint(penetrationTestID),
+		Filters:           filters,
+		QuickFilter:       quickFilter,
+		DateFrom:          dateFrom,
+		DateTo:            dateTo,
 	}
 	findings, err := ptfc.service.GetAll(&queryParams)
 	if err != nil {
@@ -181,7 +198,7 @@ func (ptfc *PenetrationTestFindingController) UpdatePenetrationTestFinding(c *gi
 
 func (ptfc *PenetrationTestFindingController) DeletePenetrationTestFindings(c *gin.Context) {
 	var request struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required,min=1"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {

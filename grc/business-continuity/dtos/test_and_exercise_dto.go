@@ -16,6 +16,9 @@ type TestAndExerciseListDTO struct {
 	BusinessFunctionID              uint    `json:"business_function_id"`
 	BusinessFunctionTitle           string  `json:"business_function_title"`
 	BcpTestAndExerciseTitle         string  `json:"bcp_test_and_exercise_title"`
+	Objective                       *string `json:"objective"`
+	Scenario                        *string `json:"scenario"`
+	SuccessCriteria                 *string `json:"success_criteria"`
 	ResponsibleUserID               *uint   `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      *string `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      *string `json:"responsible_user_first_name_ar"`
@@ -72,6 +75,9 @@ type TestAndExerciseListResponseDTO struct {
 type TestAndExerciseFormDTO struct {
 	BusinessContinuityPlanID uint    `json:"business_continuity_plan_id" binding:"required"`
 	BcpTestAndExerciseID     uint    `json:"bcp_test_and_exercise_id" binding:"required"`
+	Objective                *string `json:"objective"`
+	Scenario                 *string `json:"scenario"`
+	SuccessCriteria          *string `json:"success_criteria"`
 	ResponsibleUserID        uint    `json:"responsible_user_id" binding:"required"`
 	TestingDate              string  `json:"testing_date" binding:"required"`
 	Description              *string `json:"description"`
@@ -84,8 +90,13 @@ type TestAndExerciseDetailDTO struct {
 	BusinessContinuityPlan                  BusinessContinuityPlanDetailDTO              `json:"business_continuity_plan"`
 	ResponsibleUserID                       uint                                         `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ResponsibleUser                         *organizationDTOs.UserMinimalDTO             `json:"responsible_user"`
+	ResponsibleUnitID                       uint                                         `json:"responsible_unit_id"`
+	ResponsibleUnit                         *settingsDTOs.OrganizationUnitDTO            `json:"responsible_unit"`
 	BcpTestAndExerciseID                    uint                                         `json:"bcp_test_and_exercise_id"`
 	BcpTestAndExercise                      *BcpTestAndExerciseDetailDTO                 `json:"bcp_test_and_exercise"`
+	Objective                               *string                                      `json:"objective"`
+	Scenario                                *string                                      `json:"scenario"`
+	SuccessCriteria                         *string                                      `json:"success_criteria"`
 	TestAndExerciseProcesses                []*TestAndExerciseProcessDTO                 `json:"test_and_exercise_processes"`
 	TestAndExerciseSystemRegisters          []*TestAndExerciseSystemRegisterDTO          `json:"test_and_exercise_system_registers"`
 	TestAndExerciseRecoveryActionPlans      []*TestAndExerciseRecoveryActionPlanDTO      `json:"test_and_exercise_recovery_action_plans"`
@@ -133,6 +144,7 @@ type TestAndExerciseProcessDTO struct {
 type TestAndExerciseRecoveryActionPlanDTO struct {
 	ID                *uint                              `json:"id"`
 	TestAndExerciseID uint                               `json:"test_and_exercise_id"`
+	Title             string                             `json:"title"`
 	ProcessID         *uint                              `json:"process_id"`
 	Process           *organizationDTOs.ProcessDetailDTO `json:"process"`
 	SystemRegisterID  *uint                              `json:"system_register_id"`
@@ -144,7 +156,11 @@ type TestAndExerciseRecoveryActionPlanDTO struct {
 	ResponsibleUser   organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
 	ResponsibleUnitID uint                               `json:"responsible_unit_id"`
 	ResponsibleUnit   settingsDTOs.OrganizationUnitDTO   `json:"responsible_unit"`
+	TargetDate        *time.Time                         `json:"-"`
 	TargetDateString  *string                            `json:"target_date"`
+	Percentage        *int                               `json:"percentage"`
+	ActionPlanStatus  *masterDTOs.ActionPlanStatusDTO    `json:"action_plan_status"`
+	IsRecovery        bool                               `json:"is_recovery"`
 }
 
 type TestAndExerciseCommunicationActionPlanDTO struct {
@@ -214,4 +230,77 @@ type TestAndExerciseSystemRegisterDTO struct {
 
 type TestAndExerciseParsedDates struct {
 	TestingDate *time.Time
+}
+
+// PDF Export DTOs
+type TestAndExerciseExportPDFDTO struct {
+	Title                      string
+	ReferenceNumber            string
+	CreatedAt                  string
+	GeneratedAt                string
+	CreatedUserFirstNameEn     string
+	CreatedUserLastNameEn      string
+	UpdatedUserFirstNameEn     *string
+	UpdatedUserLastNameEn      *string
+	UpdatedAtString            *string
+	BcpTestAndExerciseTitle    string
+	Objective                  string
+	Scenario                   string
+	SuccessCriteria            string
+	TestingDate                string
+	Description                string
+	ResponsibleUserFirstNameEn string
+	ResponsibleUserLastNameEn  string
+	ResponsibleUnitTitleEn     string
+	StatusTitleEn              string
+	StatusColorCode            string
+	StatusType                 string
+	TestObservations           string
+	Recommendations            string
+	Findings                   string
+	PerformanceMeasures        []TestAndExercisePerformanceMeasureExportDTO
+	SystemRegisters            []TestAndExerciseSystemRegisterExportDTO
+	RecoveryActionPlans        []TestAndExerciseRecoveryActionPlanExportDTO
+	ActionPlans                []TestAndExerciseRecoveryActionPlanExportDTO
+	CommunicationActionPlans   []TestAndExerciseCommunicationActionPlanExportDTO
+}
+
+type TestAndExercisePerformanceMeasureExportDTO struct {
+	Criterion      string
+	Target         string
+	AchievedResult string
+	Remarks        string
+}
+
+type TestAndExerciseSystemRegisterExportDTO struct {
+	SystemTitle                      string
+	TestCompletionDate               string
+	CommunicationFeedbackOptionTitle string
+	CommunicationFeedbackOptionColor string
+	RecoveryFeedbackOptionTitle      string
+	RecoveryFeedbackOptionColor      string
+	TestResultOptionTitle            string
+	TestResultOptionColor            string
+}
+
+type TestAndExerciseRecoveryActionPlanExportDTO struct {
+	Title           string
+	BcpPhaseTitle   string
+	SystemTitle     string
+	SeverityLevel   string
+	ResponsibleUser string
+	TargetDate      string
+	Percentage      string
+	StatusTitle     string
+}
+
+type TestAndExerciseCommunicationActionPlanExportDTO struct {
+	ProcessTitle    string
+	SystemTitle     string
+	BcpPhaseTitle   string
+	ResponsibleUser string
+	ResponsibleUnit string
+	Frequency       string
+	Recipient       string
+	Channel         string
 }

@@ -9,13 +9,30 @@ import (
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes := router.Group("/")
 	penetrationTestingRoutes.Use(middlewares.AuthMiddleware(app.DB))
+	unauthenticatedRoutes := router.Group("/")
 	db := app.DB
 	m := app.PenetrationTestingModule
 	penetrationTest := m.PenetrationTestController
 	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTest.GetAllPenetrationTests)
 	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTest.GetPenetrationTestDetails)
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/severity-breakdown", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTest.GetPenetrationTestSeverityBreakdown)
 	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTest.CreatePenetrationTest)
 	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTest.UpdatePenetrationTest)
+	environmentPreparation := m.PenetrationTestEnvironmentPreparationController
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/environment-preparation", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), environmentPreparation.GetPenetrationTestEnvironmentPreparationDetails)
+	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/:id/environment-preparation", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), environmentPreparation.CreatePenetrationTestEnvironmentPreparation)
+	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id/environment-preparation", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), environmentPreparation.UpdatePenetrationTestEnvironmentPreparation)
+	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-logs/:id/environment-preparation", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), environmentPreparation.DeletePenetrationTestEnvironmentPreparations)
+	execution := m.PenetrationTestExecutionController
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/execution", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), execution.GetPenetrationTestExecutionDetails)
+	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/:id/execution", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), execution.CreatePenetrationTestExecution)
+	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id/execution", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), execution.UpdatePenetrationTestExecution)
+	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-logs/:id/execution", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), execution.DeletePenetrationTestExecutions)
+	managementSharing := m.PenetrationTestManagementSharingController
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/management-sharing", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), managementSharing.GetPenetrationTestManagementSharingDetails)
+	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/:id/management-sharing", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), managementSharing.CreatePenetrationTestManagementSharing)
+	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id/management-sharing", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), managementSharing.UpdatePenetrationTestManagementSharing)
+	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-logs/:id/management-sharing", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), managementSharing.DeletePenetrationTestManagementSharings)
 	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/delete", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTest.DeletePenetrationTests)
 	finding := m.PenetrationTestFindingController
 	penetrationTestingRoutes.GET("/penetration-test-findings", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), finding.GetAllPenetrationTestFindings)
@@ -23,6 +40,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes.POST("/penetration-test-findings", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), finding.CreatePenetrationTestFinding)
 	penetrationTestingRoutes.PUT("/penetration-test-findings/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), finding.UpdatePenetrationTestFinding)
 	penetrationTestingRoutes.POST("/penetration-test-findings/delete", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), finding.DeletePenetrationTestFindings)
+	findingStatusUpdate := m.PenetrationTestFindingStatusUpdateController
+	penetrationTestingRoutes.GET("/penetration-test-findings/:id/status-updates", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), findingStatusUpdate.GetAllPenetrationTestFindingStatusUpdates)
+	penetrationTestingRoutes.GET("/penetration-test-findings/:id/status-updates/latest", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), findingStatusUpdate.GetLatestPenetrationTestFindingStatusUpdate)
+	penetrationTestingRoutes.POST("/penetration-test-findings/:id/status-updates", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), findingStatusUpdate.CreatePenetrationTestFindingStatusUpdate)
+	penetrationTestingRoutes.PUT("/penetration-test-findings/:id/status-updates/:statusUpdateId", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), findingStatusUpdate.UpdatePenetrationTestFindingStatusUpdate)
+	unauthenticatedRoutes.GET("/penetration-test-findings/:id/status-updates/:statusUpdateId/document-preview", findingStatusUpdate.GetPenetrationTestFindingStatusUpdateDocumentPreview)
+	unauthenticatedRoutes.GET("/penetration-test-findings/:id/status-updates/:statusUpdateId/document-download", findingStatusUpdate.DownloadPenetrationTestFindingStatusUpdateDocument)
 	retest := m.PenetrationTestRetestController
 	penetrationTestingRoutes.GET("/penetration-test-retests", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), retest.GetAllPenetrationTestRetests)
 	penetrationTestingRoutes.GET("/penetration-test-retests/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), retest.GetPenetrationTestRetestDetails)

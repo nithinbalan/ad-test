@@ -330,6 +330,18 @@
   "translation": "لا يمكن تعديل {{.Field}} بعد نشره."
 },
 {
+  "id": "retest_already_completed",
+  "translation": "تم إكمال {{.Field}} بالفعل."
+},
+{
+  "id": "retest_already_active",
+  "translation": "يوجد بالفعل {{.Field}} نشط."
+},
+{
+  "id": "test_end_before_start",
+  "translation": "يجب أن يكون تاريخ انتهاء الاختبار في تاريخ بدء الاختبار أو بعده."
+},
+{
   "id": "no_published_version",
   "translation": "لا يوجد {{.Field}} منشور لقائمة التحقق لهذه المرحلة."
 }
