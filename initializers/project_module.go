@@ -34,6 +34,7 @@ type ProjectModule struct {
 	ProjectDecisionLogReviewController                   *controllers.ProjectDecisionLogReviewController
 	ProjectDecisionLogReviewCommentController            *controllers.ProjectDecisionLogReviewCommentController
 	ProjectSupportingDocumentController                  *controllers.ProjectSupportingDocumentController
+	ProjectClosureController                             *controllers.ProjectClosureController
 
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
@@ -48,6 +49,7 @@ type ProjectModule struct {
 	projectDecisionLogReviewSvc          services.ProjectDecisionLogReviewServiceInterface
 	projectDecisionLogReviewCommentSvc   services.ProjectDecisionLogReviewCommentServiceInterface
 	projectSupportingDocumentSvc         services.ProjectSupportingDocumentServiceInterface
+	projectClosureSvc                    services.ProjectClosureServiceInterface
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule, settingsModule *SettingsModule) *ProjectModule {
@@ -257,6 +259,16 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectSupportingDocumentController := controllers.NewProjectSupportingDocumentController(projectSupportingDocumentSvc, db)
 
+	projectClosureRepo := repositories.NewProjectClosureRepository(db)
+	projectClosureSvc := services.NewProjectClosureService(
+		projectClosureRepo,
+		projectSvc,
+		projectPhaseSvc,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+	)
+	projectClosureController := controllers.NewProjectClosureController(projectClosureSvc, db)
+
 	return &ProjectModule{
 		ProjectTypeController:                                projectTypeController,
 		ProjectStatusController:                              projectStatusController,
@@ -283,6 +295,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectDecisionLogReviewController:                   projectDecisionLogReviewController,
 		ProjectDecisionLogReviewCommentController:            projectDecisionLogReviewCommentController,
 		ProjectSupportingDocumentController:                  projectSupportingDocumentController,
+		ProjectClosureController:                             projectClosureController,
 
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,
@@ -297,5 +310,6 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectDecisionLogReviewSvc:          projectDecisionLogReviewSvc,
 		projectDecisionLogReviewCommentSvc:   projectDecisionLogReviewCommentSvc,
 		projectSupportingDocumentSvc:         projectSupportingDocumentSvc,
+		projectClosureSvc:                    projectClosureSvc,
 	}
 }
