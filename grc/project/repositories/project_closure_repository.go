@@ -92,7 +92,6 @@ func (pcr *ProjectClosureRepository) GetFullDetailsByID(projectID uint, id uint,
 
 	var closure models.ProjectClosure
 	result := db.
-		Preload("Project").
 		Preload("ApproverUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

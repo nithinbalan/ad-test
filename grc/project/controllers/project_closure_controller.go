@@ -239,7 +239,6 @@ func (pcc *ProjectClosureController) ApproveProjectClosure(c *gin.Context) {
 			utility.SendNotFoundErrResp(c)
 			return
 		case *utility.ForbiddenError:
-			c.JSON(http.StatusForbidden, gin.H{"error": e.Error()})
 			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		case *utility.ValidationError:
