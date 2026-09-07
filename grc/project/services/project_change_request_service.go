@@ -133,20 +133,6 @@ func (pcrs *ProjectChangeRequestService) GetFullDetailsByID(projectID uint, id u
 		detailDTO.ImpactAssessments = append(detailDTO.ImpactAssessments, iaDTO)
 	}
 
-	detailDTO.Documents = make([]*dtos.ProjectChangeRequestDocumentDTO, 0, len(changeRequest.Documents))
-	for _, doc := range changeRequest.Documents {
-		docDTO := &dtos.ProjectChangeRequestDocumentDTO{
-			ID:           doc.ID,
-			URL:          doc.URL,
-			Name:         doc.Name,
-			OriginalName: doc.OriginalName,
-			Type:         doc.Type,
-			Size:         doc.Size,
-			Token:        doc.Token,
-		}
-		detailDTO.Documents = append(detailDTO.Documents, docDTO)
-	}
-
 	detailDTO.CreatedAt = changeRequest.CreatedAt
 	detailDTO.UpdatedAt = changeRequest.UpdatedAt
 

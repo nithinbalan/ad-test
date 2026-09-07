@@ -94,10 +94,6 @@ func (psds *ProjectSupportingDocumentService) GetFullDetailsByID(projectID uint,
 	detailDTO.CreatedAt = supportingDoc.CreatedAt
 	detailDTO.UpdatedAt = supportingDoc.UpdatedAt
 
-	if detailDTO.Documents == nil {
-		detailDTO.Documents = []*dtos.ProjectSupportingDocumentDocumentDTO{}
-	}
-
 	return &detailDTO, nil
 }
 

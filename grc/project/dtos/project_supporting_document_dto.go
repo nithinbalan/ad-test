@@ -48,12 +48,12 @@ type ProjectSupportingDocumentDetailDTO struct {
 
 type ProjectSupportingDocumentDocumentDTO struct {
 	ID           uint    `json:"id"`
+	URL          string  `json:"url"`
 	Name         string  `json:"name"`
 	OriginalName *string `json:"original_name"`
 	Size         int     `json:"size"`
-	Type         string  `json:"type"`
-	URL          string  `json:"url"`
 	Token        string  `json:"token"`
+	Type         string  `json:"type"`
 }
 
 type ProjectSupportingDocumentFormDTO struct {
