@@ -36,8 +36,8 @@ type ProjectDecisionLogReviewCommentListDTO struct {
 	CreatedUserProfileImagePath *string                                       `json:"created_user_profile_image_path"`
 	CreatedAt                   time.Time                                     `json:"created_at"`
 	ParentCommentID             *uint                                         `json:"parent_comment_id"`
-	Documents                   []*ProjectDecisionLogReviewCommentDocumentDTO `json:"documents"`
-	Children                    []*ProjectDecisionLogReviewCommentListDTO     `json:"children"`
+	Documents                   []*ProjectDecisionLogReviewCommentDocumentDTO `json:"documents" gorm:"-"`
+	Children                    []*ProjectDecisionLogReviewCommentListDTO     `json:"children" gorm:"-"`
 }
 
 type ProjectDecisionLogReviewCommentListResponseDTO struct {

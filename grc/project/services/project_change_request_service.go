@@ -101,26 +101,50 @@ func (pcrs *ProjectChangeRequestService) GetFullDetailsByID(projectID uint, id u
 		detailDTO.RequestedOnString = &str
 	}
 
-	for i, ia := range changeRequest.ImpactAssessments {
-		if i < len(detailDTO.ImpactAssessments) {
-			if ia.CurrentDate != nil {
-				cdStr := ia.CurrentDate.Format("2006-01-02")
-				detailDTO.ImpactAssessments[i].CurrentDateString = &cdStr
-			}
-			if ia.RevisedDate != nil {
-				rdStr := ia.RevisedDate.Format("2006-01-02")
-				detailDTO.ImpactAssessments[i].RevisedDateString = &rdStr
-			}
-			if ia.ProjectImpactAssessmentType != nil {
-				detailDTO.ImpactAssessments[i].ProjectImpactAssessmentType = &dtos.ProjectImpactAssessmentTypeDTO{
-					ID:      ia.ProjectImpactAssessmentType.ID,
-					TitleEn: ia.ProjectImpactAssessmentType.TitleEn,
-					TitleAr: ia.ProjectImpactAssessmentType.TitleAr,
-					Type:    ia.ProjectImpactAssessmentType.Type,
-					Status:  ia.ProjectImpactAssessmentType.Status,
-				}
+	detailDTO.ImpactAssessments = make([]*dtos.ProjectImpactAssessmentDTO, 0, len(changeRequest.ImpactAssessments))
+	for _, ia := range changeRequest.ImpactAssessments {
+		iaDTO := &dtos.ProjectImpactAssessmentDTO{
+			ID:                            ia.ID,
+			ProjectChangeRequestID:        ia.ProjectChangeRequestID,
+			ProjectImpactAssessmentTypeID: ia.ProjectImpactAssessmentTypeID,
+			CurrentBudget:                 ia.CurrentBudget,
+			RevisedBudget:                 ia.RevisedBudget,
+			CurrentResourceCount:          ia.CurrentResourceCount,
+			RevisedResourceCount:          ia.RevisedResourceCount,
+			TechnicalComplexity:           ia.TechnicalComplexity,
+		}
+		if ia.CurrentDate != nil {
+			cdStr := ia.CurrentDate.Format("2006-01-02")
+			iaDTO.CurrentDateString = &cdStr
+		}
+		if ia.RevisedDate != nil {
+			rdStr := ia.RevisedDate.Format("2006-01-02")
+			iaDTO.RevisedDateString = &rdStr
+		}
+		if ia.ProjectImpactAssessmentType != nil {
+			iaDTO.ProjectImpactAssessmentType = &dtos.ProjectImpactAssessmentTypeDTO{
+				ID:      ia.ProjectImpactAssessmentType.ID,
+				TitleEn: ia.ProjectImpactAssessmentType.TitleEn,
+				TitleAr: ia.ProjectImpactAssessmentType.TitleAr,
+				Type:    ia.ProjectImpactAssessmentType.Type,
+				Status:  ia.ProjectImpactAssessmentType.Status,
 			}
 		}
+		detailDTO.ImpactAssessments = append(detailDTO.ImpactAssessments, iaDTO)
+	}
+
+	detailDTO.Documents = make([]*dtos.ProjectChangeRequestDocumentDTO, 0, len(changeRequest.Documents))
+	for _, doc := range changeRequest.Documents {
+		docDTO := &dtos.ProjectChangeRequestDocumentDTO{
+			ID:           doc.ID,
+			URL:          doc.URL,
+			Name:         doc.Name,
+			OriginalName: doc.OriginalName,
+			Type:         doc.Type,
+			Size:         doc.Size,
+			Token:        doc.Token,
+		}
+		detailDTO.Documents = append(detailDTO.Documents, docDTO)
 	}
 
 	detailDTO.CreatedAt = changeRequest.CreatedAt

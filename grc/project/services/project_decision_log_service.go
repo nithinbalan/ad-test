@@ -108,8 +108,18 @@ func (pdls *ProjectDecisionLogService) GetFullDetailsByID(projectID uint, id uin
 	detailDTO.CreatedAt = decisionLog.CreatedAt
 	detailDTO.UpdatedAt = decisionLog.UpdatedAt
 
-	if detailDTO.Documents == nil {
-		detailDTO.Documents = []*dtos.ProjectDecisionLogDocumentDTO{}
+	detailDTO.Documents = make([]*dtos.ProjectDecisionLogDocumentDTO, 0, len(decisionLog.Documents))
+	for _, doc := range decisionLog.Documents {
+		docDTO := &dtos.ProjectDecisionLogDocumentDTO{
+			ID:           doc.ID,
+			URL:          doc.URL,
+			Name:         doc.Name,
+			OriginalName: doc.OriginalName,
+			Type:         doc.Type,
+			Size:         doc.Size,
+			Token:        doc.Token,
+		}
+		detailDTO.Documents = append(detailDTO.Documents, docDTO)
 	}
 
 	return &detailDTO, nil
