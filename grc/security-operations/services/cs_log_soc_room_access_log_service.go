@@ -209,15 +209,7 @@ func (csrals *CSLogSocRoomAccessLogService) Create(currentUserID uint, form *soc
 			utility.LogError("Failed to log activity", fields)
 		}
 
-		officer := existingEntry.AuthorizingOfficer
-		if officer.ID == 0 || officer.Email == "" {
-			utility.LogInfo("Skipping soc room access log notification: authorizing officer missing or has no email", map[string]interface{}{
-				"soc_room_access_log_id": id,
-			})
-			return
-		}
-
-		officerID := uint(officer.ID)
+		officerID := form.AuthorizingOfficerID
 		entity := "soc-room-access-log"
 		action := "created"
 		urlParam := fmt.Sprintf(`{"soc_room_access_log_id":%d}`, id)
@@ -238,10 +230,18 @@ func (csrals *CSLogSocRoomAccessLogService) Create(currentUserID uint, form *soc
 			CreatedByID:          &currentUserID,
 		}
 
+		officer, notifyErr := csrals.userSvc.GetByID(officerID)
+		if notifyErr != nil {
+			utility.LogError("Failed to fetch authorizing officer", map[string]interface{}{
+				"error": notifyErr.Error(),
+			})
+			return
+		}
+
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
-			"FirstNameEn":     officer.FirstNameEN,
-			"LastNameEn":      officer.LastNameEN,
+			"FirstNameEn":     officer.FirstNameEn,
+			"LastNameEn":      officer.LastNameEn,
 			"ReferenceNumber": existingEntry.ReferenceNumber,
 			"VisitorFullName": existingEntry.VisitorFullName,
 			"EntryTime":       existingEntry.EntryTime.Format("2006-01-02 15:04"),
@@ -483,6 +483,117 @@ func (csrals *CSLogSocRoomAccessLogService) Update(id uint, currentUserID uint, 
 
 				utility.LogError("Failed to log activity", fields)
 			}
+		}
+
+		oldOfficerID := uint(oldEntry.AuthorizingOfficer.ID)
+		newOfficerID := form.AuthorizingOfficerID
+
+		if oldOfficerID == newOfficerID {
+			return
+		}
+
+		entity := "soc-room-access-log"
+		urlParam := fmt.Sprintf(`{"soc_room_access_log_id":%d}`, id)
+
+		oldOfficerAction := "responsible-user-remove"
+		oldOfficerNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{oldOfficerID},
+			ModuleIdentifier:     "security_operations",
+			NotificationType:     string(commonDTOs.InformationType),
+			ReferenceNumber:      updatedEntry.ReferenceNumber,
+			HeadingEn:            "SOC Room Access Log Responsibility Removed",
+			HeadingAr:            "تمت إزالة مسؤولية سجل الدخول إلى غرفة مركز العمليات الأمنية",
+			TitleEn:              fmt.Sprintf("Your responsibility as the authorizing officer for SOC room access log '%s' has been removed", updatedEntry.ReferenceNumber),
+			TitleAr:              fmt.Sprintf("تمت إزالة مسؤوليتك كضابط تفويض لسجل الدخول إلى غرفة مركز العمليات الأمنية '%s'", updatedEntry.ReferenceNumber),
+			Entity:               &entity,
+			Action:               &oldOfficerAction,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		newOfficerAction := "responsible-user-assign"
+		newOfficerNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{newOfficerID},
+			ModuleIdentifier:     "security_operations",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      updatedEntry.ReferenceNumber,
+			HeadingEn:            "SOC Room Access Log Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية سجل الدخول إلى غرفة مركز العمليات الأمنية",
+			TitleEn:              fmt.Sprintf("You have been assigned as the authorizing officer for SOC room access log '%s'", updatedEntry.ReferenceNumber),
+			TitleAr:              fmt.Sprintf("لقد تم تعيينك كضابط تفويض لسجل الدخول إلى غرفة مركز العمليات الأمنية '%s'", updatedEntry.ReferenceNumber),
+			Entity:               &entity,
+			Action:               &newOfficerAction,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		oldOfficer, notifyErr := csrals.userSvc.GetByID(oldOfficerID)
+		if notifyErr != nil {
+			utility.LogError("Failed to fetch old authorizing officer", map[string]interface{}{
+				"error": notifyErr.Error(),
+			})
+			return
+		}
+
+		newOfficer, notifyErr := csrals.userSvc.GetByID(newOfficerID)
+		if notifyErr != nil {
+			utility.LogError("Failed to fetch new authorizing officer", map[string]interface{}{
+				"error": notifyErr.Error(),
+			})
+			return
+		}
+
+		appURL := utility.GetAppURL()
+		redirectURL := fmt.Sprintf("%s/security-operations/soc-room-access-log/%d/overview", appURL, id)
+
+		oldOfficerEmailData := map[string]interface{}{
+			"FirstNameEn":     oldOfficer.FirstNameEn,
+			"LastNameEn":      oldOfficer.LastNameEn,
+			"ReferenceNumber": updatedEntry.ReferenceNumber,
+			"VisitorFullName": updatedEntry.VisitorFullName,
+			"DepartmentEn":    updatedEntry.Department.TitleEn,
+			"PurposeOfEntry":  updatedEntry.PurposeOfEntry,
+			"RedirectURL":     redirectURL,
+		}
+
+		oldOfficerEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{oldOfficer.Email},
+			Subject:              fmt.Sprintf("SOC Room Access Log/%s: Responsibility Removed", updatedEntry.ReferenceNumber),
+			TemplateRelativePath: "security-operations/templates/email/soc_room_access_log_remove_officer_mail.html",
+			EmailData:            oldOfficerEmailData,
+		}
+
+		newOfficerEmailData := map[string]interface{}{
+			"FirstNameEn":     newOfficer.FirstNameEn,
+			"LastNameEn":      newOfficer.LastNameEn,
+			"ReferenceNumber": updatedEntry.ReferenceNumber,
+			"VisitorFullName": updatedEntry.VisitorFullName,
+			"EntryTime":       updatedEntry.EntryTime.Format("2006-01-02 15:04"),
+			"ExitTime":        updatedEntry.ExitTime.Format("2006-01-02 15:04"),
+			"DepartmentEn":    updatedEntry.Department.TitleEn,
+			"PurposeOfEntry":  updatedEntry.PurposeOfEntry,
+			"RedirectURL":     redirectURL,
+		}
+
+		newOfficerEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{newOfficer.Email},
+			Subject:              fmt.Sprintf("SOC Room Access Log/%s: Responsibility Assigned", updatedEntry.ReferenceNumber),
+			TemplateRelativePath: "security-operations/templates/email/soc_room_access_log_assign_officer_mail.html",
+			EmailData:            newOfficerEmailData,
+		}
+
+		if notifyErr := csrals.notificationSvc.SendNotification(newOfficerNotificationDTO, newOfficerEmailNotificationDTO, "soc_room_access_log"); notifyErr != nil {
+			utility.LogError("Failed to send notifications to new authorizing officer", map[string]interface{}{
+				"error": notifyErr.Error(),
+			})
+		}
+
+		if notifyErr := csrals.notificationSvc.SendNotification(oldOfficerNotificationDTO, oldOfficerEmailNotificationDTO, "soc_room_access_log"); notifyErr != nil {
+			utility.LogError("Failed to send notifications to old authorizing officer", map[string]interface{}{
+				"error": notifyErr.Error(),
+			})
 		}
 	}()
 
