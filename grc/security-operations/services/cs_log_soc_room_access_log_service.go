@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -38,6 +40,7 @@ type CSLogSocRoomAccessLogService struct {
 	organizationUnitSvc settingServices.OrganizationUnitServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewCSLogSocRoomAccessLogService(
@@ -46,6 +49,7 @@ func NewCSLogSocRoomAccessLogService(
 	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) CSLogSocRoomAccessLogServiceInterface {
 	return &CSLogSocRoomAccessLogService{
 		repo:                repo,
@@ -53,6 +57,7 @@ func NewCSLogSocRoomAccessLogService(
 		organizationUnitSvc: organizationUnitSvc,
 		userSvc:             userSvc,
 		userSettingSvc:      userSettingSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -202,6 +207,87 @@ func (csrals *CSLogSocRoomAccessLogService) Create(currentUserID uint, form *soc
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		officer := existingEntry.AuthorizingOfficer
+		if officer.ID == 0 || officer.Email == "" {
+			utility.LogInfo("Skipping soc room access log notification: authorizing officer missing or has no email", map[string]interface{}{
+				"soc_room_access_log_id": id,
+			})
+			return
+		}
+
+		officerID := uint(officer.ID)
+		entity := "soc-room-access-log"
+		action := "created"
+		urlParam := fmt.Sprintf(`{"soc_room_access_log_id":%d}`, id)
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{officerID},
+			ModuleIdentifier:     "security_operations",
+			NotificationType:     string(commonDTOs.InformationType),
+			ReferenceNumber:      existingEntry.ReferenceNumber,
+			HeadingEn:            "SOC Room Access Log Created",
+			HeadingAr:            "تم إنشاء سجل الدخول إلى غرفة مركز العمليات الأمنية",
+			TitleEn:              fmt.Sprintf("You have been assigned as the authorizing officer for SOC room access log '%s'", existingEntry.ReferenceNumber),
+			TitleAr:              fmt.Sprintf("لقد تم تعيينك كضابط تفويض لسجل الدخول إلى غرفة مركز العمليات الأمنية '%s'", existingEntry.ReferenceNumber),
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":     officer.FirstNameEN,
+			"LastNameEn":      officer.LastNameEN,
+			"ReferenceNumber": existingEntry.ReferenceNumber,
+			"VisitorFullName": existingEntry.VisitorFullName,
+			"EntryTime":       existingEntry.EntryTime.Format("2006-01-02 15:04"),
+			"ExitTime":        existingEntry.ExitTime.Format("2006-01-02 15:04"),
+			"DepartmentEn":    existingEntry.Department.TitleEn,
+			"PurposeOfEntry":  existingEntry.PurposeOfEntry,
+			"RedirectURL":     fmt.Sprintf("%s/security-operations/soc-room-access-log/%d/overview", appURL, id),
+		}
+
+		subject := fmt.Sprintf("SOC Room Access Log/%s: Created", existingEntry.ReferenceNumber)
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              []string{officer.Email},
+			Subject:              subject,
+			TemplateRelativePath: "security-operations/templates/email/soc_room_access_log_create_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = csrals.notificationSvc.LogEmail(
+			emailNotificationDTO.EmailTo[0],
+			emailNotificationDTO.Subject,
+			emailNotificationDTO.TemplateRelativePath,
+			emailNotificationDTO.EmailData,
+			"Pending",
+			"",
+			nil,
+			currentUserID,
+		)
+		if err != nil {
+			utility.LogError("Failed to log email", map[string]interface{}{"error": err.Error()})
+		}
+
+		err = csrals.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "soc_room_access_log")
+		if err != nil {
+			csrals.notificationSvc.LogEmail(
+				emailNotificationDTO.EmailTo[0],
+				emailNotificationDTO.Subject,
+				emailNotificationDTO.TemplateRelativePath,
+				emailNotificationDTO.EmailData,
+				"Failed",
+				err.Error(),
+				nil,
+				currentUserID,
+			)
+			utility.LogError("Failed to send notification", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 	}()
 
