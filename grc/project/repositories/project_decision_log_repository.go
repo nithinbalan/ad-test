@@ -158,6 +158,10 @@ func (pdlr *ProjectDecisionLogRepository) GetAll(projectID uint, params *dtos.Pr
 		`, keyword, keyword, keyword, keyword)
 	}
 
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	if err := query.Count(&totalCount).Error; err != nil {

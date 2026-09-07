@@ -118,6 +118,10 @@ func (psdr *ProjectSupportingDocumentRepository) GetAll(projectID uint, params *
 		return nil, err
 	}
 
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
+	}
+
 	orderClause := "project_supporting_documents.id DESC"
 	if params.SortBy != "" && params.Sort != "" {
 		orderClause = fmt.Sprintf("%s %s", params.SortBy, params.Sort)

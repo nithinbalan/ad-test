@@ -161,6 +161,10 @@ func (pcrr *ProjectChangeRequestRepository) GetAll(projectID uint, params *dtos.
 		`, keyword, keyword, keyword, keyword)
 	}
 
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Calculate total count for pagination
