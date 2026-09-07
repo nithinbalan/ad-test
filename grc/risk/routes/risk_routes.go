@@ -562,6 +562,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// ERM Department Evaluation - Controls
 	riskRoutes.POST("/risk-register-update-plans/:id/update-erm-evaluation-controls", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskUpdatePlanERMDeptController.UpdateERMDepartmentEvaluationControls)
 	riskRoutes.GET("/risk-register-update-plans/:id/erm-evaluations-controls", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskUpdatePlanERMDeptController.GetERMDepartmentEvaluationControls)
+	// ERM Department Evaluation - Direct Control Mapping
+	riskRoutes.POST("/risk-register-update-plans/:id/map-controls", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskUpdatePlanERMDeptController.MapControlsToUpdatePlan)
 	// ERM Department Evaluation - Operations
 	riskRoutes.POST("/risk-register-update-plans/:id/mark-erm-evaluation-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskUpdatePlanERMDeptController.MarkERMDeptEvaluationAsNotApplicable)
 	// ERM Department Evaluation - Documents
