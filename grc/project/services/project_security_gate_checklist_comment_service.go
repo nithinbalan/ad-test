@@ -189,8 +189,7 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID 
 			id,
 			comment,
 			currentUserID,
-			//@todo add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_checklist_comment_create", nil,
+			"project", "project_security_gate", "project_security_gate_checklist_comment_create", nil,
 		)
 		if activityErr != nil {
 			log.Printf("Failed to log activity: %v", activityErr)
@@ -316,8 +315,7 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Update(securityGateID 
 			comment.ID,
 			comment,
 			currentUserID,
-			//@todo add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_checklist_comment_update", nil,
+			"project", "project_security_gate", "project_security_gate_checklist_comment_update", nil,
 		)
 		if activityErr != nil {
 			log.Printf("Failed to log update activity: %v", activityErr)

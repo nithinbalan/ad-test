@@ -163,8 +163,7 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) CreateVersion(templat
 			created.ID,
 			created,
 			currentUserID,
-			//@todo: add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_checklist_template_version_create", nil,
+			"setting", "project_setting", "project_security_gate_checklist_template_version_create", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log activity: %v", err)
@@ -241,8 +240,7 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) PublishVersion(templa
 			version.ID,
 			map[string]interface{}{"status": "published"},
 			currentUserID,
-			//@todo: add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_checklist_template_version_publish", nil,
+			"setting", "project_setting", "project_security_gate_checklist_template_version_publish", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log publish activity: %v", err)
@@ -297,8 +295,7 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) CreateRequirement(tem
 			created.ID,
 			created,
 			currentUserID,
-			//@todo: add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_checklist_template_requirement_create", nil,
+			"setting", "project_setting", "project_security_gate_checklist_template_requirement_create", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log activity: %v", err)
@@ -349,8 +346,7 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) UpdateRequirement(tem
 				id,
 				changes,
 				currentUserID,
-				//@todo: add module id and sub module id once module and submodule are ready
-				"", "", "project_security_gate_checklist_template_requirement_update", nil,
+				"setting", "project_setting", "project_security_gate_checklist_template_requirement_update", nil,
 			)
 			if err != nil {
 				log.Printf("Failed to log update activity: %v", err)
@@ -388,8 +384,7 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) DeleteRequirement(tem
 				"title_ar": requirement.TitleAr,
 			},
 			currentUserID,
-			//@todo: add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_checklist_template_requirement_delete", nil,
+			"setting", "project_setting", "project_security_gate_checklist_template_requirement_delete", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log delete activity: %v", err)

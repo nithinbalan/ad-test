@@ -288,8 +288,7 @@ func (psgcs *ProjectSecurityGateChecklistService) CreateChecklistResponse(securi
 			id,
 			checklist,
 			currentUserID,
-			//@todo add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_checklist_response_create", nil,
+			"project", "project_security_gate", "project_security_gate_checklist_response_create", nil,
 		)
 		if activityErr != nil {
 			log.Printf("Failed to log activity: %v", activityErr)
@@ -436,8 +435,7 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 			checklist.ID,
 			checklist,
 			currentUserID,
-			//@todo add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_checklist_response_update", nil,
+			"project", "project_security_gate", "project_security_gate_checklist_response_update", nil,
 		)
 		if activityErr != nil {
 			log.Printf("Failed to log update activity: %v", activityErr)
@@ -516,8 +514,7 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistControls(securi
 				"control_ids":  form.ControlIDs,
 			},
 			currentUserID,
-			//@todo add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_checklist_control_map", nil,
+			"project", "project_security_gate", "project_security_gate_checklist_control_map", nil,
 		)
 		if activityErr != nil {
 			log.Printf("Failed to log activity: %v", activityErr)
