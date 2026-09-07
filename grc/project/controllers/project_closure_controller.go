@@ -38,6 +38,9 @@ func (pcc *ProjectClosureController) GetAllProjectClosures(c *gin.Context) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(pcc.db, c, e.Error())
 			return
@@ -67,6 +70,9 @@ func (pcc *ProjectClosureController) GetProjectClosureDetails(c *gin.Context) {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(pcc.db, c, e.Error())
@@ -102,6 +108,9 @@ func (pcc *ProjectClosureController) CreateProjectClosure(c *gin.Context) {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
@@ -148,6 +157,9 @@ func (pcc *ProjectClosureController) UpdateProjectClosure(c *gin.Context) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
@@ -187,6 +199,9 @@ func (pcc *ProjectClosureController) DeleteProjectClosure(c *gin.Context) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(pcc.db, c, e.Error())
 			return
@@ -225,6 +240,7 @@ func (pcc *ProjectClosureController) ApproveProjectClosure(c *gin.Context) {
 			return
 		case *utility.ForbiddenError:
 			c.JSON(http.StatusForbidden, gin.H{"error": e.Error()})
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
