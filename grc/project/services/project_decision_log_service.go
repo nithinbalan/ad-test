@@ -284,10 +284,14 @@ func (pdls *ProjectDecisionLogService) Update(projectID uint, id uint, currentUs
 				if err != nil {
 					if errors.Is(err, gorm.ErrRecordNotFound) {
 						tx.Rollback()
-						return utility.NewResourceNotFoundError(err, id)
+						return utility.NewResourceNotFoundError(err, *doc.ID)
 					}
 					tx.Rollback()
 					return err
+				}
+				if existingDocument.ProjectDecisionLogID != id {
+					tx.Rollback()
+					return utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, *doc.ID)
 				}
 				documentsToDelete = append(documentsToDelete, existingDocument)
 				docsToDelete = append(docsToDelete, &existingDocument.ID)

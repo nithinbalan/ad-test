@@ -874,6 +874,7 @@ func (pcrrs *ProjectChangeRequestReviewService) Reject(projectID uint, changeReq
 	pcr.WorkflowStatusID = &workflowStatus.ID
 	pcr.RejectedBYID = &currentUserID
 	pcr.RejectedAt = &now
+	pcr.NextReviewLevel = nil
 	pcr.UpdatedBYID = &currentUserID
 
 	if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {

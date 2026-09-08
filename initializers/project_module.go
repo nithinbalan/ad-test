@@ -306,7 +306,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectReportRepo,
 		settingsModule.ReportTemplateSettingSvc,
 	)
-	projectReportController := controllers.NewProjectReportController(projectReportSvc, db)
+	projectReportController := controllers.NewProjectReportController(projectReportSvc)
 
 	return &ProjectModule{
 		ProjectTypeController:                                projectTypeController,

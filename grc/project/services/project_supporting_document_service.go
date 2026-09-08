@@ -238,10 +238,14 @@ func (psds *ProjectSupportingDocumentService) Update(projectID uint, id uint, cu
 				if err != nil {
 					if errors.Is(err, gorm.ErrRecordNotFound) {
 						tx.Rollback()
-						return utility.NewResourceNotFoundError(err, id)
+						return utility.NewResourceNotFoundError(err, *doc.ID)
 					}
 					tx.Rollback()
 					return err
+				}
+				if existingDocument.ProjectSupportingDocumentID != id {
+					tx.Rollback()
+					return utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, *doc.ID)
 				}
 				documentsToDelete = append(documentsToDelete, existingDocument)
 				docsToDelete = append(docsToDelete, &existingDocument.ID)

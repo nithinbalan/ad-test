@@ -18,10 +18,9 @@ type ProjectReportController struct {
 	db      *gorm.DB
 }
 
-func NewProjectReportController(service services.ProjectReportServiceInterface, db *gorm.DB) *ProjectReportController {
+func NewProjectReportController(service services.ProjectReportServiceInterface) *ProjectReportController {
 	return &ProjectReportController{
 		service: service,
-		db:      db,
 	}
 }
 

@@ -320,6 +320,7 @@ func (r *ProjectReportRepository) GetAllChangeRequests(projectID uint) ([]*dtos.
 			project_change_requests.scope_impact,
 			project_change_requests.schedule_impact,
 			project_change_requests.cost_impact,
+			project_change_requests.requested_by_user_id,
 			project_change_requests.is_assigned,
 			project_change_requests.workflow_status_id,
 			workflow_statuses.title_en AS workflow_status_title_en,
@@ -327,14 +328,14 @@ func (r *ProjectReportRepository) GetAllChangeRequests(projectID uint) ([]*dtos.
 			workflow_statuses.color_code AS workflow_status_color_code,
 			workflow_statuses.type AS workflow_status_type,
 			project_change_requests.created_at,
-			users.id AS requester_user_id,
-			users.first_name_en AS requester_user_first_name_en,
-			users.first_name_ar AS requester_user_first_name_ar,
-			users.last_name_en AS requester_user_last_name_en,
-			users.last_name_ar AS requester_user_last_name_ar
+			users.id AS requested_by_user_id,
+			users.first_name_en AS requested_by_user_first_name_en,
+			users.first_name_ar AS requested_by_user_first_name_ar,
+			users.last_name_en AS requested_by_user_last_name_en,
+			users.last_name_ar AS requested_by_user_last_name_ar
 		`).
 		Joins("LEFT JOIN workflow_statuses ON workflow_statuses.id = project_change_requests.workflow_status_id").
-		Joins("LEFT JOIN users ON users.id = project_change_requests.created_by_id").
+		Joins("LEFT JOIN users ON users.id = project_change_requests.requested_by_user_id").
 		Where("project_change_requests.project_id = ?", projectID).
 		Order("project_change_requests.id ASC").
 		Scan(&changeRequests).Error
