@@ -2,10 +2,12 @@ package services
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -27,6 +29,7 @@ type ProjectChangeRequestServiceInterface interface {
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error)
 	GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error)
+	GetDocumentPath(projectID uint, changeRequestID uint, documentID uint, token string) (string, error)
 }
 
 type ProjectChangeRequestService struct {
@@ -576,4 +579,32 @@ func parseImpactAssessments(forms []dtos.ProjectImpactAssessmentFormDTO) ([]*mod
 
 func (pcrs *ProjectChangeRequestService) GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error) {
 	return pcrs.repo.GetImpactAssessments(changeRequestID, tx...)
+}
+
+func (pcrs *ProjectChangeRequestService) GetDocumentPath(projectID uint, changeRequestID uint, documentID uint, token string) (string, error) {
+	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
+		return "", err
+	}
+
+	if _, err := pcrs.repo.GetByID(projectID, changeRequestID); err != nil {
+		return "", err
+	}
+
+	document, err := pcrs.repo.GetDocumentByID(documentID)
+	if err != nil {
+		return "", err
+	}
+
+	if document.Token != token {
+		return "", &utility.ResourceNotFoundError{}
+	}
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(changeRequestID), 10), "documents")
+	fullPath := filepath.Join(baseStoragePath, storagePath, document.Name)
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", &utility.ResourceNotFoundError{}
+	}
+
+	return fullPath, nil
 }

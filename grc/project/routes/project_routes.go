@@ -80,6 +80,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/milestones/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectMilestoneController.DeleteProjectMilestones)
 
 	// Project Change Requests
+	unauthenticatedRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/documents/:documentId/download", projectChangeRequestController.DownloadDocument)
+	unauthenticatedRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/documents/:documentId/preview", projectChangeRequestController.GetDocumentPreview)
 	projectRoutes.GET("/projects/:projectId/change-requests", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetAllProjectChangeRequests)
 	projectRoutes.GET("/projects/:projectId/change-requests/summary", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetProjectChangeRequestSummary)
 	projectRoutes.GET("/projects/:projectId/change-requests/:changeRequestId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetProjectChangeRequestDetails)
