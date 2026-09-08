@@ -121,6 +121,11 @@ func (ptcs *PenetrationTestClosureService) Create(penetrationTestID uint, curren
 		return 0, err
 	}
 
+	if err := ptcs.penetrationTestSvc.UpdateStatus(penetrationTestID, "closed", tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {

@@ -23,6 +23,7 @@ type PenetrationTestServiceInterface interface {
 	GetSeverityBreakdown(id uint) (*penetrationTestDTOs.PenetrationTestSeverityBreakdownDTO, error)
 	Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestFormDTO) error
+	UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -241,6 +242,10 @@ func (ptls *PenetrationTestService) Update(id uint, currentUserID uint, form *pe
 		}()
 	}
 	return nil
+}
+
+func (ptls *PenetrationTestService) UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error {
+	return ptls.repo.UpdateStatus(id, status, tx...)
 }
 
 func (ptls *PenetrationTestService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
