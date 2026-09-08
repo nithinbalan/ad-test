@@ -28,6 +28,8 @@ type ProjectChangeRequestWorkflowServiceInterface interface {
 	CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.ProjectChangeRequestWorkflowParticipant, tx ...utility.DatabaseTransaction) (bool, error)
 	DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error
+	UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 	ValidateWorkflowBeforeCreate(tx ...utility.DatabaseTransaction) error
 	DeleteAllWorkflowsForProjectChangeRequest(projectChangeRequestID uint, tx ...utility.DatabaseTransaction) error
@@ -343,12 +345,20 @@ func (pcrws *ProjectChangeRequestWorkflowService) DeleteWorkflowReviews(reviewId
 	return pcrws.repo.DeleteWorkflowReviews(reviewIds, tx...)
 }
 
+func (pcrws *ProjectChangeRequestWorkflowService) DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error {
+	return pcrws.repo.DeleteReviewsByWorkflowID(workflowID, tx...)
+}
+
+func (pcrws *ProjectChangeRequestWorkflowService) UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error {
+	return pcrws.repo.UpdateWorkflowStatus(workflowID, statusID, tx...)
+}
+
 func (pcrws *ProjectChangeRequestWorkflowService) DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
 	return pcrws.repo.DeleteWorkflows(workflowIds, tx...)
 }
 
 func (pcrws *ProjectChangeRequestWorkflowService) DeleteAllWorkflowsForProjectChangeRequest(projectChangeRequestID uint, tx ...utility.DatabaseTransaction) error {
-	pcr, err := pcrws.repo.GetWorkflowList(projectChangeRequestID)
+	pcr, err := pcrws.repo.GetWorkflowList(projectChangeRequestID, tx...)
 	if err != nil {
 		return err
 	}

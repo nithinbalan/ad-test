@@ -481,33 +481,17 @@ func (pdlrs *ProjectDecisionLogReviewService) Revert(projectID uint, decisionLog
 		}
 	}
 
+	if err := pdlrs.workflowSvc.DeleteReviewsByWorkflowID(currentWorkflow.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if err := pdlrs.createReviewWithHistory(currentWorkflow.ID, decisionLogID, currentWorkflow.Level, revertStatus.ID, comment, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Delete any existing approval reviews on the current level that was reverted
-	var currentLevelApprovalReviewIDs []*uint
-	for _, r := range currentWorkflow.ProjectDecisionLogWorkflowReviews {
-		if r.WorkflowStatus != nil && r.WorkflowStatus.Type == "approve" {
-			currentLevelApprovalReviewIDs = append(currentLevelApprovalReviewIDs, &r.ID)
-		}
-	}
-	if len(currentLevelApprovalReviewIDs) > 0 {
-		if err := pdlrs.workflowSvc.DeleteWorkflowReviews(currentLevelApprovalReviewIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	projectDecisionLogWorkflow, err := pdlrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	projectDecisionLogWorkflow.WorkflowStatusID = revertStatus.ID
-	if err := pdlrs.workflowSvc.UpdateProjectDecisionLogWorkflow(projectDecisionLogWorkflow, tx); err != nil {
+	if err := pdlrs.workflowSvc.UpdateWorkflowStatus(currentWorkflow.ID, revertStatus.ID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -529,19 +513,12 @@ func (pdlrs *ProjectDecisionLogReviewService) Revert(projectID uint, decisionLog
 			return err
 		}
 
-		var reviewIDs []*uint
-		for _, r := range previousLevelWorkflow.ProjectDecisionLogWorkflowReviews {
-			reviewIDs = append(reviewIDs, &r.ID)
-		}
-		if len(reviewIDs) > 0 {
-			if err := pdlrs.workflowSvc.DeleteWorkflowReviews(reviewIDs, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
+		if err := pdlrs.workflowSvc.DeleteReviewsByWorkflowID(previousLevelWorkflow.ID, tx); err != nil {
+			tx.Rollback()
+			return err
 		}
 
-		previousLevelWorkflow.WorkflowStatusID = pendingStatus.ID
-		if err := pdlrs.workflowSvc.UpdateProjectDecisionLogWorkflow(previousLevelWorkflow, tx); err != nil {
+		if err := pdlrs.workflowSvc.UpdateWorkflowStatus(previousLevelWorkflow.ID, pendingStatus.ID, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
