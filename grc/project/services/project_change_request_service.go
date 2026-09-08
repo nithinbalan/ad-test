@@ -325,15 +325,12 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 	}
 
 	// Document handling
-	var existingDocsToKeep []*uint
 	var newDocsToCreate []*models.ProjectChangeRequestDocument
+	var docsToDelete []*uint
+	var documentsToDelete []*models.ProjectChangeRequestDocument
+
 	for _, doc := range form.Documents {
-		if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			continue
-		}
-		if doc.ID != nil && (doc.IsNewFile == nil || !*doc.IsNewFile) {
-			existingDocsToKeep = append(existingDocsToKeep, doc.ID)
-		} else if doc.FileName != "" {
+		if (doc.IsNewFile != nil && *doc.IsNewFile) || (doc.ID == nil && doc.FileName != "") {
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
@@ -353,23 +350,20 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 				CreatedAt:              time.Now(),
 			}
 			newDocsToCreate = append(newDocsToCreate, document)
-		}
-	}
-
-	var docsToDelete []*uint
-	var documentsToDelete []*models.ProjectChangeRequestDocument
-	for _, doc := range changeRequest.Documents {
-		keep := false
-		for _, keepID := range existingDocsToKeep {
-			if keepID != nil && *keepID == doc.ID {
-				keep = true
-				break
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := pcrs.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						tx.Rollback()
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					tx.Rollback()
+					return err
+				}
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				docsToDelete = append(docsToDelete, &existingDocument.ID)
 			}
-		}
-		if !keep {
-			docID := doc.ID
-			docsToDelete = append(docsToDelete, &docID)
-			documentsToDelete = append(documentsToDelete, doc)
 		}
 	}
 
