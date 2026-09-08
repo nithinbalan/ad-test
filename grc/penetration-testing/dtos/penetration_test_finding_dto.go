@@ -42,8 +42,6 @@ type PenetrationTestFindingListDTO struct {
 type PenetrationTestFindingFormDTO struct {
 	PenetrationTestID     uint    `json:"penetration_test_id" binding:"required"`
 	Title                 string  `json:"title" binding:"required,max=255"`
-	ActionPlanStatusID    uint    `json:"action_plan_status_id" binding:"required"`
-	Percentage            *uint   `json:"percentage,omitempty" binding:"omitempty,min=0,max=100"`
 	SeverityLevelID       uint    `json:"severity_level_id" binding:"required"`
 	Description           string  `json:"description" binding:"required"`
 	Recommendation        string  `json:"recommendation" binding:"required"`
