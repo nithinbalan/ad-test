@@ -110,7 +110,7 @@ func (ptsds *PenetrationTestSupportingDocumentService) Create(penetrationTestID 
 		PenetrationTestID: penetrationTestID,
 		TitleEn:           form.TitleEn,
 		TitleAr:           form.TitleAr,
-		CreatedByID:       &currentUserID,
+		CreatedBYID:       &currentUserID,
 		CreatedAt:         time.Now(),
 	}
 
@@ -199,7 +199,7 @@ func (ptsds *PenetrationTestSupportingDocumentService) Update(penetrationTestID 
 
 	supportingDoc.TitleEn = form.TitleEn
 	supportingDoc.TitleAr = form.TitleAr
-	supportingDoc.UpdatedByID = &currentUserID
+	supportingDoc.UpdatedBYID = &currentUserID
 	updatedAt := time.Now()
 	supportingDoc.UpdatedAt = &updatedAt
 

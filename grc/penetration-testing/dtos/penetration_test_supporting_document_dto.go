@@ -9,18 +9,18 @@ import (
 type PenetrationTestSupportingDocumentListDTO struct {
 	ID                          uint                                            `json:"id"`
 	PenetrationTestID           uint                                            `json:"penetration_test_id"`
-	TitleEn                     *string                                         `json:"title_en"`
-	TitleAr                     *string                                         `json:"title_ar"`
+	TitleEn                     string                                          `json:"title_en"`
+	TitleAr                     string                                          `json:"title_ar"`
 	Documents                   []*PenetrationTestSupportingDocumentDocumentDTO `json:"documents" gorm:"-"`
-	CreatedUserID               *uint                                           `json:"created_user_id"`
-	CreatedUserFirstNameEn      *string                                         `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr      *string                                         `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn       *string                                         `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr       *string                                         `json:"created_user_last_name_ar"`
-	CreatedUserInitial          *string                                         `json:"created_user_initial"`
-	CreatedUserColor            *string                                         `json:"created_user_color"`
-	CreatedUserEmail            *string                                         `json:"created_user_email"`
-	CreatedUserProfileImagePath *string                                         `json:"created_user_profile_image_path"`
+	CreatedUserID               uint                                            `json:"created_user_id"`
+	CreatedUserFirstNameEn      string                                          `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string                                          `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string                                          `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string                                          `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string                                          `json:"created_user_initial"`
+	CreatedUserColor            string                                          `json:"created_user_color"`
+	CreatedUserEmail            string                                          `json:"created_user_email"`
+	CreatedUserProfileImagePath string                                          `json:"created_user_profile_image_path"`
 	UpdatedUserID               *uint                                           `json:"updated_user_id"`
 	UpdatedUserFirstNameEn      *string                                         `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr      *string                                         `json:"updated_user_first_name_ar"`
@@ -37,9 +37,9 @@ type PenetrationTestSupportingDocumentListDTO struct {
 type PenetrationTestSupportingDocumentDetailDTO struct {
 	ID                uint                                            `json:"id"`
 	PenetrationTestID uint                                            `json:"penetration_test_id"`
-	TitleEn           *string                                         `json:"title_en"`
-	TitleAr           *string                                         `json:"title_ar"`
-	CreatedByUser     *organizationDTOs.UserMinimalDTO                `json:"created_by_user"`
+	TitleEn           string                                          `json:"title_en"`
+	TitleAr           string                                          `json:"title_ar"`
+	CreatedByUser     organizationDTOs.UserMinimalDTO                 `json:"created_by_user"`
 	UpdatedByUser     *organizationDTOs.UserMinimalDTO                `json:"updated_by_user"`
 	CreatedAt         time.Time                                       `json:"created_at"`
 	UpdatedAt         *time.Time                                      `json:"updated_at"`
@@ -57,8 +57,8 @@ type PenetrationTestSupportingDocumentDocumentDTO struct {
 }
 
 type PenetrationTestSupportingDocumentFormDTO struct {
-	TitleEn   *string                       `json:"title_en"`
-	TitleAr   *string                       `json:"title_ar"`
+	TitleEn   string                        `json:"title_en" binding:"required,max=255"`
+	TitleAr   string                        `json:"title_ar" binding:"required,max=255"`
 	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 

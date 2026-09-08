@@ -78,7 +78,7 @@ func (ptsdr *PenetrationTestSupportingDocumentRepository) GetAll(penetrationTest
 	if params.Keyword != "" {
 		keywordPattern := "%" + params.Keyword + "%"
 		query = query.Where(
-			"penetration_test_supporting_documents.title_en LIKE ? OR penetration_test_supporting_documents.title_ar LIKE ?",
+			"(penetration_test_supporting_documents.title_en LIKE ? OR penetration_test_supporting_documents.title_ar LIKE ?)",
 			keywordPattern, keywordPattern,
 		)
 	}
