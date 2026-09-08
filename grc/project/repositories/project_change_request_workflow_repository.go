@@ -16,6 +16,7 @@ type ProjectChangeRequestWorkflowRepositoryInterface interface {
 	UpdateWorkflowParticipant(participant *models.ProjectChangeRequestWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error
 	UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -131,6 +132,14 @@ func (pcrwr *ProjectChangeRequestWorkflowRepository) DeleteWorkflowReviews(revie
 		db = tx[0].DB()
 	}
 	return db.Where("id IN ?", reviewIds).Delete(&models.ProjectChangeRequestWorkflowReview{}).Error
+}
+
+func (pcrwr *ProjectChangeRequestWorkflowRepository) DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := pcrwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("project_change_request_workflow_id IN (?)", workflowIds).Delete(&models.ProjectChangeRequestWorkflowHistory{}).Error
 }
 
 func (pcrwr *ProjectChangeRequestWorkflowRepository) DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error {

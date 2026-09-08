@@ -88,70 +88,105 @@ func (pcrrs *ProjectChangeRequestReviewService) createReviewWithHistory(
 	return pcrrs.repo.CreateHistory(history, tx)
 }
 
-func (pcrrs *ProjectChangeRequestReviewService) Submit(projectID uint, changeRequestID uint, currentUserID uint) error {
+func (pcrrs *ProjectChangeRequestReviewService) Submit(projectID uint, changeRequestID uint, currentUserID uint) (err error) {
+	tx := pcrrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
+	if err := pcrrs.workflowSvc.ValidateWorkflowBeforeCreate(tx); err != nil {
+		return err
+	}
+
 	pcr, err := pcrrs.projectCRSvc.GetByID(projectID, changeRequestID)
 	if err != nil {
 		return err
 	}
 
-	if pcr.WorkflowStatusID != nil {
-		workflowStatus, err := pcrrs.workflowStatusSvc.GetByID(*pcr.WorkflowStatusID)
-		if err == nil && workflowStatus.Type != "revert" {
-			return utility.NewForbiddenError("project change request has already been submitted")
-		}
-	}
-
-	if err := pcrrs.workflowSvc.ValidateWorkflowBeforeCreate(); err != nil {
-		return err
-	}
-
-	tx := pcrrs.repo.BeginTransaction()
-	currentDate := time.Now()
-	level := 1
-
-	workflowStatus, err := pcrrs.workflowStatusSvc.GetByType("submit")
+	approvedStatus, err := pcrrs.workflowStatusSvc.GetByType("approve")
 	if err != nil {
-		tx.Rollback()
 		return err
+	}
+
+	rejectedStatus, err := pcrrs.workflowStatusSvc.GetByType("reject")
+	if err != nil {
+		return err
+	}
+
+	if pcr.NextReviewLevel != nil {
+		return utility.NewValidationError(
+			fmt.Errorf("workflow has already submitted"),
+			"workflow_already_submitted",
+			"project change request",
+		)
+	}
+
+	if pcr.WorkflowStatusID != nil && (*pcr.WorkflowStatusID == approvedStatus.ID || *pcr.WorkflowStatusID == rejectedStatus.ID) {
+		return utility.NewValidationError(
+			fmt.Errorf("workflow has already completed"),
+			"workflow_already_completed",
+			"project change request",
+		)
 	}
 
 	if err := pcrrs.workflowSvc.DeleteAllWorkflowsForProjectChangeRequest(changeRequestID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	if err := pcrrs.workflowSvc.CreateProjectChangeRequestWorkflow(changeRequestID, currentUserID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
+	workflowStatus, err := pcrrs.workflowStatusSvc.GetByType("submit")
+	if err != nil {
+		return err
+	}
+
+	currentDate := time.Now()
+	level := 1
 	pcr.WorkflowStatusID = &workflowStatus.ID
 	pcr.SubmittedBYID = &currentUserID
 	pcr.SubmittedAt = &currentDate
 	pcr.NextReviewLevel = &level
+	pcr.ApprovedBYID = nil
+	pcr.ApprovedAt = nil
+	pcr.RejectedBYID = nil
+	pcr.RejectedAt = nil
 	pcr.UpdatedBYID = &currentUserID
 
 	if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	workflowLevel, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, level, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	if err := pcrrs.createReviewWithHistory(workflowLevel.ID, changeRequestID, level, workflowStatus.ID, nil, currentUserID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	go func() {
+	notify = func() {
 		_ = pcrrs.logService.LogActivity(
 			models.CreateAction,
 			models.ProjectChangeRequest{}.TableName(),
@@ -160,82 +195,121 @@ func (pcrrs *ProjectChangeRequestReviewService) Submit(projectID uint, changeReq
 			currentUserID,
 			"project", "project_register", "", nil,
 		)
-	}()
 
-	pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
-	if err == nil {
-		pcrrs.notifyNextLevelUsers(projectID, changeRequestID, workflowLevel, pcrDetail, currentUserID)
+		pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
+		if err == nil {
+			pcrrs.notifyNextLevelUsers(projectID, changeRequestID, workflowLevel, pcrDetail, currentUserID)
+		}
 	}
 
-	return nil
+	return err
 }
 
-func (pcrrs *ProjectChangeRequestReviewService) Resubmit(projectID uint, changeRequestID uint, currentUserID uint) error {
+func (pcrrs *ProjectChangeRequestReviewService) Resubmit(projectID uint, changeRequestID uint, currentUserID uint) (err error) {
+	tx := pcrrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
+	if err := pcrrs.workflowSvc.ValidateWorkflowBeforeCreate(tx); err != nil {
+		return err
+	}
+
 	pcr, err := pcrrs.projectCRSvc.GetByID(projectID, changeRequestID)
 	if err != nil {
 		return err
 	}
 
-	if pcr.WorkflowStatusID == nil {
-		return utility.NewForbiddenError("project change request must be reverted before resubmitting")
-	}
-
-	workflowStatus, err := pcrrs.workflowStatusSvc.GetByID(*pcr.WorkflowStatusID)
-	if err != nil || workflowStatus.Type != "revert" {
-		return utility.NewForbiddenError("project change request is not in reverted state")
-	}
-
-	if err := pcrrs.workflowSvc.ValidateWorkflowBeforeCreate(); err != nil {
-		return err
-	}
-
-	tx := pcrrs.repo.BeginTransaction()
-	currentDate := time.Now()
-	level := 1
-
-	submitStatus, err := pcrrs.workflowStatusSvc.GetByType("submit")
+	rejectedStatus, err := pcrrs.workflowStatusSvc.GetByType("reject")
 	if err != nil {
-		tx.Rollback()
 		return err
+	}
+
+	revertedStatus, err := pcrrs.workflowStatusSvc.GetByType("revert")
+	if err != nil {
+		return err
+	}
+
+	if pcr.WorkflowStatusID == nil || (*pcr.WorkflowStatusID != rejectedStatus.ID && *pcr.WorkflowStatusID != revertedStatus.ID) {
+		return utility.NewValidationError(
+			fmt.Errorf("project change request has not been rejected or reverted"),
+			"workflow_not_rejected",
+			"project change request",
+		)
 	}
 
 	if err := pcrrs.workflowSvc.DeleteAllWorkflowsForProjectChangeRequest(changeRequestID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	if err := pcrrs.workflowSvc.CreateProjectChangeRequestWorkflow(changeRequestID, currentUserID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
+	submitStatus, err := pcrrs.workflowStatusSvc.GetByType("submit")
+	if err != nil {
+		return err
+	}
+
+	level := 1
+	now := time.Now()
+
 	pcr.WorkflowStatusID = &submitStatus.ID
 	pcr.SubmittedBYID = &currentUserID
-	pcr.SubmittedAt = &currentDate
+	pcr.SubmittedAt = &now
 	pcr.NextReviewLevel = &level
+	pcr.ApprovedBYID = nil
+	pcr.ApprovedAt = nil
+	pcr.RejectedBYID = nil
+	pcr.RejectedAt = nil
 	pcr.UpdatedBYID = &currentUserID
 
 	if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	workflowLevel, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, level, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	if err := pcrrs.createReviewWithHistory(workflowLevel.ID, changeRequestID, level, submitStatus.ID, nil, currentUserID, tx); err != nil {
-		tx.Rollback()
+	workflowStatus, err := pcrrs.workflowStatusSvc.GetByType("resubmit")
+	if err != nil {
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := pcrrs.createReviewWithHistory(
+		workflowLevel.ID,
+		changeRequestID,
+		level,
+		workflowStatus.ID,
+		nil,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
-	go func() {
+	notify = func() {
 		_ = pcrrs.logService.LogActivity(
 			models.UpdateAction,
 			models.ProjectChangeRequest{}.TableName(),
@@ -244,37 +318,72 @@ func (pcrrs *ProjectChangeRequestReviewService) Resubmit(projectID uint, changeR
 			currentUserID,
 			"project", "project_register", "", nil,
 		)
-	}()
 
-	pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
-	if err == nil {
-		pcrrs.sendResubmitNotification(projectID, changeRequestID, workflowLevel, pcrDetail, currentUserID)
+		pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
+		if err == nil {
+			pcrrs.sendResubmitNotification(projectID, changeRequestID, workflowLevel, pcrDetail, currentUserID)
+		}
 	}
 
-	return nil
+	return err
 }
 
-func (pcrrs *ProjectChangeRequestReviewService) Approve(projectID uint, changeRequestID uint, currentUserID uint, form *projectDTOs.ProjectChangeRequestReviewFormDTO) error {
+func (pcrrs *ProjectChangeRequestReviewService) Approve(projectID uint, changeRequestID uint, currentUserID uint, form *projectDTOs.ProjectChangeRequestReviewFormDTO) (err error) {
+	tx := pcrrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
 	pcr, err := pcrrs.projectCRSvc.GetByID(projectID, changeRequestID)
 	if err != nil {
 		return err
 	}
 
-	if pcr.NextReviewLevel == nil {
-		return utility.NewForbiddenError("no pending review level found")
+	rejectedStatus, err := pcrrs.workflowStatusSvc.GetByType("reject")
+	if err != nil {
+		return err
 	}
 
-	tx := pcrrs.repo.BeginTransaction()
-	currentApprovalLevel := pcr.NextReviewLevel
-	currentWorkflow, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, *currentApprovalLevel, tx)
+	if pcr.NextReviewLevel == nil || (pcr.WorkflowStatusID != nil && *pcr.WorkflowStatusID == rejectedStatus.ID) {
+		return utility.NewValidationError(
+			fmt.Errorf("workflow not active"),
+			"workflow_not_active",
+			"project change request",
+		)
+	}
+
+	currentApprovalLevel := *pcr.NextReviewLevel
+	currentWorkflow, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, currentApprovalLevel, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	workflowStatus, err := pcrrs.workflowStatusSvc.GetByType("approve")
 	if err != nil {
-		tx.Rollback()
+		return err
+	}
+
+	pendingStatus, err := pcrrs.workflowStatusSvc.GetByType("pending")
+	if err != nil {
 		return err
 	}
 
@@ -283,195 +392,282 @@ func (pcrrs *ProjectChangeRequestReviewService) Approve(projectID uint, changeRe
 		comment = form.Comment
 	}
 
-	var nextWorkflowLevel *models.ProjectChangeRequestWorkflow
-
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual", "custom-roles", "hod":
+	case "individual", "hod":
 		if len(currentWorkflow.ProjectChangeRequestWorkflowParticipants) == 0 ||
 			currentUserID != currentWorkflow.ProjectChangeRequestWorkflowParticipants[0].UserID {
-			tx.Rollback()
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
 		if err := pcrrs.createReviewWithHistory(currentWorkflow.ID, changeRequestID, currentWorkflow.Level, workflowStatus.ID, comment, currentUserID, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		projectChangeRequestWorkflow, err := pcrrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		projectChangeRequestWorkflow.WorkflowStatusID = workflowStatus.ID
 		if err := pcrrs.workflowSvc.UpdateProjectChangeRequestWorkflow(projectChangeRequestWorkflow, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		nextWorkflowLevel, err = pcrrs.workflowSvc.GetNextLevel(changeRequestID, *currentApprovalLevel, tx)
+		nextWorkflowLevel, err := pcrrs.workflowSvc.GetNextLevel(changeRequestID, currentApprovalLevel, tx)
 		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		existingPCR, err := pcrrs.projectCRSvc.GetByID(projectID, changeRequestID)
-		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if nextWorkflowLevel == nil {
 			approvedAt := time.Now()
-			existingPCR.WorkflowStatusID = &workflowStatus.ID
-			existingPCR.ApprovedBYID = &currentUserID
-			existingPCR.ApprovedAt = &approvedAt
-			existingPCR.NextReviewLevel = nil
+			pcr.WorkflowStatusID = &workflowStatus.ID
+			pcr.ApprovedBYID = &currentUserID
+			pcr.ApprovedAt = &approvedAt
+			pcr.RejectedBYID = nil
+			pcr.RejectedAt = nil
+			pcr.NextReviewLevel = nil
+			pcr.UpdatedBYID = &currentUserID
 
-			if err := pcrrs.applyImpactAssessmentToProject(projectID, changeRequestID, currentUserID, tx); err != nil {
-				tx.Rollback()
+			if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {
 				return err
 			}
+
+			if err := pcrrs.applyImpactAssessmentToProject(projectID, changeRequestID, currentUserID, tx); err != nil {
+				return err
+			}
+
+			notify = func() {
+				_ = pcrrs.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectChangeRequest{}.TableName(),
+					changeRequestID,
+					pcr,
+					currentUserID,
+					"project", "project_register", "", nil,
+				)
+
+				pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
+				if err == nil {
+					pcrrs.sendApprovalNotification(projectID, changeRequestID, currentUserID, pcrDetail)
+				}
+			}
 		} else {
-			existingPCR.NextReviewLevel = &nextWorkflowLevel.Level
-		}
-		existingPCR.UpdatedBYID = &currentUserID
+			pcr.WorkflowStatusID = &pendingStatus.ID
+			pcr.NextReviewLevel = &nextWorkflowLevel.Level
+			pcr.UpdatedBYID = &currentUserID
 
-		if err := pcrrs.repo.UpdateChangeRequest(existingPCR, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
+			if err := pcrrs.workflowSvc.UpdateWorkflowStatus(nextWorkflowLevel.ID, pendingStatus.ID, tx); err != nil {
+				return err
+			}
 
-		if err := tx.Commit(); err != nil {
-			return err
+			if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {
+				return err
+			}
+
+			nextWf, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, nextWorkflowLevel.Level, tx)
+			if err != nil {
+				return err
+			}
+
+			notify = func() {
+				_ = pcrrs.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectChangeRequest{}.TableName(),
+					changeRequestID,
+					pcr,
+					currentUserID,
+					"project", "project_register", "", nil,
+				)
+
+				pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
+				if err == nil {
+					pcrrs.notifyNextLevelUsers(projectID, changeRequestID, nextWf, pcrDetail, currentUserID)
+				}
+			}
 		}
 
 	case "multiple-users", "role":
-		allowed := false
+		var approvingParticipant *models.ProjectChangeRequestWorkflowParticipant
 		for _, participant := range currentWorkflow.ProjectChangeRequestWorkflowParticipants {
 			if participant.UserID == currentUserID {
-				allowed = true
+				approvingParticipant = participant
 				break
 			}
 		}
-		if !allowed {
-			tx.Rollback()
+		if approvingParticipant == nil {
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
 		if err := pcrrs.createReviewWithHistory(currentWorkflow.ID, changeRequestID, currentWorkflow.Level, workflowStatus.ID, comment, currentUserID, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if currentWorkflow.ApprovalTypes == "all" {
-			allApproved, err := pcrrs.workflowSvc.CheckAllParticipantsApproved(currentWorkflow.ID, currentWorkflow.ProjectChangeRequestWorkflowParticipants, tx)
-			if err != nil {
-				tx.Rollback()
+			var allApproved bool
+			allApproved, err = pcrrs.workflowSvc.CheckAllParticipantsApproved(currentWorkflow.ID, currentWorkflow.ProjectChangeRequestWorkflowParticipants, tx)
+			if err != nil || !allApproved {
+				if err == nil {
+					notify = func() {
+						_ = pcrrs.logService.LogActivity(
+							models.ApproveAction,
+							models.ProjectChangeRequest{}.TableName(),
+							changeRequestID,
+							pcr,
+							currentUserID,
+							"project", "project_register", "", nil,
+						)
+					}
+				}
 				return err
-			}
-			if !allApproved {
-				return tx.Commit()
 			}
 		}
 
 		projectChangeRequestWorkflow, err := pcrrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
+
 		projectChangeRequestWorkflow.WorkflowStatusID = workflowStatus.ID
 		if err := pcrrs.workflowSvc.UpdateProjectChangeRequestWorkflow(projectChangeRequestWorkflow, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		nextWorkflowLevel, err = pcrrs.workflowSvc.GetNextLevel(changeRequestID, *currentApprovalLevel, tx)
+		nextWorkflowLevel, err := pcrrs.workflowSvc.GetNextLevel(changeRequestID, currentApprovalLevel, tx)
 		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		existingPCR, err := pcrrs.projectCRSvc.GetByID(projectID, changeRequestID)
-		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if nextWorkflowLevel == nil {
 			approvedAt := time.Now()
-			existingPCR.WorkflowStatusID = &workflowStatus.ID
-			existingPCR.ApprovedBYID = &currentUserID
-			existingPCR.ApprovedAt = &approvedAt
-			existingPCR.NextReviewLevel = nil
+			pcr.WorkflowStatusID = &workflowStatus.ID
+			pcr.ApprovedBYID = &currentUserID
+			pcr.ApprovedAt = &approvedAt
+			pcr.RejectedBYID = nil
+			pcr.RejectedAt = nil
+			pcr.NextReviewLevel = nil
+			pcr.UpdatedBYID = &currentUserID
 
-			if err := pcrrs.applyImpactAssessmentToProject(projectID, changeRequestID, currentUserID, tx); err != nil {
-				tx.Rollback()
+			if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {
 				return err
 			}
-		} else {
-			existingPCR.NextReviewLevel = &nextWorkflowLevel.Level
-		}
-		existingPCR.UpdatedBYID = &currentUserID
 
-		if err := pcrrs.repo.UpdateChangeRequest(existingPCR, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
+			if err := pcrrs.applyImpactAssessmentToProject(projectID, changeRequestID, currentUserID, tx); err != nil {
+				return err
+			}
 
-		if err := tx.Commit(); err != nil {
-			return err
-		}
-	}
+			notify = func() {
+				_ = pcrrs.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectChangeRequest{}.TableName(),
+					changeRequestID,
+					pcr,
+					currentUserID,
+					"project", "project_register", "", nil,
+				)
 
-	go func() {
-		_ = pcrrs.logService.LogActivity(
-			models.ApproveAction,
-			models.ProjectChangeRequest{}.TableName(),
-			changeRequestID,
-			pcr,
-			currentUserID,
-			"project", "project_register", "", nil,
-		)
-	}()
-
-	pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
-	if err == nil {
-		if nextWorkflowLevel != nil {
-			nextWf, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, nextWorkflowLevel.Level)
-			if err == nil {
-				pcrrs.notifyNextLevelUsers(projectID, changeRequestID, nextWf, pcrDetail, currentUserID)
+				pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
+				if err == nil {
+					pcrrs.sendApprovalNotification(projectID, changeRequestID, currentUserID, pcrDetail)
+				}
 			}
 		} else {
-			pcrrs.sendApprovalNotification(projectID, changeRequestID, currentUserID, pcrDetail)
+			pcr.WorkflowStatusID = &pendingStatus.ID
+			pcr.NextReviewLevel = &nextWorkflowLevel.Level
+			pcr.UpdatedBYID = &currentUserID
+
+			if err := pcrrs.workflowSvc.UpdateWorkflowStatus(nextWorkflowLevel.ID, pendingStatus.ID, tx); err != nil {
+				return err
+			}
+
+			if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {
+				return err
+			}
+
+			nextWf, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, nextWorkflowLevel.Level, tx)
+			if err != nil {
+				return err
+			}
+
+			notify = func() {
+				_ = pcrrs.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectChangeRequest{}.TableName(),
+					changeRequestID,
+					pcr,
+					currentUserID,
+					"project", "project_register", "", nil,
+				)
+
+				pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
+				if err == nil {
+					pcrrs.notifyNextLevelUsers(projectID, changeRequestID, nextWf, pcrDetail, currentUserID)
+				}
+			}
 		}
 	}
 
-	return nil
+	return err
 }
 
-func (pcrrs *ProjectChangeRequestReviewService) Revert(projectID uint, changeRequestID uint, currentUserID uint, form *projectDTOs.ProjectChangeRequestReviewFormDTO) error {
+func (pcrrs *ProjectChangeRequestReviewService) Revert(projectID uint, changeRequestID uint, currentUserID uint, form *projectDTOs.ProjectChangeRequestReviewFormDTO) (err error) {
+	tx := pcrrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
 	pcr, err := pcrrs.projectCRSvc.GetByID(projectID, changeRequestID)
 	if err != nil {
 		return err
 	}
 
-	if pcr.NextReviewLevel == nil {
-		return utility.NewForbiddenError("no pending review level found")
+	rejectedStatus, err := pcrrs.workflowStatusSvc.GetByType("reject")
+	if err != nil {
+		return err
 	}
 
-	tx := pcrrs.repo.BeginTransaction()
-	currentApprovalLevel := pcr.NextReviewLevel
-	currentWorkflow, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, *currentApprovalLevel, tx)
+	if pcr.NextReviewLevel == nil || (pcr.WorkflowStatusID != nil && *pcr.WorkflowStatusID == rejectedStatus.ID) {
+		return utility.NewValidationError(fmt.Errorf("workflow not active"), "workflow_not_active", "project change request")
+	}
+
+	currentLevel := *pcr.NextReviewLevel
+
+	currentWorkflow, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, currentLevel, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
+	}
+
+	allowed := false
+	for _, participant := range currentWorkflow.ProjectChangeRequestWorkflowParticipants {
+		if participant.UserID == currentUserID {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return utility.NewForbiddenError("you have no permission to revert")
 	}
 
 	revertStatus, err := pcrrs.workflowStatusSvc.GetByType("revert")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -480,139 +676,168 @@ func (pcrrs *ProjectChangeRequestReviewService) Revert(projectID uint, changeReq
 		comment = form.Comment
 	}
 
-	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual", "custom-roles", "hod":
-		if len(currentWorkflow.ProjectChangeRequestWorkflowParticipants) == 0 ||
-			currentUserID != currentWorkflow.ProjectChangeRequestWorkflowParticipants[0].UserID {
-			tx.Rollback()
-			return utility.NewForbiddenError("you have no permission to revert")
-		}
-
-	case "multiple-users", "role":
-		allowed := false
-		for _, participant := range currentWorkflow.ProjectChangeRequestWorkflowParticipants {
-			if participant.UserID == currentUserID {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			tx.Rollback()
-			return utility.NewForbiddenError("you have no permission to revert")
-		}
-	}
-
-	if err := pcrrs.workflowSvc.DeleteReviewsByWorkflowID(currentWorkflow.ID, tx); err != nil {
-		tx.Rollback()
+	if err := pcrrs.createReviewWithHistory(
+		currentWorkflow.ID,
+		changeRequestID,
+		currentLevel,
+		revertStatus.ID,
+		comment,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
-	if err := pcrrs.createReviewWithHistory(currentWorkflow.ID, changeRequestID, currentWorkflow.Level, revertStatus.ID, comment, currentUserID, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := pcrrs.workflowSvc.UpdateWorkflowStatus(currentWorkflow.ID, revertStatus.ID, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	currentLevel := *currentApprovalLevel
 	previousLevel := currentLevel - 1
 
 	var previousLevelWorkflow *models.ProjectChangeRequestWorkflow
 	if previousLevel > 0 {
 		pendingStatus, err := pcrrs.workflowStatusSvc.GetByType("pending")
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		previousLevelWorkflow, err = pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, previousLevel, tx)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if err := pcrrs.workflowSvc.DeleteReviewsByWorkflowID(previousLevelWorkflow.ID, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if err := pcrrs.workflowSvc.UpdateWorkflowStatus(previousLevelWorkflow.ID, pendingStatus.ID, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
 
-	existingPCR, err := pcrrs.projectCRSvc.GetByID(projectID, changeRequestID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
+	var submittedByID *uint
 	if previousLevel == 0 {
-		existingPCR.WorkflowStatusID = &revertStatus.ID
-		existingPCR.NextReviewLevel = nil
+		submittedByID = pcr.SubmittedBYID
+
+		pcr.WorkflowStatusID = &revertStatus.ID
+		pcr.NextReviewLevel = nil
+		pcr.SubmittedBYID = nil
+		pcr.SubmittedAt = nil
+		pcr.ApprovedBYID = nil
+		pcr.ApprovedAt = nil
+		pcr.RejectedBYID = nil
+		pcr.RejectedAt = nil
 	} else {
-		existingPCR.NextReviewLevel = &previousLevel
+		pendingStatus, err := pcrrs.workflowStatusSvc.GetByType("pending")
+		if err != nil {
+			return err
+		}
+		pcr.WorkflowStatusID = &pendingStatus.ID
+		pcr.NextReviewLevel = &previousLevel
 	}
-	existingPCR.UpdatedBYID = &currentUserID
+	pcr.UpdatedBYID = &currentUserID
 
-	if err := pcrrs.repo.UpdateChangeRequest(existingPCR, tx); err != nil {
-		tx.Rollback()
+	if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
+	if previousLevel > 0 {
+		notify = func() {
+			_ = pcrrs.logService.LogActivity(
+				models.UpdateAction,
+				models.ProjectChangeRequest{}.TableName(),
+				changeRequestID,
+				pcr,
+				currentUserID,
+				"project", "project_register", "", nil,
+			)
 
-	go func() {
-		_ = pcrrs.logService.LogActivity(
-			models.RejectAction,
-			models.ProjectChangeRequest{}.TableName(),
-			changeRequestID,
-			pcr,
-			currentUserID,
-			"project", "project_register", "", nil,
-		)
-	}()
+			pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
+			if err == nil {
+				pcrrs.notifyNextLevelUsers(projectID, changeRequestID, previousLevelWorkflow, pcrDetail, currentUserID)
+			}
+		}
+	} else {
+		notify = func() {
+			_ = pcrrs.logService.LogActivity(
+				models.UpdateAction,
+				models.ProjectChangeRequest{}.TableName(),
+				changeRequestID,
+				pcr,
+				currentUserID,
+				"project", "project_register", "", nil,
+			)
 
-	pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
-	if err == nil {
-		if previousLevel > 0 {
-			pcrrs.notifyNextLevelUsers(projectID, changeRequestID, previousLevelWorkflow, pcrDetail, currentUserID)
-		} else {
-			pcrrs.sendRevertNotification(projectID, changeRequestID, currentUserID, pcrDetail)
+			if submittedByID != nil && *submittedByID != 0 {
+				pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
+				if err == nil {
+					pcrrs.sendRevertNotification(projectID, changeRequestID, currentUserID, pcrDetail)
+				}
+			}
 		}
 	}
 
-	return nil
+	return err
 }
 
-func (pcrrs *ProjectChangeRequestReviewService) Reject(projectID uint, changeRequestID uint, currentUserID uint, form *projectDTOs.ProjectChangeRequestReviewFormDTO) error {
+func (pcrrs *ProjectChangeRequestReviewService) Reject(projectID uint, changeRequestID uint, currentUserID uint, form *projectDTOs.ProjectChangeRequestReviewFormDTO) (err error) {
+	tx := pcrrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
 	pcr, err := pcrrs.projectCRSvc.GetByID(projectID, changeRequestID)
 	if err != nil {
 		return err
 	}
 
-	if pcr.NextReviewLevel == nil {
-		return utility.NewForbiddenError("no pending review level found")
-	}
-
-	tx := pcrrs.repo.BeginTransaction()
-	currentApprovalLevel := pcr.NextReviewLevel
-	currentWorkflow, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, *currentApprovalLevel, tx)
+	workflowStatus, err := pcrrs.workflowStatusSvc.GetByType("reject")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	rejectStatus, err := pcrrs.workflowStatusSvc.GetByType("reject")
+	if pcr.NextReviewLevel == nil ||
+		(pcr.WorkflowStatusID != nil && *pcr.WorkflowStatusID == workflowStatus.ID) {
+		return utility.NewValidationError(
+			fmt.Errorf("workflow not active"),
+			"workflow_not_active",
+			"project change request",
+		)
+	}
+
+	currentReviewLevel := *pcr.NextReviewLevel
+
+	currentWorkflow, err := pcrrs.workflowSvc.GetWorkflowByLevel(changeRequestID, currentReviewLevel, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
+	}
+
+	var rejectingParticipant *models.ProjectChangeRequestWorkflowParticipant
+
+	for _, participant := range currentWorkflow.ProjectChangeRequestWorkflowParticipants {
+		if participant.UserID == currentUserID {
+			rejectingParticipant = participant
+			break
+		}
+	}
+
+	if rejectingParticipant == nil {
+		return utility.NewForbiddenError("you have no permission to reject")
 	}
 
 	var comment *string
@@ -620,68 +845,42 @@ func (pcrrs *ProjectChangeRequestReviewService) Reject(projectID uint, changeReq
 		comment = form.Comment
 	}
 
-	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual", "custom-roles", "hod":
-		if len(currentWorkflow.ProjectChangeRequestWorkflowParticipants) == 0 ||
-			currentUserID != currentWorkflow.ProjectChangeRequestWorkflowParticipants[0].UserID {
-			tx.Rollback()
-			return utility.NewForbiddenError("you have no permission to reject")
-		}
-
-	case "multiple-users", "role":
-		allowed := false
-		for _, participant := range currentWorkflow.ProjectChangeRequestWorkflowParticipants {
-			if participant.UserID == currentUserID {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			tx.Rollback()
-			return utility.NewForbiddenError("you have no permission to reject")
-		}
-	}
-
-	if err := pcrrs.createReviewWithHistory(currentWorkflow.ID, changeRequestID, currentWorkflow.Level, rejectStatus.ID, comment, currentUserID, tx); err != nil {
-		tx.Rollback()
+	if err := pcrrs.createReviewWithHistory(
+		currentWorkflow.ID,
+		changeRequestID,
+		currentReviewLevel,
+		workflowStatus.ID,
+		comment,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
-	projectChangeRequestWorkflow, err := pcrrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
-	if err != nil {
-		tx.Rollback()
+	currentWorkflow.WorkflowStatusID = workflowStatus.ID
+
+	if err := pcrrs.workflowSvc.UpdateProjectChangeRequestWorkflow(currentWorkflow, tx); err != nil {
 		return err
 	}
 
-	projectChangeRequestWorkflow.WorkflowStatusID = rejectStatus.ID
-	if err := pcrrs.workflowSvc.UpdateProjectChangeRequestWorkflow(projectChangeRequestWorkflow, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	existingPCR, err := pcrrs.projectCRSvc.GetByID(projectID, changeRequestID)
-	if err != nil {
-		tx.Rollback()
-		return err
+	var submittedByID uint
+	if pcr.SubmittedBYID != nil {
+		submittedByID = *pcr.SubmittedBYID
+	} else if pcr.RequestedByUserID != 0 {
+		submittedByID = pcr.RequestedByUserID
 	}
 
 	now := time.Now()
-	existingPCR.WorkflowStatusID = &rejectStatus.ID
-	existingPCR.RejectedBYID = &currentUserID
-	existingPCR.RejectedAt = &now
-	existingPCR.NextReviewLevel = nil
-	existingPCR.UpdatedBYID = &currentUserID
+	pcr.WorkflowStatusID = &workflowStatus.ID
+	pcr.RejectedBYID = &currentUserID
+	pcr.RejectedAt = &now
+	pcr.UpdatedBYID = &currentUserID
 
-	if err := pcrrs.repo.UpdateChangeRequest(existingPCR, tx); err != nil {
-		tx.Rollback()
+	if err := pcrrs.repo.UpdateChangeRequest(pcr, tx); err != nil {
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	go func() {
+	notify = func() {
 		_ = pcrrs.logService.LogActivity(
 			models.RejectAction,
 			models.ProjectChangeRequest{}.TableName(),
@@ -690,14 +889,16 @@ func (pcrrs *ProjectChangeRequestReviewService) Reject(projectID uint, changeReq
 			currentUserID,
 			"project", "project_register", "", nil,
 		)
-	}()
 
-	pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
-	if err == nil {
-		pcrrs.sendRejectNotification(projectID, changeRequestID, currentUserID, pcrDetail)
+		if submittedByID != 0 {
+			pcrDetail, err := pcrrs.projectCRSvc.GetFullDetailsByID(projectID, changeRequestID)
+			if err == nil {
+				pcrrs.sendRejectNotification(projectID, changeRequestID, currentUserID, pcrDetail)
+			}
+		}
 	}
 
-	return nil
+	return err
 }
 
 func (pcrrs *ProjectChangeRequestReviewService) sendApprovalNotification(projectID uint, changeRequestID uint, currentUserID uint, pcrDetail *projectDTOs.ProjectChangeRequestDetailDTO) {

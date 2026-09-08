@@ -23,7 +23,7 @@ type ProjectChangeRequestServiceInterface interface {
 	SetWorkflowService(workflowSvc ProjectChangeRequestWorkflowServiceInterface)
 	GetAll(projectID uint, params *dtos.ProjectChangeRequestListQueryParamsDTO) (*dtos.ProjectChangeRequestListResponseDTO, error)
 	GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error)
-	GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectChangeRequestDetailDTO, error)
+	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectChangeRequestDetailDTO, error)
 	Create(projectID uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) (uint, error)
 	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -79,14 +79,14 @@ func (pcrs *ProjectChangeRequestService) GetByID(projectID uint, id uint) (*mode
 	return changeRequest, nil
 }
 
-func (pcrs *ProjectChangeRequestService) GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectChangeRequestDetailDTO, error) {
+func (pcrs *ProjectChangeRequestService) GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectChangeRequestDetailDTO, error) {
 	var detailDTO dtos.ProjectChangeRequestDetailDTO
 
 	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
 		return nil, err
 	}
 
-	changeRequest, err := pcrs.repo.GetFullDetailsByID(projectID, id)
+	changeRequest, err := pcrs.repo.GetFullDetailsByID(projectID, id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, &utility.ResourceNotFoundError{}

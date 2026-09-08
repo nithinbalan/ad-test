@@ -17,7 +17,7 @@ import (
 type ProjectDecisionLogRepositoryInterface interface {
 	GetAll(projectID uint, params *dtos.ProjectDecisionLogListQueryParamsDTO) (*dtos.ProjectDecisionLogListResponseDTO, error)
 	GetByID(projectID uint, id uint) (*models.ProjectDecisionLog, error)
-	GetFullDetailsByID(projectID uint, id uint) (*models.ProjectDecisionLog, error)
+	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLog, error)
 	GenerateReferenceNumber() (string, error)
 	Create(decisionLog *models.ProjectDecisionLog, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(decisionLog *models.ProjectDecisionLog, tx ...utility.DatabaseTransaction) error
@@ -199,9 +199,13 @@ func (pdlr *ProjectDecisionLogRepository) GetByID(projectID uint, id uint) (*mod
 	return &decisionLog, nil
 }
 
-func (pdlr *ProjectDecisionLogRepository) GetFullDetailsByID(projectID uint, id uint) (*models.ProjectDecisionLog, error) {
+func (pdlr *ProjectDecisionLogRepository) GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLog, error) {
 	var decisionLog models.ProjectDecisionLog
-	result := pdlr.db.
+	db := pdlr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.
 		Preload("Project").
 		Preload("RequestedByUser").
 		Preload("WorkflowStatus").

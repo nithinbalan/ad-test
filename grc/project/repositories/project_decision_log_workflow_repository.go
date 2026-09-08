@@ -16,6 +16,7 @@ type ProjectDecisionLogWorkflowRepositoryInterface interface {
 	UpdateWorkflowParticipant(participant *models.ProjectDecisionLogWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error
 	UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -133,6 +134,14 @@ func (pdlwr *ProjectDecisionLogWorkflowRepository) DeleteWorkflowReviews(reviewI
 	return db.Where("id IN ?", reviewIds).Delete(&models.ProjectDecisionLogWorkflowReview{}).Error
 }
 
+func (pdlwr *ProjectDecisionLogWorkflowRepository) DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := pdlwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("project_decision_log_workflow_id IN (?)", workflowIds).Delete(&models.ProjectDecisionLogWorkflowHistory{}).Error
+}
+
 func (pdlwr *ProjectDecisionLogWorkflowRepository) DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error {
 	db := pdlwr.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -187,6 +196,7 @@ func (pdlwr *ProjectDecisionLogWorkflowRepository) GetWorkflowByLevel(projectDec
 		Preload("ProjectDecisionLogWorkflowParticipants").
 		Preload("ProjectDecisionLogWorkflowParticipants.User").
 		Preload("ProjectDecisionLogWorkflowParticipants.Role").
+		Preload("ProjectDecisionLogWorkflowReviews").
 		Where("project_decision_log_id = ? AND level = ?", projectDecisionLogID, level).
 		First(&workflow).Error
 	if err != nil {

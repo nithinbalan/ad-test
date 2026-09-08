@@ -28,6 +28,7 @@ type ProjectChangeRequestWorkflowServiceInterface interface {
 	CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.ProjectChangeRequestWorkflowParticipant, tx ...utility.DatabaseTransaction) (bool, error)
 	DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error
 	UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -160,7 +161,7 @@ func (pcrws *ProjectChangeRequestWorkflowService) GetWorkflowList(projectChangeR
 				if review.WorkflowStatus.Type == "approve" {
 					workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
 					lastApprovedAt = &review.CreatedAt
-				} else if review.WorkflowStatus.Type == "reject" || review.WorkflowStatus.Type == "revert" {
+				} else if review.WorkflowStatus.Type == "reject" {
 					lastRejectedAt = &review.CreatedAt
 					workflowDTO.RejectedUser = userDTO
 				}
@@ -353,6 +354,10 @@ func (pcrws *ProjectChangeRequestWorkflowService) UpdateWorkflowStatus(workflowI
 	return pcrws.repo.UpdateWorkflowStatus(workflowID, statusID, tx...)
 }
 
+func (pcrws *ProjectChangeRequestWorkflowService) DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	return pcrws.repo.DeleteWorkflowHistories(workflowIds, tx...)
+}
+
 func (pcrws *ProjectChangeRequestWorkflowService) DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
 	return pcrws.repo.DeleteWorkflows(workflowIds, tx...)
 }
@@ -390,6 +395,9 @@ func (pcrws *ProjectChangeRequestWorkflowService) DeleteAllWorkflowsForProjectCh
 	}
 
 	if len(workflowIds) > 0 {
+		if err := pcrws.DeleteWorkflowHistories(workflowIds, tx...); err != nil {
+			return err
+		}
 		if err := pcrws.DeleteWorkflows(workflowIds, tx...); err != nil {
 			return err
 		}

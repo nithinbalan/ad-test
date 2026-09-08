@@ -23,7 +23,7 @@ type ProjectDecisionLogServiceInterface interface {
 	SetWorkflowService(workflowSvc ProjectDecisionLogWorkflowServiceInterface)
 	GetAll(projectID uint, params *dtos.ProjectDecisionLogListQueryParamsDTO) (*dtos.ProjectDecisionLogListResponseDTO, error)
 	GetByID(projectID uint, id uint) (*models.ProjectDecisionLog, error)
-	GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectDecisionLogDetailDTO, error)
+	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectDecisionLogDetailDTO, error)
 	Create(projectID uint, currentUserID uint, form *dtos.ProjectDecisionLogFormDTO) (uint, error)
 	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectDecisionLogFormDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -71,12 +71,12 @@ func (pdls *ProjectDecisionLogService) GetByID(projectID uint, id uint) (*models
 	return pdls.repo.GetByID(projectID, id)
 }
 
-func (pdls *ProjectDecisionLogService) GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectDecisionLogDetailDTO, error) {
+func (pdls *ProjectDecisionLogService) GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectDecisionLogDetailDTO, error) {
 	if _, err := pdls.projectSvc.GetByID(projectID); err != nil {
 		return nil, err
 	}
 
-	decisionLog, err := pdls.repo.GetFullDetailsByID(projectID, id)
+	decisionLog, err := pdls.repo.GetFullDetailsByID(projectID, id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, &utility.ResourceNotFoundError{}

@@ -77,70 +77,105 @@ func (pdlrs *ProjectDecisionLogReviewService) createReviewWithHistory(workflowID
 	return pdlrs.repo.CreateHistory(history, tx)
 }
 
-func (pdlrs *ProjectDecisionLogReviewService) Submit(projectID uint, decisionLogID uint, currentUserID uint) error {
+func (pdlrs *ProjectDecisionLogReviewService) Submit(projectID uint, decisionLogID uint, currentUserID uint) (err error) {
+	tx := pdlrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
+	if err := pdlrs.workflowSvc.ValidateWorkflowBeforeCreate(tx); err != nil {
+		return err
+	}
+
 	pdl, err := pdlrs.projectDLSvc.GetByID(projectID, decisionLogID)
 	if err != nil {
 		return err
 	}
 
-	if pdl.WorkflowStatusID != nil {
-		workflowStatus, err := pdlrs.workflowStatusSvc.GetByID(*pdl.WorkflowStatusID)
-		if err == nil && workflowStatus.Type != "revert" {
-			return utility.NewForbiddenError("project decision log has already been submitted")
-		}
-	}
-
-	if err := pdlrs.workflowSvc.ValidateWorkflowBeforeCreate(); err != nil {
-		return err
-	}
-
-	tx := pdlrs.repo.BeginTransaction()
-	currentDate := time.Now()
-	level := 1
-
-	workflowStatus, err := pdlrs.workflowStatusSvc.GetByType("submit")
+	approvedStatus, err := pdlrs.workflowStatusSvc.GetByType("approve")
 	if err != nil {
-		tx.Rollback()
 		return err
+	}
+
+	rejectedStatus, err := pdlrs.workflowStatusSvc.GetByType("reject")
+	if err != nil {
+		return err
+	}
+
+	if pdl.NextReviewLevel != nil {
+		return utility.NewValidationError(
+			fmt.Errorf("workflow has already submitted"),
+			"workflow_already_submitted",
+			"project decision log",
+		)
+	}
+
+	if pdl.WorkflowStatusID != nil && (*pdl.WorkflowStatusID == approvedStatus.ID || *pdl.WorkflowStatusID == rejectedStatus.ID) {
+		return utility.NewValidationError(
+			fmt.Errorf("workflow has already completed"),
+			"workflow_already_completed",
+			"project decision log",
+		)
 	}
 
 	if err := pdlrs.workflowSvc.DeleteAllWorkflowsForProjectDecisionLog(decisionLogID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	if err := pdlrs.workflowSvc.CreateProjectDecisionLogWorkflow(decisionLogID, currentUserID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
+	workflowStatus, err := pdlrs.workflowStatusSvc.GetByType("submit")
+	if err != nil {
+		return err
+	}
+
+	currentDate := time.Now()
+	level := 1
 	pdl.WorkflowStatusID = &workflowStatus.ID
 	pdl.SubmittedBYID = &currentUserID
 	pdl.SubmittedAt = &currentDate
 	pdl.NextReviewLevel = &level
+	pdl.ApprovedBYID = nil
+	pdl.ApprovedAt = nil
+	pdl.RejectedBYID = nil
+	pdl.RejectedAt = nil
 	pdl.UpdatedByID = &currentUserID
 
 	if err := pdlrs.repo.UpdateDecisionLog(pdl, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	workflowLevel, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, level, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	if err := pdlrs.createReviewWithHistory(workflowLevel.ID, decisionLogID, level, workflowStatus.ID, nil, currentUserID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	go func() {
+	notify = func() {
 		_ = pdlrs.logService.LogActivity(
 			models.CreateAction,
 			models.ProjectDecisionLog{}.TableName(),
@@ -149,82 +184,121 @@ func (pdlrs *ProjectDecisionLogReviewService) Submit(projectID uint, decisionLog
 			currentUserID,
 			"project", "project_register", "", nil,
 		)
-	}()
 
-	pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
-	if err == nil {
-		pdlrs.notifyNextLevelUsers(projectID, decisionLogID, workflowLevel, pdlDetail, currentUserID)
+		pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
+		if err == nil {
+			pdlrs.notifyNextLevelUsers(projectID, decisionLogID, workflowLevel, pdlDetail, currentUserID)
+		}
 	}
 
-	return nil
+	return err
 }
 
-func (pdlrs *ProjectDecisionLogReviewService) Resubmit(projectID uint, decisionLogID uint, currentUserID uint) error {
+func (pdlrs *ProjectDecisionLogReviewService) Resubmit(projectID uint, decisionLogID uint, currentUserID uint) (err error) {
+	tx := pdlrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
+	if err := pdlrs.workflowSvc.ValidateWorkflowBeforeCreate(tx); err != nil {
+		return err
+	}
+
 	pdl, err := pdlrs.projectDLSvc.GetByID(projectID, decisionLogID)
 	if err != nil {
 		return err
 	}
 
-	if pdl.WorkflowStatusID == nil {
-		return utility.NewForbiddenError("project decision log must be reverted before resubmitting")
-	}
-
-	workflowStatus, err := pdlrs.workflowStatusSvc.GetByID(*pdl.WorkflowStatusID)
-	if err != nil || workflowStatus.Type != "revert" {
-		return utility.NewForbiddenError("project decision log is not in reverted state")
-	}
-
-	if err := pdlrs.workflowSvc.ValidateWorkflowBeforeCreate(); err != nil {
-		return err
-	}
-
-	tx := pdlrs.repo.BeginTransaction()
-	currentDate := time.Now()
-	level := 1
-
-	submitStatus, err := pdlrs.workflowStatusSvc.GetByType("submit")
+	rejectedStatus, err := pdlrs.workflowStatusSvc.GetByType("reject")
 	if err != nil {
-		tx.Rollback()
 		return err
+	}
+
+	revertedStatus, err := pdlrs.workflowStatusSvc.GetByType("revert")
+	if err != nil {
+		return err
+	}
+
+	if pdl.WorkflowStatusID == nil || (*pdl.WorkflowStatusID != rejectedStatus.ID && *pdl.WorkflowStatusID != revertedStatus.ID) {
+		return utility.NewValidationError(
+			fmt.Errorf("project decision log has not been rejected or reverted"),
+			"workflow_not_rejected",
+			"project decision log",
+		)
 	}
 
 	if err := pdlrs.workflowSvc.DeleteAllWorkflowsForProjectDecisionLog(decisionLogID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	if err := pdlrs.workflowSvc.CreateProjectDecisionLogWorkflow(decisionLogID, currentUserID, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
+	submitStatus, err := pdlrs.workflowStatusSvc.GetByType("submit")
+	if err != nil {
+		return err
+	}
+
+	level := 1
+	now := time.Now()
+
 	pdl.WorkflowStatusID = &submitStatus.ID
 	pdl.SubmittedBYID = &currentUserID
-	pdl.SubmittedAt = &currentDate
+	pdl.SubmittedAt = &now
 	pdl.NextReviewLevel = &level
+	pdl.ApprovedBYID = nil
+	pdl.ApprovedAt = nil
+	pdl.RejectedBYID = nil
+	pdl.RejectedAt = nil
 	pdl.UpdatedByID = &currentUserID
 
 	if err := pdlrs.repo.UpdateDecisionLog(pdl, tx); err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	workflowLevel, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, level, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	if err := pdlrs.createReviewWithHistory(workflowLevel.ID, decisionLogID, level, submitStatus.ID, nil, currentUserID, tx); err != nil {
-		tx.Rollback()
+	workflowStatus, err := pdlrs.workflowStatusSvc.GetByType("resubmit")
+	if err != nil {
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := pdlrs.createReviewWithHistory(
+		workflowLevel.ID,
+		decisionLogID,
+		level,
+		workflowStatus.ID,
+		nil,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
-	go func() {
+	notify = func() {
 		_ = pdlrs.logService.LogActivity(
 			models.UpdateAction,
 			models.ProjectDecisionLog{}.TableName(),
@@ -233,37 +307,72 @@ func (pdlrs *ProjectDecisionLogReviewService) Resubmit(projectID uint, decisionL
 			currentUserID,
 			"project", "project_register", "", nil,
 		)
-	}()
 
-	pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
-	if err == nil {
-		pdlrs.sendResubmitNotification(projectID, decisionLogID, workflowLevel, pdlDetail, currentUserID)
+		pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
+		if err == nil {
+			pdlrs.sendResubmitNotification(projectID, decisionLogID, workflowLevel, pdlDetail, currentUserID)
+		}
 	}
 
-	return nil
+	return err
 }
 
-func (pdlrs *ProjectDecisionLogReviewService) Approve(projectID uint, decisionLogID uint, currentUserID uint, form *projectDTOs.ProjectDecisionLogReviewFormDTO) error {
+func (pdlrs *ProjectDecisionLogReviewService) Approve(projectID uint, decisionLogID uint, currentUserID uint, form *projectDTOs.ProjectDecisionLogReviewFormDTO) (err error) {
+	tx := pdlrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
 	pdl, err := pdlrs.projectDLSvc.GetByID(projectID, decisionLogID)
 	if err != nil {
 		return err
 	}
 
-	if pdl.NextReviewLevel == nil {
-		return utility.NewForbiddenError("no pending review level found")
+	rejectedStatus, err := pdlrs.workflowStatusSvc.GetByType("reject")
+	if err != nil {
+		return err
 	}
 
-	tx := pdlrs.repo.BeginTransaction()
-	currentApprovalLevel := pdl.NextReviewLevel
-	currentWorkflow, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, *currentApprovalLevel, tx)
+	if pdl.NextReviewLevel == nil || (pdl.WorkflowStatusID != nil && *pdl.WorkflowStatusID == rejectedStatus.ID) {
+		return utility.NewValidationError(
+			fmt.Errorf("workflow not active"),
+			"workflow_not_active",
+			"project decision log",
+		)
+	}
+
+	currentApprovalLevel := *pdl.NextReviewLevel
+	currentWorkflow, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, currentApprovalLevel, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	workflowStatus, err := pdlrs.workflowStatusSvc.GetByType("approve")
 	if err != nil {
-		tx.Rollback()
+		return err
+	}
+
+	pendingStatus, err := pdlrs.workflowStatusSvc.GetByType("pending")
+	if err != nil {
 		return err
 	}
 
@@ -272,185 +381,274 @@ func (pdlrs *ProjectDecisionLogReviewService) Approve(projectID uint, decisionLo
 		comment = form.Comment
 	}
 
-	var nextWorkflowLevel *models.ProjectDecisionLogWorkflow
-
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual", "custom-roles", "hod":
+	case "individual", "hod":
 		if len(currentWorkflow.ProjectDecisionLogWorkflowParticipants) == 0 ||
 			currentUserID != currentWorkflow.ProjectDecisionLogWorkflowParticipants[0].UserID {
-			tx.Rollback()
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
 		if err := pdlrs.createReviewWithHistory(currentWorkflow.ID, decisionLogID, currentWorkflow.Level, workflowStatus.ID, comment, currentUserID, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		projectDecisionLogWorkflow, err := pdlrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		projectDecisionLogWorkflow.WorkflowStatusID = workflowStatus.ID
 		if err := pdlrs.workflowSvc.UpdateProjectDecisionLogWorkflow(projectDecisionLogWorkflow, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		nextWorkflowLevel, err = pdlrs.workflowSvc.GetNextLevel(decisionLogID, *currentApprovalLevel, tx)
+		nextWorkflowLevel, err := pdlrs.workflowSvc.GetNextLevel(decisionLogID, currentApprovalLevel, tx)
 		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		existingPDL, err := pdlrs.projectDLSvc.GetByID(projectID, decisionLogID)
-		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if nextWorkflowLevel == nil {
 			approvedAt := time.Now()
-			existingPDL.WorkflowStatusID = &workflowStatus.ID
-			existingPDL.ApprovedBYID = &currentUserID
-			existingPDL.ApprovedAt = &approvedAt
-			existingPDL.NextReviewLevel = nil
+			pdl.WorkflowStatusID = &workflowStatus.ID
+			pdl.ApprovedBYID = &currentUserID
+			pdl.ApprovedAt = &approvedAt
+			pdl.RejectedBYID = nil
+			pdl.RejectedAt = nil
+			pdl.NextReviewLevel = nil
+			pdl.UpdatedByID = &currentUserID
+
+			if err := pdlrs.repo.UpdateDecisionLog(pdl, tx); err != nil {
+				return err
+			}
+
+			notify = func() {
+				_ = pdlrs.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectDecisionLog{}.TableName(),
+					decisionLogID,
+					pdl,
+					currentUserID,
+					"project", "project_register", "", nil,
+				)
+
+				pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
+				if err == nil {
+					pdlrs.sendApprovalNotification(projectID, decisionLogID, currentUserID, pdlDetail)
+				}
+			}
 		} else {
-			existingPDL.NextReviewLevel = &nextWorkflowLevel.Level
-		}
-		existingPDL.UpdatedByID = &currentUserID
+			pdl.WorkflowStatusID = &pendingStatus.ID
+			pdl.NextReviewLevel = &nextWorkflowLevel.Level
+			pdl.UpdatedByID = &currentUserID
 
-		if err := pdlrs.repo.UpdateDecisionLog(existingPDL, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
+			if err := pdlrs.workflowSvc.UpdateWorkflowStatus(nextWorkflowLevel.ID, pendingStatus.ID, tx); err != nil {
+				return err
+			}
 
-		if err := tx.Commit(); err != nil {
-			return err
+			if err := pdlrs.repo.UpdateDecisionLog(pdl, tx); err != nil {
+				return err
+			}
+
+			nextWf, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, nextWorkflowLevel.Level, tx)
+			if err != nil {
+				return err
+			}
+
+			notify = func() {
+				_ = pdlrs.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectDecisionLog{}.TableName(),
+					decisionLogID,
+					pdl,
+					currentUserID,
+					"project", "project_register", "", nil,
+				)
+
+				pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
+				if err == nil {
+					pdlrs.notifyNextLevelUsers(projectID, decisionLogID, nextWf, pdlDetail, currentUserID)
+				}
+			}
 		}
 
 	case "multiple-users", "role":
-		allowed := false
+		var approvingParticipant *models.ProjectDecisionLogWorkflowParticipant
 		for _, participant := range currentWorkflow.ProjectDecisionLogWorkflowParticipants {
 			if participant.UserID == currentUserID {
-				allowed = true
+				approvingParticipant = participant
 				break
 			}
 		}
-		if !allowed {
-			tx.Rollback()
+		if approvingParticipant == nil {
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
 		if err := pdlrs.createReviewWithHistory(currentWorkflow.ID, decisionLogID, currentWorkflow.Level, workflowStatus.ID, comment, currentUserID, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if currentWorkflow.ApprovalTypes == "all" {
-			allApproved, err := pdlrs.workflowSvc.CheckAllParticipantsApproved(currentWorkflow.ID, currentWorkflow.ProjectDecisionLogWorkflowParticipants, tx)
-			if err != nil {
-				tx.Rollback()
+			var allApproved bool
+			allApproved, err = pdlrs.workflowSvc.CheckAllParticipantsApproved(currentWorkflow.ID, currentWorkflow.ProjectDecisionLogWorkflowParticipants, tx)
+			if err != nil || !allApproved {
+				if err == nil {
+					notify = func() {
+						_ = pdlrs.logService.LogActivity(
+							models.ApproveAction,
+							models.ProjectDecisionLog{}.TableName(),
+							decisionLogID,
+							pdl,
+							currentUserID,
+							"project", "project_register", "", nil,
+						)
+					}
+				}
 				return err
-			}
-			if !allApproved {
-				return tx.Commit()
 			}
 		}
 
 		projectDecisionLogWorkflow, err := pdlrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
+
 		projectDecisionLogWorkflow.WorkflowStatusID = workflowStatus.ID
 		if err := pdlrs.workflowSvc.UpdateProjectDecisionLogWorkflow(projectDecisionLogWorkflow, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		nextWorkflowLevel, err = pdlrs.workflowSvc.GetNextLevel(decisionLogID, *currentApprovalLevel, tx)
+		nextWorkflowLevel, err := pdlrs.workflowSvc.GetNextLevel(decisionLogID, currentApprovalLevel, tx)
 		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		existingPDL, err := pdlrs.projectDLSvc.GetByID(projectID, decisionLogID)
-		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if nextWorkflowLevel == nil {
 			approvedAt := time.Now()
-			existingPDL.WorkflowStatusID = &workflowStatus.ID
-			existingPDL.ApprovedBYID = &currentUserID
-			existingPDL.ApprovedAt = &approvedAt
-			existingPDL.NextReviewLevel = nil
-		} else {
-			existingPDL.NextReviewLevel = &nextWorkflowLevel.Level
-		}
-		existingPDL.UpdatedByID = &currentUserID
+			pdl.WorkflowStatusID = &workflowStatus.ID
+			pdl.ApprovedBYID = &currentUserID
+			pdl.ApprovedAt = &approvedAt
+			pdl.RejectedBYID = nil
+			pdl.RejectedAt = nil
+			pdl.NextReviewLevel = nil
+			pdl.UpdatedByID = &currentUserID
 
-		if err := pdlrs.repo.UpdateDecisionLog(existingPDL, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
+			if err := pdlrs.repo.UpdateDecisionLog(pdl, tx); err != nil {
+				return err
+			}
 
-		if err := tx.Commit(); err != nil {
-			return err
-		}
-	}
+			notify = func() {
+				_ = pdlrs.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectDecisionLog{}.TableName(),
+					decisionLogID,
+					pdl,
+					currentUserID,
+					"project", "project_register", "", nil,
+				)
 
-	go func() {
-		_ = pdlrs.logService.LogActivity(
-			models.ApproveAction,
-			models.ProjectDecisionLog{}.TableName(),
-			decisionLogID,
-			pdl,
-			currentUserID,
-			"project", "project_register", "", nil,
-		)
-	}()
-
-	pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
-	if err == nil {
-		if nextWorkflowLevel != nil {
-			nextWf, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, nextWorkflowLevel.Level)
-			if err == nil {
-				pdlrs.notifyNextLevelUsers(projectID, decisionLogID, nextWf, pdlDetail, currentUserID)
+				pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
+				if err == nil {
+					pdlrs.sendApprovalNotification(projectID, decisionLogID, currentUserID, pdlDetail)
+				}
 			}
 		} else {
-			pdlrs.sendApprovalNotification(projectID, decisionLogID, currentUserID, pdlDetail)
+			pdl.WorkflowStatusID = &pendingStatus.ID
+			pdl.NextReviewLevel = &nextWorkflowLevel.Level
+			pdl.UpdatedByID = &currentUserID
+
+			if err := pdlrs.workflowSvc.UpdateWorkflowStatus(nextWorkflowLevel.ID, pendingStatus.ID, tx); err != nil {
+				return err
+			}
+
+			if err := pdlrs.repo.UpdateDecisionLog(pdl, tx); err != nil {
+				return err
+			}
+
+			nextWf, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, nextWorkflowLevel.Level, tx)
+			if err != nil {
+				return err
+			}
+
+			notify = func() {
+				_ = pdlrs.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectDecisionLog{}.TableName(),
+					decisionLogID,
+					pdl,
+					currentUserID,
+					"project", "project_register", "", nil,
+				)
+
+				pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
+				if err == nil {
+					pdlrs.notifyNextLevelUsers(projectID, decisionLogID, nextWf, pdlDetail, currentUserID)
+				}
+			}
 		}
 	}
 
-	return nil
+	return err
 }
 
-func (pdlrs *ProjectDecisionLogReviewService) Revert(projectID uint, decisionLogID uint, currentUserID uint, form *projectDTOs.ProjectDecisionLogReviewFormDTO) error {
+func (pdlrs *ProjectDecisionLogReviewService) Revert(projectID uint, decisionLogID uint, currentUserID uint, form *projectDTOs.ProjectDecisionLogReviewFormDTO) (err error) {
+	tx := pdlrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
 	pdl, err := pdlrs.projectDLSvc.GetByID(projectID, decisionLogID)
 	if err != nil {
 		return err
 	}
 
-	if pdl.NextReviewLevel == nil {
-		return utility.NewForbiddenError("no pending review level found")
+	rejectedStatus, err := pdlrs.workflowStatusSvc.GetByType("reject")
+	if err != nil {
+		return err
 	}
 
-	tx := pdlrs.repo.BeginTransaction()
-	currentApprovalLevel := pdl.NextReviewLevel
-	currentWorkflow, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, *currentApprovalLevel, tx)
+	if pdl.NextReviewLevel == nil || (pdl.WorkflowStatusID != nil && *pdl.WorkflowStatusID == rejectedStatus.ID) {
+		return utility.NewValidationError(fmt.Errorf("workflow not active"), "workflow_not_active", "project decision log")
+	}
+
+	currentLevel := *pdl.NextReviewLevel
+
+	currentWorkflow, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, currentLevel, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
+	}
+
+	allowed := false
+	for _, participant := range currentWorkflow.ProjectDecisionLogWorkflowParticipants {
+		if participant.UserID == currentUserID {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return utility.NewForbiddenError("you have no permission to revert")
 	}
 
 	revertStatus, err := pdlrs.workflowStatusSvc.GetByType("revert")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -459,139 +657,168 @@ func (pdlrs *ProjectDecisionLogReviewService) Revert(projectID uint, decisionLog
 		comment = form.Comment
 	}
 
-	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual", "custom-roles", "hod":
-		if len(currentWorkflow.ProjectDecisionLogWorkflowParticipants) == 0 ||
-			currentUserID != currentWorkflow.ProjectDecisionLogWorkflowParticipants[0].UserID {
-			tx.Rollback()
-			return utility.NewForbiddenError("you have no permission to revert")
-		}
-
-	case "multiple-users", "role":
-		allowed := false
-		for _, participant := range currentWorkflow.ProjectDecisionLogWorkflowParticipants {
-			if participant.UserID == currentUserID {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			tx.Rollback()
-			return utility.NewForbiddenError("you have no permission to revert")
-		}
-	}
-
-	if err := pdlrs.workflowSvc.DeleteReviewsByWorkflowID(currentWorkflow.ID, tx); err != nil {
-		tx.Rollback()
+	if err := pdlrs.createReviewWithHistory(
+		currentWorkflow.ID,
+		decisionLogID,
+		currentLevel,
+		revertStatus.ID,
+		comment,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
-	if err := pdlrs.createReviewWithHistory(currentWorkflow.ID, decisionLogID, currentWorkflow.Level, revertStatus.ID, comment, currentUserID, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := pdlrs.workflowSvc.UpdateWorkflowStatus(currentWorkflow.ID, revertStatus.ID, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	currentLevel := *currentApprovalLevel
 	previousLevel := currentLevel - 1
 
 	var previousLevelWorkflow *models.ProjectDecisionLogWorkflow
 	if previousLevel > 0 {
 		pendingStatus, err := pdlrs.workflowStatusSvc.GetByType("pending")
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		previousLevelWorkflow, err = pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, previousLevel, tx)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if err := pdlrs.workflowSvc.DeleteReviewsByWorkflowID(previousLevelWorkflow.ID, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 
 		if err := pdlrs.workflowSvc.UpdateWorkflowStatus(previousLevelWorkflow.ID, pendingStatus.ID, tx); err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
 
-	existingPDL, err := pdlrs.projectDLSvc.GetByID(projectID, decisionLogID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
+	var submittedByID *uint
 	if previousLevel == 0 {
-		existingPDL.WorkflowStatusID = &revertStatus.ID
-		existingPDL.NextReviewLevel = nil
+		submittedByID = pdl.SubmittedBYID
+
+		pdl.WorkflowStatusID = &revertStatus.ID
+		pdl.NextReviewLevel = nil
+		pdl.SubmittedBYID = nil
+		pdl.SubmittedAt = nil
+		pdl.ApprovedBYID = nil
+		pdl.ApprovedAt = nil
+		pdl.RejectedBYID = nil
+		pdl.RejectedAt = nil
 	} else {
-		existingPDL.NextReviewLevel = &previousLevel
+		pendingStatus, err := pdlrs.workflowStatusSvc.GetByType("pending")
+		if err != nil {
+			return err
+		}
+		pdl.WorkflowStatusID = &pendingStatus.ID
+		pdl.NextReviewLevel = &previousLevel
 	}
-	existingPDL.UpdatedByID = &currentUserID
+	pdl.UpdatedByID = &currentUserID
 
-	if err := pdlrs.repo.UpdateDecisionLog(existingPDL, tx); err != nil {
-		tx.Rollback()
+	if err := pdlrs.repo.UpdateDecisionLog(pdl, tx); err != nil {
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
+	if previousLevel > 0 {
+		notify = func() {
+			_ = pdlrs.logService.LogActivity(
+				models.UpdateAction,
+				models.ProjectDecisionLog{}.TableName(),
+				decisionLogID,
+				pdl,
+				currentUserID,
+				"project", "project_register", "", nil,
+			)
 
-	go func() {
-		_ = pdlrs.logService.LogActivity(
-			models.RejectAction,
-			models.ProjectDecisionLog{}.TableName(),
-			decisionLogID,
-			pdl,
-			currentUserID,
-			"project", "project_register", "", nil,
-		)
-	}()
+			pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
+			if err == nil {
+				pdlrs.notifyNextLevelUsers(projectID, decisionLogID, previousLevelWorkflow, pdlDetail, currentUserID)
+			}
+		}
+	} else {
+		notify = func() {
+			_ = pdlrs.logService.LogActivity(
+				models.UpdateAction,
+				models.ProjectDecisionLog{}.TableName(),
+				decisionLogID,
+				pdl,
+				currentUserID,
+				"project", "project_register", "", nil,
+			)
 
-	pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
-	if err == nil {
-		if previousLevel > 0 {
-			pdlrs.notifyNextLevelUsers(projectID, decisionLogID, previousLevelWorkflow, pdlDetail, currentUserID)
-		} else {
-			pdlrs.sendRevertNotification(projectID, decisionLogID, currentUserID, pdlDetail)
+			if submittedByID != nil && *submittedByID != 0 {
+				pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
+				if err == nil {
+					pdlrs.sendRevertNotification(projectID, decisionLogID, currentUserID, pdlDetail)
+				}
+			}
 		}
 	}
 
-	return nil
+	return err
 }
 
-func (pdlrs *ProjectDecisionLogReviewService) Reject(projectID uint, decisionLogID uint, currentUserID uint, form *projectDTOs.ProjectDecisionLogReviewFormDTO) error {
+func (pdlrs *ProjectDecisionLogReviewService) Reject(projectID uint, decisionLogID uint, currentUserID uint, form *projectDTOs.ProjectDecisionLogReviewFormDTO) (err error) {
+	tx := pdlrs.repo.BeginTransaction()
+
+	var notify func()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err = tx.Commit(); err != nil {
+			return
+		}
+
+		if notify != nil {
+			go notify()
+		}
+	}()
+
 	pdl, err := pdlrs.projectDLSvc.GetByID(projectID, decisionLogID)
 	if err != nil {
 		return err
 	}
 
-	if pdl.NextReviewLevel == nil {
-		return utility.NewForbiddenError("no pending review level found")
-	}
-
-	tx := pdlrs.repo.BeginTransaction()
-	currentApprovalLevel := pdl.NextReviewLevel
-	currentWorkflow, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, *currentApprovalLevel, tx)
+	workflowStatus, err := pdlrs.workflowStatusSvc.GetByType("reject")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	rejectStatus, err := pdlrs.workflowStatusSvc.GetByType("reject")
+	if pdl.NextReviewLevel == nil ||
+		(pdl.WorkflowStatusID != nil && *pdl.WorkflowStatusID == workflowStatus.ID) {
+		return utility.NewValidationError(
+			fmt.Errorf("workflow not active"),
+			"workflow_not_active",
+			"project decision log",
+		)
+	}
+
+	currentReviewLevel := *pdl.NextReviewLevel
+
+	currentWorkflow, err := pdlrs.workflowSvc.GetWorkflowByLevel(decisionLogID, currentReviewLevel, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
+	}
+
+	var rejectingParticipant *models.ProjectDecisionLogWorkflowParticipant
+
+	for _, participant := range currentWorkflow.ProjectDecisionLogWorkflowParticipants {
+		if participant.UserID == currentUserID {
+			rejectingParticipant = participant
+			break
+		}
+	}
+
+	if rejectingParticipant == nil {
+		return utility.NewForbiddenError("you have no permission to reject")
 	}
 
 	var comment *string
@@ -599,68 +826,42 @@ func (pdlrs *ProjectDecisionLogReviewService) Reject(projectID uint, decisionLog
 		comment = form.Comment
 	}
 
-	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual", "custom-roles", "hod":
-		if len(currentWorkflow.ProjectDecisionLogWorkflowParticipants) == 0 ||
-			currentUserID != currentWorkflow.ProjectDecisionLogWorkflowParticipants[0].UserID {
-			tx.Rollback()
-			return utility.NewForbiddenError("you have no permission to reject")
-		}
-
-	case "multiple-users", "role":
-		allowed := false
-		for _, participant := range currentWorkflow.ProjectDecisionLogWorkflowParticipants {
-			if participant.UserID == currentUserID {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			tx.Rollback()
-			return utility.NewForbiddenError("you have no permission to reject")
-		}
-	}
-
-	if err := pdlrs.createReviewWithHistory(currentWorkflow.ID, decisionLogID, currentWorkflow.Level, rejectStatus.ID, comment, currentUserID, tx); err != nil {
-		tx.Rollback()
+	if err := pdlrs.createReviewWithHistory(
+		currentWorkflow.ID,
+		decisionLogID,
+		currentReviewLevel,
+		workflowStatus.ID,
+		comment,
+		currentUserID,
+		tx,
+	); err != nil {
 		return err
 	}
 
-	projectDecisionLogWorkflow, err := pdlrs.workflowSvc.GetWorkflowByID(currentWorkflow.ID, tx)
-	if err != nil {
-		tx.Rollback()
+	currentWorkflow.WorkflowStatusID = workflowStatus.ID
+
+	if err := pdlrs.workflowSvc.UpdateProjectDecisionLogWorkflow(currentWorkflow, tx); err != nil {
 		return err
 	}
 
-	projectDecisionLogWorkflow.WorkflowStatusID = rejectStatus.ID
-	if err := pdlrs.workflowSvc.UpdateProjectDecisionLogWorkflow(projectDecisionLogWorkflow, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	existingPDL, err := pdlrs.projectDLSvc.GetByID(projectID, decisionLogID)
-	if err != nil {
-		tx.Rollback()
-		return err
+	var submittedByID uint
+	if pdl.SubmittedBYID != nil {
+		submittedByID = *pdl.SubmittedBYID
+	} else if pdl.RequestedByUserID != 0 {
+		submittedByID = pdl.RequestedByUserID
 	}
 
 	now := time.Now()
-	existingPDL.WorkflowStatusID = &rejectStatus.ID
-	existingPDL.RejectedBYID = &currentUserID
-	existingPDL.RejectedAt = &now
-	existingPDL.NextReviewLevel = nil
-	existingPDL.UpdatedByID = &currentUserID
+	pdl.WorkflowStatusID = &workflowStatus.ID
+	pdl.RejectedBYID = &currentUserID
+	pdl.RejectedAt = &now
+	pdl.UpdatedByID = &currentUserID
 
-	if err := pdlrs.repo.UpdateDecisionLog(existingPDL, tx); err != nil {
-		tx.Rollback()
+	if err := pdlrs.repo.UpdateDecisionLog(pdl, tx); err != nil {
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	go func() {
+	notify = func() {
 		_ = pdlrs.logService.LogActivity(
 			models.RejectAction,
 			models.ProjectDecisionLog{}.TableName(),
@@ -669,14 +870,16 @@ func (pdlrs *ProjectDecisionLogReviewService) Reject(projectID uint, decisionLog
 			currentUserID,
 			"project", "project_register", "", nil,
 		)
-	}()
 
-	pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
-	if err == nil {
-		pdlrs.sendRejectNotification(projectID, decisionLogID, currentUserID, pdlDetail)
+		if submittedByID != 0 {
+			pdlDetail, err := pdlrs.projectDLSvc.GetFullDetailsByID(projectID, decisionLogID)
+			if err == nil {
+				pdlrs.sendRejectNotification(projectID, decisionLogID, currentUserID, pdlDetail)
+			}
+		}
 	}
 
-	return nil
+	return err
 }
 
 func (pdlrs *ProjectDecisionLogReviewService) sendApprovalNotification(projectID uint, decisionLogID uint, currentUserID uint, pdlDetail *projectDTOs.ProjectDecisionLogDetailDTO) {
