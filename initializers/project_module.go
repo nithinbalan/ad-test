@@ -112,7 +112,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectChangeRequestWorkflowSvc.SetProjectChangeRequestService(projectChangeRequestSvc)
 	projectChangeRequestSvc.SetWorkflowService(projectChangeRequestWorkflowSvc)
-	projectChangeRequestWorkflowController := controllers.NewProjectChangeRequestWorkflowController(projectChangeRequestWorkflowSvc, db)
+	projectChangeRequestWorkflowController := controllers.NewProjectChangeRequestWorkflowController(projectChangeRequestWorkflowSvc)
 
 	projectChangeRequestReviewSvc := services.NewProjectChangeRequestReviewService(
 		projectChangeRequestReviewRepo,
@@ -124,7 +124,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		commonModule.NotificationService,
 		projectSvc,
 	)
-	projectChangeRequestReviewController := controllers.NewProjectChangeRequestReviewController(projectChangeRequestReviewSvc, db)
+	projectChangeRequestReviewController := controllers.NewProjectChangeRequestReviewController(projectChangeRequestReviewSvc)
 
 	projectChangeRequestReviewCommentRepo := repositories.NewProjectChangeRequestReviewCommentRepository(db)
 	projectChangeRequestReviewCommentSvc := services.NewProjectChangeRequestReviewCommentService(
@@ -134,7 +134,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectChangeRequestSvc,
 		masterModule.CommentStatusSvc,
 	)
-	projectChangeRequestReviewCommentController := controllers.NewProjectChangeRequestReviewCommentController(projectChangeRequestReviewCommentSvc, db)
+	projectChangeRequestReviewCommentController := controllers.NewProjectChangeRequestReviewCommentController(projectChangeRequestReviewCommentSvc)
 
 	projectActionPlanRepo := repositories.NewProjectActionPlanRepository(db)
 	projectActionPlanSvc := services.NewProjectActionPlanService(
@@ -215,7 +215,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		organizationModule.UserSvc,
 		projectSvc,
 	)
-	projectDecisionLogController := controllers.NewProjectDecisionLogController(projectDecisionLogSvc, db)
+	projectDecisionLogController := controllers.NewProjectDecisionLogController(projectDecisionLogSvc)
 
 	projectDecisionLogWorkflowRepo := repositories.NewProjectDecisionLogWorkflowRepository(db)
 	projectDecisionLogReviewRepo := repositories.NewProjectDecisionLogReviewRepository(db)
@@ -232,7 +232,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectDecisionLogWorkflowSvc.SetProjectDecisionLogService(projectDecisionLogSvc)
 	projectDecisionLogSvc.SetWorkflowService(projectDecisionLogWorkflowSvc)
-	projectDecisionLogWorkflowController := controllers.NewProjectDecisionLogWorkflowController(projectDecisionLogWorkflowSvc, db)
+	projectDecisionLogWorkflowController := controllers.NewProjectDecisionLogWorkflowController(projectDecisionLogWorkflowSvc)
 
 	projectDecisionLogReviewSvc := services.NewProjectDecisionLogReviewService(
 		projectDecisionLogReviewRepo,
@@ -243,7 +243,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
 	)
-	projectDecisionLogReviewController := controllers.NewProjectDecisionLogReviewController(projectDecisionLogReviewSvc, db)
+	projectDecisionLogReviewController := controllers.NewProjectDecisionLogReviewController(projectDecisionLogReviewSvc)
 
 	projectDecisionLogReviewCommentRepo := repositories.NewProjectDecisionLogReviewCommentRepository(db)
 	projectDecisionLogReviewCommentSvc := services.NewProjectDecisionLogReviewCommentService(
@@ -253,7 +253,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectDecisionLogSvc,
 		masterModule.CommentStatusSvc,
 	)
-	projectDecisionLogReviewCommentController := controllers.NewProjectDecisionLogReviewCommentController(projectDecisionLogReviewCommentSvc, db)
+	projectDecisionLogReviewCommentController := controllers.NewProjectDecisionLogReviewCommentController(projectDecisionLogReviewCommentSvc)
 
 	projectSupportingDocumentRepo := repositories.NewProjectSupportingDocumentRepository(db)
 	projectSupportingDocumentSvc := services.NewProjectSupportingDocumentService(

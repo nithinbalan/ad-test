@@ -15,10 +15,9 @@ type ProjectChangeRequestWorkflowController struct {
 	db      *gorm.DB
 }
 
-func NewProjectChangeRequestWorkflowController(service services.ProjectChangeRequestWorkflowServiceInterface, db *gorm.DB) *ProjectChangeRequestWorkflowController {
+func NewProjectChangeRequestWorkflowController(service services.ProjectChangeRequestWorkflowServiceInterface) *ProjectChangeRequestWorkflowController {
 	return &ProjectChangeRequestWorkflowController{
 		service: service,
-		db:      db,
 	}
 }
 

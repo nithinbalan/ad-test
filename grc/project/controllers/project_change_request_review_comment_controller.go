@@ -19,10 +19,9 @@ type ProjectChangeRequestReviewCommentController struct {
 	db      *gorm.DB
 }
 
-func NewProjectChangeRequestReviewCommentController(service services.ProjectChangeRequestReviewCommentServiceInterface, db *gorm.DB) *ProjectChangeRequestReviewCommentController {
+func NewProjectChangeRequestReviewCommentController(service services.ProjectChangeRequestReviewCommentServiceInterface) *ProjectChangeRequestReviewCommentController {
 	return &ProjectChangeRequestReviewCommentController{
 		service: service,
-		db:      db,
 	}
 }
 

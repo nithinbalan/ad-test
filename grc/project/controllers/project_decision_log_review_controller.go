@@ -16,10 +16,9 @@ type ProjectDecisionLogReviewController struct {
 	db      *gorm.DB
 }
 
-func NewProjectDecisionLogReviewController(service services.ProjectDecisionLogReviewServiceInterface, db *gorm.DB) *ProjectDecisionLogReviewController {
+func NewProjectDecisionLogReviewController(service services.ProjectDecisionLogReviewServiceInterface) *ProjectDecisionLogReviewController {
 	return &ProjectDecisionLogReviewController{
 		service: service,
-		db:      db,
 	}
 }
 
