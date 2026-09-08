@@ -213,7 +213,7 @@ func (ptsds *PenetrationTestSupportingDocumentService) Update(penetrationTestID 
 	var existingDocsToKeep []*uint
 	var newDocsToCreate []*models.PenetrationTestSupportingDocumentDocument
 	for _, doc := range form.Documents {
-		if doc.ID != nil {
+		if doc.ID != nil && (doc.IsNewFile == nil || !*doc.IsNewFile) {
 			existingDocsToKeep = append(existingDocsToKeep, doc.ID)
 		} else {
 			dataToEncrypt := []byte(doc.FileName)
