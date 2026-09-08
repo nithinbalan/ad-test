@@ -71,27 +71,27 @@ type ProjectDecisionLogListDTO struct {
 }
 
 type ProjectDecisionLogDetailDTO struct {
-	ID                uint                             `json:"id"`
-	ReferenceNumber   string                           `json:"reference_number"`
-	ProjectID         uint                             `json:"project_id"`
-	Decision          string                           `json:"decision"`
-	DecisionNotes     *string                          `json:"decision_notes"`
-	Reason            *string                          `json:"reason"`
-	DecisionDate      *string                          `json:"decision_date"`
-	RequestedByUser   *organizationDTOs.UserMinimalDTO `json:"requested_by_user"`
-	WorkflowStatus    *masterDTOs.WorkflowStatusDTO    `json:"workflow_status"`
-	NextReviewLevel   *int                             `json:"next_review_level"`
-	SubmittedByUser   *organizationDTOs.UserMinimalDTO `json:"submitted_by_user"`
-	SubmittedAtString *string                          `json:"submitted_at"`
-	ApprovedByUser    *organizationDTOs.UserMinimalDTO `json:"approved_by_user"`
-	ApprovedAtString  *string                          `json:"approved_at"`
-	RejectedByUser    *organizationDTOs.UserMinimalDTO `json:"rejected_by_user"`
-	RejectedAtString  *string                          `json:"rejected_at"`
-	CreatedByUser     *organizationDTOs.UserMinimalDTO `json:"created_by_user"`
-	UpdatedByUser     *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
-	CreatedAt         time.Time                        `json:"created_at"`
-	UpdatedAt         *time.Time                       `json:"updated_at"`
-	Documents         []*ProjectDecisionLogDocumentDTO `json:"documents"`
+	ID                 uint                             `json:"id"`
+	ReferenceNumber    string                           `json:"reference_number"`
+	ProjectID          uint                             `json:"project_id"`
+	Decision           string                           `json:"decision"`
+	DecisionNotes      *string                          `json:"decision_notes"`
+	Reason             *string                          `json:"reason"`
+	DecisionDateString *string                          `json:"decision_date"`
+	RequestedByUser    *organizationDTOs.UserMinimalDTO `json:"requested_by_user"`
+	WorkflowStatus     *masterDTOs.WorkflowStatusDTO    `json:"workflow_status"`
+	NextReviewLevel    *int                             `json:"next_review_level"`
+	SubmittedByUser    *organizationDTOs.UserMinimalDTO `json:"submitted_by_user"`
+	SubmittedAtString  *string                          `json:"submitted_at"`
+	ApprovedByUser     *organizationDTOs.UserMinimalDTO `json:"approved_by_user"`
+	ApprovedAtString   *string                          `json:"approved_at"`
+	RejectedByUser     *organizationDTOs.UserMinimalDTO `json:"rejected_by_user"`
+	RejectedAtString   *string                          `json:"rejected_at"`
+	CreatedByUser      *organizationDTOs.UserMinimalDTO `json:"created_by_user"`
+	UpdatedByUser      *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
+	CreatedAt          time.Time                        `json:"created_at"`
+	UpdatedAt          *time.Time                       `json:"updated_at"`
+	Documents          []*ProjectDecisionLogDocumentDTO `json:"documents"`
 }
 
 type ProjectDecisionLogDocumentDTO struct {
@@ -126,7 +126,7 @@ type ProjectDecisionLogListQueryParamsDTO struct {
 }
 
 type ProjectDecisionLogListResponseDTO struct {
-	Data       []*ProjectDecisionLogListDTO `json:"data"`
+	Items      []*ProjectDecisionLogListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
