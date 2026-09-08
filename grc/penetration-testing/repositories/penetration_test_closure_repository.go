@@ -14,6 +14,7 @@ type PenetrationTestClosureRepositoryInterface interface {
 	Create(closure *models.PenetrationTestClosure, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(closure *models.PenetrationTestClosure, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ExistsByPenetrationTestID(penetrationTestID uint, tx ...utility.DatabaseTransaction) (bool, error)
 }
 
 type PenetrationTestClosureRepository struct {
@@ -99,4 +100,22 @@ func (repo *PenetrationTestClosureRepository) Delete(id uint, tx ...utility.Data
 	}
 
 	return nil
+}
+
+func (repo *PenetrationTestClosureRepository) ExistsByPenetrationTestID(penetrationTestID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	err := db.Model(&models.PenetrationTestClosure{}).
+		Where("penetration_test_id = ?", penetrationTestID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+
+	return count > 0, nil
 }

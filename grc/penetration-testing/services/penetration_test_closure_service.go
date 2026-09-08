@@ -96,6 +96,14 @@ func (ptcs *PenetrationTestClosureService) Create(penetrationTestID uint, curren
 		return 0, err
 	}
 
+	if exists, err := ptcs.repo.ExistsByPenetrationTestID(penetrationTestID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	} else if exists {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("closure already exists"), "closure_already_exists", "closure")
+	}
+
 	if _, err := ptcs.userSvc.GetByID(form.ClosureOwnerID); err != nil {
 		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("closure owner does not exist"), "not_exist", "closure_owner")
