@@ -294,3 +294,91 @@ func (pcrc *ProjectChangeRequestController) DeleteProjectChangeRequests(c *gin.C
 	}
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (pcrc *ProjectChangeRequestController) DownloadDocument(c *gin.Context) {
+	projectIDStr := c.Param("projectId")
+	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	changeRequestIDStr := c.Param("changeRequestId")
+	changeRequestID, err := strconv.ParseUint(changeRequestIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentIDStr := c.Param("documentId")
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := pcrc.service.GetDocumentPath(uint(projectID), uint(changeRequestID), uint(documentID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+		default:
+			utility.SendInternalErrResp(pcrc.db, c, err.Error())
+		}
+		return
+	}
+
+	c.FileAttachment(documentPath, documentPath)
+}
+
+func (pcrc *ProjectChangeRequestController) GetDocumentPreview(c *gin.Context) {
+	projectIDStr := c.Param("projectId")
+	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	changeRequestIDStr := c.Param("changeRequestId")
+	changeRequestID, err := strconv.ParseUint(changeRequestIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentIDStr := c.Param("documentId")
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := pcrc.service.GetDocumentPath(uint(projectID), uint(changeRequestID), uint(documentID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+		default:
+			utility.SendInternalErrResp(pcrc.db, c, err.Error())
+		}
+		return
+	}
+
+	c.File(documentPath)
+}

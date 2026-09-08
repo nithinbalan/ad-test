@@ -16,10 +16,9 @@ type ProjectChangeRequestReviewController struct {
 	db      *gorm.DB
 }
 
-func NewProjectChangeRequestReviewController(service services.ProjectChangeRequestReviewServiceInterface, db *gorm.DB) *ProjectChangeRequestReviewController {
+func NewProjectChangeRequestReviewController(service services.ProjectChangeRequestReviewServiceInterface) *ProjectChangeRequestReviewController {
 	return &ProjectChangeRequestReviewController{
 		service: service,
-		db:      db,
 	}
 }
 

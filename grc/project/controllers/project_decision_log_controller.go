@@ -18,10 +18,9 @@ type ProjectDecisionLogController struct {
 	db      *gorm.DB
 }
 
-func NewProjectDecisionLogController(service services.ProjectDecisionLogServiceInterface, db *gorm.DB) *ProjectDecisionLogController {
+func NewProjectDecisionLogController(service services.ProjectDecisionLogServiceInterface) *ProjectDecisionLogController {
 	return &ProjectDecisionLogController{
 		service: service,
-		db:      db,
 	}
 }
 
@@ -379,7 +378,7 @@ func (pdlc *ProjectDecisionLogController) GetDocumentPreview(c *gin.Context) {
 		case *utility.ForbiddenError:
 			utility.SendForbiddenErrResp(c, e.Error())
 		default:
-			utility.SendInternalErrResp(pdlc.db, c, e.Error())
+			utility.SendInternalErrResp(nil, c, e.Error())
 		}
 		return
 	}

@@ -45,6 +45,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectSecurityGateReadinessStatusController := app.ProjectModule.ProjectSecurityGateReadinessStatusController
 	projectSecurityGateController := app.ProjectModule.ProjectSecurityGateController
 	projectSecurityGateChecklistController := app.ProjectModule.ProjectSecurityGateChecklistController
+	projectReportController := app.ProjectModule.ProjectReportController
 
 	// Project Types
 	projectRoutes.GET("/project-types", projectTypeController.GetAllProjectTypes)
@@ -62,6 +63,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Projects
 	projectRoutes.GET("/projects", projectController.GetAllProjects)
 	projectRoutes.GET("/projects/export", projectController.GetProjectsExport)
+	projectRoutes.GET("/projects/:projectId/export-pdf", projectReportController.ExportProjectReportToPDF)
 	projectRoutes.GET("/projects/:projectId", projectController.GetProjectDetails)
 	projectRoutes.POST("/projects", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.CreateProject)
 	projectRoutes.PUT("/projects/:projectId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.UpdateProject)
@@ -78,6 +80,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/milestones/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectMilestoneController.DeleteProjectMilestones)
 
 	// Project Change Requests
+	unauthenticatedRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/documents/:documentId/download", projectChangeRequestController.DownloadDocument)
+	unauthenticatedRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/documents/:documentId/preview", projectChangeRequestController.GetDocumentPreview)
 	projectRoutes.GET("/projects/:projectId/change-requests", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetAllProjectChangeRequests)
 	projectRoutes.GET("/projects/:projectId/change-requests/summary", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetProjectChangeRequestSummary)
 	projectRoutes.GET("/projects/:projectId/change-requests/:changeRequestId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetProjectChangeRequestDetails)

@@ -8,7 +8,7 @@ import (
 )
 
 type ProjectChangeRequestWorkflowRepositoryInterface interface {
-	GetWorkflowList(projectChangeRequestID uint) (*models.ProjectChangeRequest, error)
+	GetWorkflowList(projectChangeRequestID uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequest, error)
 	GetWorkflowHistories(projectChangeRequestID uint) ([]*models.ProjectChangeRequestWorkflowHistory, error)
 	CreateWorkflow(workflow *models.ProjectChangeRequestWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateWorkflow(workflow *models.ProjectChangeRequestWorkflow, tx ...utility.DatabaseTransaction) error
@@ -16,6 +16,9 @@ type ProjectChangeRequestWorkflowRepositoryInterface interface {
 	UpdateWorkflowParticipant(participant *models.ProjectChangeRequestWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error
+	UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequestWorkflow, error)
 	GetWorkflowByLevel(projectChangeRequestID uint, level int, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequestWorkflow, error)
@@ -31,9 +34,13 @@ func NewProjectChangeRequestWorkflowRepository(db *gorm.DB) *ProjectChangeReques
 	return &ProjectChangeRequestWorkflowRepository{db: db}
 }
 
-func (pcrwr *ProjectChangeRequestWorkflowRepository) GetWorkflowList(projectChangeRequestID uint) (*models.ProjectChangeRequest, error) {
+func (pcrwr *ProjectChangeRequestWorkflowRepository) GetWorkflowList(projectChangeRequestID uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequest, error) {
+	db := pcrwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var projectChangeRequest models.ProjectChangeRequest
-	result := pcrwr.db.
+	result := db.
 		Preload("SubmittedByUser").
 		Preload("ApprovedByUser").
 		Preload("RejectedByUser").
@@ -125,6 +132,30 @@ func (pcrwr *ProjectChangeRequestWorkflowRepository) DeleteWorkflowReviews(revie
 		db = tx[0].DB()
 	}
 	return db.Where("id IN ?", reviewIds).Delete(&models.ProjectChangeRequestWorkflowReview{}).Error
+}
+
+func (pcrwr *ProjectChangeRequestWorkflowRepository) DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := pcrwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("project_change_request_workflow_id IN (?)", workflowIds).Delete(&models.ProjectChangeRequestWorkflowHistory{}).Error
+}
+
+func (pcrwr *ProjectChangeRequestWorkflowRepository) DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error {
+	db := pcrwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("project_change_request_workflow_id = ?", workflowID).Delete(&models.ProjectChangeRequestWorkflowReview{}).Error
+}
+
+func (pcrwr *ProjectChangeRequestWorkflowRepository) UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error {
+	db := pcrwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.ProjectChangeRequestWorkflow{}).Where("id = ?", workflowID).Update("workflow_status_id", statusID).Error
 }
 
 func (pcrwr *ProjectChangeRequestWorkflowRepository) DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {

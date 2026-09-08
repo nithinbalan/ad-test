@@ -28,6 +28,9 @@ type ProjectDecisionLogWorkflowServiceInterface interface {
 	CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.ProjectDecisionLogWorkflowParticipant, tx ...utility.DatabaseTransaction) (bool, error)
 	DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error
+	UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 	ValidateWorkflowBeforeCreate(tx ...utility.DatabaseTransaction) error
 	DeleteAllWorkflowsForProjectDecisionLog(projectDecisionLogID uint, tx ...utility.DatabaseTransaction) error
@@ -158,7 +161,7 @@ func (pdlws *ProjectDecisionLogWorkflowService) GetWorkflowList(projectDecisionL
 				if review.WorkflowStatus.Type == "approve" {
 					workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
 					lastApprovedAt = &review.CreatedAt
-				} else if review.WorkflowStatus.Type == "reject" || review.WorkflowStatus.Type == "revert" {
+				} else if review.WorkflowStatus.Type == "reject" {
 					lastRejectedAt = &review.CreatedAt
 					workflowDTO.RejectedUser = userDTO
 				}
@@ -343,12 +346,24 @@ func (pdlws *ProjectDecisionLogWorkflowService) DeleteWorkflowReviews(reviewIds 
 	return pdlws.repo.DeleteWorkflowReviews(reviewIds, tx...)
 }
 
+func (pdlws *ProjectDecisionLogWorkflowService) DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error {
+	return pdlws.repo.DeleteReviewsByWorkflowID(workflowID, tx...)
+}
+
+func (pdlws *ProjectDecisionLogWorkflowService) UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error {
+	return pdlws.repo.UpdateWorkflowStatus(workflowID, statusID, tx...)
+}
+
+func (pdlws *ProjectDecisionLogWorkflowService) DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	return pdlws.repo.DeleteWorkflowHistories(workflowIds, tx...)
+}
+
 func (pdlws *ProjectDecisionLogWorkflowService) DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
 	return pdlws.repo.DeleteWorkflows(workflowIds, tx...)
 }
 
 func (pdlws *ProjectDecisionLogWorkflowService) DeleteAllWorkflowsForProjectDecisionLog(projectDecisionLogID uint, tx ...utility.DatabaseTransaction) error {
-	pdl, err := pdlws.repo.GetWorkflowList(projectDecisionLogID)
+	pdl, err := pdlws.repo.GetWorkflowList(projectDecisionLogID, tx...)
 	if err != nil {
 		return err
 	}
@@ -380,6 +395,9 @@ func (pdlws *ProjectDecisionLogWorkflowService) DeleteAllWorkflowsForProjectDeci
 	}
 
 	if len(workflowIds) > 0 {
+		if err := pdlws.DeleteWorkflowHistories(workflowIds, tx...); err != nil {
+			return err
+		}
 		if err := pdlws.DeleteWorkflows(workflowIds, tx...); err != nil {
 			return err
 		}

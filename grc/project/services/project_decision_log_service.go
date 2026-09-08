@@ -23,7 +23,7 @@ type ProjectDecisionLogServiceInterface interface {
 	SetWorkflowService(workflowSvc ProjectDecisionLogWorkflowServiceInterface)
 	GetAll(projectID uint, params *dtos.ProjectDecisionLogListQueryParamsDTO) (*dtos.ProjectDecisionLogListResponseDTO, error)
 	GetByID(projectID uint, id uint) (*models.ProjectDecisionLog, error)
-	GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectDecisionLogDetailDTO, error)
+	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectDecisionLogDetailDTO, error)
 	Create(projectID uint, currentUserID uint, form *dtos.ProjectDecisionLogFormDTO) (uint, error)
 	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectDecisionLogFormDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -71,12 +71,12 @@ func (pdls *ProjectDecisionLogService) GetByID(projectID uint, id uint) (*models
 	return pdls.repo.GetByID(projectID, id)
 }
 
-func (pdls *ProjectDecisionLogService) GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectDecisionLogDetailDTO, error) {
+func (pdls *ProjectDecisionLogService) GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectDecisionLogDetailDTO, error) {
 	if _, err := pdls.projectSvc.GetByID(projectID); err != nil {
 		return nil, err
 	}
 
-	decisionLog, err := pdls.repo.GetFullDetailsByID(projectID, id)
+	decisionLog, err := pdls.repo.GetFullDetailsByID(projectID, id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, &utility.ResourceNotFoundError{}
@@ -253,15 +253,12 @@ func (pdls *ProjectDecisionLogService) Update(projectID uint, id uint, currentUs
 	}
 
 	// Document handling
-	var existingDocsToKeep []*uint
 	var newDocsToCreate []*models.ProjectDecisionLogDocument
+	var docsToDelete []*uint
+	var documentsToDelete []*models.ProjectDecisionLogDocument
+
 	for _, doc := range form.Documents {
-		if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			continue
-		}
-		if doc.ID != nil && (doc.IsNewFile == nil || !*doc.IsNewFile) {
-			existingDocsToKeep = append(existingDocsToKeep, doc.ID)
-		} else if doc.FileName != "" {
+		if (doc.IsNewFile != nil && *doc.IsNewFile) || (doc.ID == nil && doc.FileName != "") {
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
@@ -281,21 +278,24 @@ func (pdls *ProjectDecisionLogService) Update(projectID uint, id uint, currentUs
 				CreatedAt:            time.Now(),
 			}
 			newDocsToCreate = append(newDocsToCreate, newDoc)
-		}
-	}
-
-	var docsToDelete []*uint
-	for _, doc := range decisionLog.Documents {
-		keep := false
-		for _, keepID := range existingDocsToKeep {
-			if *keepID == doc.ID {
-				keep = true
-				break
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := pdls.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						tx.Rollback()
+						return utility.NewResourceNotFoundError(err, *doc.ID)
+					}
+					tx.Rollback()
+					return err
+				}
+				if existingDocument.ProjectDecisionLogID != id {
+					tx.Rollback()
+					return utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, *doc.ID)
+				}
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				docsToDelete = append(docsToDelete, &existingDocument.ID)
 			}
-		}
-		if !keep {
-			docID := doc.ID
-			docsToDelete = append(docsToDelete, &docID)
 		}
 	}
 
@@ -321,6 +321,13 @@ func (pdls *ProjectDecisionLogService) Update(projectID uint, id uint, currentUs
 		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "decision-logs", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			utility.LogError("Failed to store document file", map[string]interface{}{"error": err.Error(), "doc": doc.Name})
+		}
+	}
+
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "decision-logs", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+			utility.LogError("Failed to remove document file", map[string]interface{}{"error": err.Error(), "doc": doc.Name})
 		}
 	}
 

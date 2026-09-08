@@ -15,10 +15,9 @@ type ProjectDecisionLogWorkflowController struct {
 	db      *gorm.DB
 }
 
-func NewProjectDecisionLogWorkflowController(service services.ProjectDecisionLogWorkflowServiceInterface, db *gorm.DB) *ProjectDecisionLogWorkflowController {
+func NewProjectDecisionLogWorkflowController(service services.ProjectDecisionLogWorkflowServiceInterface) *ProjectDecisionLogWorkflowController {
 	return &ProjectDecisionLogWorkflowController{
 		service: service,
-		db:      db,
 	}
 }
 
