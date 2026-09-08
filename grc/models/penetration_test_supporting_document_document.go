@@ -16,7 +16,7 @@ type PenetrationTestSupportingDocumentDocument struct {
 	CreatedByID                         *uint      `json:"created_by_id" gorm:"null"`
 	UpdatedByID                         *uint      `json:"updated_by_id" gorm:"null"`
 	CreatedAt                           time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt                           *time.Time `json:"updated_at" gorm:"type:datetime;null"`
+	UpdatedAt                           *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	PenetrationTestSupportingDocument *PenetrationTestSupportingDocument `gorm:"foreignKey:PenetrationTestSupportingDocumentID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser                     *User                              `gorm:"foreignKey:CreatedByID"`
