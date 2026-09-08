@@ -7,6 +7,7 @@ import (
 	"jethur/grc/penetration-testing/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -190,8 +191,30 @@ func (ptrec *PenetrationTestRetestController) UpdatePenetrationTestRetest(c *gin
 	c.Status(http.StatusOK)
 }
 
-func (ptrec *PenetrationTestRetestController) VerifyPenetrationTestRetestFinding(c *gin.Context) {
-	var formDTO penetrationTestDTOs.PenetrationTestRetestFindingFormDTO
+func (ptrec *PenetrationTestRetestController) GetEligiblePenetrationTestRetestFindings(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	values, err := ptrec.service.GetEligibleFindings(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(ptrec.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, values)
+}
+
+func (ptrec *PenetrationTestRetestController) UpdatePenetrationTestRetestFindings(c *gin.Context) {
+	var formDTO penetrationTestDTOs.PenetrationTestRetestFindingUpdateFormDTO
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -207,7 +230,7 @@ func (ptrec *PenetrationTestRetestController) VerifyPenetrationTestRetestFinding
 		utility.SendInternalErrResp(ptrec.db, c, err.Error())
 		return
 	}
-	if err := ptrec.service.VerifyFinding(uint(id), currentUserID, &formDTO); err != nil {
+	if err := ptrec.service.UpdateFindings(uint(id), currentUserID, &formDTO); err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
@@ -222,6 +245,194 @@ func (ptrec *PenetrationTestRetestController) VerifyPenetrationTestRetestFinding
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (ptrec *PenetrationTestRetestController) DeletePenetrationTestRetestFinding(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	retestFindingID, err := strconv.Atoi(c.Param("retestFindingId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ptrec.db, c, err.Error())
+		return
+	}
+	if err := ptrec.service.DeleteFinding(uint(id), uint(retestFindingID), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ptrec.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (ptrec *PenetrationTestRetestController) SavePenetrationTestRetestFinding(c *gin.Context) {
+	var formDTO penetrationTestDTOs.PenetrationTestRetestFindingSaveFormDTO
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	retestFindingID, err := strconv.Atoi(c.Param("retestFindingId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ptrec.db, c, err.Error())
+		return
+	}
+	if err := ptrec.service.SaveFinding(uint(id), uint(retestFindingID), currentUserID, &formDTO); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ptrec.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (ptrec *PenetrationTestRetestController) DecidePenetrationTestRetestFinding(c *gin.Context) {
+	var formDTO penetrationTestDTOs.PenetrationTestRetestFindingResultFormDTO
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	retestFindingID, err := strconv.Atoi(c.Param("retestFindingId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ptrec.db, c, err.Error())
+		return
+	}
+	if err := ptrec.service.DecideFinding(uint(id), uint(retestFindingID), currentUserID, &formDTO); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ptrec.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (ptrec *PenetrationTestRetestController) GetPenetrationTestRetestFindingDocumentPreview(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	retestFindingID, err := strconv.ParseUint(c.Param("retestFindingId"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	path, err := ptrec.service.GetDocumentPath(uint(id), uint(retestFindingID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(ptrec.db, c, err.Error())
+		}
+		return
+	}
+
+	c.File(path)
+}
+
+func (ptrec *PenetrationTestRetestController) DownloadPenetrationTestRetestFindingDocument(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	retestFindingID, err := strconv.ParseUint(c.Param("retestFindingId"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	path, err := ptrec.service.GetDocumentPath(uint(id), uint(retestFindingID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(ptrec.db, c, err.Error())
+		}
+		return
+	}
+
+	filename := filepath.Base(path)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(path)
 }
 
 func (ptrec *PenetrationTestRetestController) CompletePenetrationTestRetest(c *gin.Context) {
