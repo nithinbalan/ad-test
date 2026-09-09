@@ -14,6 +14,7 @@ type PenetrationTest struct {
 	PenetrationTestExecutorID       uint       `json:"penetration_test_executor_id" gorm:"not null" binding:"required"`
 	CSResponsibleEmployeeID         uint       `json:"cs_responsible_employee_id" gorm:"not null" binding:"required"`
 	Scope                           string     `json:"scope" gorm:"type:nvarchar(max);not null" binding:"required"`
+	Status                          string     `json:"status" gorm:"type:varchar(20);not null;default:'draft';check:status IN ('draft', 'under retest', 'closed')"`
 	CreatedBYID                     uint       `json:"created_by_id" gorm:"not null"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedBYID                     *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`

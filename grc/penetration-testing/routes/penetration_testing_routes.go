@@ -69,6 +69,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/:id/supporting-documents", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), supportingDocument.CreateSupportingDocument)
 	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id/supporting-documents/:supportingDocumentId", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), supportingDocument.UpdateSupportingDocument)
 	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/:id/supporting-documents/delete", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), supportingDocument.DeleteSupportingDocuments)
+	closure := m.PenetrationTestClosureController
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/closure", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), closure.GetPenetrationTestClosureDetails)
+	penetrationTestingRoutes.POST("/penetration-testing/pentest-logs/:id/closure", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), closure.CreatePenetrationTestClosure)
+	penetrationTestingRoutes.PUT("/penetration-testing/pentest-logs/:id/closure", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), closure.UpdatePenetrationTestClosure)
+	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-logs/:id/closure", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), closure.DeletePenetrationTestClosures)
 	penetrationTestingRoutes.GET("/penetration-testing/types", m.PenetrationTestTypeController.GetAllPenetrationTestTypes)
 	penetrationTestingRoutes.GET("/penetration-testing/types/:id", m.PenetrationTestTypeController.GetPenetrationTestTypeDetails)
 	penetrationTestingRoutes.POST("/penetration-testing/types", middlewares.RolePermissionMiddleware(db, "penetration_testing_setting", "modify"), m.PenetrationTestTypeController.CreatePenetrationTestType)

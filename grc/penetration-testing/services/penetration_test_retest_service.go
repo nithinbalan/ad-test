@@ -189,6 +189,10 @@ func (ptrs *PenetrationTestRetestService) Create(currentUserID uint, formDTO *pe
 			return 0, err
 		}
 	}
+	if err := ptrs.penetrationTestSvc.UpdateStatus(value.PenetrationTestID, "under retest", tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	if err := tx.Commit(); err != nil {
 		return 0, utility.NewInternalServerError(err)
 	}
