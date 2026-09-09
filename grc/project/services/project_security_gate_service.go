@@ -195,8 +195,7 @@ func (psgs *ProjectSecurityGateService) Create(currentUserID uint, form *dtos.Pr
 			id,
 			projectSecurityGate,
 			currentUserID,
-			//@todo add module id and sub module id once module and submodule are ready
-			"", "", "project_security_gate_create", nil,
+			"project", "project_security_gate", "project_security_gate_create", nil,
 		)
 		if activityErr != nil {
 			log.Printf("Failed to log activity: %v", activityErr)
@@ -289,8 +288,7 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 				id,
 				changes,
 				currentUserID,
-				//@todo add module id and sub module id once module and submodule are ready
-				"", "", "project_security_gate_update", nil,
+				"project", "project_security_gate", "project_security_gate_update", nil,
 			)
 			if activityErr != nil {
 				log.Printf("Failed to log update activity: %v", activityErr)

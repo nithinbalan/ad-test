@@ -22,7 +22,8 @@ type ProjectSecurityGateChecklist struct {
 	CreatedByUser  *User                                            `json:"created_by_user" gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser  *User                                            `json:"updated_by_user" gorm:"foreignKey:UpdatedBYID"`
 	Documents      []ProjectSecurityGateChecklistResponseDocument   `json:"documents" gorm:"foreignKey:ChecklistID"`
-	// Comments            []ProjectSecurityGateChecklistComment            `json:"comments" gorm:"foreignKey:ChecklistID"`
+	Comments       []ProjectSecurityGateChecklistComment            `json:"comments" gorm:"foreignKey:ChecklistID"`
+	Controls       []ProjectSecurityGateChecklistControl            `json:"controls" gorm:"foreignKey:ChecklistID"`
 }
 
 func (ProjectSecurityGateChecklist) TableName() string {

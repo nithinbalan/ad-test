@@ -70,6 +70,8 @@ type ProjectSecurityGateChecklistDetailDTO struct {
 	UpdatedByUser          *organizationDTOs.UserMinimalDTO                    `json:"updated_by"`
 	UpdatedAt              *time.Time                                          `json:"updated_at"`
 	Documents              []*ProjectSecurityGateChecklistResponseDocumentDTO  `json:"documents"`
+	Comments               []*ProjectSecurityGateChecklistCommentDTO           `json:"comments"`
+	Controls               []*organizationDTOs.ControlMinimalListDTO           `json:"controls"`
 }
 
 type ProjectSecurityGateChecklistResponseDocumentDTO struct {

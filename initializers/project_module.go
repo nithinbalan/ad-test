@@ -39,6 +39,7 @@ type ProjectModule struct {
 	ProjectSecurityGateController                        *controllers.ProjectSecurityGateController
 	ProjectSecurityGateChecklistController               *controllers.ProjectSecurityGateChecklistController
 	ProjectReportController                              *controllers.ProjectReportController
+	ProjectSecurityGateChecklistCommentController        *controllers.ProjectSecurityGateChecklistCommentController
 
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
@@ -294,10 +295,12 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	projectSecurityGateChecklistSvc := services.NewProjectSecurityGateChecklistService(
 		projectSecurityGateChecklistRepo,
 		projectSecurityGateChecklistResponseStatusSvc,
+		organizationModule.ControlSvc,
 		sharedModule.ActivityLogService,
 	)
 	projectSecurityGateChecklistController := controllers.NewProjectSecurityGateChecklistController(projectSecurityGateChecklistSvc)
 
+	// setters for checklist and security gate
 	projectSecurityGateSvc.SetChecklistService(projectSecurityGateChecklistSvc)
 	projectSecurityGateChecklistSvc.SetSecurityGateService(projectSecurityGateSvc)
 
@@ -307,6 +310,14 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		settingsModule.ReportTemplateSettingSvc,
 	)
 	projectReportController := controllers.NewProjectReportController(projectReportSvc)
+
+	projectSecurityGateChecklistCommentRepo := repositories.NewProjectSecurityGateChecklistCommentRepository(db)
+	projectSecurityGateChecklistCommentSvc := services.NewProjectSecurityGateChecklistCommentService(
+		projectSecurityGateChecklistCommentRepo,
+		projectSecurityGateChecklistSvc,
+		sharedModule.ActivityLogService,
+	)
+	projectSecurityGateChecklistCommentController := controllers.NewProjectSecurityGateChecklistCommentController(projectSecurityGateChecklistCommentSvc)
 
 	return &ProjectModule{
 		ProjectTypeController:                                projectTypeController,
@@ -339,6 +350,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectSecurityGateController:                        projectSecurityGateController,
 		ProjectSecurityGateChecklistController:               projectSecurityGateChecklistController,
 		ProjectReportController:                              projectReportController,
+		ProjectSecurityGateChecklistCommentController:        projectSecurityGateChecklistCommentController,
 
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,
