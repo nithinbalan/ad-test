@@ -95,6 +95,15 @@ func (csrals *CSLogSocRoomAccessLogService) GetFullDetailsByID(id uint, tx ...ut
 	entryDTO.CreatedAt = entry.CreatedAt
 	entryDTO.UpdatedAt = entry.UpdatedAt
 
+	if entry.EntryTime != nil {
+		entryTime := entry.EntryTime.Format("2006-01-02 15:04:05")
+		entryDTO.EntryTimeString = &entryTime
+	}
+	if entry.ExitTime != nil {
+		exitTime := entry.ExitTime.Format("2006-01-02 15:04:05")
+		entryDTO.ExitTimeString = &exitTime
+	}
+
 	return &entryDTO, nil
 }
 
@@ -438,8 +447,8 @@ func (csrals *CSLogSocRoomAccessLogService) Update(id uint, currentUserID uint, 
 
 		oldData := map[string]interface{}{
 			"visitor_full_name":   oldEntry.VisitorFullName,
-			"entry_time":          oldEntry.EntryTime.Format("2006-01-02 15:04:05"),
-			"exit_time":           oldEntry.ExitTime.Format("2006-01-02 15:04:05"),
+			"entry_time":          oldEntry.EntryTimeString,
+			"exit_time":           oldEntry.ExitTimeString,
 			"visitor_id_number":   oldEntry.VisitorIDNumber,
 			"department":          utility.GetFieldValue(oldEntry.Department),
 			"external_party_name": oldEntry.ExternalPartyName,
@@ -449,8 +458,8 @@ func (csrals *CSLogSocRoomAccessLogService) Update(id uint, currentUserID uint, 
 		}
 		newData := map[string]interface{}{
 			"visitor_full_name":   updatedEntry.VisitorFullName,
-			"entry_time":          updatedEntry.EntryTime.Format("2006-01-02 15:04:05"),
-			"exit_time":           updatedEntry.ExitTime.Format("2006-01-02 15:04:05"),
+			"entry_time":          updatedEntry.EntryTimeString,
+			"exit_time":           updatedEntry.ExitTimeString,
 			"visitor_id_number":   updatedEntry.VisitorIDNumber,
 			"department":          utility.GetFieldValue(updatedEntry.Department),
 			"external_party_name": updatedEntry.ExternalPartyName,
@@ -786,8 +795,8 @@ func (csrals *CSLogSocRoomAccessLogService) ExportCSLogSocRoomAccessLog(data []*
 				i + 1,
 				entry.ReferenceNumber,
 				entry.VisitorFullName,
-				entry.EntryTime.Format("2006-01-02 15:04:05"),
-				entry.ExitTime.Format("2006-01-02 15:04:05"),
+				entry.EntryTime,
+				entry.ExitTime,
 				entry.VisitorIDNumber,
 				entry.DepartmentTitleAr,
 				entry.ExternalPartyName,
@@ -799,8 +808,8 @@ func (csrals *CSLogSocRoomAccessLogService) ExportCSLogSocRoomAccessLog(data []*
 				i + 1,
 				entry.ReferenceNumber,
 				entry.VisitorFullName,
-				entry.EntryTime.Format("2006-01-02 15:04:05"),
-				entry.ExitTime.Format("2006-01-02 15:04:05"),
+				entry.EntryTime,
+				entry.ExitTime,
 				entry.VisitorIDNumber,
 				entry.DepartmentTitleEn,
 				entry.ExternalPartyName,

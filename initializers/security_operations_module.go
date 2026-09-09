@@ -46,6 +46,7 @@ func NewSecurityOperationsModule(
 		csLogDataReceptionMechanismSvc,
 		csLogCommunicationChannelSvc,
 		settingsModule.OrganizationUnitSvc,
+		organizationModule.UserSettingSvc,
 	)
 	csLogSourceDirectoryController := controllers.NewCSLogSourceDirectoryController(csLogSourceDirectorySvc)
 

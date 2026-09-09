@@ -3,9 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	socDtos "jethur/grc/security-operations/dtos"
 	"jethur/grc/security-operations/repositories"
 	settingServices "jethur/grc/settings/services"
@@ -22,6 +24,7 @@ type CSLogSourceDirectoryServiceInterface interface {
 	Create(currentUserID uint, form *socDtos.CSLogSourceDirectoryFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *socDtos.CSLogSourceDirectoryFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ExportCSLogSourceDirectory(data []*socDtos.CSLogSourceDirectoryListDTO, currentUserID uint) (*os.File, error)
 }
 
 type CSLogSourceDirectoryService struct {
@@ -31,6 +34,7 @@ type CSLogSourceDirectoryService struct {
 	receptionMechanismSvc   CSLogDataReceptionMechanismServiceInterface
 	communicationChannelSvc CSLogCommunicationChannelServiceInterface
 	organizationUnitSvc     settingServices.OrganizationUnitServiceInterface
+	userSettingSvc          organizationServices.UserSettingServiceInterface
 }
 
 func NewCSLogSourceDirectoryService(
@@ -40,6 +44,7 @@ func NewCSLogSourceDirectoryService(
 	receptionMechanismSvc CSLogDataReceptionMechanismServiceInterface,
 	communicationChannelSvc CSLogCommunicationChannelServiceInterface,
 	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) CSLogSourceDirectoryServiceInterface {
 	return &CSLogSourceDirectoryService{
 		repo:                    repo,
@@ -48,6 +53,7 @@ func NewCSLogSourceDirectoryService(
 		receptionMechanismSvc:   receptionMechanismSvc,
 		communicationChannelSvc: communicationChannelSvc,
 		organizationUnitSvc:     organizationUnitSvc,
+		userSettingSvc:          userSettingSvc,
 	}
 }
 
@@ -502,4 +508,55 @@ func (csds *CSLogSourceDirectoryService) Delete(ids []uint, currentUserID uint) 
 	}
 
 	return failedIds, nil
+}
+
+func (csds *CSLogSourceDirectoryService) ExportCSLogSourceDirectory(data []*socDtos.CSLogSourceDirectoryListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := csds.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"اسم الجهة",
+			"نوع جهة البيانات",
+			"الجهة المسؤولة",
+			"الجهة المستفيدة",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Entity Name",
+			"Data Entity Type",
+			"Responsible Entity",
+			"Beneficiary Entity",
+		}
+	}
+	rows := make([][]interface{}, len(data))
+	for i, entry := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				entry.ReferenceNumber,
+				entry.EntityName,
+				utility.GetStringValue(entry.DataEntityTypeTitleAr),
+				utility.GetStringValue(entry.ResponsibleEntityTitleAr),
+				utility.GetStringValue(entry.BeneficiaryEntityTitleAr),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				entry.ReferenceNumber,
+				entry.EntityName,
+				utility.GetStringValue(entry.DataEntityTypeTitleEn),
+				utility.GetStringValue(entry.ResponsibleEntityTitleEn),
+				utility.GetStringValue(entry.BeneficiaryEntityTitleEn),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

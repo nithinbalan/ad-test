@@ -30,6 +30,20 @@ func (csdc *CSLogSourceDirectoryController) GetAllCSLogSourceDirectories(c *gin.
 	sortBy := c.DefaultQuery("sort_by", "id")
 	keyword := c.Query("keyword")
 
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(csdc.db, c, "Invalid export parameter")
+			return
+		}
+	}
+
 	allowedParams := []string{
 		"data_entity_type_ids",
 		"responsible_entity_ids",
@@ -82,6 +96,7 @@ func (csdc *CSLogSourceDirectoryController) GetAllCSLogSourceDirectories(c *gin.
 		Page:     page,
 		PageSize: pageSize,
 		Filters:  filters,
+		Export:   export,
 	}
 	entries, err := csdc.service.GetAll(&queryParams)
 
@@ -90,7 +105,35 @@ func (csdc *CSLogSourceDirectoryController) GetAllCSLogSourceDirectories(c *gin.
 		return
 	}
 
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(csdc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := csdc.service.ExportCSLogSourceDirectory(entries.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(csdc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Source Directory.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, entries)
+}
+
+func (csdc *CSLogSourceDirectoryController) GetCSLogSourceDirectoryExport(c *gin.Context) {
+	c.Set("export", true)
+
+	csdc.GetAllCSLogSourceDirectories(c)
 }
 
 func (csdc *CSLogSourceDirectoryController) GetCSLogSourceDirectoryDetails(c *gin.Context) {
