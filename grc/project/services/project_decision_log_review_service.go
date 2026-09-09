@@ -855,7 +855,6 @@ func (pdlrs *ProjectDecisionLogReviewService) Reject(projectID uint, decisionLog
 	pdl.WorkflowStatusID = &workflowStatus.ID
 	pdl.RejectedBYID = &currentUserID
 	pdl.RejectedAt = &now
-	pdl.NextReviewLevel = nil
 	pdl.UpdatedByID = &currentUserID
 
 	if err := pdlrs.repo.UpdateDecisionLog(pdl, tx); err != nil {
