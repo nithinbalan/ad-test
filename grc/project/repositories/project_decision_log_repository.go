@@ -16,7 +16,7 @@ import (
 
 type ProjectDecisionLogRepositoryInterface interface {
 	GetAll(projectID uint, params *dtos.ProjectDecisionLogListQueryParamsDTO) (*dtos.ProjectDecisionLogListResponseDTO, error)
-	GetByID(projectID uint, id uint) (*models.ProjectDecisionLog, error)
+	GetByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLog, error)
 	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLog, error)
 	GenerateReferenceNumber() (string, error)
 	Create(decisionLog *models.ProjectDecisionLog, tx ...utility.DatabaseTransaction) (uint, error)
@@ -27,7 +27,7 @@ type ProjectDecisionLogRepositoryInterface interface {
 	CreateDocuments(documents []*models.ProjectDecisionLogDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(ids []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentsByDecisionLogID(decisionLogID uint, tx ...utility.DatabaseTransaction) error
-	GetDocumentByID(id uint) (*models.ProjectDecisionLogDocument, error)
+	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLogDocument, error)
 	GetSummary(projectID uint) (*dtos.ProjectDecisionLogSummaryDTO, error)
 	BeginTransaction() utility.DatabaseTransaction
 }
@@ -190,9 +190,13 @@ func (pdlr *ProjectDecisionLogRepository) GetAll(projectID uint, params *dtos.Pr
 	return response, nil
 }
 
-func (pdlr *ProjectDecisionLogRepository) GetByID(projectID uint, id uint) (*models.ProjectDecisionLog, error) {
+func (pdlr *ProjectDecisionLogRepository) GetByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLog, error) {
+	db := pdlr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var decisionLog models.ProjectDecisionLog
-	result := pdlr.db.Where("project_id = ? AND id = ?", projectID, id).First(&decisionLog)
+	result := db.Where("project_id = ? AND id = ?", projectID, id).First(&decisionLog)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -268,7 +272,10 @@ func (pdlr *ProjectDecisionLogRepository) Update(decisionLog *models.ProjectDeci
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Save(decisionLog).Error
+	return db.Model(&models.ProjectDecisionLog{}).
+		Where("id = ?", decisionLog.ID).
+		Select("decision", "decision_notes", "reason", "requested_by_user_id", "decision_date", "updated_by_id", "updated_at").
+		Updates(decisionLog).Error
 }
 
 func (pdlr *ProjectDecisionLogRepository) DeleteWorkflowHistories(decisionLogID uint, tx ...utility.DatabaseTransaction) error {
@@ -335,9 +342,13 @@ func (pdlr *ProjectDecisionLogRepository) DeleteDocumentsByDecisionLogID(decisio
 	return db.Where("project_decision_log_id = ?", decisionLogID).Delete(&models.ProjectDecisionLogDocument{}).Error
 }
 
-func (pdlr *ProjectDecisionLogRepository) GetDocumentByID(id uint) (*models.ProjectDecisionLogDocument, error) {
+func (pdlr *ProjectDecisionLogRepository) GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLogDocument, error) {
+	db := pdlr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var document models.ProjectDecisionLogDocument
-	result := pdlr.db.Where("id = ?", id).First(&document)
+	result := db.Where("id = ?", id).First(&document)
 	if result.Error != nil {
 		return nil, result.Error
 	}

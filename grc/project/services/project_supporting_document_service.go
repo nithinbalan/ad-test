@@ -211,6 +211,11 @@ func (psds *ProjectSupportingDocumentService) Update(projectID uint, id uint, cu
 	var docsToDelete []*uint
 	var documentsToDelete []*models.ProjectSupportingDocumentDocument
 
+	existingDocMap := make(map[uint]*models.ProjectSupportingDocumentDocument)
+	for _, d := range supportingDoc.Documents {
+		existingDocMap[d.ID] = d
+	}
+
 	for _, doc := range form.Documents {
 		if (doc.IsNewFile != nil && *doc.IsNewFile) || (doc.ID == nil && doc.FileName != "") {
 			dataToEncrypt := []byte(doc.FileName)
@@ -234,14 +239,18 @@ func (psds *ProjectSupportingDocumentService) Update(projectID uint, id uint, cu
 			newDocsToCreate = append(newDocsToCreate, newDoc)
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			if doc.ID != nil {
-				existingDocument, err := psds.repo.GetDocumentByID(*doc.ID)
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
+				existingDocument, exists := existingDocMap[*doc.ID]
+				if !exists {
+					var getErr error
+					existingDocument, getErr = psds.repo.GetDocumentByID(*doc.ID, tx)
+					if getErr != nil {
+						if errors.Is(getErr, gorm.ErrRecordNotFound) {
+							tx.Rollback()
+							return utility.NewResourceNotFoundError(getErr, *doc.ID)
+						}
 						tx.Rollback()
-						return utility.NewResourceNotFoundError(err, *doc.ID)
+						return getErr
 					}
-					tx.Rollback()
-					return err
 				}
 				if existingDocument.ProjectSupportingDocumentID != id {
 					tx.Rollback()
@@ -318,7 +327,7 @@ func (psds *ProjectSupportingDocumentService) Delete(projectID uint, ids []uint,
 	tx := psds.repo.BeginTransaction()
 
 	for _, id := range ids {
-		supportingDoc, err := psds.repo.GetByID(projectID, id)
+		supportingDoc, err := psds.repo.GetByID(projectID, id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue

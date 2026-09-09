@@ -16,6 +16,7 @@ type ProjectChangeRequestListDTO struct {
 	BusinessJustification       *string `json:"business_justification"`
 	AnticipatedBenefits         *string `json:"anticipated_benefits"`
 	RisksOfDeferral             *string `json:"risks_of_deferral"`
+	Impact                      string  `json:"impact"`
 	RequestedByUserID           uint    `json:"requested_by_user_id"`
 	RequestedByUserFirstNameEn  string  `json:"requested_by_user_first_name_en"`
 	RequestedByUserFirstNameAr  string  `json:"requested_by_user_first_name_ar"`

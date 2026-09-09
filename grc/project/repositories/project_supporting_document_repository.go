@@ -15,8 +15,8 @@ import (
 
 type ProjectSupportingDocumentRepositoryInterface interface {
 	GetAll(projectID uint, params *dtos.ProjectSupportingDocumentListQueryParamsDTO) (*dtos.ProjectSupportingDocumentListResponseDTO, error)
-	GetByID(projectID uint, id uint) (*models.ProjectSupportingDocument, error)
-	GetFullDetailsByID(projectID uint, id uint) (*models.ProjectSupportingDocument, error)
+	GetByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSupportingDocument, error)
+	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSupportingDocument, error)
 	Create(supportingDoc *models.ProjectSupportingDocument, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(supportingDoc *models.ProjectSupportingDocument, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -24,7 +24,7 @@ type ProjectSupportingDocumentRepositoryInterface interface {
 	CreateDocuments(documents []*models.ProjectSupportingDocumentDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(ids []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentsBySupportingDocumentID(supportingDocID uint, tx ...utility.DatabaseTransaction) error
-	GetDocumentByID(id uint) (*models.ProjectSupportingDocumentDocument, error)
+	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSupportingDocumentDocument, error)
 	BeginTransaction() utility.DatabaseTransaction
 }
 
@@ -169,18 +169,26 @@ func (psdr *ProjectSupportingDocumentRepository) GetAll(projectID uint, params *
 	}, nil
 }
 
-func (psdr *ProjectSupportingDocumentRepository) GetByID(projectID uint, id uint) (*models.ProjectSupportingDocument, error) {
+func (psdr *ProjectSupportingDocumentRepository) GetByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSupportingDocument, error) {
+	db := psdr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var supportingDoc models.ProjectSupportingDocument
-	err := psdr.db.Where("id = ? AND project_id = ?", id, projectID).First(&supportingDoc).Error
+	err := db.Where("id = ? AND project_id = ?", id, projectID).First(&supportingDoc).Error
 	if err != nil {
 		return nil, err
 	}
 	return &supportingDoc, nil
 }
 
-func (psdr *ProjectSupportingDocumentRepository) GetFullDetailsByID(projectID uint, id uint) (*models.ProjectSupportingDocument, error) {
+func (psdr *ProjectSupportingDocumentRepository) GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSupportingDocument, error) {
+	db := psdr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var supportingDoc models.ProjectSupportingDocument
-	err := psdr.db.
+	err := db.
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Documents").
@@ -210,7 +218,10 @@ func (psdr *ProjectSupportingDocumentRepository) Update(supportingDoc *models.Pr
 		db = tx[0].DB()
 	}
 
-	return db.Save(supportingDoc).Error
+	return db.Model(&models.ProjectSupportingDocument{}).
+		Where("id = ?", supportingDoc.ID).
+		Select("title_en", "title_ar", "updated_by_id", "updated_at").
+		Updates(supportingDoc).Error
 }
 
 func (psdr *ProjectSupportingDocumentRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
@@ -258,9 +269,13 @@ func (psdr *ProjectSupportingDocumentRepository) DeleteDocumentsBySupportingDocu
 	return db.Where("project_supporting_document_id = ?", supportingDocID).Delete(&models.ProjectSupportingDocumentDocument{}).Error
 }
 
-func (psdr *ProjectSupportingDocumentRepository) GetDocumentByID(id uint) (*models.ProjectSupportingDocumentDocument, error) {
+func (psdr *ProjectSupportingDocumentRepository) GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSupportingDocumentDocument, error) {
+	db := psdr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var document models.ProjectSupportingDocumentDocument
-	err := psdr.db.Where("id = ?", id).First(&document).Error
+	err := db.Where("id = ?", id).First(&document).Error
 	if err != nil {
 		return nil, err
 	}
