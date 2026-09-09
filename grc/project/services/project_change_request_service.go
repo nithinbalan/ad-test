@@ -2,10 +2,12 @@ package services
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -21,12 +23,13 @@ type ProjectChangeRequestServiceInterface interface {
 	SetWorkflowService(workflowSvc ProjectChangeRequestWorkflowServiceInterface)
 	GetAll(projectID uint, params *dtos.ProjectChangeRequestListQueryParamsDTO) (*dtos.ProjectChangeRequestListResponseDTO, error)
 	GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error)
-	GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectChangeRequestDetailDTO, error)
+	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectChangeRequestDetailDTO, error)
 	Create(projectID uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) (uint, error)
 	Update(projectID uint, id uint, currentUserID uint, form *dtos.ProjectChangeRequestFormDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error)
 	GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error)
+	GetDocumentPath(projectID uint, changeRequestID uint, documentID uint, token string) (string, error)
 }
 
 type ProjectChangeRequestService struct {
@@ -76,14 +79,14 @@ func (pcrs *ProjectChangeRequestService) GetByID(projectID uint, id uint) (*mode
 	return changeRequest, nil
 }
 
-func (pcrs *ProjectChangeRequestService) GetFullDetailsByID(projectID uint, id uint) (*dtos.ProjectChangeRequestDetailDTO, error) {
+func (pcrs *ProjectChangeRequestService) GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectChangeRequestDetailDTO, error) {
 	var detailDTO dtos.ProjectChangeRequestDetailDTO
 
 	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
 		return nil, err
 	}
 
-	changeRequest, err := pcrs.repo.GetFullDetailsByID(projectID, id)
+	changeRequest, err := pcrs.repo.GetFullDetailsByID(projectID, id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, &utility.ResourceNotFoundError{}
@@ -101,26 +104,36 @@ func (pcrs *ProjectChangeRequestService) GetFullDetailsByID(projectID uint, id u
 		detailDTO.RequestedOnString = &str
 	}
 
-	for i, ia := range changeRequest.ImpactAssessments {
-		if i < len(detailDTO.ImpactAssessments) {
-			if ia.CurrentDate != nil {
-				cdStr := ia.CurrentDate.Format("2006-01-02")
-				detailDTO.ImpactAssessments[i].CurrentDateString = &cdStr
-			}
-			if ia.RevisedDate != nil {
-				rdStr := ia.RevisedDate.Format("2006-01-02")
-				detailDTO.ImpactAssessments[i].RevisedDateString = &rdStr
-			}
-			if ia.ProjectImpactAssessmentType != nil {
-				detailDTO.ImpactAssessments[i].ProjectImpactAssessmentType = &dtos.ProjectImpactAssessmentTypeDTO{
-					ID:      ia.ProjectImpactAssessmentType.ID,
-					TitleEn: ia.ProjectImpactAssessmentType.TitleEn,
-					TitleAr: ia.ProjectImpactAssessmentType.TitleAr,
-					Type:    ia.ProjectImpactAssessmentType.Type,
-					Status:  ia.ProjectImpactAssessmentType.Status,
-				}
+	detailDTO.ImpactAssessments = make([]*dtos.ProjectImpactAssessmentDTO, 0, len(changeRequest.ImpactAssessments))
+	for _, ia := range changeRequest.ImpactAssessments {
+		iaDTO := &dtos.ProjectImpactAssessmentDTO{
+			ID:                            ia.ID,
+			ProjectChangeRequestID:        ia.ProjectChangeRequestID,
+			ProjectImpactAssessmentTypeID: ia.ProjectImpactAssessmentTypeID,
+			CurrentBudget:                 ia.CurrentBudget,
+			RevisedBudget:                 ia.RevisedBudget,
+			CurrentResourceCount:          ia.CurrentResourceCount,
+			RevisedResourceCount:          ia.RevisedResourceCount,
+			TechnicalComplexity:           ia.TechnicalComplexity,
+		}
+		if ia.CurrentDate != nil {
+			cdStr := ia.CurrentDate.Format("2006-01-02")
+			iaDTO.CurrentDateString = &cdStr
+		}
+		if ia.RevisedDate != nil {
+			rdStr := ia.RevisedDate.Format("2006-01-02")
+			iaDTO.RevisedDateString = &rdStr
+		}
+		if ia.ProjectImpactAssessmentType != nil {
+			iaDTO.ProjectImpactAssessmentType = &dtos.ProjectImpactAssessmentTypeDTO{
+				ID:      ia.ProjectImpactAssessmentType.ID,
+				TitleEn: ia.ProjectImpactAssessmentType.TitleEn,
+				TitleAr: ia.ProjectImpactAssessmentType.TitleAr,
+				Type:    ia.ProjectImpactAssessmentType.Type,
+				Status:  ia.ProjectImpactAssessmentType.Status,
 			}
 		}
+		detailDTO.ImpactAssessments = append(detailDTO.ImpactAssessments, iaDTO)
 	}
 
 	detailDTO.CreatedAt = changeRequest.CreatedAt
@@ -252,7 +265,7 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 		return err
 	}
 
-	changeRequest, err := pcrs.repo.GetByID(projectID, id)
+	changeRequest, err := pcrs.repo.GetFullDetailsByID(projectID, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &utility.ResourceNotFoundError{}
@@ -314,12 +327,13 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 		}
 	}
 
-	var documents []*models.ProjectChangeRequestDocument
-	var deleteDocumentIDs []*uint
+	// Document handling
+	var newDocsToCreate []*models.ProjectChangeRequestDocument
+	var docsToDelete []*uint
 	var documentsToDelete []*models.ProjectChangeRequestDocument
 
 	for _, doc := range form.Documents {
-		if doc.IsNewFile != nil && *doc.IsNewFile {
+		if (doc.IsNewFile != nil && *doc.IsNewFile) || (doc.ID == nil && doc.FileName != "") {
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
@@ -338,33 +352,37 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 				CreatedByID:            currentUserID,
 				CreatedAt:              time.Now(),
 			}
-			documents = append(documents, document)
+			newDocsToCreate = append(newDocsToCreate, document)
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			if doc.ID != nil {
 				existingDocument, err := pcrs.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
 					if errors.Is(err, gorm.ErrRecordNotFound) {
 						tx.Rollback()
-						return utility.NewResourceNotFoundError(err, id)
+						return utility.NewResourceNotFoundError(err, *doc.ID)
 					}
 					tx.Rollback()
 					return err
 				}
+				if existingDocument.ProjectChangeRequestID != id {
+					tx.Rollback()
+					return utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, *doc.ID)
+				}
 				documentsToDelete = append(documentsToDelete, existingDocument)
-				deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+				docsToDelete = append(docsToDelete, &existingDocument.ID)
 			}
 		}
 	}
 
-	if len(documents) > 0 {
-		if err := pcrs.repo.CreateDocuments(documents, tx); err != nil {
+	if len(docsToDelete) > 0 {
+		if err := pcrs.repo.DeleteDocuments(docsToDelete, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 
-	if len(deleteDocumentIDs) > 0 {
-		if err := pcrs.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
+	if len(newDocsToCreate) > 0 {
+		if err := pcrs.repo.CreateDocuments(newDocsToCreate, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -374,17 +392,17 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 		return err
 	}
 
-	for _, doc := range documents {
+	for _, doc := range newDocsToCreate {
 		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
-			return err
+			utility.LogError("Failed to store document file", map[string]interface{}{"error": err.Error(), "doc": doc.Name})
 		}
 	}
 
 	for _, doc := range documentsToDelete {
 		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
-			return err
+			utility.LogError("Failed to remove document file", map[string]interface{}{"error": err.Error(), "doc": doc.Name})
 		}
 	}
 
@@ -565,4 +583,32 @@ func parseImpactAssessments(forms []dtos.ProjectImpactAssessmentFormDTO) ([]*mod
 
 func (pcrs *ProjectChangeRequestService) GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error) {
 	return pcrs.repo.GetImpactAssessments(changeRequestID, tx...)
+}
+
+func (pcrs *ProjectChangeRequestService) GetDocumentPath(projectID uint, changeRequestID uint, documentID uint, token string) (string, error) {
+	if _, err := pcrs.projectSvc.GetByID(projectID); err != nil {
+		return "", err
+	}
+
+	if _, err := pcrs.repo.GetByID(projectID, changeRequestID); err != nil {
+		return "", err
+	}
+
+	document, err := pcrs.repo.GetDocumentByID(documentID)
+	if err != nil {
+		return "", err
+	}
+
+	if document.Token != token {
+		return "", &utility.ResourceNotFoundError{}
+	}
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "change-requests", strconv.FormatUint(uint64(changeRequestID), 10), "documents")
+	fullPath := filepath.Join(baseStoragePath, storagePath, document.Name)
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", &utility.ResourceNotFoundError{}
+	}
+
+	return fullPath, nil
 }

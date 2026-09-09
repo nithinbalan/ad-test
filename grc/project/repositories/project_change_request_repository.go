@@ -15,7 +15,7 @@ import (
 type ProjectChangeRequestRepositoryInterface interface {
 	GetAll(projectID uint, params *dtos.ProjectChangeRequestListQueryParamsDTO) (*dtos.ProjectChangeRequestListResponseDTO, error)
 	GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error)
-	GetFullDetailsByID(projectID uint, id uint) (*models.ProjectChangeRequest, error)
+	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequest, error)
 	GenerateReferenceNumber() (string, error)
 	Create(changeRequest *models.ProjectChangeRequest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(changeRequest *models.ProjectChangeRequest, tx ...utility.DatabaseTransaction) error
@@ -200,9 +200,13 @@ func (pcrr *ProjectChangeRequestRepository) GetByID(projectID uint, id uint) (*m
 	return &changeRequest, nil
 }
 
-func (pcrr *ProjectChangeRequestRepository) GetFullDetailsByID(projectID uint, id uint) (*models.ProjectChangeRequest, error) {
+func (pcrr *ProjectChangeRequestRepository) GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequest, error) {
 	var changeRequest models.ProjectChangeRequest
-	result := pcrr.db.
+	db := pcrr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.
 		Preload("Project").
 		Preload("RequestedByUser").
 		Preload("WorkflowStatus").

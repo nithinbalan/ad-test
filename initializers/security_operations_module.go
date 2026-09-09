@@ -24,6 +24,7 @@ func NewSecurityOperationsModule(
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
 	organizationModule *OrganizationModule,
+	commonModule *CommonModule,
 ) *SecurityOperationsModule {
 	csLogDataEntityTypeRepo := repositories.NewCSLogDataEntityTypeRepository(db)
 	csLogDataEntityTypeSvc := services.NewCSLogDataEntityTypeService(csLogDataEntityTypeRepo, sharedModule.ActivityLogService)
@@ -45,6 +46,7 @@ func NewSecurityOperationsModule(
 		csLogDataReceptionMechanismSvc,
 		csLogCommunicationChannelSvc,
 		settingsModule.OrganizationUnitSvc,
+		organizationModule.UserSettingSvc,
 	)
 	csLogSourceDirectoryController := controllers.NewCSLogSourceDirectoryController(csLogSourceDirectorySvc)
 
@@ -55,6 +57,7 @@ func NewSecurityOperationsModule(
 		settingsModule.OrganizationUnitSvc,
 		organizationModule.UserSvc,
 		organizationModule.UserSettingSvc,
+		commonModule.NotificationService,
 	)
 	csLogSocRoomAccessLogController := controllers.NewCSLogSocRoomAccessLogController(csLogSocRoomAccessLogSvc)
 

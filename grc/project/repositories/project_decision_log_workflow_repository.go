@@ -8,7 +8,7 @@ import (
 )
 
 type ProjectDecisionLogWorkflowRepositoryInterface interface {
-	GetWorkflowList(projectDecisionLogID uint) (*models.ProjectDecisionLog, error)
+	GetWorkflowList(projectDecisionLogID uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLog, error)
 	GetWorkflowHistories(projectDecisionLogID uint) ([]*models.ProjectDecisionLogWorkflowHistory, error)
 	CreateWorkflow(workflow *models.ProjectDecisionLogWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateWorkflow(workflow *models.ProjectDecisionLogWorkflow, tx ...utility.DatabaseTransaction) error
@@ -16,6 +16,9 @@ type ProjectDecisionLogWorkflowRepositoryInterface interface {
 	UpdateWorkflowParticipant(participant *models.ProjectDecisionLogWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error
+	UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLogWorkflow, error)
 	GetWorkflowByLevel(projectDecisionLogID uint, level int, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLogWorkflow, error)
@@ -31,9 +34,13 @@ func NewProjectDecisionLogWorkflowRepository(db *gorm.DB) *ProjectDecisionLogWor
 	return &ProjectDecisionLogWorkflowRepository{db: db}
 }
 
-func (pdlwr *ProjectDecisionLogWorkflowRepository) GetWorkflowList(projectDecisionLogID uint) (*models.ProjectDecisionLog, error) {
+func (pdlwr *ProjectDecisionLogWorkflowRepository) GetWorkflowList(projectDecisionLogID uint, tx ...utility.DatabaseTransaction) (*models.ProjectDecisionLog, error) {
+	db := pdlwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var projectDecisionLog models.ProjectDecisionLog
-	result := pdlwr.db.
+	result := db.
 		Preload("SubmittedByUser").
 		Preload("ApprovedByUser").
 		Preload("RejectedByUser").
@@ -124,7 +131,31 @@ func (pdlwr *ProjectDecisionLogWorkflowRepository) DeleteWorkflowReviews(reviewI
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Where("id IN (?)", reviewIds).Delete(&models.ProjectDecisionLogWorkflowReview{}).Error
+	return db.Where("id IN ?", reviewIds).Delete(&models.ProjectDecisionLogWorkflowReview{}).Error
+}
+
+func (pdlwr *ProjectDecisionLogWorkflowRepository) DeleteWorkflowHistories(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := pdlwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("project_decision_log_workflow_id IN (?)", workflowIds).Delete(&models.ProjectDecisionLogWorkflowHistory{}).Error
+}
+
+func (pdlwr *ProjectDecisionLogWorkflowRepository) DeleteReviewsByWorkflowID(workflowID uint, tx ...utility.DatabaseTransaction) error {
+	db := pdlwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("project_decision_log_workflow_id = ?", workflowID).Delete(&models.ProjectDecisionLogWorkflowReview{}).Error
+}
+
+func (pdlwr *ProjectDecisionLogWorkflowRepository) UpdateWorkflowStatus(workflowID uint, statusID uint, tx ...utility.DatabaseTransaction) error {
+	db := pdlwr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.ProjectDecisionLogWorkflow{}).Where("id = ?", workflowID).Update("workflow_status_id", statusID).Error
 }
 
 func (pdlwr *ProjectDecisionLogWorkflowRepository) DeleteWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
@@ -165,6 +196,7 @@ func (pdlwr *ProjectDecisionLogWorkflowRepository) GetWorkflowByLevel(projectDec
 		Preload("ProjectDecisionLogWorkflowParticipants").
 		Preload("ProjectDecisionLogWorkflowParticipants.User").
 		Preload("ProjectDecisionLogWorkflowParticipants.Role").
+		Preload("ProjectDecisionLogWorkflowReviews").
 		Where("project_decision_log_id = ? AND level = ?", projectDecisionLogID, level).
 		First(&workflow).Error
 	if err != nil {

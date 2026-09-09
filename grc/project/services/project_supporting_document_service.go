@@ -94,10 +94,6 @@ func (psds *ProjectSupportingDocumentService) GetFullDetailsByID(projectID uint,
 	detailDTO.CreatedAt = supportingDoc.CreatedAt
 	detailDTO.UpdatedAt = supportingDoc.UpdatedAt
 
-	if detailDTO.Documents == nil {
-		detailDTO.Documents = []*dtos.ProjectSupportingDocumentDocumentDTO{}
-	}
-
 	return &detailDTO, nil
 }
 
@@ -211,12 +207,12 @@ func (psds *ProjectSupportingDocumentService) Update(projectID uint, id uint, cu
 	}
 
 	// Document handling
-	var existingDocsToKeep []*uint
 	var newDocsToCreate []*models.ProjectSupportingDocumentDocument
+	var docsToDelete []*uint
+	var documentsToDelete []*models.ProjectSupportingDocumentDocument
+
 	for _, doc := range form.Documents {
-		if doc.ID != nil {
-			existingDocsToKeep = append(existingDocsToKeep, doc.ID)
-		} else {
+		if (doc.IsNewFile != nil && *doc.IsNewFile) || (doc.ID == nil && doc.FileName != "") {
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
@@ -236,21 +232,24 @@ func (psds *ProjectSupportingDocumentService) Update(projectID uint, id uint, cu
 				CreatedAt:                   time.Now(),
 			}
 			newDocsToCreate = append(newDocsToCreate, newDoc)
-		}
-	}
-
-	var docsToDelete []*uint
-	for _, doc := range supportingDoc.Documents {
-		keep := false
-		for _, keepID := range existingDocsToKeep {
-			if keepID != nil && *keepID == doc.ID {
-				keep = true
-				break
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := psds.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						tx.Rollback()
+						return utility.NewResourceNotFoundError(err, *doc.ID)
+					}
+					tx.Rollback()
+					return err
+				}
+				if existingDocument.ProjectSupportingDocumentID != id {
+					tx.Rollback()
+					return utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, *doc.ID)
+				}
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				docsToDelete = append(docsToDelete, &existingDocument.ID)
 			}
-		}
-		if !keep {
-			docID := doc.ID
-			docsToDelete = append(docsToDelete, &docID)
 		}
 	}
 
@@ -276,6 +275,13 @@ func (psds *ProjectSupportingDocumentService) Update(projectID uint, id uint, cu
 		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "supporting-documents", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			utility.LogError("Failed to store document file", map[string]interface{}{"error": err.Error(), "doc": doc.Name})
+		}
+	}
+
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join("project", strconv.FormatUint(uint64(projectID), 10), "supporting-documents", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+			utility.LogError("Failed to remove document file", map[string]interface{}{"error": err.Error(), "doc": doc.Name})
 		}
 	}
 

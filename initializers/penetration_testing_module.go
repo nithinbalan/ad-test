@@ -22,6 +22,8 @@ type PenetrationTestingModule struct {
 	PenetrationTestClassificationController         *controllers.PenetrationTestClassificationController
 	PenetrationTestExecutionStatusController        *controllers.PenetrationTestExecutionStatusController
 	PenetrationTestSecurityResultController         *controllers.PenetrationTestSecurityResultController
+	PenetrationTestSupportingDocumentController     *controllers.PenetrationTestSupportingDocumentController
+	PenetrationTestClosureController                *controllers.PenetrationTestClosureController
 }
 
 func NewPenetrationTestingModule(
@@ -87,6 +89,18 @@ func NewPenetrationTestingModule(
 		masterModule.ActionPlanStatusSvc,
 		repositories.NewPenetrationTestFindingStatusUpdateRepository(db),
 	)
+	supportingDocumentService := services.NewPenetrationTestSupportingDocumentService(
+		repositories.NewPenetrationTestSupportingDocumentRepository(db),
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		penetrationTestService,
+	)
+	closureService := services.NewPenetrationTestClosureService(
+		repositories.NewPenetrationTestClosureRepository(db),
+		sharedModule.ActivityLogService,
+		penetrationTestService,
+		organizationModule.UserSvc,
+	)
 	return &PenetrationTestingModule{
 		PenetrationTestController:                       controllers.NewPenetrationTestController(penetrationTestService),
 		PenetrationTestEnvironmentPreparationController: controllers.NewPenetrationTestEnvironmentPreparationController(environmentPreparationService),
@@ -102,5 +116,7 @@ func NewPenetrationTestingModule(
 		PenetrationTestClassificationController:         controllers.NewPenetrationTestClassificationController(classificationService),
 		PenetrationTestExecutionStatusController:        controllers.NewPenetrationTestExecutionStatusController(executionStatusService),
 		PenetrationTestSecurityResultController:         controllers.NewPenetrationTestSecurityResultController(securityResultService),
+		PenetrationTestSupportingDocumentController:     controllers.NewPenetrationTestSupportingDocumentController(supportingDocumentService, db),
+		PenetrationTestClosureController:                controllers.NewPenetrationTestClosureController(closureService),
 	}
 }

@@ -51,8 +51,8 @@ func (repo *CSLogSocRoomAccessLogRepository) GetAll(params *socDtos.CSLogSocRoom
 			soc.id,
 			soc.reference_number,
 			soc.visitor_full_name,
-			soc.entry_time,
-			soc.exit_time,
+			CONVERT(VARCHAR, soc.entry_time, 120) AS entry_time,
+			CONVERT(VARCHAR, soc.exit_time, 120) AS exit_time,
 			soc.visitor_id_number,
 			soc.department_id,
 			department.title_en AS department_title_en,
@@ -105,8 +105,10 @@ func (repo *CSLogSocRoomAccessLogRepository) GetAll(params *socDtos.CSLogSocRoom
 			authorizing_officer.first_name_en LIKE ? OR
 			authorizing_officer.first_name_ar LIKE ? OR
 			authorizing_officer.last_name_en LIKE ? OR
-			authorizing_officer.last_name_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			authorizing_officer.last_name_ar LIKE ? OR
+			CONCAT(authorizing_officer.first_name_en, ' ', authorizing_officer.last_name_en) LIKE ? OR
+			CONCAT(authorizing_officer.first_name_ar, ' ', authorizing_officer.last_name_ar) LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	filterColumns := map[string]string{
@@ -119,8 +121,11 @@ func (repo *CSLogSocRoomAccessLogRepository) GetAll(params *socDtos.CSLogSocRoom
 		}
 	}
 
-	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("soc.entry_time BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	if params.DateFrom != "" {
+		query = query.Where("soc.entry_time >= ?", params.DateFrom+" 00:00:00")
+	}
+	if params.DateTo != "" {
+		query = query.Where("soc.entry_time <= ?", params.DateTo+" 23:59:59")
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {

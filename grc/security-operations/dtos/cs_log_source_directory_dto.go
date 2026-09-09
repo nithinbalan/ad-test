@@ -50,6 +50,7 @@ type CSLogSourceDirectoryListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
+	Export   bool
 }
 
 type CSLogSourceDirectoryListResponseDTO struct {

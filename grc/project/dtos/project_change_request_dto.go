@@ -115,13 +115,13 @@ type ProjectChangeRequestDetailDTO struct {
 }
 
 type ProjectChangeRequestDocumentDTO struct {
-	ID           *uint   `json:"id,omitempty"`
-	URL          *string `json:"url"`
-	Name         string  `json:"file_name"`
+	ID           uint    `json:"id"`
+	URL          string  `json:"url"`
+	Name         string  `json:"name"`
 	OriginalName *string `json:"original_name"`
-	Type         string  `json:"type"`
 	Size         int     `json:"size"`
 	Token        string  `json:"token"`
+	Type         string  `json:"type"`
 }
 
 type ProjectImpactAssessmentDTO struct {

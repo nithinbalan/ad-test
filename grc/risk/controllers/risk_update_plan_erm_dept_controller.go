@@ -448,6 +448,45 @@ func (rruedc *RiskUpdatePlanERMDeptController) UpdateERMDepartmentEvaluationCont
 	c.Status(http.StatusOK)
 }
 
+func (rruedc *RiskUpdatePlanERMDeptController) MapControlsToUpdatePlan(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO riskDTOs.MapControlsToUpdatePlanDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rruedc.db, c, err.Error())
+		return
+	}
+
+	err = rruedc.service.MapControlsToTimeline(uint(id), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rruedc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (rruedc *RiskUpdatePlanERMDeptController) MarkERMDeptEvaluationAsNotApplicable(c *gin.Context) {
 	idStr := c.Param("id")
 

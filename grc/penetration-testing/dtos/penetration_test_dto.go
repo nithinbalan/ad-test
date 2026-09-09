@@ -18,6 +18,7 @@ type PenetrationTestListDTO struct {
 	PenetrationTestPlanTitleAr            string  `json:"penetration_test_plan_title_ar"`
 	Year                                  int     `json:"year"`
 	Period                                string  `json:"period"`
+	Status                                string  `json:"status"`
 	PenetrationTestClassificationID       uint    `json:"penetration_test_classification_id"`
 	PenetrationTestClassificationTitleEn  string  `json:"penetration_test_classification_title_en"`
 	PenetrationTestClassificationTitleAr  string  `json:"penetration_test_classification_title_ar"`
@@ -74,6 +75,7 @@ type PenetrationTestDetailDTO struct {
 	Year                          int                                     `json:"year"`
 	Period                        string                                  `json:"period"`
 	Scope                         string                                  `json:"scope"`
+	Status                        string                                  `json:"status"`
 	EnvironmentNotifyDate         *time.Time                              `json:"environment_notify_date"`
 	ExpectedReadyDate             *time.Time                              `json:"expected_ready_date"`
 	EnvironmentReadiness          *PenetrationTestEnvironmentReadinessDTO `json:"environment_readiness"`

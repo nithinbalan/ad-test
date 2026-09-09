@@ -3,8 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -22,7 +26,12 @@ type PenetrationTestRetestServiceInterface interface {
 	GetFullDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestRetestDetailDTO, error)
 	Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFormDTO) error
-	VerifyFinding(id uint, currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFindingFormDTO) error
+	GetEligibleFindings(id uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error)
+	UpdateFindings(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingUpdateFormDTO) error
+	DeleteFinding(id uint, retestFindingID uint, currentUserID uint) error
+	SaveFinding(id uint, retestFindingID uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingSaveFormDTO) error
+	DecideFinding(id uint, retestFindingID uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingResultFormDTO) error
+	GetDocumentPath(id uint, retestFindingID uint, token string) (string, error)
 	Complete(id uint, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
@@ -97,10 +106,12 @@ func (ptrs *PenetrationTestRetestService) GetFullDetailsByID(id uint) (*penetrat
 			PenetrationTestFindingID: retestFinding.PenetrationTestFindingID,
 			FindingReferenceNumber:   finding.ReferenceNumber,
 			FindingTitle:             finding.Title,
-			IsVerified:               retestFinding.IsVerified,
-			VerifiedAt:               retestFinding.VerifiedAt,
+			Comment:                  retestFinding.Comment,
+			Result:                   retestFinding.Result,
+			ResultAt:                 retestFinding.ResultAt,
+			Documents:                retestFinding.Documents,
 		})
-		if !retestFinding.IsVerified && finding.SeverityLevel != nil {
+		if (retestFinding.Result == nil || *retestFinding.Result != "pass") && finding.SeverityLevel != nil {
 			switch finding.SeverityLevel.Type {
 			case "critical":
 				detail.RemainingCritical++
@@ -177,6 +188,10 @@ func (ptrs *PenetrationTestRetestService) Create(currentUserID uint, formDTO *pe
 			tx.Rollback()
 			return 0, err
 		}
+	}
+	if err := ptrs.penetrationTestSvc.UpdateStatus(value.PenetrationTestID, "under retest", tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 	if err := tx.Commit(); err != nil {
 		return 0, utility.NewInternalServerError(err)
@@ -283,7 +298,19 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 	return nil
 }
 
-func (ptrs *PenetrationTestRetestService) VerifyFinding(id uint, currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFindingFormDTO) error {
+func (ptrs *PenetrationTestRetestService) GetEligibleFindings(id uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error) {
+	existing, err := ptrs.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	closedStatus, err := ptrs.actionPlanStatusSvc.GetByType("close")
+	if err != nil {
+		return nil, err
+	}
+	return ptrs.repo.GetEligibleOpenFindings(id, existing.PenetrationTestID, closedStatus.ID)
+}
+
+func (ptrs *PenetrationTestRetestService) UpdateFindings(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingUpdateFormDTO) error {
 	tx := ptrs.repo.BeginTransaction()
 	existing, err := ptrs.repo.GetByID(id, tx)
 	if err != nil {
@@ -294,62 +321,302 @@ func (ptrs *PenetrationTestRetestService) VerifyFinding(id uint, currentUserID u
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be changed"), "retest_already_completed", "re-test")
 	}
+	assigned := make(map[uint]bool)
 	for _, retestFinding := range existing.RetestFindings {
-		if retestFinding.PenetrationTestFindingID == formDTO.FindingID {
-			retestFinding.IsVerified = formDTO.IsVerified
-			if formDTO.IsVerified {
-				now := time.Now()
-				retestFinding.VerifiedAt = &now
-			} else {
-				retestFinding.VerifiedAt = nil
+		assigned[retestFinding.PenetrationTestFindingID] = true
+	}
+	seen := make(map[uint]bool)
+	for _, findingID := range form.FindingIDs {
+		if findingID == 0 || seen[findingID] {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("finding IDs must be unique and valid"), "invalid", "finding IDs")
+		}
+		seen[findingID] = true
+		if assigned[findingID] {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("finding is already assigned to this re-test"), "invalid", "finding IDs")
+		}
+		finding, err := ptrs.penetrationTestFindingSvc.GetByID(findingID)
+		if err != nil || finding.PenetrationTestID != existing.PenetrationTestID {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("finding does not belong to penetration test"), "not_exist", "finding IDs")
+		}
+		if _, err := ptrs.repo.CreateRetestFinding(&models.PenetrationTestRetestFinding{
+			PenetrationTestRetestID:  id,
+			PenetrationTestFindingID: findingID,
+			CreatedBYID:              currentUserID,
+			CreatedAt:                time.Now(),
+		}, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return utility.NewInternalServerError(err)
+	}
+	if ptrs.activityLogSvc != nil {
+		go func() {
+			existingEntry, err := ptrs.GetFullDetailsByID(id)
+			if err != nil {
+				utility.LogError("Failed to fetch penetration test re-test", map[string]interface{}{"error": err.Error()})
+				return
 			}
-			if err := ptrs.repo.UpdateRetestFinding(retestFinding, tx); err != nil {
+			if err := ptrs.activityLogSvc.LogActivity(models.UpdateAction, models.PenetrationTestRetest{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "assign penetration test re-test findings", nil); err != nil {
+				utility.LogError("Failed to log penetration test re-test activity", map[string]interface{}{"error": err.Error()})
+			}
+		}()
+	}
+	return nil
+}
+
+func (ptrs *PenetrationTestRetestService) DeleteFinding(id uint, retestFindingID uint, currentUserID uint) error {
+	tx := ptrs.repo.BeginTransaction()
+	existing, err := ptrs.repo.GetByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if existing.Status == "completed" {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be changed"), "retest_already_completed", "re-test")
+	}
+	retestFinding, err := ptrs.repo.GetRetestFindingByID(id, retestFindingID, tx)
+	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, retestFindingID)
+		}
+		return err
+	}
+	storagePath := filepath.Join("penetration-testing", "penetration-test-retests", strconv.FormatUint(uint64(id), 10), "findings", strconv.FormatUint(uint64(retestFindingID), 10), "documents")
+	if len(retestFinding.Documents) > 0 {
+		documentIDs := make([]*uint, 0, len(retestFinding.Documents))
+		for _, doc := range retestFinding.Documents {
+			documentIDs = append(documentIDs, &doc.ID)
+		}
+		if err := ptrs.repo.DeleteDocuments(documentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+		for _, doc := range retestFinding.Documents {
+			if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
-			if formDTO.IsVerified {
-				closedStatus, err := ptrs.actionPlanStatusSvc.GetByType("close")
-				if err != nil {
-					tx.Rollback()
-					return err
-				}
-				percentage := uint(100)
-				if err := ptrs.penetrationTestFindingSvc.StatusUpdate(formDTO.FindingID, currentUserID, closedStatus.ID, &percentage, tx); err != nil {
-					tx.Rollback()
-					return err
-				}
-				if _, err := ptrs.statusUpdateRepo.Create(&models.PenetrationTestFindingStatusUpdate{
-					PenetrationTestFindingID: formDTO.FindingID,
-					ActionPlanStatusID:       closedStatus.ID,
-					Percentage:               &percentage,
-					Comment:                  "Finding verified and closed through re-test",
-					CreatedBYID:              currentUserID,
-					CreatedAt:                time.Now(),
-				}, tx); err != nil {
-					tx.Rollback()
-					return err
-				}
-			}
-			if err := tx.Commit(); err != nil {
-				return utility.NewInternalServerError(err)
-			}
-			if ptrs.activityLogSvc != nil {
-				go func() {
-					existingEntry, err := ptrs.GetFullDetailsByID(id)
-					if err != nil {
-						utility.LogError("Failed to fetch penetration test re-test", map[string]interface{}{"error": err.Error()})
-						return
-					}
-					if err := ptrs.activityLogSvc.LogActivity(models.UpdateAction, models.PenetrationTestRetest{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "verify penetration test re-test finding", nil); err != nil {
-						utility.LogError("Failed to log penetration test re-test activity", map[string]interface{}{"error": err.Error()})
-					}
-				}()
-			}
-			return nil
 		}
 	}
-	tx.Rollback()
-	return utility.NewValidationError(fmt.Errorf("finding is not linked to this re-test"), "invalid", "finding_id")
+	if err := ptrs.repo.DeleteRetestFindingByID(id, retestFindingID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return utility.NewInternalServerError(err)
+	}
+	if ptrs.activityLogSvc != nil {
+		go func() {
+			existingEntry, err := ptrs.GetFullDetailsByID(id)
+			if err != nil {
+				utility.LogError("Failed to fetch penetration test re-test", map[string]interface{}{"error": err.Error()})
+				return
+			}
+			if err := ptrs.activityLogSvc.LogActivity(models.UpdateAction, models.PenetrationTestRetest{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "unassign penetration test re-test finding", nil); err != nil {
+				utility.LogError("Failed to log penetration test re-test activity", map[string]interface{}{"error": err.Error()})
+			}
+		}()
+	}
+	return nil
+}
+
+func (ptrs *PenetrationTestRetestService) SaveFinding(id uint, retestFindingID uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingSaveFormDTO) error {
+	tx := ptrs.repo.BeginTransaction()
+	existing, err := ptrs.repo.GetByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if existing.Status == "completed" {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be changed"), "retest_already_completed", "re-test")
+	}
+	retestFinding, err := ptrs.repo.GetRetestFindingByID(id, retestFindingID, tx)
+	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, retestFindingID)
+		}
+		return err
+	}
+	retestFinding.Comment = &form.Comment
+	if err := ptrs.repo.UpdateRetestFinding(retestFinding, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	var documents []*models.PenetrationTestRetestFindingDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.PenetrationTestRetestFindingDocument
+	for _, doc := range form.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			url := utility.GenerateDocumentURL("penetration-testing", "penetration-test-retests", uint64(id), "findings", uint64(retestFindingID), "documents")
+			documents = append(documents, &models.PenetrationTestRetestFindingDocument{
+				PenetrationTestRetestFindingID: retestFindingID,
+				URL:                            url,
+				Name:                           doc.FileName,
+				Size:                           doc.Size,
+				Token:                          encryptedFilename,
+				OriginalName:                   doc.OriginalName,
+				Type:                           doc.Type,
+				CreatedBYID:                    currentUserID,
+			})
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+			existingDocument, err := ptrs.repo.GetDocumentByID(*doc.ID)
+			if err != nil {
+				tx.Rollback()
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return utility.NewResourceNotFoundError(err, *doc.ID)
+				}
+				return err
+			}
+			documentsToDelete = append(documentsToDelete, existingDocument)
+			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+		}
+	}
+	if len(documents) > 0 {
+		if err := ptrs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if len(deleteDocumentIDs) > 0 {
+		if err := ptrs.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	storagePath := filepath.Join("penetration-testing", "penetration-test-retests", strconv.FormatUint(uint64(id), 10), "findings", strconv.FormatUint(uint64(retestFindingID), 10), "documents")
+	for _, doc := range documents {
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	for _, doc := range documentsToDelete {
+		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return utility.NewInternalServerError(err)
+	}
+	if ptrs.activityLogSvc != nil {
+		go func() {
+			existingEntry, err := ptrs.GetFullDetailsByID(id)
+			if err != nil {
+				utility.LogError("Failed to fetch penetration test re-test", map[string]interface{}{"error": err.Error()})
+				return
+			}
+			if err := ptrs.activityLogSvc.LogActivity(models.UpdateAction, models.PenetrationTestRetest{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "save penetration test re-test finding", nil); err != nil {
+				utility.LogError("Failed to log penetration test re-test activity", map[string]interface{}{"error": err.Error()})
+			}
+		}()
+	}
+	return nil
+}
+
+func (ptrs *PenetrationTestRetestService) DecideFinding(id uint, retestFindingID uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingResultFormDTO) error {
+	tx := ptrs.repo.BeginTransaction()
+	existing, err := ptrs.repo.GetByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if existing.Status == "completed" {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("completed re-tests cannot be changed"), "retest_already_completed", "re-test")
+	}
+	retestFinding, err := ptrs.repo.GetRetestFindingByID(id, retestFindingID, tx)
+	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, retestFindingID)
+		}
+		return err
+	}
+	if retestFinding.Comment == nil || *retestFinding.Comment == "" {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("comment is required before deciding a finding"), "required", "comment")
+	}
+	now := time.Now()
+	retestFinding.Result = &form.Result
+	retestFinding.ResultAt = &now
+	if err := ptrs.repo.UpdateRetestFinding(retestFinding, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if form.Result == "pass" {
+		closedStatus, err := ptrs.actionPlanStatusSvc.GetByType("close")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		percentage := uint(100)
+		if err := ptrs.penetrationTestFindingSvc.StatusUpdate(retestFinding.PenetrationTestFindingID, currentUserID, closedStatus.ID, &percentage, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if _, err := ptrs.statusUpdateRepo.Create(&models.PenetrationTestFindingStatusUpdate{
+			PenetrationTestFindingID: retestFinding.PenetrationTestFindingID,
+			ActionPlanStatusID:       closedStatus.ID,
+			Percentage:               &percentage,
+			Comment:                  *retestFinding.Comment,
+			CreatedBYID:              currentUserID,
+			CreatedAt:                time.Now(),
+		}, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return utility.NewInternalServerError(err)
+	}
+	if ptrs.activityLogSvc != nil {
+		go func() {
+			existingEntry, err := ptrs.GetFullDetailsByID(id)
+			if err != nil {
+				utility.LogError("Failed to fetch penetration test re-test", map[string]interface{}{"error": err.Error()})
+				return
+			}
+			if err := ptrs.activityLogSvc.LogActivity(models.UpdateAction, models.PenetrationTestRetest{}.TableName(), id, existingEntry, currentUserID, "penetration_testing", "penetration_testing_pentest_log", "decide penetration test re-test finding", nil); err != nil {
+				utility.LogError("Failed to log penetration test re-test activity", map[string]interface{}{"error": err.Error()})
+			}
+		}()
+	}
+	return nil
+}
+
+func (ptrs *PenetrationTestRetestService) GetDocumentPath(id uint, retestFindingID uint, token string) (string, error) {
+	value, err := ptrs.repo.GetRetestFindingByID(id, retestFindingID)
+	if err != nil {
+		return "", err
+	}
+	if len(value.Documents) == 0 {
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("no documents found"), retestFindingID)
+	}
+	filenameBytes, err := utility.DecryptData(token)
+	if err != nil || string(filenameBytes) == "" {
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("resource not found"), retestFindingID)
+	}
+	storagePath := filepath.Join("penetration-testing", "penetration-test-retests", strconv.FormatUint(uint64(id), 10), "findings", strconv.FormatUint(uint64(retestFindingID), 10), "documents")
+	fullPath := filepath.Join(config.GetEnv("STORAGE_PATH", ""), storagePath, string(filenameBytes))
+	if _, err := os.Stat(fullPath); err != nil {
+		return "", utility.NewResourceNotFoundError(err, retestFindingID)
+	}
+	return fullPath, nil
 }
 
 func (ptrs *PenetrationTestRetestService) Complete(id uint, currentUserID uint) error {
@@ -379,7 +646,7 @@ func (ptrs *PenetrationTestRetestService) Complete(id uint, currentUserID uint) 
 	}
 	percentage := uint(100)
 	for _, retestFinding := range value.RetestFindings {
-		if !retestFinding.IsVerified {
+		if retestFinding.Result == nil || *retestFinding.Result != "pass" {
 			continue
 		}
 		if retestFinding.PenetrationTestFinding != nil && retestFinding.PenetrationTestFinding.ActionPlanStatusID == closedStatus.ID {

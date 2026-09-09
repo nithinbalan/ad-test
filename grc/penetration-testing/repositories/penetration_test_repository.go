@@ -19,6 +19,7 @@ type PenetrationTestRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.PenetrationTest, error)
 	Create(penetrationTest *models.PenetrationTest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(penetrationTest *models.PenetrationTest, tx ...utility.DatabaseTransaction) error
+	UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	DeletePenetrationTestDetails(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
@@ -65,6 +66,7 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 			penetration_test_plans.title_ar AS penetration_test_plan_title_ar,
 			penetration_tests.year,
 			penetration_tests.period,
+			penetration_tests.status,
 			penetration_tests.penetration_test_classification_id,
 			penetration_test_classifications.title_en AS penetration_test_classification_title_en,
 			penetration_test_classifications.title_ar AS penetration_test_classification_title_ar,
@@ -232,6 +234,14 @@ func (repo *PenetrationTestRepository) Update(penetrationTest *models.Penetratio
 		db = tx[0].DB()
 	}
 	return db.Model(&models.PenetrationTest{}).Where("id = ?", penetrationTest.ID).Updates(penetrationTest).Error
+}
+
+func (repo *PenetrationTestRepository) UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.PenetrationTest{}).Where("id = ?", id).Update("status", status).Error
 }
 
 func (repo *PenetrationTestRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {

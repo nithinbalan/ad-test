@@ -636,7 +636,6 @@ func (ics *InternalCommitteeService) CompleteCommittee(committeeID uint, current
 		return fmt.Errorf("no latest version found for committee")
 	}
 	now := time.Now()
-	latestVersion.UpdatedBYID = &currentUserID
 	latestVersion.CommitteeStatusID = completedStatus.ID
 	latestVersion.CompletedByID = &currentUserID
 	latestVersion.CompletedAt = &now

@@ -34,9 +34,11 @@ type ProjectModule struct {
 	ProjectDecisionLogReviewController                   *controllers.ProjectDecisionLogReviewController
 	ProjectDecisionLogReviewCommentController            *controllers.ProjectDecisionLogReviewCommentController
 	ProjectSupportingDocumentController                  *controllers.ProjectSupportingDocumentController
+	ProjectClosureController                             *controllers.ProjectClosureController
 	ProjectSecurityGateReadinessStatusController         *controllers.ProjectSecurityGateReadinessStatusController
 	ProjectSecurityGateController                        *controllers.ProjectSecurityGateController
 	ProjectSecurityGateChecklistController               *controllers.ProjectSecurityGateChecklistController
+	ProjectReportController                              *controllers.ProjectReportController
 	ProjectSecurityGateChecklistCommentController        *controllers.ProjectSecurityGateChecklistCommentController
 
 	projectSvc                           services.ProjectServiceInterface
@@ -52,6 +54,8 @@ type ProjectModule struct {
 	projectDecisionLogReviewSvc          services.ProjectDecisionLogReviewServiceInterface
 	projectDecisionLogReviewCommentSvc   services.ProjectDecisionLogReviewCommentServiceInterface
 	projectSupportingDocumentSvc         services.ProjectSupportingDocumentServiceInterface
+	projectClosureSvc                    services.ProjectClosureServiceInterface
+	projectReportSvc                     services.ProjectReportServiceInterface
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule, settingsModule *SettingsModule) *ProjectModule {
@@ -109,7 +113,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectChangeRequestWorkflowSvc.SetProjectChangeRequestService(projectChangeRequestSvc)
 	projectChangeRequestSvc.SetWorkflowService(projectChangeRequestWorkflowSvc)
-	projectChangeRequestWorkflowController := controllers.NewProjectChangeRequestWorkflowController(projectChangeRequestWorkflowSvc, db)
+	projectChangeRequestWorkflowController := controllers.NewProjectChangeRequestWorkflowController(projectChangeRequestWorkflowSvc)
 
 	projectChangeRequestReviewSvc := services.NewProjectChangeRequestReviewService(
 		projectChangeRequestReviewRepo,
@@ -121,7 +125,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		commonModule.NotificationService,
 		projectSvc,
 	)
-	projectChangeRequestReviewController := controllers.NewProjectChangeRequestReviewController(projectChangeRequestReviewSvc, db)
+	projectChangeRequestReviewController := controllers.NewProjectChangeRequestReviewController(projectChangeRequestReviewSvc)
 
 	projectChangeRequestReviewCommentRepo := repositories.NewProjectChangeRequestReviewCommentRepository(db)
 	projectChangeRequestReviewCommentSvc := services.NewProjectChangeRequestReviewCommentService(
@@ -131,7 +135,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectChangeRequestSvc,
 		masterModule.CommentStatusSvc,
 	)
-	projectChangeRequestReviewCommentController := controllers.NewProjectChangeRequestReviewCommentController(projectChangeRequestReviewCommentSvc, db)
+	projectChangeRequestReviewCommentController := controllers.NewProjectChangeRequestReviewCommentController(projectChangeRequestReviewCommentSvc)
 
 	projectActionPlanRepo := repositories.NewProjectActionPlanRepository(db)
 	projectActionPlanSvc := services.NewProjectActionPlanService(
@@ -212,7 +216,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		organizationModule.UserSvc,
 		projectSvc,
 	)
-	projectDecisionLogController := controllers.NewProjectDecisionLogController(projectDecisionLogSvc, db)
+	projectDecisionLogController := controllers.NewProjectDecisionLogController(projectDecisionLogSvc)
 
 	projectDecisionLogWorkflowRepo := repositories.NewProjectDecisionLogWorkflowRepository(db)
 	projectDecisionLogReviewRepo := repositories.NewProjectDecisionLogReviewRepository(db)
@@ -229,7 +233,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectDecisionLogWorkflowSvc.SetProjectDecisionLogService(projectDecisionLogSvc)
 	projectDecisionLogSvc.SetWorkflowService(projectDecisionLogWorkflowSvc)
-	projectDecisionLogWorkflowController := controllers.NewProjectDecisionLogWorkflowController(projectDecisionLogWorkflowSvc, db)
+	projectDecisionLogWorkflowController := controllers.NewProjectDecisionLogWorkflowController(projectDecisionLogWorkflowSvc)
 
 	projectDecisionLogReviewSvc := services.NewProjectDecisionLogReviewService(
 		projectDecisionLogReviewRepo,
@@ -240,7 +244,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
 	)
-	projectDecisionLogReviewController := controllers.NewProjectDecisionLogReviewController(projectDecisionLogReviewSvc, db)
+	projectDecisionLogReviewController := controllers.NewProjectDecisionLogReviewController(projectDecisionLogReviewSvc)
 
 	projectDecisionLogReviewCommentRepo := repositories.NewProjectDecisionLogReviewCommentRepository(db)
 	projectDecisionLogReviewCommentSvc := services.NewProjectDecisionLogReviewCommentService(
@@ -250,7 +254,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectDecisionLogSvc,
 		masterModule.CommentStatusSvc,
 	)
-	projectDecisionLogReviewCommentController := controllers.NewProjectDecisionLogReviewCommentController(projectDecisionLogReviewCommentSvc, db)
+	projectDecisionLogReviewCommentController := controllers.NewProjectDecisionLogReviewCommentController(projectDecisionLogReviewCommentSvc)
 
 	projectSupportingDocumentRepo := repositories.NewProjectSupportingDocumentRepository(db)
 	projectSupportingDocumentSvc := services.NewProjectSupportingDocumentService(
@@ -260,6 +264,16 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectSvc,
 	)
 	projectSupportingDocumentController := controllers.NewProjectSupportingDocumentController(projectSupportingDocumentSvc, db)
+
+	projectClosureRepo := repositories.NewProjectClosureRepository(db)
+	projectClosureSvc := services.NewProjectClosureService(
+		projectClosureRepo,
+		projectSvc,
+		projectPhaseSvc,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+	)
+	projectClosureController := controllers.NewProjectClosureController(projectClosureSvc, db)
 
 	projectSecurityGateReadinessStatusRepo := repositories.NewProjectSecurityGateReadinessStatusRepository(db)
 	projectSecurityGateReadinessStatusSvc := services.NewProjectSecurityGateReadinessStatusService(projectSecurityGateReadinessStatusRepo)
@@ -289,6 +303,13 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	// setters for checklist and security gate
 	projectSecurityGateSvc.SetChecklistService(projectSecurityGateChecklistSvc)
 	projectSecurityGateChecklistSvc.SetSecurityGateService(projectSecurityGateSvc)
+
+	projectReportRepo := repositories.NewProjectReportRepository(db)
+	projectReportSvc := services.NewProjectReportService(
+		projectReportRepo,
+		settingsModule.ReportTemplateSettingSvc,
+	)
+	projectReportController := controllers.NewProjectReportController(projectReportSvc)
 
 	projectSecurityGateChecklistCommentRepo := repositories.NewProjectSecurityGateChecklistCommentRepository(db)
 	projectSecurityGateChecklistCommentSvc := services.NewProjectSecurityGateChecklistCommentService(
@@ -324,9 +345,11 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectDecisionLogReviewController:                   projectDecisionLogReviewController,
 		ProjectDecisionLogReviewCommentController:            projectDecisionLogReviewCommentController,
 		ProjectSupportingDocumentController:                  projectSupportingDocumentController,
+		ProjectClosureController:                             projectClosureController,
 		ProjectSecurityGateReadinessStatusController:         projectSecurityGateReadinessStatusController,
 		ProjectSecurityGateController:                        projectSecurityGateController,
 		ProjectSecurityGateChecklistController:               projectSecurityGateChecklistController,
+		ProjectReportController:                              projectReportController,
 		ProjectSecurityGateChecklistCommentController:        projectSecurityGateChecklistCommentController,
 
 		projectSvc:                           projectSvc,
@@ -342,5 +365,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectDecisionLogReviewSvc:          projectDecisionLogReviewSvc,
 		projectDecisionLogReviewCommentSvc:   projectDecisionLogReviewCommentSvc,
 		projectSupportingDocumentSvc:         projectSupportingDocumentSvc,
+		projectClosureSvc:                    projectClosureSvc,
+		projectReportSvc:                     projectReportSvc,
 	}
 }

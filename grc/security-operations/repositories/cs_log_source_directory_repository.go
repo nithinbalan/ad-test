@@ -108,15 +108,21 @@ func (repo *CSLogSourceDirectoryRepository) GetAll(params *socDtos.CSLogSourceDi
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
+
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
 	err := query.Find(&entries).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 	response := &socDtos.CSLogSourceDirectoryListResponseDTO{
 		Items: entries,
 		Pagination: commonDTOs.PaginationInfoDTO{

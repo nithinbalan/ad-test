@@ -27,6 +27,7 @@ type RiskUpdatePlanERMDeptRepositoryInterface interface {
 	// ERM Department Evaluation - Controls
 	GetControlsByBusinessUnitID(businessUnitID uint) ([]uint, error)
 	GetERMDeptEvaluationControls(timelineID uint, params *riskDTOs.CommonListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationControlListResponseDTO, error)
+	GetControlIDsByTimelineID(timelineID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	CreateControlMappings(controls []*models.RiskUpdatePlanControl, tx ...utility.DatabaseTransaction) error
 	DeleteAllControlMappingsByTimelineID(timelineID uint, tx ...utility.DatabaseTransaction) error
 
@@ -757,6 +758,22 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 		Items:      controls,
 		Pagination: pagination,
 	}, nil
+}
+
+func (repo *RiskUpdatePlanERMDeptRepository) GetControlIDsByTimelineID(timelineID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var controlIDs []uint
+	if err := db.Model(&models.RiskUpdatePlanControl{}).
+		Where("risk_update_plan_timeline_id = ?", timelineID).
+		Pluck("control_id", &controlIDs).Error; err != nil {
+		return nil, err
+	}
+
+	return controlIDs, nil
 }
 
 func (repo *RiskUpdatePlanERMDeptRepository) CreateControlMappings(controls []*models.RiskUpdatePlanControl, tx ...utility.DatabaseTransaction) error {

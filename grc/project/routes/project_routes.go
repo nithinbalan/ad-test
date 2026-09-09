@@ -41,9 +41,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectDecisionLogReviewController := app.ProjectModule.ProjectDecisionLogReviewController
 	projectDecisionLogReviewCommentController := app.ProjectModule.ProjectDecisionLogReviewCommentController
 	projectSupportingDocumentController := app.ProjectModule.ProjectSupportingDocumentController
+	projectClosureController := app.ProjectModule.ProjectClosureController
 	projectSecurityGateReadinessStatusController := app.ProjectModule.ProjectSecurityGateReadinessStatusController
 	projectSecurityGateController := app.ProjectModule.ProjectSecurityGateController
 	projectSecurityGateChecklistController := app.ProjectModule.ProjectSecurityGateChecklistController
+	projectReportController := app.ProjectModule.ProjectReportController
 	projectSecurityGateChecklistCommentController := app.ProjectModule.ProjectSecurityGateChecklistCommentController
 
 	// Source-module controllers
@@ -65,6 +67,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Projects
 	projectRoutes.GET("/projects", projectController.GetAllProjects)
 	projectRoutes.GET("/projects/export", projectController.GetProjectsExport)
+	projectRoutes.GET("/projects/:projectId/export-pdf", projectReportController.ExportProjectReportToPDF)
 	projectRoutes.GET("/projects/:projectId", projectController.GetProjectDetails)
 	projectRoutes.POST("/projects", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.CreateProject)
 	projectRoutes.PUT("/projects/:projectId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.UpdateProject)
@@ -81,6 +84,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/milestones/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectMilestoneController.DeleteProjectMilestones)
 
 	// Project Change Requests
+	unauthenticatedRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/documents/:documentId/download", projectChangeRequestController.DownloadDocument)
+	unauthenticatedRoutes.GET("/projects/:projectId/change-requests/:changeRequestId/documents/:documentId/preview", projectChangeRequestController.GetDocumentPreview)
 	projectRoutes.GET("/projects/:projectId/change-requests", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetAllProjectChangeRequests)
 	projectRoutes.GET("/projects/:projectId/change-requests/summary", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetProjectChangeRequestSummary)
 	projectRoutes.GET("/projects/:projectId/change-requests/:changeRequestId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectChangeRequestController.GetProjectChangeRequestDetails)
@@ -246,6 +251,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Project Security Gate Checklist Response Statuses
 	projectRoutes.GET("/project-security-gate-checklist-response-statuses", projectSecurityGateChecklistResponseStatusController.GetAllProjectSecurityGateChecklistResponseStatuses)
 	projectRoutes.GET("/project-security-gate-checklist-response-statuses/:id", projectSecurityGateChecklistResponseStatusController.GetProjectSecurityGateChecklistResponseStatusDetails)
+
+	// Project Closures
+	projectRoutes.GET("/projects/:projectId/closures", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectClosureController.GetAllProjectClosures)
+	projectRoutes.GET("/projects/:projectId/closures/:closureId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectClosureController.GetProjectClosureDetails)
+	projectRoutes.POST("/projects/:projectId/closures", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectClosureController.CreateProjectClosure)
+	projectRoutes.PUT("/projects/:projectId/closures/:closureId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectClosureController.UpdateProjectClosure)
+	projectRoutes.DELETE("/projects/:projectId/closures/:closureId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectClosureController.DeleteProjectClosure)
+	projectRoutes.POST("/projects/:projectId/closures/:closureId/approve", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectClosureController.ApproveProjectClosure)
 
 	// Project Security Gate Readiness Statuses
 	projectRoutes.GET("/project-security-gate-readiness-statuses", projectSecurityGateReadinessStatusController.GetAllProjectSecurityGateReadinessStatuses)
