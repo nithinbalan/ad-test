@@ -159,7 +159,7 @@ func (psdr *ProjectSupportingDocumentRepository) GetAll(projectID uint, params *
 
 	totalPages := int(math.Ceil(float64(totalCount) / float64(params.PageSize)))
 	return &dtos.ProjectSupportingDocumentListResponseDTO{
-		Data: supportingDocs,
+		Items: supportingDocs,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,

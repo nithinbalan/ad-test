@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -28,6 +29,7 @@ type ProjectActionPlanServiceInterface interface {
 	Update(projectID uint, id uint, currentUserID uint, project *projectDTOs.ProjectActionPlanFormDTO) error
 	Delete(projectID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(projectID uint, id uint, currentUserID uint, projectActionPlanStatusUpdateFormDTO *projectDTOs.ProjectActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
+	ExportProjectActionPlans(data []*projectDTOs.ProjectActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -42,6 +44,7 @@ type ProjectActionPlanService struct {
 	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 	taskSvc             taskServices.TaskServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
 }
 
 func NewProjectActionPlanService(
@@ -49,6 +52,7 @@ func NewProjectActionPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 	projectSvc ProjectServiceInterface,
 	projectMilestoneSvc ProjectMilestoneServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
@@ -61,6 +65,7 @@ func NewProjectActionPlanService(
 		activityLogSvc:      activityLogSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		userSvc:             userSvc,
+		userSettingSvc:      userSettingSvc,
 		projectSvc:          projectSvc,
 		projectMilestoneSvc: projectMilestoneSvc,
 		severityLevelSvc:    severityLevelSvc,
@@ -684,4 +689,97 @@ func (paps *ProjectActionPlanService) StatusUpdate(projectID uint, id uint, curr
 	}
 
 	return nil
+}
+
+func (paps *ProjectActionPlanService) ExportProjectActionPlans(data []*projectDTOs.ProjectActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := paps.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting != nil && userSetting.Language == "ar" {
+		headers = []string{
+			"Action Plan",
+			"Project",
+			"Milestone",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Percentage",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"Action Plan",
+			"Project",
+			"Milestone",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Percentage",
+			"Status",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		var projectTitle, milestoneTitle, severity, description string
+		if item.ProjectTitleEn != nil {
+			projectTitle = *item.ProjectTitleEn
+		}
+		if item.ProjectMilestoneTitleEn != nil {
+			milestoneTitle = *item.ProjectMilestoneTitleEn
+		}
+		if item.SeverityLevelTitleEn != nil {
+			severity = *item.SeverityLevelTitleEn
+		}
+		if item.Description != nil {
+			description = stripHTML(item.Description)
+		}
+		targetDate := ""
+		if item.TargetDate != nil {
+			targetDate = *item.TargetDate
+		}
+
+		if userSetting != nil && userSetting.Language == "ar" {
+			if item.ProjectTitleAr != nil {
+				projectTitle = *item.ProjectTitleAr
+			}
+			if item.ProjectMilestoneTitleAr != nil {
+				milestoneTitle = *item.ProjectMilestoneTitleAr
+			}
+			if item.SeverityLevelTitleAr != nil {
+				severity = *item.SeverityLevelTitleAr
+			}
+			rows[i] = []interface{}{
+				item.Title,
+				projectTitle,
+				milestoneTitle,
+				description,
+				severity,
+				fmt.Sprintf("%s %s", item.ResponsibleUserFirstNameAr, item.ResponsibleUserLastNameAr),
+				targetDate,
+				item.Percentage,
+				item.ActionPlanStatusTitleAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				item.Title,
+				projectTitle,
+				milestoneTitle,
+				description,
+				severity,
+				fmt.Sprintf("%s %s", item.ResponsibleUserFirstNameEn, item.ResponsibleUserLastNameEn),
+				targetDate,
+				item.Percentage,
+				item.ActionPlanStatusTitleEn,
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }

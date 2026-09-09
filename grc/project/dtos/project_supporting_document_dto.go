@@ -75,6 +75,6 @@ type ProjectSupportingDocumentListQueryParamsDTO struct {
 }
 
 type ProjectSupportingDocumentListResponseDTO struct {
-	Data       []*ProjectSupportingDocumentListDTO `json:"data"`
+	Items       []*ProjectSupportingDocumentListDTO `json:"data"`
 	Pagination commonDTOs.PaginationInfoDTO        `json:"pagination"`
 }

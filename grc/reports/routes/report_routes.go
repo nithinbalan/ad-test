@@ -29,6 +29,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	grcReportWorkflowController := app.ReportsModule.GRCReportWorkflowController
 	grcReportWorkflowReviewCommentController := app.ReportsModule.GRCReportWorkflowReviewCommentController
 	tprmReportController := app.ReportsModule.TPRMReportController
+	projectReportController := app.ReportsModule.ProjectReportController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -171,6 +172,24 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/incident-action-plan-by-status", incidentReportController.GetIncidentActionPlanByStatus)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-user", incidentReportController.GetIncidentActionPlanByResponsibleUser)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-unit", incidentReportController.GetIncidentActionPlanByResponsibleUnit)
+
+	//Projects
+	reportsRoutes.GET("/reports/projects", projectReportController.GetAllProjects)
+	reportsRoutes.GET("/reports/projects/export", projectReportController.GetProjectExport)
+	reportsRoutes.GET("/reports/project-by-type", projectReportController.GetProjectByType)
+	reportsRoutes.GET("/reports/project-by-status", projectReportController.GetProjectByStatus)
+	reportsRoutes.GET("/reports/project-by-phase", projectReportController.GetProjectByPhase)
+	reportsRoutes.GET("/reports/project-by-classification", projectReportController.GetProjectByClassification)
+	reportsRoutes.GET("/reports/project-by-responsible-unit", projectReportController.GetProjectByResponsibleUnit)
+	reportsRoutes.GET("/reports/project-by-responsible-user", projectReportController.GetProjectByResponsibleUser)
+	reportsRoutes.GET("/reports/project-by-year", projectReportController.GetProjectByYear)
+
+	//Project Action Plans
+	reportsRoutes.GET("/reports/project-action-plans", projectReportController.GetAllProjectActionPlans)
+	reportsRoutes.GET("/reports/project-action-plans/export", projectReportController.GetProjectActionPlanExport)
+	reportsRoutes.GET("/reports/project-action-plan-by-status", projectReportController.GetProjectActionPlanByStatus)
+	reportsRoutes.GET("/reports/project-action-plan-by-responsible-user", projectReportController.GetProjectActionPlanByResponsibleUser)
+	reportsRoutes.GET("/reports/project-action-plan-by-responsible-unit", projectReportController.GetProjectActionPlanByResponsibleUnit)
 
 	reportsRoutes.GET("/reports/audit-insight-audits", auditInsightReportController.GetAllAuditInsightsAudits)
 	reportsRoutes.GET("/reports/audit-insight-audits/export", auditInsightReportController.GetAllAuditInsightsAuditsExport)

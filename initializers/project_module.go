@@ -142,6 +142,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		sharedModule.ActivityLogService,
 		masterModule.ActionPlanStatusSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 		projectSvc,
 		projectMilestoneSvc,
 		masterModule.SeverityLevelSvc, commonModule.DelegateeUserService,
