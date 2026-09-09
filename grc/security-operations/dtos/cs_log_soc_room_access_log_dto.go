@@ -12,8 +12,8 @@ type CSLogSocRoomAccessLogListDTO struct {
 	ID                                 uint      `json:"id"`
 	ReferenceNumber                    string    `json:"reference_number"`
 	VisitorFullName                    string    `json:"visitor_full_name"`
-	EntryTime                          time.Time `json:"entry_time"`
-	ExitTime                           time.Time `json:"exit_time"`
+	EntryTime                          string    `json:"entry_time"`
+	ExitTime                           string    `json:"exit_time"`
 	VisitorIDNumber                    string    `json:"visitor_id_number"`
 	DepartmentID                       uint      `json:"department_id"`
 	DepartmentTitleEn                  string    `json:"department_title_en"`
@@ -94,8 +94,8 @@ type CSLogSocRoomAccessLogDetailDTO struct {
 	ID                 uint                                `json:"id"`
 	ReferenceNumber    string                              `json:"reference_number"`
 	VisitorFullName    string                              `json:"visitor_full_name"`
-	EntryTime          time.Time                           `json:"entry_time"`
-	ExitTime           time.Time                           `json:"exit_time"`
+	EntryTimeString    *string                             `json:"entry_time"`
+	ExitTimeString     *string                             `json:"exit_time"`
 	VisitorIDNumber    string                              `json:"visitor_id_number"`
 	ExternalPartyName  string                              `json:"external_party_name"`
 	PurposeOfEntry     string                              `json:"purpose_of_entry"`

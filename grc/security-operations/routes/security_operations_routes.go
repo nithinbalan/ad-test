@@ -51,6 +51,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// CS Log Source Directory
 	securityOperationsRoutes.GET("/security-operations/source-directory", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "view"), csLogSourceDirectoryController.GetAllCSLogSourceDirectories)
+	securityOperationsRoutes.GET("/security-operations/source-directory/export", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "view"), csLogSourceDirectoryController.GetCSLogSourceDirectoryExport)
 	securityOperationsRoutes.GET("/security-operations/source-directory/:id", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "view"), csLogSourceDirectoryController.GetCSLogSourceDirectoryDetails)
 	securityOperationsRoutes.POST("/security-operations/source-directory", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "modify"), csLogSourceDirectoryController.CreateCSLogSourceDirectory)
 	securityOperationsRoutes.PUT("/security-operations/source-directory/:id", middlewares.RolePermissionMiddleware(db, "security_operations_source_directory", "modify"), csLogSourceDirectoryController.UpdateCSLogSourceDirectory)
