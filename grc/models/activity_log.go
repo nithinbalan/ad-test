@@ -7,7 +7,7 @@ import (
 type ActivityLog struct {
 	ID          uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	Action      Action    `json:"action" gorm:"type:varchar(50);not null"`
-	TableName   string    `json:"table_name" gorm:"type:varchar(100);not null"`
+	TableName   string    `json:"table_name" gorm:"type:varchar(200);not null"`
 	RecordID    uint      `json:"record_id"`
 	ChangedData string    `json:"changed_data" gorm:"type:nvarchar(max)"`
 	UserID      uint      `json:"user_id"`
