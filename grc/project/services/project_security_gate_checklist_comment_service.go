@@ -350,13 +350,13 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Delete(securityGateID 
 	for _, id := range ids {
 		comment, fetchErr := psgccs.repo.GetByID(id, tx)
 		if fetchErr != nil {
-			err = fetchErr
-			return failedIDs, err
+			failedIDs = append(failedIDs, id)
+			continue
 		}
 
 		if comment.ChecklistID != checklistID {
-			err = &utility.ResourceNotFoundError{}
-			return failedIDs, err
+			failedIDs = append(failedIDs, id)
+			continue
 		}
 
 		if deleteErr := psgccs.repo.DeleteDocumentsByCommentID(id, tx); deleteErr != nil {
@@ -383,6 +383,22 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Delete(securityGateID 
 
 	if err = tx.Commit(); err != nil {
 		return failedIDs, err
+	}
+
+	for _, id := range successfulIDs {
+		folderPath := filepath.Join(
+			"project", strconv.FormatUint(uint64(securityGateID), 10),
+			"checklists", strconv.FormatUint(uint64(checklistID), 10),
+			"comments", strconv.FormatUint(uint64(id), 10),
+		)
+
+		if removeErr := utility.RemoveFolder(folderPath); removeErr != nil {
+			utility.LogError("Failed to remove checklist comment storage folder", map[string]interface{}{
+				"commentID": id,
+				"path":      folderPath,
+				"error":     removeErr.Error(),
+			})
+		}
 	}
 
 	if len(successfulIDs) > 0 {
