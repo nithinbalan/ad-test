@@ -25,6 +25,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentDashboardController := app.KPIModule.IncidentDashboardController
 	identityAccessReviewDashboardController := app.KPIModule.IdentityAccessReviewDashboardController
 	auditDashboardController := app.KPIModule.AuditDashboardController
+	projectDashboardController := app.KPIModule.ProjectDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -175,4 +176,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	kpiRoutes.GET("/kpis/audit/action-plans/overdue", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetOverdueAuditActionPlans)
 	kpiRoutes.GET("/kpis/audit/action-plans/overdue/export", middlewares.RolePermissionMiddleware(db, "audit_dashboard", "view"), auditDashboardController.GetOverdueAuditActionPlansExport)
+
+	// Project Dashboard
+	kpiRoutes.GET("/kpis/project/summary", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDashboardController.GetProjectSummary)
+	kpiRoutes.GET("/kpis/project/by-phase", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDashboardController.GetProjectsByPhase)
+	kpiRoutes.GET("/kpis/project/by-classification", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDashboardController.GetProjectsByClassification)
+	kpiRoutes.GET("/kpis/project/by-status", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDashboardController.GetProjectsByStatus)
+	kpiRoutes.GET("/kpis/project/completion", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDashboardController.GetProjectCompletion)
+	kpiRoutes.GET("/kpis/project/due-soon-and-overdue", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDashboardController.GetProjectsDueSoonAndOverdue)
 }
