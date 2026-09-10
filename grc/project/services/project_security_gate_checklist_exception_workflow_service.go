@@ -30,6 +30,7 @@ type ProjectSecurityGateChecklistExceptionWorkflowServiceInterface interface {
 	GetWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistExceptionWorkflow, error)
 	GetNextLevel(checklistID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistExceptionWorkflow, error)
 	CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.ProjectSecurityGateChecklistExceptionWorkflowParticipant, tx ...utility.DatabaseTransaction) (bool, error)
+	HasUserApproved(workflowID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error)
 
 	ValidateWorkflowBeforeCreate(tx ...utility.DatabaseTransaction) error
 
@@ -359,6 +360,10 @@ func (psgcews *ProjectSecurityGateChecklistExceptionWorkflowService) CheckAllPar
 	}
 
 	return count >= len(workflowParticipants), nil
+}
+
+func (psgcews *ProjectSecurityGateChecklistExceptionWorkflowService) HasUserApproved(workflowID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	return psgcews.repo.HasUserApproved(workflowID, userID, tx...)
 }
 
 func (psgcews *ProjectSecurityGateChecklistExceptionWorkflowService) DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error {

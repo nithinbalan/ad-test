@@ -21,6 +21,7 @@ type ProjectSecurityGateChecklistExceptionWorkflowRepositoryInterface interface 
 	GetWorkflowByLevel(checklistID uint, level int, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistExceptionWorkflow, error)
 	GetNextLevel(checklistID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistExceptionWorkflow, error)
 	CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
+	HasUserApproved(workflowID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error)
 
 	DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -230,6 +231,24 @@ func (repo *ProjectSecurityGateChecklistExceptionWorkflowRepository) CountApprov
 	}
 
 	return int(count), nil
+}
+
+func (repo *ProjectSecurityGateChecklistExceptionWorkflowRepository) HasUserApproved(workflowID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	err := db.Model(&models.ProjectSecurityGateChecklistExceptionWorkflowReview{}).
+		Where("exception_workflow_id = ? AND created_by_id = ? AND workflow_status_id = (SELECT id FROM workflow_statuses WHERE type = 'approve')", workflowID, userID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 func (repo *ProjectSecurityGateChecklistExceptionWorkflowRepository) DeleteWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error {

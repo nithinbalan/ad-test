@@ -226,6 +226,18 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 		formDocuments = form.Documents
 	}
 
+	alreadyApproved, err := psgcers.workflowSvc.HasUserApproved(currentWorkflow.ID, currentUserID, tx)
+	if err != nil {
+		return err
+	}
+	if alreadyApproved {
+		return utility.NewValidationError(
+			fmt.Errorf("user has already approved this level"),
+			"workflow_already_approved",
+			"checklist exception",
+		)
+	}
+
 	switch currentWorkflow.WorkflowLevelType.Type {
 	case "individual", "hod":
 		if len(currentWorkflow.Participants) == 0 || currentUserID != currentWorkflow.Participants[0].UserID {
@@ -402,6 +414,10 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 	var formDocuments []*commonDTOs.DocumentFormDTO
 	if form != nil {
 		formDocuments = form.Documents
+	}
+
+	if err := psgcers.workflowSvc.DeleteReviewsByWorkflowID(currentWorkflow.ID, tx); err != nil {
+		return err
 	}
 
 	if err := psgcers.createReviewWithHistory(securityGateID, currentWorkflow.ID, checklistID, currentLevel, revertStatus.ID, comment, formDocuments, currentUserID, tx); err != nil {
@@ -819,9 +835,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) sendRevertNot
 	}
 }
 
-// Helper function to create review in both current and history tables. Any
-// documents attached to the review are stored against the history record, which
-// is never deleted, so they remain available after a revert and resubmission.
+// Helper function to create review in both current and history tables
 func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) createReviewWithHistory(securityGateID uint, workflowID uint, checklistID uint, level int, workflowStatusID uint, comment *string, formDocuments []*commonDTOs.DocumentFormDTO, currentUserID uint, tx utility.DatabaseTransaction) error {
 	review := &models.ProjectSecurityGateChecklistExceptionWorkflowReview{
 		ExceptionWorkflowID: workflowID,
