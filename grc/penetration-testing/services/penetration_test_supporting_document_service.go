@@ -211,20 +211,16 @@ func (ptsds *PenetrationTestSupportingDocumentService) Update(penetrationTestID 
 	}
 
 	// Document handling
-	var existingDocsToKeep []*uint
 	var newDocsToCreate []*models.PenetrationTestSupportingDocumentDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.PenetrationTestSupportingDocumentDocument
 	for _, doc := range form.Documents {
-		if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			continue
-		}
-		if doc.ID != nil && (doc.IsNewFile == nil || !*doc.IsNewFile) {
-			existingDocsToKeep = append(existingDocsToKeep, doc.ID)
-		} else if doc.FileName != "" {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
 			dataToEncrypt := []byte(doc.FileName)
-			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-			if err != nil {
+			encryptedFileName, encErr := utility.EncryptData(dataToEncrypt)
+			if encErr != nil {
 				tx.Rollback()
-				return err
+				return encErr
 			}
 			url := utility.GenerateDocumentURL("penetration-testing", strconv.FormatUint(uint64(penetrationTestID), 10), "supporting-documents", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
 			newDoc := &models.PenetrationTestSupportingDocumentDocument{
@@ -239,28 +235,21 @@ func (ptsds *PenetrationTestSupportingDocumentService) Update(penetrationTestID 
 				CreatedAt:                           time.Now(),
 			}
 			newDocsToCreate = append(newDocsToCreate, newDoc)
-		}
-	}
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, docErr := ptsds.repo.GetDocumentByID(*doc.ID, tx)
+				if docErr != nil {
+					tx.Rollback()
+					return docErr
+				}
+				if existingDocument.PenetrationTestSupportingDocumentID != id {
+					tx.Rollback()
+					return &utility.ResourceNotFoundError{}
+				}
 
-	var docsToDelete []*uint
-	for _, doc := range supportingDoc.Documents {
-		keep := false
-		for _, keepID := range existingDocsToKeep {
-			if keepID != nil && *keepID == doc.ID {
-				keep = true
-				break
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
 			}
-		}
-		if !keep {
-			docID := doc.ID
-			docsToDelete = append(docsToDelete, &docID)
-		}
-	}
-
-	if len(docsToDelete) > 0 {
-		if err := ptsds.repo.DeleteDocuments(docsToDelete, tx); err != nil {
-			tx.Rollback()
-			return err
 		}
 	}
 
@@ -271,15 +260,31 @@ func (ptsds *PenetrationTestSupportingDocumentService) Update(penetrationTestID 
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
+	if len(deleteDocumentIDs) > 0 {
+		if err := ptsds.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
-	for _, doc := range newDocsToCreate {
-		storagePath := filepath.Join("penetration-testing", strconv.FormatUint(uint64(penetrationTestID), 10), "supporting-documents", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
-			utility.LogError("Failed to store document file", map[string]interface{}{"error": err.Error(), "doc": doc.Name})
+	storagePath := filepath.Join("penetration-testing", strconv.FormatUint(uint64(penetrationTestID), 10), "supporting-documents", strconv.FormatUint(uint64(id), 10), "documents")
+
+	for _, document := range newDocsToCreate {
+		if err := utility.StoreFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
 		}
+	}
+
+	for _, document := range documentsToDelete {
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
 	}
 
 	go func() {
