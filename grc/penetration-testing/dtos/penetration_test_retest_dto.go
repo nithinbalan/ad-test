@@ -17,7 +17,11 @@ type PenetrationTestRetestListDTO struct {
 	PenetrationTestExecutorID   uint    `json:"penetration_test_executor_id"`
 	ExecutorTitleEn             string  `json:"executor_title_en"`
 	ExecutorTitleAr             string  `json:"executor_title_ar"`
-	Status                      string  `json:"status"`
+	PenetrationTestRetestStatusID uint  `json:"penetration_test_retest_status_id"`
+	StatusTitleEn               string  `json:"status_title_en"`
+	StatusTitleAr               string  `json:"status_title_ar"`
+	StatusColorCode             string  `json:"status_color_code"`
+	StatusType                  string  `json:"status_type"`
 	Notes                       *string `json:"notes"`
 	RemainingCritical           int     `json:"remaining_critical"`
 	RemainingHigh               int     `json:"remaining_high"`
@@ -42,7 +46,6 @@ type PenetrationTestRetestFormDTO struct {
 	StartDate                 string  `json:"start_date" binding:"required,datetime=2006-01-02"`
 	EndDate                   *string `json:"end_date,omitempty" binding:"omitempty,datetime=2006-01-02"`
 	PenetrationTestExecutorID uint    `json:"penetration_test_executor_id" binding:"required"`
-	Status                    string  `json:"status" binding:"required,oneof=in-progress completed"`
 	Notes                     *string `json:"notes,omitempty"`
 	FindingIDs                []uint  `json:"finding_ids" binding:"omitempty"`
 }
@@ -57,7 +60,22 @@ type PenetrationTestRetestFindingSaveFormDTO struct {
 }
 
 type PenetrationTestRetestFindingResultFormDTO struct {
-	Result string `json:"result" binding:"required,oneof=pass fail"`
+	ResultID uint `json:"result_id" binding:"required"`
+}
+
+type PenetrationTestRetestResultDTO struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Type    string `json:"type"`
+}
+
+type PenetrationTestRetestStatusDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
 }
 
 type PenetrationTestRetestFindingDTO struct {
@@ -66,8 +84,11 @@ type PenetrationTestRetestFindingDTO struct {
 	FindingReferenceNumber   string                                         `json:"finding_reference_number"`
 	FindingTitle             string                                         `json:"finding_title"`
 	Comment                  *string                                        `json:"comment"`
-	Result                   *string                                        `json:"result"`
+	CommentAt                *time.Time                                     `json:"comment_at"`
+	CommentByUser            *organizationDTOs.UserMinimalDTO               `json:"comment_by_user"`
+	Result                   *PenetrationTestRetestResultDTO                `json:"result"`
 	ResultAt                 *time.Time                                     `json:"result_at"`
+	ResultByUser             *organizationDTOs.UserMinimalDTO               `json:"result_by_user"`
 	Documents                []*models.PenetrationTestRetestFindingDocument `json:"documents"`
 }
 
@@ -79,7 +100,7 @@ type PenetrationTestRetestDetailDTO struct {
 	EndDate                   *time.Time                         `json:"end_date"`
 	PenetrationTestExecutorID uint                               `json:"penetration_test_executor_id"`
 	PenetrationTestExecutor   PenetrationTestExecutorDTO         `json:"penetration_test_executor"`
-	Status                    string                             `json:"status"`
+	PenetrationTestRetestStatus *PenetrationTestRetestStatusDTO  `json:"penetration_test_retest_status"`
 	Notes                     *string                            `json:"notes"`
 	Findings                  []*PenetrationTestRetestFindingDTO `json:"findings"`
 	RemainingCritical         int                                `json:"remaining_critical"`

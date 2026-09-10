@@ -19,7 +19,7 @@ type PenetrationTestRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.PenetrationTest, error)
 	Create(penetrationTest *models.PenetrationTest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(penetrationTest *models.PenetrationTest, tx ...utility.DatabaseTransaction) error
-	UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error
+	UpdateStatus(id uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	DeletePenetrationTestDetails(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
@@ -66,7 +66,11 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 			penetration_test_plans.title_ar AS penetration_test_plan_title_ar,
 			penetration_tests.year,
 			penetration_tests.period,
-			penetration_tests.status,
+			penetration_tests.penetration_test_status_id,
+			penetration_test_statuses.title_en AS status_title_en,
+			penetration_test_statuses.title_ar AS status_title_ar,
+			penetration_test_statuses.color_code AS status_color_code,
+			penetration_test_statuses.type AS status_type,
 			penetration_tests.penetration_test_classification_id,
 			penetration_test_classifications.title_en AS penetration_test_classification_title_en,
 			penetration_test_classifications.title_ar AS penetration_test_classification_title_ar,
@@ -135,7 +139,8 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 		Joins("LEFT JOIN penetration_test_classifications ON penetration_test_classifications.id = penetration_tests.penetration_test_classification_id").
 		Joins("LEFT JOIN penetration_test_plans ON penetration_test_plans.id = penetration_tests.penetration_test_plan_id").
 		Joins("LEFT JOIN penetration_test_executors ON penetration_test_executors.id = penetration_tests.penetration_test_executor_id").
-		Joins("LEFT JOIN users AS cs_responsible_employee ON cs_responsible_employee.id = penetration_tests.cs_responsible_employee_id")
+		Joins("LEFT JOIN users AS cs_responsible_employee ON cs_responsible_employee.id = penetration_tests.cs_responsible_employee_id").
+		Joins("LEFT JOIN penetration_test_statuses ON penetration_test_statuses.id = penetration_tests.penetration_test_status_id")
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where("reference_number LIKE ? OR system_application_name LIKE ? OR scope LIKE ?", keyword, keyword, keyword)
@@ -201,6 +206,7 @@ func (repo *PenetrationTestRepository) GetByID(id uint, tx ...utility.DatabaseTr
 		Preload("PenetrationTestClassification").
 		Preload("PenetrationTestExecutor").
 		Preload("CSResponsibleEmployee").
+		Preload("PenetrationTestStatus").
 		Preload("EnvironmentPreparation.EnvironmentReadiness").
 		Preload("Execution.ExecutionStatus").
 		Preload("Execution.SecurityResult").
@@ -236,12 +242,12 @@ func (repo *PenetrationTestRepository) Update(penetrationTest *models.Penetratio
 	return db.Model(&models.PenetrationTest{}).Where("id = ?", penetrationTest.ID).Updates(penetrationTest).Error
 }
 
-func (repo *PenetrationTestRepository) UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error {
+func (repo *PenetrationTestRepository) UpdateStatus(id uint, statusID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Model(&models.PenetrationTest{}).Where("id = ?", id).Update("status", status).Error
+	return db.Model(&models.PenetrationTest{}).Where("id = ?", id).Update("penetration_test_status_id", statusID).Error
 }
 
 func (repo *PenetrationTestRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {

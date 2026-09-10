@@ -43,7 +43,7 @@ func (ptrec *PenetrationTestRetestController) GetAllPenetrationTestRetests(c *gi
 		"reference_number":  "penetration_test_retests.reference_number",
 		"start_date":        "penetration_test_retests.start_date",
 		"end_date":          "penetration_test_retests.end_date",
-		"status":            "penetration_test_retests.status",
+		"status":            "penetration_test_retest_statuses.type",
 		"executor_title_en": "penetration_test_executors.title_en",
 		"executor_title_ar": "penetration_test_executors.title_ar",
 		"created_at":        "penetration_test_retests.created_at",
