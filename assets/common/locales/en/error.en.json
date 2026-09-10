@@ -354,6 +354,14 @@
 {
   "id": "stage_change_not_allowed",
   "translation": "Stage cannot be changed after the security gate is created."
+},
+{
+  "id": "checklist_not_marked_as_exception",
+  "translation": "Only a checklist marked as exception can be submitted for review."
+},
+{
+  "id": "workflow_already_approved",
+  "translation": "You have already approved the {{.Field}} at this level."
 }
 
 

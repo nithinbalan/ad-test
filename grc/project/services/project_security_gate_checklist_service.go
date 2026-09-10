@@ -159,7 +159,8 @@ func (psgcs *ProjectSecurityGateChecklistService) GetResponseDocumentPath(securi
 	}
 
 	storagePath := filepath.Join(
-		"project", strconv.FormatUint(uint64(securityGateID), 10),
+		"project",
+		"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 		"checklists", strconv.FormatUint(uint64(checklistID), 10),
 		"documents",
 	)
@@ -242,7 +243,8 @@ func (psgcs *ProjectSecurityGateChecklistService) CreateChecklistResponse(securi
 		}
 
 		url := utility.GenerateDocumentURL(
-			"project", strconv.FormatUint(uint64(securityGateID), 10),
+			"project",
+			"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 			"checklists", strconv.FormatUint(uint64(checklistID), 10),
 			"documents",
 		)
@@ -265,7 +267,8 @@ func (psgcs *ProjectSecurityGateChecklistService) CreateChecklistResponse(securi
 		}
 
 		storagePath := filepath.Join(
-			"project", strconv.FormatUint(uint64(securityGateID), 10),
+			"project",
+			"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 			"checklists", strconv.FormatUint(uint64(checklistID), 10),
 			"documents",
 		)
@@ -361,7 +364,8 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 			}
 
 			url := utility.GenerateDocumentURL(
-				"project", strconv.FormatUint(uint64(securityGateID), 10),
+				"project",
+				"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 				"checklists", strconv.FormatUint(uint64(checklistID), 10),
 				"documents",
 			)
@@ -407,7 +411,8 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 	}
 
 	storagePath := filepath.Join(
-		"project", strconv.FormatUint(uint64(securityGateID), 10),
+		"project",
+		"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 		"checklists", strconv.FormatUint(uint64(checklistID), 10),
 		"documents",
 	)
