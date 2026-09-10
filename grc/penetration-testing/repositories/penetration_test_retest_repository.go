@@ -152,12 +152,17 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
-	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("penetration_test_retests.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	if params.DateFrom != "" {
+		query = query.Where("penetration_test_retests.created_at >= ?", params.DateFrom+" 00:00:00")
+	}
+	if params.DateTo != "" {
+		query = query.Where("penetration_test_retests.created_at <= ?", params.DateTo+" 23:59:59")
 	}
 
 	for _, filter := range params.QuickFilter {
 		switch filter {
+		case "draft":
+			query = query.Where("penetration_test_retest_statuses.type = ?", "draft")
 		case "in_progress":
 			query = query.Where("penetration_test_retest_statuses.type = ?", "in-progress")
 		case "completed":
