@@ -80,7 +80,8 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) GetDocumentPath(securi
 	}
 
 	storagePath := filepath.Join(
-		"project", strconv.FormatUint(uint64(securityGateID), 10),
+		"project",
+		"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 		"checklists", strconv.FormatUint(uint64(checklistID), 10),
 		"comments", strconv.FormatUint(uint64(id), 10),
 		"documents",
@@ -140,7 +141,8 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID 
 		}
 
 		url := utility.GenerateDocumentURL(
-			"project", strconv.FormatUint(uint64(securityGateID), 10),
+			"project",
+			"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 			"checklists", strconv.FormatUint(uint64(checklistID), 10),
 			"comments", strconv.FormatUint(uint64(id), 10),
 			"documents",
@@ -165,7 +167,8 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID 
 		}
 
 		storagePath := filepath.Join(
-			"project", strconv.FormatUint(uint64(securityGateID), 10),
+			"project",
+			"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 			"checklists", strconv.FormatUint(uint64(checklistID), 10),
 			"comments", strconv.FormatUint(uint64(id), 10),
 			"documents",
@@ -238,7 +241,8 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Update(securityGateID 
 			}
 
 			url := utility.GenerateDocumentURL(
-				"project", strconv.FormatUint(uint64(securityGateID), 10),
+				"project",
+				"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 				"checklists", strconv.FormatUint(uint64(checklistID), 10),
 				"comments", strconv.FormatUint(uint64(comment.ID), 10),
 				"documents",
@@ -286,7 +290,8 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Update(securityGateID 
 	}
 
 	storagePath := filepath.Join(
-		"project", strconv.FormatUint(uint64(securityGateID), 10),
+		"project",
+		"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 		"checklists", strconv.FormatUint(uint64(checklistID), 10),
 		"comments", strconv.FormatUint(uint64(comment.ID), 10),
 		"documents",
@@ -387,7 +392,8 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Delete(securityGateID 
 
 	for _, id := range successfulIDs {
 		folderPath := filepath.Join(
-			"project", strconv.FormatUint(uint64(securityGateID), 10),
+			"project",
+			"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 			"checklists", strconv.FormatUint(uint64(checklistID), 10),
 			"comments", strconv.FormatUint(uint64(id), 10),
 		)

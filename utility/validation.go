@@ -773,6 +773,13 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "checklist_not_marked_as_exception":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "checklist_not_marked_as_exception",
+			})
+			errors = append(errors, errorMessage)
+
 		}
 
 		return errors
