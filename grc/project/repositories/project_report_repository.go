@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"errors"
+
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -452,7 +454,10 @@ func (r *ProjectReportRepository) GetProjectClosure(projectID uint) (*dtos.Proje
 		First(&row).Error
 
 	if err != nil {
-		return nil, nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
 	}
 
 	closureDTO := &dtos.ProjectClosureReportDTO{

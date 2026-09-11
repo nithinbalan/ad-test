@@ -688,6 +688,12 @@ func (pcrrs *ProjectChangeRequestReviewService) Revert(projectID uint, changeReq
 		return err
 	}
 
+	currentWorkflow.WorkflowStatusID = revertStatus.ID
+
+	if err := pcrrs.workflowSvc.UpdateProjectChangeRequestWorkflow(currentWorkflow, tx); err != nil {
+		return err
+	}
+
 	previousLevel := currentLevel - 1
 
 	var previousLevelWorkflow *models.ProjectChangeRequestWorkflow
