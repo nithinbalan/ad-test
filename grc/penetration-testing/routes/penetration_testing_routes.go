@@ -104,6 +104,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes.GET("/penetration-testing/execution-statuses", executionStatus.GetAllPenetrationTestExecutionStatuses)
 	securityResult := m.PenetrationTestSecurityResultController
 	penetrationTestingRoutes.GET("/penetration-testing/security-results", securityResult.GetAllPenetrationTestSecurityResults)
+	retestResult := m.PenetrationTestRetestResultController
+	penetrationTestingRoutes.GET("/penetration-testing/retest-results", retestResult.GetAllPenetrationTestRetestResults)
+	status := m.PenetrationTestStatusController
+	penetrationTestingRoutes.GET("/penetration-testing/statuses", status.GetAllPenetrationTestStatuses)
+	retestStatus := m.PenetrationTestRetestStatusController
+	penetrationTestingRoutes.GET("/penetration-testing/retest-statuses", retestStatus.GetAllPenetrationTestRetestStatuses)
 	penetrationTestingRoutes.GET("/penetration-testing/environment-readinesses", readiness.GetAllPenetrationTestEnvironmentReadinesses)
 	penetrationTestingRoutes.GET("/penetration-testing/environment-readinesses/:id", readiness.GetPenetrationTestEnvironmentReadinessDetails)
 	penetrationTestingRoutes.POST("/penetration-testing/environment-readinesses", middlewares.RolePermissionMiddleware(db, "penetration_testing_setting", "modify"), readiness.CreatePenetrationTestEnvironmentReadiness)

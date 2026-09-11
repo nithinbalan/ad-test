@@ -43,8 +43,8 @@ type PenetrationTestFindingFormDTO struct {
 	PenetrationTestID     uint    `json:"penetration_test_id" binding:"required"`
 	Title                 string  `json:"title" binding:"required,max=255"`
 	SeverityLevelID       uint    `json:"severity_level_id" binding:"required"`
-	Description           string  `json:"description" binding:"required"`
-	Recommendation        string  `json:"recommendation" binding:"required"`
+	Description           string  `json:"description"`
+	Recommendation        string  `json:"recommendation"`
 	OwnerID               uint    `json:"owner_id" binding:"required"`
 	TargetRemediationDate *string `json:"target_remediation_date" binding:"omitempty,datetime=2006-01-02"`
 }
