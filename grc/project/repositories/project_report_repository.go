@@ -418,6 +418,7 @@ func (r *ProjectReportRepository) GetProjectClosure(projectID uint) (*dtos.Proje
 		ClosureComments       *string
 		LessonLearned         *string
 		ApproverID            uint
+		IsApproved            bool
 		ApproverFirstNameEn   *string
 		ApproverLastNameEn    *string
 		ApproverEmail         *string
@@ -437,6 +438,7 @@ func (r *ProjectReportRepository) GetProjectClosure(projectID uint) (*dtos.Proje
 			project_closures.closure_comments,
 			project_closures.lesson_learned,
 			project_closures.approver_id,
+			project_closures.is_approved,
 			approver.first_name_en AS approver_first_name_en,
 			approver.last_name_en AS approver_last_name_en,
 			approver.email AS approver_email,
@@ -462,6 +464,7 @@ func (r *ProjectReportRepository) GetProjectClosure(projectID uint) (*dtos.Proje
 		ClosureComments:       row.ClosureComments,
 		LessonLearned:         row.LessonLearned,
 		ApproverID:            row.ApproverID,
+		IsApproved:            row.IsApproved,
 		CreatedAtFormatted:    row.CreatedAt,
 		CreatedByUser: organizationDTOs.UserMinimalDTO{
 			ID:          int(row.CreatedByID),

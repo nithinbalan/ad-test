@@ -118,6 +118,14 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
+			if columnName == "project_excluded" {
+				subQuery := repo.db.Table("projects").
+					Select("incident_action_plan_id").
+					Where("incident_action_plan_id IS NOT NULL")
+
+				query = query.Where("incident_action_plans.id NOT IN (?)", subQuery)
+				continue
+			}
 			// Check if the column name has a mapping, otherwise use the column name as is
 			if mappedField, exists := fieldMappings[columnName]; exists {
 				query = query.Where(mappedField+" IN (?)", values)
