@@ -222,7 +222,16 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Update(securityGateID 
 		return err
 	}
 
+	oldData := map[string]interface{}{
+		"comment": comment.Comment,
+	}
+
 	comment.Comment = form.Comment
+
+	newData := map[string]interface{}{
+		"comment": comment.Comment,
+	}
+	changes := utility.CompareFieldChanges(oldData, newData)
 
 	if err = psgccs.repo.Update(comment, tx); err != nil {
 		return err
@@ -314,11 +323,15 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Update(securityGateID 
 	}
 
 	go func() {
+		if len(changes) == 0 {
+			return
+		}
+
 		activityErr := psgccs.activityLog.LogActivity(
 			models.UpdateAction,
 			models.ProjectSecurityGateChecklistComment{}.TableName(),
 			comment.ID,
-			comment,
+			changes,
 			currentUserID,
 			"project", "project_security_gate", "project_security_gate_checklist_comment_update", nil,
 		)

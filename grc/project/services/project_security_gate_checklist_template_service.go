@@ -220,10 +220,19 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) PublishVersion(templa
 		return err
 	}
 
+	oldData := map[string]interface{}{
+		"status": version.Status,
+	}
+
 	version.Status = "published"
 	version.PublishedByID = &currentUserID
 	now := time.Now()
 	version.PublishedAt = &now
+
+	newData := map[string]interface{}{
+		"status": version.Status,
+	}
+	changes := utility.CompareFieldChanges(oldData, newData)
 
 	if err = psgcts.repo.UpdateVersion(version, tx); err != nil {
 		return err
@@ -234,11 +243,15 @@ func (psgcts *ProjectSecurityGateChecklistTemplateService) PublishVersion(templa
 	}
 
 	go func() {
+		if len(changes) == 0 {
+			return
+		}
+
 		err := psgcts.activityLog.LogActivity(
 			models.UpdateAction,
 			models.ProjectSecurityGateChecklistTemplateVersion{}.TableName(),
 			version.ID,
-			map[string]interface{}{"status": "published"},
+			changes,
 			currentUserID,
 			"setting", "project_setting", "project_security_gate_checklist_template_version_publish", nil,
 		)

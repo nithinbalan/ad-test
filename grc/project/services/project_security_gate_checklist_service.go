@@ -345,6 +345,18 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 		responseStatusID = form.ResponseStatusID
 	}
 
+	var oldResponseStatusID, newResponseStatusID interface{}
+	if checklist.ResponseStatusID != nil {
+		oldResponseStatusID = *checklist.ResponseStatusID
+	}
+
+	oldData := map[string]interface{}{
+		"response_status_id":      oldResponseStatusID,
+		"is_exception":            checklist.IsException,
+		"exception_justification": checklist.ExceptionJustification,
+		"comment":                 checklist.Comment,
+	}
+
 	checklist.ResponseStatusID = responseStatusID
 	checklist.IsException = form.IsException
 	checklist.ExceptionJustification = exceptionJustification
@@ -352,6 +364,18 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 	checklist.UpdatedBYID = &currentUserID
 	now := time.Now()
 	checklist.UpdatedAt = &now
+
+	if checklist.ResponseStatusID != nil {
+		newResponseStatusID = *checklist.ResponseStatusID
+	}
+
+	newData := map[string]interface{}{
+		"response_status_id":      newResponseStatusID,
+		"is_exception":            checklist.IsException,
+		"exception_justification": checklist.ExceptionJustification,
+		"comment":                 checklist.Comment,
+	}
+	changes := utility.CompareFieldChanges(oldData, newData)
 
 	if err = psgcs.repo.UpdateResponse(checklist, tx); err != nil {
 		return err
@@ -440,11 +464,15 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 	}
 
 	go func() {
+		if len(changes) == 0 {
+			return
+		}
+
 		activityErr := psgcs.activityLog.LogActivity(
 			models.UpdateAction,
 			models.ProjectSecurityGateChecklist{}.TableName(),
 			checklist.ID,
-			checklist,
+			changes,
 			currentUserID,
 			"project", "project_security_gate", "project_security_gate_checklist_response_update", nil,
 		)
