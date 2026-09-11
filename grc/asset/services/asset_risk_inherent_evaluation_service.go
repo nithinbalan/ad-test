@@ -143,6 +143,12 @@ func (aries *AssetRiskInherentEvaluationService) Create(riskID uint, currentUser
 	riskRegister.UpdatedBYID = &currentUserID
 	riskRegister.UpdatedAt = &now
 
+	// update current
+	riskRegister.CurrentLikelihoodID = &likelihood.ID
+	riskRegister.CurrentImpactID = &overallImpact.ID
+	riskRegister.CurrentRiskRatingID = &riskRatingValue.RiskMatrixRiskRatingID
+	riskRegister.CurrentRiskRatingValueID = &riskRatingValue.ID
+
 	if err = aries.assetRiskRegisterSvc.UpdateRiskRegister(riskRegister, tx); err != nil {
 		return 0, err
 	}
@@ -284,6 +290,12 @@ func (aries *AssetRiskInherentEvaluationService) Update(riskID uint, id uint, cu
 	riskRegister.InherentRiskRatingValueID = &riskRatingValue.ID
 	riskRegister.UpdatedBYID = &currentUserID
 	riskRegister.UpdatedAt = &now
+
+	// update current
+	riskRegister.CurrentLikelihoodID = &likelihood.ID
+	riskRegister.CurrentImpactID = &overallImpact.ID
+	riskRegister.CurrentRiskRatingID = &riskRatingValue.RiskMatrixRiskRatingID
+	riskRegister.CurrentRiskRatingValueID = &riskRatingValue.ID
 
 	if err = aries.assetRiskRegisterSvc.UpdateRiskRegister(riskRegister, tx); err != nil {
 		return err

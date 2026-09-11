@@ -163,6 +163,12 @@ func (ares *AssetRiskResidualEvaluationService) Create(riskID uint, currentUserI
 	riskRegister.UpdatedBYID = &currentUserID
 	riskRegister.UpdatedAt = &now
 
+	// update current
+	riskRegister.CurrentLikelihoodID = &likelihood.ID
+	riskRegister.CurrentImpactID = &overallImpact.ID
+	riskRegister.CurrentRiskRatingID = &riskRatingValue.RiskMatrixRiskRatingID
+	riskRegister.CurrentRiskRatingValueID = &riskRatingValue.ID
+
 	if err = ares.assetRiskRegisterSvc.UpdateRiskRegister(riskRegister, tx); err != nil {
 		return 0, err
 	}
@@ -303,6 +309,12 @@ func (ares *AssetRiskResidualEvaluationService) Update(riskID uint, id uint, cur
 	riskRegister.ResidualRiskRatingValueID = &riskRatingValue.ID
 	riskRegister.UpdatedBYID = &currentUserID
 	riskRegister.UpdatedAt = &now
+
+	// update current
+	riskRegister.CurrentLikelihoodID = &likelihood.ID
+	riskRegister.CurrentImpactID = &overallImpact.ID
+	riskRegister.CurrentRiskRatingID = &riskRatingValue.RiskMatrixRiskRatingID
+	riskRegister.CurrentRiskRatingValueID = &riskRatingValue.ID
 
 	if err = ares.assetRiskRegisterSvc.UpdateRiskRegister(riskRegister, tx); err != nil {
 		return err
