@@ -291,6 +291,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectSecurityGateReadinessStatusSvc,
 		organizationModule.UserSvc,
 		sharedModule.ActivityLogService,
+		commonModule.NotificationService,
 	)
 	projectSecurityGateController := controllers.NewProjectSecurityGateController(projectSecurityGateSvc)
 

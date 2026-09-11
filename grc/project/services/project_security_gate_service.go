@@ -5,6 +5,8 @@ import (
 	"log"
 	"time"
 
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -36,6 +38,7 @@ type ProjectSecurityGateService struct {
 	readinessStatusSvc   ProjectSecurityGateReadinessStatusServiceInterface
 	userSvc              organizationServices.UserServiceInterface
 	activityLog          logServices.ActivityLogServiceInterface
+	notificationSvc      commonServices.NotificationServiceInterface
 }
 
 func NewProjectSecurityGateService(
@@ -46,6 +49,7 @@ func NewProjectSecurityGateService(
 	readinessStatusSvc ProjectSecurityGateReadinessStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	activityLog logServices.ActivityLogServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ProjectSecurityGateServiceInterface {
 	return &ProjectSecurityGateService{
 		repo:                 repo,
@@ -55,6 +59,7 @@ func NewProjectSecurityGateService(
 		readinessStatusSvc:   readinessStatusSvc,
 		userSvc:              userSvc,
 		activityLog:          activityLog,
+		notificationSvc:      notificationSvc,
 	}
 }
 
@@ -119,7 +124,8 @@ func (psgs *ProjectSecurityGateService) Create(currentUserID uint, form *dtos.Pr
 		}
 	}()
 
-	if _, err = psgs.stageSvc.GetByID(form.StageID, tx); err != nil {
+	stage, err := psgs.stageSvc.GetByID(form.StageID, tx)
+	if err != nil {
 		return 0, err
 	}
 	if _, err = psgs.userSvc.GetByIDWithTx(form.BusinessOwnerID, tx); err != nil {
@@ -201,9 +207,74 @@ func (psgs *ProjectSecurityGateService) Create(currentUserID uint, form *dtos.Pr
 		if activityErr != nil {
 			log.Printf("Failed to log activity: %v", activityErr)
 		}
+
+		psgs.notifyBusinessOwner(id, projectSecurityGate, stage, currentUserID)
 	}()
 
 	return id, err
+}
+
+func (psgs *ProjectSecurityGateService) notifyBusinessOwner(id uint, securityGate *models.ProjectSecurityGate, stage *models.ProjectSecurityGateStage, currentUserID uint) {
+	businessOwner, err := psgs.userSvc.GetByID(securityGate.BusinessOwnerID)
+	if err != nil {
+		utility.LogError("Failed to fetch business owner for security gate notification", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	createdBy, err := psgs.userSvc.GetByID(currentUserID)
+	if err != nil {
+		utility.LogError("Failed to fetch creator for security gate notification", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	entity := "project-security-gate"
+	action := "business-owner-assign"
+	appURL := utility.GetAppURL()
+
+	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+		UserIDs:              []uint{securityGate.BusinessOwnerID},
+		ModuleIdentifier:     "project",
+		NotificationType:     string(commonDTOs.AssignmentType),
+		HeadingEn:            "Project Security Gate Assigned",
+		HeadingAr:            "تم تعيين بوابة أمان المشروع",
+		TitleEn:              securityGate.ProjectTitleEn,
+		TitleAr:              securityGate.ProjectTitleAr,
+		Entity:               &entity,
+		Action:               &action,
+		URLParam:             urlParam,
+		IsSystemNotification: false,
+		CreatedByID:          &currentUserID,
+	}
+
+	emailData := map[string]interface{}{
+		"FirstNameEn":          businessOwner.FirstNameEn,
+		"LastNameEn":           businessOwner.LastNameEn,
+		"ProjectTitleEn":       securityGate.ProjectTitleEn,
+		"ProjectTitleAr":       securityGate.ProjectTitleAr,
+		"Stage":                stage.TitleEn,
+		"CreatedByFirstNameEn": createdBy.FirstNameEn,
+		"CreatedByLastNameEn":  createdBy.LastNameEn,
+		"AssignedOn":           time.Now().Format("2006-01-02"),
+		"RedirectURL":          fmt.Sprintf("%s/projects/security-gate/%d", appURL, id),
+	}
+
+	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		EmailTo:              []string{businessOwner.Email},
+		Subject:              fmt.Sprintf("Project Security Gate: %s - Business Owner Assigned", securityGate.ProjectTitleEn),
+		TemplateRelativePath: "project/templates/email/project_security_gate_create_business_owner_mail.html",
+		EmailData:            emailData,
+	}
+
+	if err := psgs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_security_gate"); err != nil {
+		utility.LogError("Failed to send security gate assignment notification", map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
 }
 
 func (psgs *ProjectSecurityGateService) GoLive(id uint, currentUserID uint) (err error) {
