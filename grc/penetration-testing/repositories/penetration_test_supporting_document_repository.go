@@ -24,7 +24,7 @@ type PenetrationTestSupportingDocumentRepositoryInterface interface {
 	CreateDocuments(documents []*models.PenetrationTestSupportingDocumentDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(ids []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentsBySupportingDocumentID(supportingDocID uint, tx ...utility.DatabaseTransaction) error
-	GetDocumentByID(id uint) (*models.PenetrationTestSupportingDocumentDocument, error)
+	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.PenetrationTestSupportingDocumentDocument, error)
 	BeginTransaction() utility.DatabaseTransaction
 }
 
@@ -257,9 +257,14 @@ func (ptsdr *PenetrationTestSupportingDocumentRepository) DeleteDocumentsBySuppo
 	return db.Where("penetration_test_supporting_document_id = ?", supportingDocID).Delete(&models.PenetrationTestSupportingDocumentDocument{}).Error
 }
 
-func (ptsdr *PenetrationTestSupportingDocumentRepository) GetDocumentByID(id uint) (*models.PenetrationTestSupportingDocumentDocument, error) {
+func (ptsdr *PenetrationTestSupportingDocumentRepository) GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.PenetrationTestSupportingDocumentDocument, error) {
+	db := ptsdr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var document models.PenetrationTestSupportingDocumentDocument
-	err := ptsdr.db.Where("id = ?", id).First(&document).Error
+	err := db.Where("id = ?", id).First(&document).Error
 	if err != nil {
 		return nil, err
 	}

@@ -262,6 +262,11 @@ func (ptcs *PenetrationTestClosureService) Delete(penetrationTestID uint, curren
 		return failedId, err
 	}
 
+	if err := ptcs.penetrationTestSvc.UpdateStatus(penetrationTestID, "draft", tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	deletedClosure = append(deletedClosure, map[string]interface{}{
 		"id":                  closure.ID,
 		"penetration_test_id": penetrationTestID,

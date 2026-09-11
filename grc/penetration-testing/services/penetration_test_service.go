@@ -35,6 +35,7 @@ type PenetrationTestService struct {
 	classificationSvc  PenetrationTestClassificationServiceInterface
 	executorSvc        PenetrationTestExecutorServiceInterface
 	userSvc            organizationServices.UserServiceInterface
+	statusSvc          PenetrationTestStatusServiceInterface
 }
 
 func NewPenetrationTestService(
@@ -45,6 +46,7 @@ func NewPenetrationTestService(
 	classificationSvc PenetrationTestClassificationServiceInterface,
 	executorSvc PenetrationTestExecutorServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	statusSvc PenetrationTestStatusServiceInterface,
 ) PenetrationTestServiceInterface {
 	return &PenetrationTestService{
 		repo:               repo,
@@ -54,6 +56,7 @@ func NewPenetrationTestService(
 		classificationSvc:  classificationSvc,
 		executorSvc:        executorSvc,
 		userSvc:            userSvc,
+		statusSvc:          statusSvc,
 	}
 }
 
@@ -84,6 +87,15 @@ func (ptls *PenetrationTestService) GetFullDetailsByID(id uint) (*penetrationTes
 	}
 	detail.CreatedAt = value.CreatedAt
 	detail.UpdatedAt = value.UpdatedAt
+	if value.PenetrationTestStatus != nil {
+		detail.PenetrationTestStatus = &penetrationTestDTOs.PenetrationTestStatusDTO{
+			ID:        value.PenetrationTestStatus.ID,
+			TitleEn:   value.PenetrationTestStatus.TitleEn,
+			TitleAr:   value.PenetrationTestStatus.TitleAr,
+			ColorCode: value.PenetrationTestStatus.ColorCode,
+			Type:      value.PenetrationTestStatus.Type,
+		}
+	}
 	if value.EnvironmentPreparation != nil {
 		detail.EnvironmentNotifyDate = &value.EnvironmentPreparation.EnvironmentNotifyDate
 		detail.ExpectedReadyDate = &value.EnvironmentPreparation.ExpectedReadyDate
@@ -149,6 +161,11 @@ func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrat
 		tx.Rollback()
 		return 0, err
 	}
+	draftStatus, err := ptls.statusSvc.GetByType("draft")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	value := &models.PenetrationTest{
 		SystemApplicationName:           formDTO.SystemApplicationName,
 		PenetrationTestTypeID:           formDTO.PenetrationTestTypeID,
@@ -159,6 +176,7 @@ func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrat
 		PenetrationTestExecutorID:       formDTO.PenetrationTestExecutorID,
 		CSResponsibleEmployeeID:         formDTO.CSResponsibleEmployeeID,
 		Scope:                           formDTO.Scope,
+		PenetrationTestStatusID:         draftStatus.ID,
 	}
 	value.CreatedBYID = currentUserID
 	referenceNumber, err := ptls.repo.GenerateReferenceNumber(tx)
@@ -245,7 +263,11 @@ func (ptls *PenetrationTestService) Update(id uint, currentUserID uint, form *pe
 }
 
 func (ptls *PenetrationTestService) UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error {
-	return ptls.repo.UpdateStatus(id, status, tx...)
+	statusMaster, err := ptls.statusSvc.GetByType(status)
+	if err != nil {
+		return err
+	}
+	return ptls.repo.UpdateStatus(id, statusMaster.ID, tx...)
 }
 
 func (ptls *PenetrationTestService) Delete(ids []uint, currentUserID uint) ([]uint, error) {

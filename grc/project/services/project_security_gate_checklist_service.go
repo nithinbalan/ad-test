@@ -27,6 +27,7 @@ type ProjectSecurityGateChecklistServiceInterface interface {
 	GetChecklistSummary(securityGateID uint) (*dtos.ProjectSecurityGateChecklistSummaryDTO, error)
 	GetFullDetailsByID(securityGateID uint, checklistID uint) (*dtos.ProjectSecurityGateChecklistDetailDTO, error)
 	GetByID(securityGateID uint, checklistID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklist, error)
+	GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error)
 	CreateChecklists(checklists []*models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error
 	DeleteChecklistsBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) error
 	CreateChecklistResponse(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistResponseFormDTO) (uint, error)
@@ -92,6 +93,7 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 		return nil, err
 	}
 
+	detail.IsAnswered = checklist.ResponseStatusID != nil || checklist.IsException
 	detail.CreatedAt = checklist.CreatedAt
 	detail.UpdatedAt = checklist.UpdatedAt
 
@@ -115,6 +117,10 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 	}
 
 	return &detail, nil
+}
+
+func (psgcs *ProjectSecurityGateChecklistService) GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error) {
+	return psgcs.repo.GetAllBySecurityGateID(securityGateID, tx...)
 }
 
 func (psgcs *ProjectSecurityGateChecklistService) CreateChecklists(checklists []*models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error {
@@ -159,7 +165,8 @@ func (psgcs *ProjectSecurityGateChecklistService) GetResponseDocumentPath(securi
 	}
 
 	storagePath := filepath.Join(
-		"project", strconv.FormatUint(uint64(securityGateID), 10),
+		"project",
+		"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 		"checklists", strconv.FormatUint(uint64(checklistID), 10),
 		"documents",
 	)
@@ -196,7 +203,7 @@ func (psgcs *ProjectSecurityGateChecklistService) CreateChecklistResponse(securi
 		return 0, err
 	}
 
-	if checklist.CreatedBYID != nil {
+	if checklist.ResponseStatusID != nil || checklist.IsException {
 		err = utility.NewValidationError(
 			fmt.Errorf("a response already exists for this checklist item"),
 			"unique",
@@ -242,7 +249,8 @@ func (psgcs *ProjectSecurityGateChecklistService) CreateChecklistResponse(securi
 		}
 
 		url := utility.GenerateDocumentURL(
-			"project", strconv.FormatUint(uint64(securityGateID), 10),
+			"project",
+			"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 			"checklists", strconv.FormatUint(uint64(checklistID), 10),
 			"documents",
 		)
@@ -265,7 +273,8 @@ func (psgcs *ProjectSecurityGateChecklistService) CreateChecklistResponse(securi
 		}
 
 		storagePath := filepath.Join(
-			"project", strconv.FormatUint(uint64(securityGateID), 10),
+			"project",
+			"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 			"checklists", strconv.FormatUint(uint64(checklistID), 10),
 			"documents",
 		)
@@ -318,7 +327,7 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 		return err
 	}
 
-	if checklist.CreatedBYID == nil {
+	if checklist.ResponseStatusID == nil && !checklist.IsException {
 		err = &utility.ResourceNotFoundError{}
 		return err
 	}
@@ -336,6 +345,18 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 		responseStatusID = form.ResponseStatusID
 	}
 
+	var oldResponseStatusID, newResponseStatusID interface{}
+	if checklist.ResponseStatusID != nil {
+		oldResponseStatusID = *checklist.ResponseStatusID
+	}
+
+	oldData := map[string]interface{}{
+		"response_status_id":      oldResponseStatusID,
+		"is_exception":            checklist.IsException,
+		"exception_justification": checklist.ExceptionJustification,
+		"comment":                 checklist.Comment,
+	}
+
 	checklist.ResponseStatusID = responseStatusID
 	checklist.IsException = form.IsException
 	checklist.ExceptionJustification = exceptionJustification
@@ -343,6 +364,18 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 	checklist.UpdatedBYID = &currentUserID
 	now := time.Now()
 	checklist.UpdatedAt = &now
+
+	if checklist.ResponseStatusID != nil {
+		newResponseStatusID = *checklist.ResponseStatusID
+	}
+
+	newData := map[string]interface{}{
+		"response_status_id":      newResponseStatusID,
+		"is_exception":            checklist.IsException,
+		"exception_justification": checklist.ExceptionJustification,
+		"comment":                 checklist.Comment,
+	}
+	changes := utility.CompareFieldChanges(oldData, newData)
 
 	if err = psgcs.repo.UpdateResponse(checklist, tx); err != nil {
 		return err
@@ -361,7 +394,8 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 			}
 
 			url := utility.GenerateDocumentURL(
-				"project", strconv.FormatUint(uint64(securityGateID), 10),
+				"project",
+				"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 				"checklists", strconv.FormatUint(uint64(checklistID), 10),
 				"documents",
 			)
@@ -407,7 +441,8 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 	}
 
 	storagePath := filepath.Join(
-		"project", strconv.FormatUint(uint64(securityGateID), 10),
+		"project",
+		"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
 		"checklists", strconv.FormatUint(uint64(checklistID), 10),
 		"documents",
 	)
@@ -429,11 +464,15 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 	}
 
 	go func() {
+		if len(changes) == 0 {
+			return
+		}
+
 		activityErr := psgcs.activityLog.LogActivity(
 			models.UpdateAction,
 			models.ProjectSecurityGateChecklist{}.TableName(),
 			checklist.ID,
-			checklist,
+			changes,
 			currentUserID,
 			"project", "project_security_gate", "project_security_gate_checklist_response_update", nil,
 		)

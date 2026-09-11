@@ -18,7 +18,11 @@ type PenetrationTestListDTO struct {
 	PenetrationTestPlanTitleAr            string  `json:"penetration_test_plan_title_ar"`
 	Year                                  int     `json:"year"`
 	Period                                string  `json:"period"`
-	Status                                string  `json:"status"`
+	PenetrationTestStatusID               uint    `json:"penetration_test_status_id"`
+	StatusTitleEn                         string  `json:"status_title_en"`
+	StatusTitleAr                         string  `json:"status_title_ar"`
+	StatusColorCode                       string  `json:"status_color_code"`
+	StatusType                            string  `json:"status_type"`
 	PenetrationTestClassificationID       uint    `json:"penetration_test_classification_id"`
 	PenetrationTestClassificationTitleEn  string  `json:"penetration_test_classification_title_en"`
 	PenetrationTestClassificationTitleAr  string  `json:"penetration_test_classification_title_ar"`
@@ -63,6 +67,14 @@ type PenetrationTestFormDTO struct {
 	Scope                           string `json:"scope" binding:"required"`
 }
 
+type PenetrationTestStatusDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+}
+
 type PenetrationTestDetailDTO struct {
 	ID                            uint                                    `json:"id"`
 	ReferenceNumber               string                                  `json:"reference_number"`
@@ -75,7 +87,7 @@ type PenetrationTestDetailDTO struct {
 	Year                          int                                     `json:"year"`
 	Period                        string                                  `json:"period"`
 	Scope                         string                                  `json:"scope"`
-	Status                        string                                  `json:"status"`
+	PenetrationTestStatus         *PenetrationTestStatusDTO               `json:"penetration_test_status"`
 	EnvironmentNotifyDate         *time.Time                              `json:"environment_notify_date"`
 	ExpectedReadyDate             *time.Time                              `json:"expected_ready_date"`
 	EnvironmentReadiness          *PenetrationTestEnvironmentReadinessDTO `json:"environment_readiness"`

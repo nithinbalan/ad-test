@@ -44,6 +44,9 @@ type ProjectModule struct {
 	ProjectReviewController                              *controllers.ProjectReviewController
 	ProjectReviewCommentController                       *controllers.ProjectReviewCommentController
 
+	ProjectSecurityGateChecklistExceptionWorkflowController *controllers.ProjectSecurityGateChecklistExceptionWorkflowController
+	ProjectSecurityGateChecklistExceptionReviewController   *controllers.ProjectSecurityGateChecklistExceptionReviewController
+
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
 	projectActionPlanSvc                 services.ProjectActionPlanServiceInterface
@@ -187,6 +190,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		sharedModule.ActivityLogService,
 		masterModule.ActionPlanStatusSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 		projectSvc,
 		projectMilestoneSvc,
 		masterModule.SeverityLevelSvc, commonModule.DelegateeUserService,
@@ -363,6 +367,31 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectSecurityGateChecklistCommentController := controllers.NewProjectSecurityGateChecklistCommentController(projectSecurityGateChecklistCommentSvc)
 
+	projectSecurityGateChecklistExceptionWorkflowRepo := repositories.NewProjectSecurityGateChecklistExceptionWorkflowRepository(db)
+	projectSecurityGateChecklistExceptionWorkflowSvc := services.NewProjectSecurityGateChecklistExceptionWorkflowService(
+		projectSecurityGateChecklistExceptionWorkflowRepo,
+		projectSecurityGateChecklistSvc,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		masterModule.WorkflowContextSvc,
+		organizationModule.UserSvc,
+		organizationModule.OrganizationUnitsSvc,
+	)
+	projectSecurityGateChecklistExceptionWorkflowController := controllers.NewProjectSecurityGateChecklistExceptionWorkflowController(projectSecurityGateChecklistExceptionWorkflowSvc)
+
+	projectSecurityGateChecklistExceptionReviewRepo := repositories.NewProjectSecurityGateChecklistExceptionReviewRepository(db)
+	projectSecurityGateChecklistExceptionReviewSvc := services.NewProjectSecurityGateChecklistExceptionReviewService(
+		projectSecurityGateChecklistExceptionReviewRepo,
+		sharedModule.ActivityLogService,
+		projectSecurityGateChecklistSvc,
+		projectSecurityGateSvc,
+		projectSecurityGateChecklistExceptionWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+	)
+	projectSecurityGateChecklistExceptionReviewController := controllers.NewProjectSecurityGateChecklistExceptionReviewController(projectSecurityGateChecklistExceptionReviewSvc)
+
 	return &ProjectModule{
 		ProjectTypeController:                                projectTypeController,
 		ProjectStatusController:                              projectStatusController,
@@ -398,6 +427,9 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectWorkflowController:                            projectWorkflowController,
 		ProjectReviewController:                              projectReviewController,
 		ProjectReviewCommentController:                       projectReviewCommentController,
+
+		ProjectSecurityGateChecklistExceptionWorkflowController: projectSecurityGateChecklistExceptionWorkflowController,
+		ProjectSecurityGateChecklistExceptionReviewController:   projectSecurityGateChecklistExceptionReviewController,
 
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,
