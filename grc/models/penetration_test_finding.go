@@ -10,8 +10,8 @@ type PenetrationTestFinding struct {
 	ActionPlanStatusID    uint       `json:"action_plan_status_id" gorm:"not null" binding:"required"`
 	Percentage            *uint      `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	SeverityLevelID       uint       `json:"severity_level_id" gorm:"not null" binding:"required"`
-	Description           string     `json:"description" gorm:"type:nvarchar(max)"`
-	Recommendation        string     `json:"recommendation" gorm:"type:nvarchar(max)"`
+	Description           *string    `json:"description" gorm:"type:nvarchar(max)"`
+	Recommendation        *string    `json:"recommendation" gorm:"type:nvarchar(max)"`
 	OwnerID               uint       `json:"owner_id" gorm:"not null" binding:"required"`
 	TargetRemediationDate *time.Time `json:"target_remediation_date" gorm:"type:date;default:null"`
 	CreatedBYID           uint       `json:"created_by_id" gorm:"not null"`
