@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"errors"
@@ -119,7 +119,10 @@ func (prs *ProjectReportService) GetFullReportDetailsByID(id uint) (*dtos.Projec
 	}
 
 	closure, err := prs.repo.GetProjectClosure(id)
-	if err == nil && closure != nil {
+	if err != nil {
+		return nil, err
+	}
+	if closure != nil {
 		projectDTO.Closure = closure
 	}
 

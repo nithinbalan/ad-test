@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"errors"
+
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -109,34 +111,27 @@ func (r *ProjectReportRepository) GetAllControls(projectID uint) ([]*commonDTOs.
 		Select(`
 			project_controls.id,
 			project_controls.control_id,
-			compliance_controls.name,
-			compliance_controls.description,
-			compliance_controls.control_number,
-			compliance_controls.created_at,
-			compliance_controls.updated_at,
-			compliance_control_types.title_en AS control_type_title_en,
-			compliance_control_types.title_ar AS control_type_title_ar,
-			compliance_control_classifications.title_en AS control_classification_title_en,
-			compliance_control_classifications.title_ar AS control_classification_title_ar,
-			compliance_control_priorities.title_en AS control_priority_title_en,
-			compliance_control_priorities.title_ar AS control_priority_title_ar,
-			compliance_control_phases.title_en AS control_phase_title_en,
-			compliance_control_phases.title_ar AS control_phase_title_ar,
-			compliance_control_maturity_levels.title_en AS control_maturity_level_title_en,
-			compliance_control_maturity_levels.title_ar AS control_maturity_level_title_ar,
-			compliance_control_enforcement_levels.title_en AS control_enforcement_level_title_en,
-			compliance_control_enforcement_levels.title_ar AS control_enforcement_level_title_ar,
-			organization_units.title_en AS control_owner_title_en,
-			organization_units.title_ar AS control_owner_title_ar
+			controls.reference_number,
+			controls.code,
+			controls.title_en,
+			controls.title_ar,
+			controls.description,
+			controls.created_at,
+			controls.updated_at,
+			control_types.title_en AS control_type_title_en,
+			control_types.title_ar AS control_type_title_ar,
+			control_categories.title_en AS control_category_title_en,
+			control_categories.title_ar AS control_category_title_ar,
+			organization_units.title_en AS owner_unit_title_en,
+			organization_units.title_ar AS owner_unit_title_ar,
+			owner.first_name_en AS owner_first_name_en,
+			owner.last_name_en AS owner_last_name_en
 		`).
-		Joins("INNER JOIN compliance_controls ON compliance_controls.id = project_controls.control_id").
-		Joins("LEFT JOIN compliance_control_types ON compliance_control_types.id = compliance_controls.control_type_id").
-		Joins("LEFT JOIN compliance_control_classifications ON compliance_control_classifications.id = compliance_controls.control_classification_id").
-		Joins("LEFT JOIN compliance_control_priorities ON compliance_control_priorities.id = compliance_controls.control_priority_id").
-		Joins("LEFT JOIN compliance_control_phases ON compliance_control_phases.id = compliance_controls.control_phase_id").
-		Joins("LEFT JOIN compliance_control_maturity_levels ON compliance_control_maturity_levels.id = compliance_controls.control_maturity_level_id").
-		Joins("LEFT JOIN compliance_control_enforcement_levels ON compliance_control_enforcement_levels.id = compliance_controls.control_enforcement_level_id").
-		Joins("LEFT JOIN organization_units ON organization_units.id = compliance_controls.control_owner_id").
+		Joins("INNER JOIN controls ON controls.id = project_controls.control_id").
+		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
+		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = controls.responsible_unit_id").
+		Joins("LEFT JOIN users AS owner ON owner.id = controls.responsible_user_id").
 		Where("project_controls.project_id = ?", projectID).
 		Order("project_controls.id ASC").
 		Scan(&controls).Error
@@ -149,25 +144,24 @@ func (r *ProjectReportRepository) GetAllRisks(projectID uint) ([]*commonDTOs.Ass
 	err := r.db.Table("project_risks").
 		Select(`
 			project_risks.id,
-			project_risks.risk_id,
-			risk_registers.reference_number,
-			risk_registers.subject,
-			risk_registers.description,
-			risk_registers.inherent_risk_score,
-			risk_registers.residual_risk_score,
-			risk_registers.created_at,
-			risk_registers.updated_at,
+			project_risks.risk_register_id,
+			risk_register.reference_number,
+			risk_register.title,
+			risk_register.description,
+			CONVERT(VARCHAR, risk_register.created_at, 120) AS created_at,
+			CONVERT(VARCHAR, risk_register.updated_at, 120) AS updated_at,
 			risk_statuses.title_en AS risk_status_title_en,
 			risk_statuses.title_ar AS risk_status_title_ar,
-			risk_types.title_en AS risk_type_title_en,
-			risk_types.title_ar AS risk_type_title_ar,
 			risk_categories.title_en AS risk_category_title_en,
-			risk_categories.title_ar AS risk_category_title_ar
+			risk_categories.title_ar AS risk_category_title_ar,
+			inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
+			residual_risk_rating.title_en AS residual_risk_rating_title_en
 		`).
-		Joins("INNER JOIN risk_registers ON risk_registers.id = project_risks.risk_id").
-		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_registers.risk_status_id").
-		Joins("LEFT JOIN risk_types ON risk_types.id = risk_registers.risk_type_id").
-		Joins("LEFT JOIN risk_categories ON risk_categories.id = risk_registers.risk_category_id").
+		Joins("INNER JOIN risk_register ON risk_register.id = project_risks.risk_register_id").
+		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Joins("LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id").
 		Where("project_risks.project_id = ?", projectID).
 		Order("project_risks.id ASC").
 		Scan(&risks).Error
@@ -222,18 +216,15 @@ func (r *ProjectReportRepository) GetAllKPIs(projectID uint) ([]*commonDTOs.Asso
 	err := r.db.Table("kpi_projects").
 		Select(`
 			kpi_projects.id,
-			kpi_projects.kpi_id,
-			kpi_registers.reference_number,
-			kpi_registers.title_en,
-			kpi_registers.title_ar,
-			kpi_registers.description_en,
-			kpi_registers.description_ar,
-			kpi_registers.current_value,
-			kpi_registers.target_value,
-			kpi_registers.created_at,
-			kpi_registers.updated_at
+			kpi_projects.kpi_register_id,
+			kpi_register.reference_number,
+			kpi_register.title,
+			kpi_register.description,
+			kpi_register.target_value,
+			CONVERT(VARCHAR, kpi_register.created_at, 120) AS created_at,
+			CONVERT(VARCHAR, kpi_register.updated_at, 120) AS updated_at
 		`).
-		Joins("INNER JOIN kpi_registers ON kpi_registers.id = kpi_projects.kpi_id").
+		Joins("INNER JOIN kpi_register ON kpi_register.id = kpi_projects.kpi_register_id").
 		Where("kpi_projects.project_id = ?", projectID).
 		Order("kpi_projects.id ASC").
 		Scan(&kpis).Error
@@ -317,17 +308,16 @@ func (r *ProjectReportRepository) GetAllChangeRequests(projectID uint) ([]*dtos.
 			project_change_requests.description,
 			project_change_requests.business_justification,
 			project_change_requests.anticipated_benefits,
-			project_change_requests.scope_impact,
-			project_change_requests.schedule_impact,
-			project_change_requests.cost_impact,
+			project_change_requests.risks_of_deferral,
+			COALESCE(cr_impacts.impact, '') AS impact,
 			project_change_requests.requested_by_user_id,
-			project_change_requests.is_assigned,
+			CONVERT(VARCHAR, project_change_requests.requested_on, 23) AS requested_on,
 			project_change_requests.workflow_status_id,
 			workflow_statuses.title_en AS workflow_status_title_en,
 			workflow_statuses.title_ar AS workflow_status_title_ar,
 			workflow_statuses.color_code AS workflow_status_color_code,
 			workflow_statuses.type AS workflow_status_type,
-			project_change_requests.created_at,
+			CONVERT(VARCHAR, project_change_requests.created_at, 120) AS created_at,
 			users.id AS requested_by_user_id,
 			users.first_name_en AS requested_by_user_first_name_en,
 			users.first_name_ar AS requested_by_user_first_name_ar,
@@ -335,6 +325,19 @@ func (r *ProjectReportRepository) GetAllChangeRequests(projectID uint) ([]*dtos.
 			users.last_name_ar AS requested_by_user_last_name_ar
 		`).
 		Joins("LEFT JOIN workflow_statuses ON workflow_statuses.id = project_change_requests.workflow_status_id").
+		Joins(`LEFT JOIN (
+			SELECT 
+				pcia.project_change_request_id,
+				STRING_AGG(CAST(pcia.title_en AS NVARCHAR(MAX)), ', ') AS impact
+			FROM (
+				SELECT DISTINCT 
+					ia.project_change_request_id,
+					piat.title_en
+				FROM project_change_request_impact_assessments ia
+				JOIN project_impact_assessment_types piat ON piat.id = ia.project_impact_assessment_type_id
+			) pcia
+			GROUP BY pcia.project_change_request_id
+		) cr_impacts ON cr_impacts.project_change_request_id = project_change_requests.id`).
 		Joins("LEFT JOIN users ON users.id = project_change_requests.requested_by_user_id").
 		Where("project_change_requests.project_id = ?", projectID).
 		Order("project_change_requests.id ASC").
@@ -355,13 +358,12 @@ func (r *ProjectReportRepository) GetAllDecisionLogs(projectID uint) ([]*dtos.Pr
 			project_decision_logs.reason,
 			CONVERT(VARCHAR, project_decision_logs.decision_date, 23) AS decision_date,
 			project_decision_logs.requested_by_user_id,
-			project_decision_logs.is_assigned,
 			project_decision_logs.workflow_status_id,
 			workflow_statuses.title_en AS workflow_status_title_en,
 			workflow_statuses.title_ar AS workflow_status_title_ar,
 			workflow_statuses.color_code AS workflow_status_color_code,
 			workflow_statuses.type AS workflow_status_type,
-			project_decision_logs.created_at,
+			CONVERT(VARCHAR, project_decision_logs.created_at, 120) AS created_at,
 			users.id AS requested_by_user_id,
 			users.first_name_en AS requested_by_user_first_name_en,
 			users.first_name_ar AS requested_by_user_first_name_ar,
@@ -452,7 +454,10 @@ func (r *ProjectReportRepository) GetProjectClosure(projectID uint) (*dtos.Proje
 		First(&row).Error
 
 	if err != nil {
-		return nil, nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
 	}
 
 	closureDTO := &dtos.ProjectClosureReportDTO{

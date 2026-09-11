@@ -23,6 +23,7 @@ type ReportsModule struct {
 	GRCReportWorkflowController              *controllers.GRCReportWorkflowController
 	GRCReportWorkflowReviewCommentController *controllers.GRCReportWorkflowReviewCommentController
 	TPRMReportController                     *controllers.TPRMReportController
+	ProjectReportController                  *controllers.ProjectReportController
 }
 
 func NewReportsModule(db *gorm.DB,
@@ -39,6 +40,7 @@ func NewReportsModule(db *gorm.DB,
 	kpiModule *KPIModule,
 	commonModule *CommonModule,
 	tprmModule *TprmModule,
+	projectModule *ProjectModule,
 ) *ReportsModule {
 
 	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
@@ -132,6 +134,10 @@ func NewReportsModule(db *gorm.DB,
 	tprmReportSvc := services.NewTPRMReportService(tprmReportRepo)
 	tprmReportController := controllers.NewTPRMReportController(tprmReportSvc, tprmModule.ThirdPartyRegisterSvc, tprmModule.ThirdPartyAssessmentSvc)
 
+	projectReportRepo := repositories.NewProjectReportRepository(db)
+	projectReportSvc := services.NewProjectReportService(projectReportRepo)
+	projectReportController := controllers.NewProjectReportController(projectReportSvc, projectModule.projectSvc, projectModule.projectActionPlanSvc)
+
 	return &ReportsModule{
 		ComplianceReportController:               complianceReportController,
 		OrganizationReportController:             organizationReportController,
@@ -147,5 +153,6 @@ func NewReportsModule(db *gorm.DB,
 		GRCReportWorkflowController:              grcReportWorkflowController,
 		GRCReportWorkflowReviewCommentController: grcReportWorkflowReviewCommentController,
 		TPRMReportController:                     tprmReportController,
+		ProjectReportController:                  projectReportController,
 	}
 }

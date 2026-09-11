@@ -53,6 +53,7 @@ func (pcrc *ProjectChangeRequestController) GetAllProjectChangeRequests(c *gin.C
 		"workflow_status_id": "project_change_requests.workflow_status_id",
 		"created_at":         "project_change_requests.created_at",
 		"updated_at":         "project_change_requests.updated_at",
+		"impact":             "cr_impacts.impact",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
