@@ -27,6 +27,7 @@ type ProjectSecurityGateChecklistServiceInterface interface {
 	GetChecklistSummary(securityGateID uint) (*dtos.ProjectSecurityGateChecklistSummaryDTO, error)
 	GetFullDetailsByID(securityGateID uint, checklistID uint) (*dtos.ProjectSecurityGateChecklistDetailDTO, error)
 	GetByID(securityGateID uint, checklistID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklist, error)
+	GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error)
 	CreateChecklists(checklists []*models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error
 	DeleteChecklistsBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) error
 	CreateChecklistResponse(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistResponseFormDTO) (uint, error)
@@ -92,6 +93,7 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 		return nil, err
 	}
 
+	detail.IsAnswered = checklist.ResponseStatusID != nil || checklist.IsException
 	detail.CreatedAt = checklist.CreatedAt
 	detail.UpdatedAt = checklist.UpdatedAt
 
@@ -115,6 +117,10 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 	}
 
 	return &detail, nil
+}
+
+func (psgcs *ProjectSecurityGateChecklistService) GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error) {
+	return psgcs.repo.GetAllBySecurityGateID(securityGateID, tx...)
 }
 
 func (psgcs *ProjectSecurityGateChecklistService) CreateChecklists(checklists []*models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error {
@@ -197,7 +203,7 @@ func (psgcs *ProjectSecurityGateChecklistService) CreateChecklistResponse(securi
 		return 0, err
 	}
 
-	if checklist.CreatedBYID != nil {
+	if checklist.ResponseStatusID != nil || checklist.IsException {
 		err = utility.NewValidationError(
 			fmt.Errorf("a response already exists for this checklist item"),
 			"unique",
@@ -321,7 +327,7 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 		return err
 	}
 
-	if checklist.CreatedBYID == nil {
+	if checklist.ResponseStatusID == nil && !checklist.IsException {
 		err = &utility.ResourceNotFoundError{}
 		return err
 	}

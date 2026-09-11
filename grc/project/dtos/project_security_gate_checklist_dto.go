@@ -45,11 +45,12 @@ type ProjectSecurityGateChecklistListDTO struct {
 }
 
 type ProjectSecurityGateChecklistListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
+	Sort        string
+	SortBy      string
+	Keyword     string
+	QuickFilter []string
+	Page        int
+	PageSize    int
 }
 
 type ProjectSecurityGateChecklistListResponseDTO struct {
@@ -61,6 +62,7 @@ type ProjectSecurityGateChecklistDetailDTO struct {
 	ID                     uint                                                `json:"id"`
 	SecurityGateID         uint                                                `json:"security_gate_id"`
 	Requirement            *ProjectSecurityGateChecklistTemplateRequirementDTO `json:"requirement"`
+	IsAnswered             bool                                                `json:"is_answered"`
 	ResponseStatus         *ProjectSecurityGateChecklistResponseStatusDTO      `json:"response_status"`
 	Comment                *string                                             `json:"comment"`
 	IsException            bool                                                `json:"is_exception"`

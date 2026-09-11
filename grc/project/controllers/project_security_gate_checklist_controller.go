@@ -41,6 +41,7 @@ func (psgcc *ProjectSecurityGateChecklistController) GetAllProjectSecurityGateCh
 
 	sortBy := c.DefaultQuery("sort_by", "id")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	validSortFields := map[string]string{
 		"id":          "project_security_gate_checklists.id",
@@ -68,11 +69,12 @@ func (psgcc *ProjectSecurityGateChecklistController) GetAllProjectSecurityGateCh
 	}
 
 	queryParams := dtos.ProjectSecurityGateChecklistListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   dbField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		QuickFilter: quickFilter,
+		Page:        page,
+		PageSize:    pageSize,
 	}
 
 	checklists, err := psgcc.service.GetAll(uint(securityGateID), &queryParams)

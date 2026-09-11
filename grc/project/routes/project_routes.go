@@ -273,6 +273,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/project-security-gates", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateController.CreateProjectSecurityGate)
 	projectRoutes.PUT("/project-security-gates/:id", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateController.UpdateProjectSecurityGate)
 	projectRoutes.POST("/project-security-gates/delete", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateController.DeleteProjectSecurityGates)
+	projectRoutes.PUT("/project-security-gates/:id/go-live", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateController.GoLiveProjectSecurityGate)
 
 	// Project Security Gate Checklist
 	projectRoutes.GET("/project-security-gates/:id/checklists", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistController.GetAllProjectSecurityGateChecklists)
