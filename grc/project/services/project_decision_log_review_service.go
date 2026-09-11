@@ -843,6 +843,9 @@ func (pdlrs *ProjectDecisionLogReviewService) Reject(projectID uint, decisionLog
 	if err := pdlrs.workflowSvc.UpdateProjectDecisionLogWorkflow(currentWorkflow, tx); err != nil {
 		return err
 	}
+	if err := pdlrs.workflowSvc.UpdateWorkflowStatus(currentWorkflow.ID, workflowStatus.ID, tx); err != nil {
+		return err
+	}
 
 	var submittedByID uint
 	if pdl.SubmittedBYID != nil {

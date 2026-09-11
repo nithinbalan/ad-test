@@ -862,6 +862,9 @@ func (pcrrs *ProjectChangeRequestReviewService) Reject(projectID uint, changeReq
 	if err := pcrrs.workflowSvc.UpdateProjectChangeRequestWorkflow(currentWorkflow, tx); err != nil {
 		return err
 	}
+	if err := pcrrs.workflowSvc.UpdateWorkflowStatus(currentWorkflow.ID, workflowStatus.ID, tx); err != nil {
+		return err
+	}
 
 	var submittedByID uint
 	if pcr.SubmittedBYID != nil {

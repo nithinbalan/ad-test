@@ -46,6 +46,9 @@ func (pwr *ProjectWorkflowRepository) GetWorkflowList(projectID uint, tx ...util
 		Preload("RejectedByUser").
 		Preload("WorkflowStatus").
 		Preload("Workflows").
+		Preload("Workflows", func(db *gorm.DB) *gorm.DB {
+			return db.Order("project_workflows.level ASC")
+		}).
 		Preload("Workflows.WorkflowStatus").
 		Preload("Workflows.WorkflowLevelType").
 		Preload("Workflows.ProjectWorkflowParticipants").

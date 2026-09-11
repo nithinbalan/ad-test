@@ -851,6 +851,9 @@ func (prs *ProjectReviewService) Reject(projectID uint, currentUserID uint, form
 	if err := prs.workflowSvc.UpdateProjectWorkflow(currentWorkflow, tx); err != nil {
 		return err
 	}
+	if err := prs.workflowSvc.UpdateWorkflowStatus(currentWorkflow.ID, workflowStatus.ID, tx); err != nil {
+		return err
+	}
 
 	var submittedByID uint
 	if project.SubmittedBYID != nil {

@@ -142,11 +142,11 @@ func (pws *ProjectWorkflowService) GetWorkflowList(projectID uint) (*projectDTOs
 
 	for _, workflow := range project.Workflows {
 		workflowDTO := &projectDTOs.ProjectWorkflowLevelDTO{
-			Level:          workflow.Level,
-			ApprovalType:   workflow.ApprovalTypes,
-			WorkflowStatus: pws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
-			ReviewUsers:    []*organizationDTOs.UserMinimalDTO{},
-			ApprovedUsers:  []*organizationDTOs.UserMinimalDTO{},
+			Level:         workflow.Level,
+			ApprovalType:  workflow.ApprovalTypes,
+			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
+			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
+			CurrentStatus: pws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
 		}
 
 		for _, participant := range workflow.ProjectWorkflowParticipants {
