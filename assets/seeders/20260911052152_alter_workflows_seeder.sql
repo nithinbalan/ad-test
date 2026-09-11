@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 DECLARE @contextID INT;
 
-SET @contextID = (SELECT id FROM workflow_contexts WHERE [type] = 'project');
+SET @contextID = (SELECT id FROM workflow_contexts WHERE [type] = 'project_register');
 
 INSERT INTO workflows (
     type,
@@ -14,12 +14,12 @@ INSERT INTO workflows (
     workflow_context_id
 )
 VALUES (
-    'project-workflow',
+    'project-register-workflow',
     'active',
     1,
     GETDATE(),
-    'Project Workflow',
-    N'سير عمل المشروع',
+    'Project Register Workflow',
+    N'سير عمل سجل المشاريع',
     @contextID
 );
 -- +goose StatementEnd
@@ -28,7 +28,7 @@ VALUES (
 -- +goose StatementBegin
 DECLARE @contextID INT;
 
-SET @contextID = (SELECT id FROM workflow_contexts WHERE [type] = 'project');
+SET @contextID = (SELECT id FROM workflow_contexts WHERE [type] = 'project_register');
 
 DELETE FROM workflows WHERE workflow_context_id = @contextID;
 -- +goose StatementEnd

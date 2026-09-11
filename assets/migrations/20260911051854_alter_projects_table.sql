@@ -15,19 +15,15 @@ ADD
     CONSTRAINT FK_projects_workflow_statuses
         FOREIGN KEY (workflow_status_id) REFERENCES workflow_statuses(id)
         ON DELETE NO ACTION ON UPDATE NO ACTION,
-
     CONSTRAINT FK_projects_users_4
         FOREIGN KEY (submitted_by_id) REFERENCES users(id)
         ON DELETE NO ACTION ON UPDATE NO ACTION,
-
     CONSTRAINT FK_projects_users_5
         FOREIGN KEY (approved_by_id) REFERENCES users(id)
         ON DELETE NO ACTION ON UPDATE NO ACTION,
-
     CONSTRAINT FK_projects_users_6
         FOREIGN KEY (rejected_by_id) REFERENCES users(id)
         ON DELETE NO ACTION ON UPDATE NO ACTION,
-
     CONSTRAINT FK_projects_incident_action_plans
         FOREIGN KEY (incident_action_plan_id) REFERENCES incident_action_plans(id)
         ON DELETE NO ACTION ON UPDATE NO ACTION;
@@ -35,21 +31,11 @@ ADD
 
 -- +goose Down
 -- +goose StatementBegin
-ALTER TABLE projects
-DROP CONSTRAINT FK_projects_workflow_statuses;
-
-ALTER TABLE projects
-DROP CONSTRAINT FK_projects_users_4;
-
-ALTER TABLE projects
-DROP CONSTRAINT FK_projects_users_5;
-
-ALTER TABLE projects
-DROP CONSTRAINT FK_projects_users_6;
-
-ALTER TABLE projects
-DROP CONSTRAINT FK_projects_incident_action_plans;
-
+ALTER TABLE projects DROP CONSTRAINT FK_projects_workflow_statuses;
+ALTER TABLE projects DROP CONSTRAINT FK_projects_users_4;
+ALTER TABLE projects DROP CONSTRAINT FK_projects_users_5;
+ALTER TABLE projects DROP CONSTRAINT FK_projects_users_6;
+ALTER TABLE projects DROP CONSTRAINT FK_projects_incident_action_plans;
 ALTER TABLE projects
 DROP COLUMN workflow_status_id,
             submitted_by_id,

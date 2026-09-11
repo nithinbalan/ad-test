@@ -12,13 +12,13 @@ INSERT INTO workflow_contexts (
 )
 VALUES (
     @projectModuleID, 
-    'Project Workflow', 
-    N'سير عمل المشروع', 
-    'project'
+    'Project Register Workflow', 
+    N'سير عمل سجل المشاريع', 
+    'project_register'
 );
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DELETE FROM workflow_contexts WHERE type = 'project';
+DELETE FROM workflow_contexts WHERE type = 'project_register';
 -- +goose StatementEnd
