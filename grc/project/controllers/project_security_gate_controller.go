@@ -183,6 +183,40 @@ func (psgc *ProjectSecurityGateController) UpdateProjectSecurityGate(c *gin.Cont
 	c.Status(http.StatusOK)
 }
 
+func (psgc *ProjectSecurityGateController) GoLiveProjectSecurityGate(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(psgc.db, c, err.Error())
+		return
+	}
+
+	err = psgc.service.GoLive(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(psgc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (psgc *ProjectSecurityGateController) DeleteProjectSecurityGates(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`

@@ -17,6 +17,7 @@ type ProjectSecurityGateChecklistRepositoryInterface interface {
 	GetSummaryBySecurityGateID(securityGateID uint) (*projectDTOs.ProjectSecurityGateChecklistSummaryDTO, error)
 	GetAll(securityGateID uint, params *projectDTOs.ProjectSecurityGateChecklistListQueryParamsDTO) (*projectDTOs.ProjectSecurityGateChecklistListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklist, error)
+	GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error)
 	GetFullDetailsByID(id uint) (*models.ProjectSecurityGateChecklist, error)
 	DeleteBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) error
 	UpdateResponse(checklist *models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error
@@ -110,7 +111,19 @@ func (repo *ProjectSecurityGateChecklistRepository) GetAll(securityGateID uint, 
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where("requirements.title_en LIKE ? OR requirements.title_ar LIKE ?", keyword, keyword)
+		query = query.Where("(requirements.title_en LIKE ? OR requirements.title_ar LIKE ?)", keyword, keyword)
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "go_live_blocked":
+			query = query.Where(`
+				(
+					(project_security_gate_checklists.is_exception = 1 AND project_security_gate_checklists.approved_by_id IS NULL)
+					OR (requirements.is_critical = 1 AND response_status.type IN ('not_implemented', 'partially_implemented'))
+				)
+			`)
+		}
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -157,11 +170,16 @@ func (repo *ProjectSecurityGateChecklistRepository) GetSummaryBySecurityGateID(s
 		Select(`
 			COUNT(*) AS total,
 			COALESCE(SUM(CASE WHEN requirements.is_critical = 1 THEN 1 ELSE 0 END), 0) AS critical,
-			COALESCE(SUM(CASE WHEN project_security_gate_checklists.created_by_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS completed
+			COALESCE(SUM(CASE
+				WHEN response_status.type IN ('implemented', 'not_applicable')
+					OR (project_security_gate_checklists.is_exception = 1 AND project_security_gate_checklists.approved_by_id IS NOT NULL)
+				THEN 1 ELSE 0 END), 0) AS completed
 		`).
 		Joins(`
 			JOIN project_security_gate_checklist_template_requirements AS requirements
 				ON requirements.id = project_security_gate_checklists.requirement_id
+			LEFT JOIN project_security_gate_checklist_response_statuses AS response_status
+				ON response_status.id = project_security_gate_checklists.response_status_id
 		`).
 		Where("project_security_gate_checklists.security_gate_id = ?", securityGateID).
 		Scan(&row).Error
@@ -229,6 +247,27 @@ func (repo *ProjectSecurityGateChecklistRepository) GetFullDetailsByID(id uint) 
 	}
 
 	return checklist, nil
+}
+
+func (repo *ProjectSecurityGateChecklistRepository) GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var checklists []*models.ProjectSecurityGateChecklist
+	result := db.
+		Preload("Requirement").
+		Preload("ResponseStatus").
+		Preload("WorkflowStatus").
+		Where("security_gate_id = ?", securityGateID).
+		Find(&checklists)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return checklists, nil
 }
 
 func (repo *ProjectSecurityGateChecklistRepository) DeleteBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) error {

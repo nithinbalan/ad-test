@@ -790,6 +790,34 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "security_gate_checklist_not_answered":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "security_gate_checklist_not_answered",
+			})
+			errors = append(errors, errorMessage)
+
+		case "security_gate_checklist_not_implemented":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "security_gate_checklist_not_implemented",
+			})
+			errors = append(errors, errorMessage)
+
+		case "security_gate_exception_not_approved":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "security_gate_exception_not_approved",
+			})
+			errors = append(errors, errorMessage)
+
+		case "security_gate_already_go_live":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "security_gate_already_go_live",
+			})
+			errors = append(errors, errorMessage)
+
 		}
 
 		return errors

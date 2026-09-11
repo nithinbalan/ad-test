@@ -24,6 +24,7 @@ type ProjectSecurityGateServiceInterface interface {
 	Create(currentUserID uint, form *dtos.ProjectSecurityGateFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *dtos.ProjectSecurityGateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GoLive(id uint, currentUserID uint) error
 }
 
 type ProjectSecurityGateService struct {
@@ -203,6 +204,140 @@ func (psgs *ProjectSecurityGateService) Create(currentUserID uint, form *dtos.Pr
 	}()
 
 	return id, err
+}
+
+func (psgs *ProjectSecurityGateService) GoLive(id uint, currentUserID uint) (err error) {
+	tx := psgs.repo.BeginTransaction()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+	}()
+
+	securityGate, err := psgs.repo.GetByID(id, tx)
+	if err != nil {
+		return err
+	}
+
+	goLiveStatus, err := psgs.readinessStatusSvc.GetByType("go_live", tx)
+	if err != nil {
+		return err
+	}
+
+	if securityGate.ReadinessStatusID == goLiveStatus.ID {
+		err = utility.NewValidationError(
+			fmt.Errorf("security gate is already go live"),
+			"security_gate_already_go_live",
+			"readiness_status",
+		)
+		return err
+	}
+
+	checklists, err := psgs.checklistSvc.GetAllBySecurityGateID(id, tx)
+	if err != nil {
+		return err
+	}
+
+	var hasUnanswered, hasPendingException, hasIncompleteStatus bool
+
+	for _, checklist := range checklists {
+		if checklist.ResponseStatusID == nil && !checklist.IsException {
+			hasUnanswered = true
+			continue
+		}
+
+		if checklist.IsException {
+			if checklist.ApprovedBYID == nil {
+				hasPendingException = true
+			}
+			continue
+		}
+
+		if checklist.Requirement == nil || !checklist.Requirement.IsCritical {
+			continue
+		}
+
+		if checklist.ResponseStatus == nil ||
+			(checklist.ResponseStatus.Type != "implemented" && checklist.ResponseStatus.Type != "not_applicable") {
+			hasIncompleteStatus = true
+		}
+	}
+
+	if len(checklists) == 0 || hasUnanswered {
+		err = utility.NewValidationError(
+			fmt.Errorf("all checklist items must be answered before go live"),
+			"security_gate_checklist_not_answered",
+			"checklist",
+		)
+		return err
+	}
+
+	if hasIncompleteStatus {
+		err = utility.NewValidationError(
+			fmt.Errorf("all checklist items must be implemented or not applicable before go live"),
+			"security_gate_checklist_not_implemented",
+			"checklist",
+		)
+		return err
+	}
+
+	if hasPendingException {
+		err = utility.NewValidationError(
+			fmt.Errorf("all checklist exceptions must be approved before go live"),
+			"security_gate_exception_not_approved",
+			"checklist exception",
+		)
+		return err
+	}
+
+	previousSecurityGate := *securityGate
+
+	now := time.Now()
+	securityGate.ReadinessStatusID = goLiveStatus.ID
+	securityGate.UpdatedBYID = &currentUserID
+	securityGate.UpdatedAt = &now
+
+	if err = psgs.repo.Update(securityGate, tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	go func() {
+		fieldsToCompare := []string{"ReadinessStatusID"}
+		changes, err := utility.CompareFields(&previousSecurityGate, securityGate, fieldsToCompare)
+		if err != nil {
+			log.Println("error :", err.Error())
+		}
+
+		changedDataJSON, err := utility.ChangesToJSON(changes)
+		if err != nil {
+			log.Println("error :", err.Error())
+		}
+
+		err = psgs.activityLog.LogActivity(
+			models.UpdateAction,
+			models.ProjectSecurityGate{}.TableName(),
+			id,
+			changedDataJSON,
+			currentUserID,
+			"project", "project_security_gate", "project_security_gate_go_live", nil,
+		)
+		if err != nil {
+			log.Printf("Failed to log update activity: %v", err)
+		}
+	}()
+
+	return err
 }
 
 func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form *dtos.ProjectSecurityGateFormDTO) (err error) {

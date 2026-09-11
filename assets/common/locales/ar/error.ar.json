@@ -356,6 +356,22 @@
 {
   "id": "workflow_already_approved",
   "translation": "لقد قمت بالموافقة على {{.Field}} في هذا المستوى بالفعل."
+},
+{
+  "id": "security_gate_checklist_not_answered",
+  "translation": "يجب الإجابة على جميع عناصر قائمة التحقق قبل الإطلاق."
+},
+{
+  "id": "security_gate_checklist_not_implemented",
+  "translation": "يجب أن يكون كل عنصر حرج في قائمة التحقق «تم التنفيذ» أو «لا ينطبق» قبل الإطلاق."
+},
+{
+  "id": "security_gate_exception_not_approved",
+  "translation": "يجب الموافقة على جميع استثناءات قائمة التحقق قبل الإطلاق."
+},
+{
+  "id": "security_gate_already_go_live",
+  "translation": "تم إطلاق بوابة الأمان هذه بالفعل."
 }
 
 
