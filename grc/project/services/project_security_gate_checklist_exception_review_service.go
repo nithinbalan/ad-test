@@ -127,6 +127,21 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securi
 		return err
 	}
 
+	oldData := map[string]interface{}{
+		"workflow_status_id": nil,
+		"next_review_level":  nil,
+		"submitted_by_id":    nil,
+	}
+	if checklist.WorkflowStatusID != nil {
+		oldData["workflow_status_id"] = *checklist.WorkflowStatusID
+	}
+	if checklist.NextReviewLevel != nil {
+		oldData["next_review_level"] = *checklist.NextReviewLevel
+	}
+	if checklist.SubmittedBYID != nil {
+		oldData["submitted_by_id"] = *checklist.SubmittedBYID
+	}
+
 	level := 1
 	now := time.Now()
 
@@ -136,6 +151,13 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securi
 	checklist.NextReviewLevel = &level
 	checklist.UpdatedBYID = &currentUserID
 	checklist.UpdatedAt = &now
+
+	newData := map[string]interface{}{
+		"workflow_status_id": submitStatus.ID,
+		"next_review_level":  level,
+		"submitted_by_id":    currentUserID,
+	}
+	changes := utility.CompareFieldChanges(oldData, newData)
 
 	if err := psgcers.repo.UpdateChecklist(checklist, tx); err != nil {
 		return err
@@ -151,14 +173,16 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securi
 	}
 
 	notify = func() {
-		_ = psgcers.logService.LogActivity(
-			models.UpdateAction,
-			models.ProjectSecurityGateChecklist{}.TableName(),
-			checklistID,
-			checklist,
-			currentUserID,
-			"project", "project_security_gate", "project_security_gate_checklist_exception_submit", nil,
-		)
+		if len(changes) > 0 {
+			_ = psgcers.logService.LogActivity(
+				models.UpdateAction,
+				models.ProjectSecurityGateChecklist{}.TableName(),
+				checklistID,
+				changes,
+				currentUserID,
+				"project", "project_security_gate", "project_security_gate_checklist_exception_submit", nil,
+			)
+		}
 
 		psgcers.notifyWorkflowParticipants(securityGateID, checklistID, workflowLevel, currentUserID)
 	}
@@ -291,6 +315,21 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 		return err
 	}
 
+	oldData := map[string]interface{}{
+		"workflow_status_id": nil,
+		"next_review_level":  nil,
+		"approved_by_id":     nil,
+	}
+	if checklist.WorkflowStatusID != nil {
+		oldData["workflow_status_id"] = *checklist.WorkflowStatusID
+	}
+	if checklist.NextReviewLevel != nil {
+		oldData["next_review_level"] = *checklist.NextReviewLevel
+	}
+	if checklist.ApprovedBYID != nil {
+		oldData["approved_by_id"] = *checklist.ApprovedBYID
+	}
+
 	now := time.Now()
 	if nextWorkflowLevel == nil {
 		checklist.WorkflowStatusID = &approveStatus.ID
@@ -308,6 +347,22 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 	checklist.UpdatedBYID = &currentUserID
 	checklist.UpdatedAt = &now
 
+	newData := map[string]interface{}{
+		"workflow_status_id": nil,
+		"next_review_level":  nil,
+		"approved_by_id":     nil,
+	}
+	if checklist.WorkflowStatusID != nil {
+		newData["workflow_status_id"] = *checklist.WorkflowStatusID
+	}
+	if checklist.NextReviewLevel != nil {
+		newData["next_review_level"] = *checklist.NextReviewLevel
+	}
+	if checklist.ApprovedBYID != nil {
+		newData["approved_by_id"] = *checklist.ApprovedBYID
+	}
+	changes := utility.CompareFieldChanges(oldData, newData)
+
 	if err := psgcers.repo.UpdateChecklist(checklist, tx); err != nil {
 		return err
 	}
@@ -319,14 +374,16 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 		}
 
 		notify = func() {
-			_ = psgcers.logService.LogActivity(
-				models.ApproveAction,
-				models.ProjectSecurityGateChecklist{}.TableName(),
-				checklistID,
-				checklist,
-				currentUserID,
-				"project", "project_security_gate", "project_security_gate_checklist_exception_approve", nil,
-			)
+			if len(changes) > 0 {
+				_ = psgcers.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectSecurityGateChecklist{}.TableName(),
+					checklistID,
+					changes,
+					currentUserID,
+					"project", "project_security_gate", "project_security_gate_checklist_exception_approve", nil,
+				)
+			}
 
 			psgcers.notifyWorkflowParticipants(securityGateID, checklistID, nextWorkflow, currentUserID)
 		}
@@ -334,14 +391,16 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 		submittedByID := checklist.SubmittedBYID
 
 		notify = func() {
-			_ = psgcers.logService.LogActivity(
-				models.ApproveAction,
-				models.ProjectSecurityGateChecklist{}.TableName(),
-				checklistID,
-				checklist,
-				currentUserID,
-				"project", "project_security_gate", "project_security_gate_checklist_exception_approve", nil,
-			)
+			if len(changes) > 0 {
+				_ = psgcers.logService.LogActivity(
+					models.ApproveAction,
+					models.ProjectSecurityGateChecklist{}.TableName(),
+					checklistID,
+					changes,
+					currentUserID,
+					"project", "project_security_gate", "project_security_gate_checklist_exception_approve", nil,
+				)
+			}
 
 			psgcers.sendApprovalNotification(securityGateID, checklistID, currentUserID, submittedByID, checklist.CreatedBYID)
 		}
@@ -447,6 +506,25 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 		}
 	}
 
+	oldData := map[string]interface{}{
+		"workflow_status_id": nil,
+		"next_review_level":  nil,
+		"submitted_by_id":    nil,
+		"approved_by_id":     nil,
+	}
+	if checklist.WorkflowStatusID != nil {
+		oldData["workflow_status_id"] = *checklist.WorkflowStatusID
+	}
+	if checklist.NextReviewLevel != nil {
+		oldData["next_review_level"] = *checklist.NextReviewLevel
+	}
+	if checklist.SubmittedBYID != nil {
+		oldData["submitted_by_id"] = *checklist.SubmittedBYID
+	}
+	if checklist.ApprovedBYID != nil {
+		oldData["approved_by_id"] = *checklist.ApprovedBYID
+	}
+
 	now := time.Now()
 	var submittedByID *uint
 	if previousLevel == 0 {
@@ -470,6 +548,26 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 	checklist.UpdatedBYID = &currentUserID
 	checklist.UpdatedAt = &now
 
+	newData := map[string]interface{}{
+		"workflow_status_id": nil,
+		"next_review_level":  nil,
+		"submitted_by_id":    nil,
+		"approved_by_id":     nil,
+	}
+	if checklist.WorkflowStatusID != nil {
+		newData["workflow_status_id"] = *checklist.WorkflowStatusID
+	}
+	if checklist.NextReviewLevel != nil {
+		newData["next_review_level"] = *checklist.NextReviewLevel
+	}
+	if checklist.SubmittedBYID != nil {
+		newData["submitted_by_id"] = *checklist.SubmittedBYID
+	}
+	if checklist.ApprovedBYID != nil {
+		newData["approved_by_id"] = *checklist.ApprovedBYID
+	}
+	changes := utility.CompareFieldChanges(oldData, newData)
+
 	if err := psgcers.repo.UpdateChecklist(checklist, tx); err != nil {
 		return err
 	}
@@ -478,27 +576,31 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 
 	if previousLevel > 0 {
 		notify = func() {
-			_ = psgcers.logService.LogActivity(
-				models.UpdateAction,
-				models.ProjectSecurityGateChecklist{}.TableName(),
-				checklistID,
-				checklist,
-				currentUserID,
-				"project", "project_security_gate", "project_security_gate_checklist_exception_revert", nil,
-			)
+			if len(changes) > 0 {
+				_ = psgcers.logService.LogActivity(
+					models.UpdateAction,
+					models.ProjectSecurityGateChecklist{}.TableName(),
+					checklistID,
+					changes,
+					currentUserID,
+					"project", "project_security_gate", "project_security_gate_checklist_exception_revert", nil,
+				)
+			}
 
 			psgcers.notifyRevertedToPreviousLevel(securityGateID, checklistID, previousLevelWorkflow, currentUserID)
 		}
 	} else {
 		notify = func() {
-			_ = psgcers.logService.LogActivity(
-				models.UpdateAction,
-				models.ProjectSecurityGateChecklist{}.TableName(),
-				checklistID,
-				checklist,
-				currentUserID,
-				"project", "project_security_gate", "project_security_gate_checklist_exception_revert", nil,
-			)
+			if len(changes) > 0 {
+				_ = psgcers.logService.LogActivity(
+					models.UpdateAction,
+					models.ProjectSecurityGateChecklist{}.TableName(),
+					checklistID,
+					changes,
+					currentUserID,
+					"project", "project_security_gate", "project_security_gate_checklist_exception_revert", nil,
+				)
+			}
 
 			psgcers.sendRevertNotification(securityGateID, checklistID, currentUserID, submittedByID, createdByID)
 		}
