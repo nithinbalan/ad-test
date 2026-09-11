@@ -75,7 +75,7 @@ func NewApp(db *gorm.DB) *App {
 	identityAccessReviewModule := NewIdentityAccessReviewModule(db, sharedModule, organizationModule, settingsModule, masterModule, taskModule, commonModule)
 	securityOperationsModule := NewSecurityOperationsModule(db, sharedModule, settingsModule, organizationModule, commonModule)
 	penetrationTestingModule := NewPenetrationTestingModule(db, sharedModule, masterModule, organizationModule)
-	threatIntelligenceModule := NewThreatIntelligenceModule(db, sharedModule)
+	threatIntelligenceModule := NewThreatIntelligenceModule(db, sharedModule, organizationModule, settingsModule, commonModule)
 
 	return &App{
 		DB:                          db,

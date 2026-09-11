@@ -8,6 +8,7 @@ import (
 )
 
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
+	unauthenticatedRoutes := router.Group("/")
 	threatIntelligenceRoutes := router.Group("/")
 
 	threatIntelligenceRoutes.Use(middlewares.AuthMiddleware(app.DB))
@@ -21,6 +22,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	plannedAdvisoryImportanceController := app.ThreatIntelligenceModule.PlannedAdvisoryImportanceController
 	plannedAdvisorySecurityClassificationController := app.ThreatIntelligenceModule.PlannedAdvisorySecurityClassificationController
 	plannedAdvisoryInternalStatusController := app.ThreatIntelligenceModule.PlannedAdvisoryInternalStatusController
+	threatIntelligenceLikelihoodController := app.ThreatIntelligenceModule.ThreatIntelligenceLikelihoodController
+	threatIntelligenceSeverityController := app.ThreatIntelligenceModule.ThreatIntelligenceSeverityController
+	threatIntelligenceRiskLevelController := app.ThreatIntelligenceModule.ThreatIntelligenceRiskLevelController
+	threatIntelligenceRiskLevelValueController := app.ThreatIntelligenceModule.ThreatIntelligenceRiskLevelValueController
+	threatIntelligencePlannedAdvisoryController := app.ThreatIntelligenceModule.ThreatIntelligencePlannedAdvisoryController
 
 	// Planned Advisory Status
 	threatIntelligenceRoutes.GET("/planned-advisory-statuses", plannedAdvisoryStatusController.GetAllPlannedAdvisoryStatuses)
@@ -79,4 +85,47 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	threatIntelligenceRoutes.POST("/planned-advisory-internal-statuses/delete", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), plannedAdvisoryInternalStatusController.DeletePlannedAdvisoryInternalStatuses)
 	threatIntelligenceRoutes.PUT("/planned-advisory-internal-statuses/activate", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), plannedAdvisoryInternalStatusController.ActivatePlannedAdvisoryInternalStatuses)
 	threatIntelligenceRoutes.PUT("/planned-advisory-internal-statuses/deactivate", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), plannedAdvisoryInternalStatusController.DeactivatePlannedAdvisoryInternalStatuses)
+
+	// Threat Intelligence Likelihoods
+	threatIntelligenceRoutes.GET("/threat-intelligence-likelihoods", threatIntelligenceLikelihoodController.GetAllThreatIntelligenceLikelihoods)
+	threatIntelligenceRoutes.POST("/threat-intelligence-likelihoods", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceLikelihoodController.CreateThreatIntelligenceLikelihood)
+	threatIntelligenceRoutes.GET("/threat-intelligence-likelihoods/:id", threatIntelligenceLikelihoodController.GetThreatIntelligenceLikelihoodDetails)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-likelihoods/:id", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceLikelihoodController.UpdateThreatIntelligenceLikelihood)
+	threatIntelligenceRoutes.POST("/threat-intelligence-likelihoods/delete", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceLikelihoodController.DeleteThreatIntelligenceLikelihoods)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-likelihoods/activate", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceLikelihoodController.ActivateThreatIntelligenceLikelihood)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-likelihoods/deactivate", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceLikelihoodController.DeactivateThreatIntelligenceLikelihood)
+
+	// Threat Intelligence Severities
+	threatIntelligenceRoutes.GET("/threat-intelligence-severities", threatIntelligenceSeverityController.GetAllThreatIntelligenceSeverities)
+	threatIntelligenceRoutes.POST("/threat-intelligence-severities", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceSeverityController.CreateThreatIntelligenceSeverity)
+	threatIntelligenceRoutes.GET("/threat-intelligence-severities/:id", threatIntelligenceSeverityController.GetThreatIntelligenceSeverityDetails)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-severities/:id", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceSeverityController.UpdateThreatIntelligenceSeverity)
+	threatIntelligenceRoutes.POST("/threat-intelligence-severities/delete", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceSeverityController.DeleteThreatIntelligenceSeverities)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-severities/activate", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceSeverityController.ActivateThreatIntelligenceSeverity)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-severities/deactivate", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceSeverityController.DeactivateThreatIntelligenceSeverity)
+
+	// Threat Intelligence Risk Levels
+	threatIntelligenceRoutes.GET("/threat-intelligence-risk-levels", threatIntelligenceRiskLevelController.GetAllThreatIntelligenceRiskLevels)
+	threatIntelligenceRoutes.POST("/threat-intelligence-risk-levels", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceRiskLevelController.CreateThreatIntelligenceRiskLevel)
+	threatIntelligenceRoutes.GET("/threat-intelligence-risk-levels/:id", threatIntelligenceRiskLevelController.GetThreatIntelligenceRiskLevelDetails)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-risk-levels/:id", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceRiskLevelController.UpdateThreatIntelligenceRiskLevel)
+	threatIntelligenceRoutes.POST("/threat-intelligence-risk-levels/delete", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceRiskLevelController.DeleteThreatIntelligenceRiskLevels)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-risk-levels/activate", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceRiskLevelController.ActivateThreatIntelligenceRiskLevel)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-risk-levels/deactivate", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceRiskLevelController.DeactivateThreatIntelligenceRiskLevel)
+
+	// Threat Intelligence Risk Level Values
+	threatIntelligenceRoutes.GET("/threat-intelligence-risk-level-values", threatIntelligenceRiskLevelValueController.GetAllThreatIntelligenceRiskLevelValues)
+	threatIntelligenceRoutes.POST("/threat-intelligence-risk-level-values", middlewares.RolePermissionMiddleware(db, "threat_intelligence_setting", "modify"), threatIntelligenceRiskLevelValueController.CreateThreatIntelligenceRiskLevelValue)
+	threatIntelligenceRoutes.GET("/threat-intelligence-matrix-configuration", threatIntelligenceRiskLevelValueController.GetThreatIntelligenceRiskLevelMatrix)
+
+	// Threat Intelligence Planned Advisory
+	unauthenticatedRoutes.GET("/threat-intelligence-planned-advisories/:id/document-preview", threatIntelligencePlannedAdvisoryController.GetThreatIntelligencePlannedAdvisoryDocumentPreview)
+	unauthenticatedRoutes.GET("/threat-intelligence-planned-advisories/:id/document-download", threatIntelligencePlannedAdvisoryController.DownloadThreatIntelligencePlannedAdvisoryDocument)
+	threatIntelligenceRoutes.GET("/threat-intelligence-planned-advisories/export", middlewares.RolePermissionMiddleware(db, "planned_advisory", "view"), threatIntelligencePlannedAdvisoryController.ExportThreatIntelligencePlannedAdvisories)
+	threatIntelligenceRoutes.GET("/threat-intelligence-planned-advisories", middlewares.RolePermissionMiddleware(db, "planned_advisory", "view"), threatIntelligencePlannedAdvisoryController.GetAllThreatIntelligencePlannedAdvisories)
+	threatIntelligenceRoutes.GET("/threat-intelligence-planned-advisories/:id", middlewares.RolePermissionMiddleware(db, "planned_advisory", "view"), threatIntelligencePlannedAdvisoryController.GetThreatIntelligencePlannedAdvisoryDetails)
+	threatIntelligenceRoutes.POST("/threat-intelligence-planned-advisories", middlewares.RolePermissionMiddleware(db, "planned_advisory", "modify"), threatIntelligencePlannedAdvisoryController.CreateThreatIntelligencePlannedAdvisory)
+	threatIntelligenceRoutes.PUT("/threat-intelligence-planned-advisories/:id", middlewares.RolePermissionMiddleware(db, "planned_advisory", "modify"), threatIntelligencePlannedAdvisoryController.UpdateThreatIntelligencePlannedAdvisory)
+	threatIntelligenceRoutes.POST("/threat-intelligence-planned-advisories/:id/status", middlewares.RolePermissionMiddleware(db, "planned_advisory", "modify"), threatIntelligencePlannedAdvisoryController.UpdateThreatIntelligencePlannedAdvisoryStatus)
+	threatIntelligenceRoutes.POST("/threat-intelligence-planned-advisories/delete", middlewares.RolePermissionMiddleware(db, "planned_advisory", "modify"), threatIntelligencePlannedAdvisoryController.DeleteThreatIntelligencePlannedAdvisories)
 }
