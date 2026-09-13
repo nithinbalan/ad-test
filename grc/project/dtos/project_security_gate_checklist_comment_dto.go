@@ -8,11 +8,12 @@ import (
 )
 
 type ProjectSecurityGateChecklistCommentDTO struct {
-	ID            uint                                              `json:"id"`
-	Comment       string                                            `json:"comment"`
-	CreatedByUser *organizationDTOs.UserMinimalDTO                  `json:"created_by"`
-	CreatedAt     time.Time                                         `json:"created_at"`
-	Documents     []*ProjectSecurityGateChecklistCommentDocumentDTO `json:"documents"`
+	ID            uint                                                         `json:"id"`
+	Comment       string                                                       `json:"comment"`
+	History       *ProjectSecurityGateChecklistExceptionWorkflowHistoryItemDTO `json:"review"`
+	CreatedByUser *organizationDTOs.UserMinimalDTO                             `json:"created_by"`
+	CreatedAt     time.Time                                                    `json:"created_at"`
+	Documents     []*ProjectSecurityGateChecklistCommentDocumentDTO            `json:"documents"`
 }
 
 type ProjectSecurityGateChecklistCommentDocumentDTO struct {
@@ -27,5 +28,6 @@ type ProjectSecurityGateChecklistCommentDocumentDTO struct {
 
 type ProjectSecurityGateChecklistCommentFormDTO struct {
 	Comment   string                        `json:"comment" binding:"required,max=1000"`
+	Action    *string                       `json:"action" binding:"omitempty,oneof=submit approve revert"`
 	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }

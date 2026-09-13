@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/project/dtos"
 	"jethur/grc/project/services"
 	"jethur/utility"
@@ -23,49 +22,6 @@ func NewProjectSecurityGateChecklistCommentController(service services.ProjectSe
 	return &ProjectSecurityGateChecklistCommentController{
 		service: service,
 	}
-}
-
-func (psgccc *ProjectSecurityGateChecklistCommentController) CreateProjectSecurityGateChecklistComment(c *gin.Context) {
-	securityGateID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	checklistID, err := strconv.ParseUint(c.Param("checklistId"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	var form dtos.ProjectSecurityGateChecklistCommentFormDTO
-	if err := c.ShouldBindJSON(&form); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(psgccc.db, c, err.Error())
-		return
-	}
-
-	id, err := psgccc.service.Create(uint(securityGateID), uint(checklistID), currentUserID, &form)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(psgccc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
 func (psgccc *ProjectSecurityGateChecklistCommentController) UpdateProjectSecurityGateChecklistComment(c *gin.Context) {

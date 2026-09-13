@@ -98,8 +98,14 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 	detail.UpdatedAt = checklist.UpdatedAt
 
 	for i := range detail.Comments {
-		if i < len(checklist.Comments) {
-			detail.Comments[i].CreatedAt = checklist.Comments[i].CreatedAt
+		if i >= len(checklist.Comments) {
+			break
+		}
+
+		detail.Comments[i].CreatedAt = checklist.Comments[i].CreatedAt
+
+		if detail.Comments[i].History != nil && checklist.Comments[i].History != nil {
+			detail.Comments[i].History.CreatedAt = checklist.Comments[i].History.CreatedAt
 		}
 	}
 

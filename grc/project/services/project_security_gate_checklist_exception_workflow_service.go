@@ -2,11 +2,7 @@ package services
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
 
-	"jethur/config"
 	masterDTOs "jethur/grc/masters/dtos"
 	masterSvc "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -22,7 +18,6 @@ import (
 
 type ProjectSecurityGateChecklistExceptionWorkflowServiceInterface interface {
 	GetWorkflowList(securityGateID uint, checklistID uint) (*projectDTOs.ProjectSecurityGateChecklistExceptionWorkflowListDTO, error)
-	GetDocumentPath(securityGateID uint, checklistID uint, historyID uint, token string) (string, error)
 	CreateWorkflow(checklistID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdateWorkflow(workflow *models.ProjectSecurityGateChecklistExceptionWorkflow, tx ...utility.DatabaseTransaction) error
 
@@ -153,57 +148,12 @@ func (psgcews *ProjectSecurityGateChecklistExceptionWorkflowService) GetWorkflow
 			Level:          history.Level,
 			WorkflowStatus: psgcews.mapWorkflowStatusToDTO(history.WorkflowStatus),
 			Comment:        history.Comment,
-			Documents:      psgcews.mapDocumentsToDTO(history.Documents),
 			CreatedByUser:  psgcews.mapUserToDTO(history.CreatedByUser),
 			CreatedAt:      history.CreatedAt,
 		})
 	}
 
 	return dto, nil
-}
-
-func (psgcews *ProjectSecurityGateChecklistExceptionWorkflowService) GetDocumentPath(securityGateID uint, checklistID uint, historyID uint, token string) (string, error) {
-	if _, err := psgcews.checklistSvc.GetByID(securityGateID, checklistID); err != nil {
-		return "", err
-	}
-
-	history, err := psgcews.repo.GetHistoryByID(historyID)
-	if err != nil {
-		return "", err
-	}
-
-	if history.ChecklistID != checklistID || len(history.Documents) == 0 {
-		return "", &utility.ResourceNotFoundError{}
-	}
-
-	decryptedFilenameBytes, err := utility.DecryptData(token)
-	if err != nil {
-		return "", &utility.ResourceNotFoundError{}
-	}
-
-	decryptedFilename := string(decryptedFilenameBytes)
-	if decryptedFilename == "" {
-		return "", &utility.ResourceNotFoundError{}
-	}
-
-	storagePath := filepath.Join(
-		"project",
-		"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
-		"checklists", strconv.FormatUint(uint64(checklistID), 10),
-		"reviews", strconv.FormatUint(uint64(historyID), 10),
-		"documents",
-	)
-
-	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
-
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return "", &utility.ResourceNotFoundError{}
-	} else if err != nil {
-		return "", fmt.Errorf("error accessing file: %w", err)
-	}
-
-	return fullPath, nil
 }
 
 func (psgcews *ProjectSecurityGateChecklistExceptionWorkflowService) ValidateWorkflowBeforeCreate(tx ...utility.DatabaseTransaction) error {
@@ -443,24 +393,6 @@ func (psgcews *ProjectSecurityGateChecklistExceptionWorkflowService) mapUserToDT
 		Initial:          user.Initial,
 		Color:            user.Color,
 	}
-}
-
-func (psgcews *ProjectSecurityGateChecklistExceptionWorkflowService) mapDocumentsToDTO(documents []*models.ProjectSecurityGateChecklistExceptionWorkflowReviewDocument) []*projectDTOs.ProjectSecurityGateChecklistExceptionWorkflowReviewDocumentDTO {
-	documentDTOs := make([]*projectDTOs.ProjectSecurityGateChecklistExceptionWorkflowReviewDocumentDTO, 0, len(documents))
-
-	for _, document := range documents {
-		documentDTOs = append(documentDTOs, &projectDTOs.ProjectSecurityGateChecklistExceptionWorkflowReviewDocumentDTO{
-			ID:           document.ID,
-			URL:          document.URL,
-			Name:         document.Name,
-			Size:         document.Size,
-			Token:        document.Token,
-			OriginalName: document.OriginalName,
-			Type:         document.Type,
-		})
-	}
-
-	return documentDTOs
 }
 
 func (psgcews *ProjectSecurityGateChecklistExceptionWorkflowService) mapWorkflowStatusToDTO(status *models.WorkflowStatus) masterDTOs.WorkflowStatusDTO {

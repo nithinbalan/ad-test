@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	commonDTOs "jethur/grc/common/dtos"
 	projectDTOs "jethur/grc/project/dtos"
 	"jethur/grc/project/services"
 	"jethur/utility"
@@ -23,7 +24,7 @@ func NewProjectSecurityGateChecklistExceptionReviewController(service services.P
 	}
 }
 
-func (psgcerc *ProjectSecurityGateChecklistExceptionReviewController) SubmitProjectSecurityGateChecklistException(c *gin.Context) {
+func (psgcerc *ProjectSecurityGateChecklistExceptionReviewController) CreateProjectSecurityGateChecklistComment(c *gin.Context) {
 	securityGateID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -36,13 +37,19 @@ func (psgcerc *ProjectSecurityGateChecklistExceptionReviewController) SubmitProj
 		return
 	}
 
+	var form projectDTOs.ProjectSecurityGateChecklistCommentFormDTO
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(psgcerc.db, c, err.Error())
 		return
 	}
 
-	err = psgcerc.service.Submit(uint(securityGateID), uint(checklistID), currentUserID)
+	id, err := psgcerc.service.CreateComment(uint(securityGateID), uint(checklistID), currentUserID, &form)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -60,91 +67,5 @@ func (psgcerc *ProjectSecurityGateChecklistExceptionReviewController) SubmitProj
 		}
 	}
 
-	c.Status(http.StatusOK)
-}
-
-func (psgcerc *ProjectSecurityGateChecklistExceptionReviewController) ApproveProjectSecurityGateChecklistException(c *gin.Context) {
-	securityGateID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	checklistID, err := strconv.ParseUint(c.Param("checklistId"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	var form projectDTOs.ProjectSecurityGateChecklistExceptionReviewFormDTO
-	_ = c.ShouldBindJSON(&form)
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(psgcerc.db, c, err.Error())
-		return
-	}
-
-	err = psgcerc.service.Approve(uint(securityGateID), uint(checklistID), currentUserID, &form)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		case *utility.ForbiddenError:
-			utility.SendForbiddenErrResp(c, e.Error())
-			return
-		default:
-			utility.SendInternalErrResp(psgcerc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func (psgcerc *ProjectSecurityGateChecklistExceptionReviewController) RevertProjectSecurityGateChecklistException(c *gin.Context) {
-	securityGateID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	checklistID, err := strconv.ParseUint(c.Param("checklistId"), 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	var form projectDTOs.ProjectSecurityGateChecklistExceptionReviewFormDTO
-	_ = c.ShouldBindJSON(&form)
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(psgcerc.db, c, err.Error())
-		return
-	}
-
-	err = psgcerc.service.Revert(uint(securityGateID), uint(checklistID), currentUserID, &form)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		case *utility.ForbiddenError:
-			utility.SendForbiddenErrResp(c, e.Error())
-			return
-		default:
-			utility.SendInternalErrResp(psgcerc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }

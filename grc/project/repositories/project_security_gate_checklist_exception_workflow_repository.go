@@ -1,8 +1,6 @@
 package repositories
 
 import (
-	"errors"
-
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -12,7 +10,6 @@ import (
 type ProjectSecurityGateChecklistExceptionWorkflowRepositoryInterface interface {
 	GetWorkflowList(checklistID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklist, error)
 	GetWorkflowHistories(checklistID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklistExceptionWorkflowHistory, error)
-	GetHistoryByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistExceptionWorkflowHistory, error)
 	CreateWorkflow(workflow *models.ProjectSecurityGateChecklistExceptionWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateWorkflow(workflow *models.ProjectSecurityGateChecklistExceptionWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateWorkflowParticipant(participant *models.ProjectSecurityGateChecklistExceptionWorkflowParticipant, tx ...utility.DatabaseTransaction) error
@@ -83,7 +80,6 @@ func (repo *ProjectSecurityGateChecklistExceptionWorkflowRepository) GetWorkflow
 	result := db.
 		Preload("WorkflowStatus").
 		Preload("CreatedByUser").
-		Preload("Documents").
 		Where("checklist_id = ?", checklistID).
 		Order("created_at DESC").
 		Find(&histories)
@@ -93,26 +89,6 @@ func (repo *ProjectSecurityGateChecklistExceptionWorkflowRepository) GetWorkflow
 	}
 
 	return histories, nil
-}
-
-func (repo *ProjectSecurityGateChecklistExceptionWorkflowRepository) GetHistoryByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistExceptionWorkflowHistory, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	var history *models.ProjectSecurityGateChecklistExceptionWorkflowHistory
-	result := db.
-		Preload("Documents").
-		First(&history, id)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return history, nil
 }
 
 func (repo *ProjectSecurityGateChecklistExceptionWorkflowRepository) CreateWorkflow(workflow *models.ProjectSecurityGateChecklistExceptionWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
