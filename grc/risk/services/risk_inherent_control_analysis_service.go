@@ -215,16 +215,19 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 	tx := rcas.repo.BeginTransaction()
 
 	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	existingRiskControlAnalysis, err := rcas.GetByID(riskID, id)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	oldControlAnalysis, err := rcas.GetFullDetailsByID(riskID, id)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -257,60 +260,57 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 		return err
 	}
 
-	tx.Commit()
-
 	// Automatically create or update residual risk evaluation after control analysis update
-	go func() {
-		// Check if residual evaluation already exists for this risk
-		residualEvaluation, err := rcas.riskResidualEvaluationSvc.GetFullDetailsByID(riskID)
-		if err == nil && residualEvaluation != nil {
-			// Residual evaluation exists - update it to recalculate with new control analysis values
-			residualEvaluationFormDTO := &riskDTOs.RiskResidualEvaluationFormDTO{
-				RiskImpactAnalyses:     []*riskDTOs.RiskImpactAnalysisFormDTO{},
-				RiskAppetiteAlignments: []*riskDTOs.RiskAppetiteAlignmentFormDTO{},
-			}
+	// Check if residual evaluation already exists for this risk
+	residualEvaluation, err := rcas.riskResidualEvaluationSvc.GetFullDetailsByID(riskID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-			// Preserve existing impact analyses
-			for _, ia := range residualEvaluation.RiskImpactAnalyses {
-				residualEvaluationFormDTO.RiskImpactAnalyses = append(residualEvaluationFormDTO.RiskImpactAnalyses, &riskDTOs.RiskImpactAnalysisFormDTO{
-					RiskImpactCategoryID: uint(ia.RiskImpactCategory.ID),
-					RiskMatrixImpactID:   uint(ia.RiskMatrixImpact.ID),
-				})
-			}
-
-			// Preserve existing appetite alignments
-			for _, aa := range residualEvaluation.RiskAppetiteAlignments {
-				residualEvaluationFormDTO.RiskAppetiteAlignments = append(residualEvaluationFormDTO.RiskAppetiteAlignments, &riskDTOs.RiskAppetiteAlignmentFormDTO{
-					RiskAppetiteStatementID:      uint(aa.RiskAppetiteStatement.ID),
-					RiskAppetiteToleranceLevelID: uint(aa.RiskAppetiteToleranceLevel.ID),
-				})
-			}
-
-			// Update residual evaluation to recalculate with new control analysis values
-			err = rcas.riskResidualEvaluationSvc.Update(riskID, residualEvaluation.ID, currentUserID, residualEvaluationFormDTO)
-			if err != nil {
-				utility.LogError("Failed to auto-update residual risk evaluation", map[string]interface{}{
-					"riskID": riskID,
-					"error":  err.Error(),
-				})
-			}
-		} else {
-			// Residual evaluation doesn't exist - create it automatically
-			residualEvaluationFormDTO := &riskDTOs.RiskResidualEvaluationFormDTO{
-				RiskImpactAnalyses:     []*riskDTOs.RiskImpactAnalysisFormDTO{},
-				RiskAppetiteAlignments: []*riskDTOs.RiskAppetiteAlignmentFormDTO{},
-			}
-
-			// Create new residual evaluation
-			_, err = rcas.riskResidualEvaluationSvc.Create(riskID, currentUserID, residualEvaluationFormDTO)
-			if err != nil {
-				utility.LogError("Failed to auto-create residual risk evaluation", map[string]interface{}{
-					"riskID": riskID,
-					"error":  err.Error(),
-				})
-			}
+	if residualEvaluation != nil {
+		// Residual evaluation exists - update it to recalculate with new control analysis values
+		residualEvaluationFormDTO := &riskDTOs.RiskResidualEvaluationFormDTO{
+			RiskImpactAnalyses:     []*riskDTOs.RiskImpactAnalysisFormDTO{},
+			RiskAppetiteAlignments: []*riskDTOs.RiskAppetiteAlignmentFormDTO{},
 		}
-	}()
+
+		// Preserve existing impact analyses
+		for _, ia := range residualEvaluation.RiskImpactAnalyses {
+			residualEvaluationFormDTO.RiskImpactAnalyses = append(residualEvaluationFormDTO.RiskImpactAnalyses, &riskDTOs.RiskImpactAnalysisFormDTO{
+				RiskImpactCategoryID: uint(ia.RiskImpactCategory.ID),
+				RiskMatrixImpactID:   uint(ia.RiskMatrixImpact.ID),
+			})
+		}
+
+		// Preserve existing appetite alignments
+		for _, aa := range residualEvaluation.RiskAppetiteAlignments {
+			residualEvaluationFormDTO.RiskAppetiteAlignments = append(residualEvaluationFormDTO.RiskAppetiteAlignments, &riskDTOs.RiskAppetiteAlignmentFormDTO{
+				RiskAppetiteStatementID:      uint(aa.RiskAppetiteStatement.ID),
+				RiskAppetiteToleranceLevelID: uint(aa.RiskAppetiteToleranceLevel.ID),
+			})
+		}
+
+		// Update residual evaluation to recalculate with new control analysis values
+		if err := rcas.riskResidualEvaluationSvc.Update(riskID, residualEvaluation.ID, currentUserID, residualEvaluationFormDTO, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else {
+		// Residual evaluation doesn't exist - create it automatically
+		residualEvaluationFormDTO := &riskDTOs.RiskResidualEvaluationFormDTO{
+			RiskImpactAnalyses:     []*riskDTOs.RiskImpactAnalysisFormDTO{},
+			RiskAppetiteAlignments: []*riskDTOs.RiskAppetiteAlignmentFormDTO{},
+		}
+
+		// Create new residual evaluation
+		if _, err := rcas.riskResidualEvaluationSvc.Create(riskID, currentUserID, residualEvaluationFormDTO, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
 
 	existingControlAnalysis, err := rcas.GetFullDetailsByID(riskID, id)
 	if err != nil {

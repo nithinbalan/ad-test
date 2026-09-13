@@ -366,6 +366,9 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 	if err != nil {
 		return err
 	}
+	if oldRiskEvaluation == nil {
+		return utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, id)
+	}
 
 	var existingImpactAnalysis []map[string]interface{}
 	for _, impactAnalysis := range oldRiskEvaluation.RiskImpactAnalyses {
