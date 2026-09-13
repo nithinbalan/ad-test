@@ -107,10 +107,10 @@ func (rupeds *RiskUpdatePlanERMDeptService) CreateERMDepartmentEvaluation(planID
 	}
 
 	// Validate that controls exist
-	if len(controlIDs) == 0 {
-		tx.Rollback()
-		return utility.NewValidationError(fmt.Errorf("No controls found for this business unit"), "empty_data", "controls")
-	}
+	// if len(controlIDs) == 0 {
+	// 	tx.Rollback()
+	// 	return utility.NewValidationError(fmt.Errorf("No controls found for this business unit"), "empty_data", "controls")
+	// }
 
 	// Create risk mappings
 	riskMappings := make([]*models.RiskUpdatePlanRisk, 0, len(riskIDs))
