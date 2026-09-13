@@ -60,16 +60,16 @@ func (repo *ProjectDashboardRepository) GetProjectSummary(params *dtos.ProjectDa
 	query := repo.db.Table("projects p").
 		Select(`
 			COUNT(*) AS total_projects,
-			COUNT(CASE WHEN ph.type IS NULL OR ph.type != 'closure' THEN 1 END) AS active_projects,
-			COUNT(CASE WHEN ph.type = 'closure' THEN 1 END) AS completed_projects,
-			COALESCE(ROUND(AVG(CASE WHEN ph.type IS NULL OR ph.type != 'closure' THEN CAST(ISNULL(p.completion_percentage, 0) AS FLOAT) END), 1), 0) AS avg_completion,
-			COUNT(CASE WHEN ps.type = 'on_track' THEN 1 END) AS on_track,
-			COUNT(CASE WHEN ps.type = 'at_risk' THEN 1 END) AS at_risk,
-			COUNT(CASE WHEN ps.type = 'delayed' THEN 1 END) AS delayed,
-			COUNT(CASE WHEN (ph.type IS NULL OR ph.type != 'closure') AND p.end_date >= CAST(GETDATE() AS DATE) AND p.end_date <= DATEADD(day, 30, CAST(GETDATE() AS DATE)) THEN 1 END) AS projects_due_soon,
-			COUNT(CASE WHEN (ph.type IS NULL OR ph.type != 'closure') AND p.end_date < CAST(GETDATE() AS DATE) THEN 1 END) AS overdue_projects
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) THEN 1 END) AS active_projects,
+			COUNT(CASE WHEN ph.type IN ('go_live', 'closure') THEN 1 END) AS completed_projects,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND ps.type = 'on_track' THEN 1 END) AS on_track,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND ps.type = 'at_risk' THEN 1 END) AS at_risk,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND ps.type = 'delayed' THEN 1 END) AS delayed,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND p.end_date >= CAST(GETDATE() AS DATE) AND p.end_date <= DATEADD(day, 30, CAST(GETDATE() AS DATE)) THEN 1 END) AS projects_due_soon,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND p.end_date < CAST(GETDATE() AS DATE) THEN 1 END) AS overdue_projects
 		`).
 		Joins("LEFT JOIN project_phases ph ON ph.id = p.project_phase_id").
+		Joins("LEFT JOIN workflow_statuses ws ON ws.id = p.workflow_status_id").
 		Joins("LEFT JOIN project_statuses ps ON ps.id = p.project_status_id")
 
 	query = repo.applyDateFilter(query, params, "p")
@@ -78,10 +78,14 @@ func (repo *ProjectDashboardRepository) GetProjectSummary(params *dtos.ProjectDa
 		return nil, err
 	}
 
-	// Open issues (unresolved action plans across projects)
+	// Open issues (unresolved action plans across active projects)
 	issuesQuery := repo.db.Table("project_action_plans").
+		Joins("JOIN projects p ON p.id = project_action_plans.project_id").
+		Joins("LEFT JOIN project_phases ph ON ph.id = p.project_phase_id").
+		Joins("LEFT JOIN workflow_statuses ws ON ws.id = p.workflow_status_id").
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = project_action_plans.action_plan_status_id").
-		Where("action_plan_statuses.is_closed = 0 AND action_plan_statuses.type NOT IN ('completed', 'closed')")
+		Where("action_plan_statuses.is_closed = 0 AND action_plan_statuses.type NOT IN ('completed', 'closed')").
+		Where("ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure'))")
 
 	issuesQuery = repo.applyDateFilter(issuesQuery, params, "project_action_plans")
 
@@ -89,15 +93,32 @@ func (repo *ProjectDashboardRepository) GetProjectSummary(params *dtos.ProjectDa
 		return nil, err
 	}
 
-	// Open change requests (pending review or draft)
+	// Open change requests (pending review or draft on active projects)
 	crQuery := repo.db.Table("project_change_requests").
+		Joins("JOIN projects p ON p.id = project_change_requests.project_id").
+		Joins("LEFT JOIN project_phases ph ON ph.id = p.project_phase_id").
+		Joins("LEFT JOIN workflow_statuses ws_proj ON ws_proj.id = p.workflow_status_id").
 		Joins("LEFT JOIN workflow_statuses ON workflow_statuses.id = project_change_requests.workflow_status_id").
-		Where("project_change_requests.workflow_status_id IS NULL OR workflow_statuses.type NOT IN ('approve', 'reject')")
+		Where("project_change_requests.workflow_status_id IS NULL OR workflow_statuses.type NOT IN ('approve', 'reject')").
+		Where("ws_proj.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure'))")
 
 	crQuery = repo.applyDateFilter(crQuery, params, "project_change_requests")
 
 	if err := crQuery.Count(&summary.OpenChangeRequests).Error; err != nil {
 		return nil, err
+	}
+
+	// Calculate completion percentage: projects in go live against all projects
+	if summary.TotalProjects > 0 {
+		summary.CompletionPercentage = math.Round((float64(summary.CompletedProjects)/float64(summary.TotalProjects))*100*100) / 100
+		summary.AvgCompletion = summary.CompletionPercentage
+	}
+
+	// Calculate percentages against active projects
+	if summary.ActiveProjects > 0 {
+		summary.OpenChangeRequestsPercentage = math.Round((float64(summary.OpenChangeRequests)/float64(summary.ActiveProjects))*100*100) / 100
+		summary.ProjectsDueSoonPercentage = math.Round((float64(summary.ProjectsDueSoon)/float64(summary.ActiveProjects))*100*100) / 100
+		summary.OverdueProjectsPercentage = math.Round((float64(summary.OverdueProjects)/float64(summary.ActiveProjects))*100*100) / 100
 	}
 
 	return summary, nil
@@ -315,9 +336,10 @@ func (repo *ProjectDashboardRepository) GetProjectCompletion(params *dtos.Projec
 			ps.color_code AS status_color_code
 		`).
 		Joins("LEFT JOIN project_phases ph ON ph.id = p.project_phase_id").
+		Joins("LEFT JOIN workflow_statuses ws ON ws.id = p.workflow_status_id").
 		Joins("LEFT JOIN project_classifications pc ON pc.id = p.project_classification_id").
 		Joins("JOIN project_statuses ps ON ps.id = p.project_status_id").
-		Where("ph.type IS NULL OR ph.type != 'closure'")
+		Where("ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure'))")
 
 	query = repo.applyDateFilter(query, params, "p")
 
@@ -418,9 +440,10 @@ func (repo *ProjectDashboardRepository) GetProjectsDueSoonAndOverdue(params *dto
 			ps.color_code AS status_color_code
 		`).
 		Joins("LEFT JOIN project_phases ph ON ph.id = p.project_phase_id").
+		Joins("LEFT JOIN workflow_statuses ws ON ws.id = p.workflow_status_id").
 		Joins("LEFT JOIN project_classifications pc ON pc.id = p.project_classification_id").
-		Joins("LEFT JOIN project_statuses ps ON ps.id = p.project_status_id").
-		Where("(ph.type IS NULL OR ph.type != 'closure')").
+		Joins("JOIN project_statuses ps ON ps.id = p.project_status_id").
+		Where("ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure'))").
 		Where("p.end_date < CAST(GETDATE() AS DATE) OR (p.end_date >= CAST(GETDATE() AS DATE) AND p.end_date <= DATEADD(day, 30, CAST(GETDATE() AS DATE)))")
 
 	query = repo.applyDateFilter(query, params, "p")
@@ -456,14 +479,14 @@ func (repo *ProjectDashboardRepository) GetProjectsDueSoonAndOverdue(params *dto
 			statusTitleEn = fmt.Sprintf("%dd overdue", absDays)
 			statusTitleAr = fmt.Sprintf("متأخر %d يوم", absDays)
 			statusType = "overdue"
-			statusColorCode = "#DC3545" // Red
+			statusColorCode = "#DC3545" // red
 		} else if daysDiff == 0 {
 			overdueDays = 0
 			daysRemaining = 0
 			statusTitleEn = "Due today"
 			statusTitleAr = "مستحق اليوم"
 			statusType = "due_today"
-			statusColorCode = "#FFC107" // Amber
+			statusColorCode = "#FD7E14" // orange
 		} else {
 			overdueDays = 0
 			daysRemaining = absDays
@@ -471,11 +494,18 @@ func (repo *ProjectDashboardRepository) GetProjectsDueSoonAndOverdue(params *dto
 			statusTitleAr = fmt.Sprintf("متبقي %d يوم", absDays)
 			if daysDiff <= 7 {
 				statusType = "due_soon"
-				statusColorCode = "#FFC107" // Amber
+				statusColorCode = "#FFC107" // yellow
+			if daysDiff == 0 {
+				statusTitleEn = "Due today"
+				statusTitleAr = "مستحق اليوم"
 			} else {
 				statusType = "on_track"
-				statusColorCode = "#28A745" // Green
+				statusColorCode = "#28A745" // green
+				statusTitleEn = fmt.Sprintf("%dd remaining", absDays)
+				statusTitleAr = fmt.Sprintf("متبقي %d يوم", absDays)
 			}
+			statusType = "due_soon"
+			statusColorCode = "#FFC107" // yellow
 		}
 
 		var startDateStr, startDateFormatted, endDateStr, endDateFormatted string

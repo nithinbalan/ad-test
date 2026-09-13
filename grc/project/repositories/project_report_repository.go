@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
@@ -22,11 +23,32 @@ type ProjectReportRepositoryInterface interface {
 	GetAllStrategicObjectives(projectID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
 	GetAllKPIs(projectID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error)
 	GetAllAssociatedDocuments(projectID uint) ([]*commonDTOs.AssociatedDocumentListDTO, error)
+	GetAllAssets(projectID uint) ([]*commonDTOs.AssociatedAssetListDTO, error)
+	GetAllIncidents(projectID uint) ([]*commonDTOs.AssociatedIncidentListDTO, error)
+	GetAllComplianceRequirements(projectID uint) ([]*commonDTOs.AssociatedClauseListDTO, error)
 	GetAllActionPlans(projectID uint) ([]*dtos.ProjectActionPlanListDTO, error)
 	GetAllChangeRequests(projectID uint) ([]*dtos.ProjectChangeRequestListDTO, error)
 	GetAllDecisionLogs(projectID uint) ([]*dtos.ProjectDecisionLogListDTO, error)
 	GetAllSupportingDocuments(projectID uint) ([]*dtos.ProjectSupportingDocumentListDTO, error)
 	GetProjectClosure(projectID uint) (*dtos.ProjectClosureReportDTO, error)
+
+	GetAllReports(params *dtos.ProjectReportListQueryParamsDTO) (*dtos.ProjectReportListResponseDTO, error)
+	GetProjectsByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.Project, error)
+	GetProjectsByDateRange(start time.Time, end time.Time, tx ...utility.DatabaseTransaction) ([]*models.Project, error)
+	CreateReport(report *models.ProjectReport, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateSection(section *models.ProjectReportSection, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateReportProject(project *models.ProjectReportProject, tx ...utility.DatabaseTransaction) error
+	CreateProjectDocuments(docs []*models.ProjectReportDocument, tx ...utility.DatabaseTransaction) error
+	GetReportByID(reportID uint, tx ...utility.DatabaseTransaction) (*models.ProjectReport, error)
+	GetReportDetailsByID(reportID uint, tx ...utility.DatabaseTransaction) (*models.ProjectReport, error)
+	GetSectionByID(sectionID uint, tx ...utility.DatabaseTransaction) (*models.ProjectReportSection, error)
+	UpdateSection(section *models.ProjectReportSection, tx ...utility.DatabaseTransaction) error
+	DeleteReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error
+	ReorderReportSections(reportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
+	DeleteReportDocuments(reportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteReportProjects(reportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteReportSections(reportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteReport(reportID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ProjectReportRepository struct {
@@ -56,6 +78,10 @@ func (r *ProjectReportRepository) GetFullReportDetailsByID(id uint, tx ...utilit
 		Preload("ProjectClassification").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("IncidentActionPlan").
+		Preload("IncidentActionPlan.ActionPlanStatus").
+		Preload("IncidentActionPlan.ResponsibleUser").
+		Preload("IncidentActionPlan.IncidentRegister").
 		First(&project, id)
 
 	if result.Error != nil {
@@ -260,6 +286,155 @@ func (r *ProjectReportRepository) GetAllAssociatedDocuments(projectID uint) ([]*
 		Scan(&docs).Error
 
 	return docs, err
+}
+
+func (r *ProjectReportRepository) GetAllAssets(projectID uint) ([]*commonDTOs.AssociatedAssetListDTO, error) {
+	var assets []*commonDTOs.AssociatedAssetListDTO
+	err := r.db.Table("project_assets").
+		Select(`
+			project_assets.id,
+			project_assets.asset_register_id,
+			asset_register.reference_number,
+			asset_register.title_en,
+			asset_register.title_ar,
+			asset_register.location,
+			asset_register.description,
+			CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
+			CONVERT(VARCHAR, asset_register.assignment_date, 23) AS assignment_date,
+			CONVERT(VARCHAR, asset_register.warranty_expiry_date, 23) AS warranty_expiry_date,
+			asset_register.manufacturer,
+			asset_register.model,
+			asset_register.serial_number,
+			asset_categories.title_en AS asset_category_title_en,
+			asset_categories.title_ar AS asset_category_title_ar,
+			asset_sub_categories.title_en AS asset_sub_category_title_en,
+			asset_sub_categories.title_ar AS asset_sub_category_title_ar,
+			asset_statuses.title_en AS asset_status_title_en,
+			asset_statuses.title_ar AS asset_status_title_ar,
+			asset_statuses.color_code AS asset_status_color_code,
+			asset_register.total_score,
+			asset_criticality_matrix_rating_scales.title_en AS asset_criticality_matrix_rating_scale_title_en,
+			asset_criticality_matrix_rating_scales.title_ar AS asset_criticality_matrix_rating_scale_title_ar,
+			asset_criticality_matrix_rating_scales.color_code AS asset_criticality_matrix_rating_scale_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path
+		`).
+		Joins("INNER JOIN asset_register ON asset_register.id = project_assets.asset_register_id").
+		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
+		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
+		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
+		Joins("LEFT JOIN asset_criticality_matrix_rating_scales ON asset_criticality_matrix_rating_scales.id = asset_register.asset_criticality_matrix_rating_scale_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
+		Where("project_assets.project_id = ?", projectID).
+		Order("project_assets.id ASC").
+		Scan(&assets).Error
+
+	return assets, err
+}
+
+func (r *ProjectReportRepository) GetAllIncidents(projectID uint) ([]*commonDTOs.AssociatedIncidentListDTO, error) {
+	var incidents []*commonDTOs.AssociatedIncidentListDTO
+	err := r.db.Table("project_incidents").
+		Select(`
+			incident_register.*,
+			project_incidents.id as id,
+			project_incidents.incident_register_id,
+			incident_categories.title_en AS incident_category_title_en,
+			incident_categories.title_ar AS incident_category_title_ar,
+			incident_types.title_en AS incident_type_title_en,
+			incident_types.title_ar AS incident_type_title_ar,
+			incident_statuses.title_en AS incident_status_title_en,
+			incident_statuses.title_ar AS incident_status_title_ar,
+			incident_statuses.color_code AS incident_status_color_code,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path
+		`).
+		Joins("INNER JOIN incident_register ON incident_register.id = project_incidents.incident_register_id").
+		Joins("LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id").
+		Joins("LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id").
+		Joins("LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id").
+		Joins("LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id").
+		Joins("LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id").
+		Where("project_incidents.project_id = ?", projectID).
+		Order("project_incidents.id ASC").
+		Scan(&incidents).Error
+
+	return incidents, err
+}
+
+func (r *ProjectReportRepository) GetAllComplianceRequirements(projectID uint) ([]*commonDTOs.AssociatedClauseListDTO, error) {
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
+
+	query := r.db.Table("project_compliance_requirements").
+		Select(`
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_clauses.clause_no,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id AS compliance_clause_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
+		Joins("LEFT JOIN compliance_clauses ON project_compliance_requirements.compliance_clause_id = compliance_clauses.id").
+		Joins("LEFT JOIN compliance_register ON project_compliance_requirements.compliance_register_id = compliance_register.id").
+		Where("project_compliance_requirements.compliance_clause_id IS NOT NULL").
+		Where("project_compliance_requirements.project_id = ?", projectID)
+
+	if err := query.Find(&clauseList).Error; err != nil {
+		return nil, err
+	}
+
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(
+			clausesByComplianceRegister[row.ComplianceRegisterID].Clauses,
+			commonDTOs.AssociatedClauseDTO{
+				ComplianceClauseID: row.ComplianceClauseID,
+				ClauseNo:           row.ClauseNo,
+				ClauseTitleEn:      row.ClauseTitleEn,
+				ClauseTitleAr:      row.ClauseTitleAr,
+			},
+		)
+	}
+
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	return groupedClauses, nil
 }
 
 func (r *ProjectReportRepository) GetAllActionPlans(projectID uint) ([]*dtos.ProjectActionPlanListDTO, error) {
@@ -489,4 +664,289 @@ func (r *ProjectReportRepository) GetProjectClosure(projectID uint) (*dtos.Proje
 	}
 
 	return closureDTO, nil
+}
+
+func (r *ProjectReportRepository) GetAllReports(params *dtos.ProjectReportListQueryParamsDTO) (*dtos.ProjectReportListResponseDTO, error) {
+	var reports []*dtos.ProjectReportListDTO
+	var totalCount int64
+
+	query := r.db.Table("project_reports").
+		Select(`
+			project_reports.id,
+			project_reports.title,
+			CONVERT(VARCHAR, project_reports.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, project_reports.end_date, 23) AS end_date,
+			project_reports.created_at,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.email AS created_user_email,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.profile_image_path AS created_user_profile_image_path
+		`).
+		Joins("LEFT JOIN users AS created_user ON created_user.id = project_reports.created_by_id")
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(project_reports.title LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	sortBy := params.SortBy
+	if sortBy == "" {
+		sortBy = "project_reports.id"
+	}
+	sort := params.Sort
+	if sort == "" {
+		sort = "DESC"
+	}
+	query = query.Order(sortBy + " " + sort)
+
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	if err := query.Find(&reports).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	return &dtos.ProjectReportListResponseDTO{
+		Items: reports,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}, nil
+}
+
+func (r *ProjectReportRepository) GetProjectsByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.Project, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var projects []*models.Project
+	err := db.
+		Preload("ProjectType").
+		Preload("ProjectStatus").
+		Preload("ProjectPhase").
+		Preload("ProjectClassification").
+		Preload("ResponsibleUser").
+		Preload("IncidentActionPlan").
+		Where("id IN ?", ids).
+		Find(&projects).Error
+	if err != nil {
+		return nil, err
+	}
+	return projects, nil
+}
+
+func (r *ProjectReportRepository) GetProjectsByDateRange(start time.Time, end time.Time, tx ...utility.DatabaseTransaction) ([]*models.Project, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var projects []*models.Project
+	err := db.
+		Preload("ProjectType").
+		Preload("ProjectStatus").
+		Preload("ProjectPhase").
+		Preload("ProjectClassification").
+		Preload("ResponsibleUser").
+		Preload("IncidentActionPlan").
+		Where("start_date >= ? AND start_date <= ?", start, end).
+		Find(&projects).Error
+	if err != nil {
+		return nil, err
+	}
+	return projects, nil
+}
+
+func (r *ProjectReportRepository) CreateReport(report *models.ProjectReport, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(report).Error; err != nil {
+		return 0, err
+	}
+	return report.ID, nil
+}
+
+func (r *ProjectReportRepository) CreateSection(section *models.ProjectReportSection, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(section).Error; err != nil {
+		return 0, err
+	}
+	return section.ID, nil
+}
+
+func (r *ProjectReportRepository) CreateReportProject(project *models.ProjectReportProject, tx ...utility.DatabaseTransaction) error {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(project).Error
+}
+
+func (r *ProjectReportRepository) CreateProjectDocuments(docs []*models.ProjectReportDocument, tx ...utility.DatabaseTransaction) error {
+	if len(docs) == 0 {
+		return nil
+	}
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(&docs).Error
+}
+
+func (r *ProjectReportRepository) GetReportByID(reportID uint, tx ...utility.DatabaseTransaction) (*models.ProjectReport, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var report models.ProjectReport
+	err := db.Where("id = ?", reportID).First(&report).Error
+	if err != nil {
+		return nil, err
+	}
+	return &report, nil
+}
+
+func (r *ProjectReportRepository) GetReportDetailsByID(reportID uint, tx ...utility.DatabaseTransaction) (*models.ProjectReport, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var report models.ProjectReport
+	err := db.
+		Preload("CreatedByUser").
+		Preload("Sections", func(db *gorm.DB) *gorm.DB {
+			return db.Order("order_num ASC")
+		}).
+		Preload("Projects").
+		Preload("Projects.Documents").
+		Preload("Projects.Project").
+		Preload("Projects.Project.IncidentActionPlan").
+		Preload("Projects.Project.IncidentActionPlan.ActionPlanStatus").
+		Preload("Projects.Project.IncidentActionPlan.ResponsibleUser").
+		Preload("Projects.Project.IncidentActionPlan.IncidentRegister").
+		Where("id = ?", reportID).
+		First(&report).Error
+	if err != nil {
+		return nil, err
+	}
+	return &report, nil
+}
+
+func (r *ProjectReportRepository) GetSectionByID(sectionID uint, tx ...utility.DatabaseTransaction) (*models.ProjectReportSection, error) {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var section models.ProjectReportSection
+	err := db.Where("id = ?", sectionID).First(&section).Error
+	if err != nil {
+		return nil, err
+	}
+	return &section, nil
+}
+
+func (r *ProjectReportRepository) UpdateSection(section *models.ProjectReportSection, tx ...utility.DatabaseTransaction) error {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Save(section).Error
+}
+
+func (r *ProjectReportRepository) DeleteReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id = ?", sectionID).Delete(&models.ProjectReportSection{}).Error
+}
+
+func (r *ProjectReportRepository) ReorderReportSections(reportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Exec(`
+		UPDATE project_report_sections
+		SET order_num = order_num - 1
+		WHERE project_report_id = ? AND order_num > ?`,
+		reportID, deletedOrderNum).Error
+}
+
+func (r *ProjectReportRepository) DeleteReportDocuments(reportID uint, tx ...utility.DatabaseTransaction) error {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("project_report_project_id IN (SELECT id FROM project_report_projects WHERE project_report_id = ?)", reportID).
+		Delete(&models.ProjectReportDocument{}).Error
+}
+
+func (r *ProjectReportRepository) DeleteReportProjects(reportID uint, tx ...utility.DatabaseTransaction) error {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("project_report_id = ?", reportID).Delete(&models.ProjectReportProject{}).Error
+}
+
+func (r *ProjectReportRepository) DeleteReportSections(reportID uint, tx ...utility.DatabaseTransaction) error {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("project_report_id = ?", reportID).Delete(&models.ProjectReportSection{}).Error
+}
+
+func (r *ProjectReportRepository) DeleteReport(reportID uint, tx ...utility.DatabaseTransaction) error {
+	db := r.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id = ?", reportID).Delete(&models.ProjectReport{}).Error
 }

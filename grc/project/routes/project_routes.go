@@ -79,6 +79,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.DeleteProjects)
 	projectRoutes.PUT("/projects/:projectId/status-update", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.UpdateProjectStatus)
 
+	// Project Reports
+	projectRoutes.GET("/projects-reports", projectReportController.GetAllProjectReports)
+	projectRoutes.GET("/projects-reports/:projectReportId", projectReportController.GetProjectReportDetails)
+	projectRoutes.POST("/projects-reports", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReportController.CreateProjectReport)
+	projectRoutes.DELETE("/projects-reports/:projectReportId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReportController.DeleteProjectReports)
+	projectRoutes.GET("/projects-reports/:projectReportId/sections/:sectionId", projectReportController.GetProjectReportSection)
+	projectRoutes.PUT("/projects-reports/:projectReportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReportController.UpdateProjectReportSection)
+	projectRoutes.DELETE("/projects-reports/:projectReportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReportController.DeleteProjectReportSection)
+	projectRoutes.GET("/projects-reports/:projectReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectReportController.GetProjectReportExportZip)
+
 	// Project Review & Workflow
 	projectRoutes.POST("/projects/:projectId/submit", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewController.SubmitProject)
 	projectRoutes.POST("/projects/:projectId/resubmit", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewController.ResubmitProject)

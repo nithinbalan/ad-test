@@ -8,17 +8,21 @@ type ProjectDashboardQueryParamsDTO struct {
 }
 
 type ProjectDashboardSummaryDTO struct {
-	TotalProjects      int64   `json:"total_projects"`
-	ActiveProjects     int64   `json:"active_projects"`
-	CompletedProjects  int64   `json:"completed_projects"`
-	AvgCompletion      float64 `json:"avg_completion"`
-	OnTrack            int64   `json:"on_track"`
-	AtRisk             int64   `json:"at_risk"`
-	Delayed            int64   `json:"delayed"`
-	OpenIssues         int64   `json:"open_issues"`
-	OpenChangeRequests int64   `json:"open_change_requests"`
-	ProjectsDueSoon    int64   `json:"projects_due_soon"`
-	OverdueProjects    int64   `json:"overdue_projects"`
+	TotalProjects                int64   `json:"total_projects"`
+	ActiveProjects               int64   `json:"active_projects"`
+	CompletedProjects            int64   `json:"completed_projects"`
+	CompletionPercentage         float64 `json:"completion_percentage"`
+	AvgCompletion                float64 `json:"avg_completion"`
+	OnTrack                      int64   `json:"on_track"`
+	AtRisk                       int64   `json:"at_risk"`
+	Delayed                      int64   `json:"delayed"`
+	OpenIssues                   int64   `json:"open_issues"`
+	OpenChangeRequests           int64   `json:"open_change_requests"`
+	OpenChangeRequestsPercentage float64 `json:"open_change_requests_percentage"`
+	ProjectsDueSoon              int64   `json:"projects_due_soon"`
+	ProjectsDueSoonPercentage    float64 `json:"projects_due_soon_percentage"`
+	OverdueProjects              int64   `json:"overdue_projects"`
+	OverdueProjectsPercentage    float64 `json:"overdue_projects_percentage"`
 }
 
 type ProjectsByPhaseItemDTO struct {
