@@ -159,16 +159,10 @@
         <h6 style="margin: 10px 0 10px 0; font-size: 14px; color: #050505; font-weight: 400;">{{add $index 1}}.1.1 Overview</h6>
 
         <div style="margin-top: 10px">
-          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+          <div style="width: 100%; display: inline-block; vertical-align: top;">
             <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Title:</p>
             <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
               {{if $proj.TitleEn}}{{$proj.TitleEn}}{{else}}-{{end}}
-            </p>
-          </div>
-          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
-            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Project ID:</p>
-            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
-              #{{$proj.ProjectID}}
             </p>
           </div>
           <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
@@ -181,17 +175,15 @@
             <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Status:</p>
             <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
               {{if $proj.ProjectStatusTitleEn}}
-              <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #0e7b61; color: #fff; font-size: 12px;">{{$proj.ProjectStatusTitleEn}}</span>
+              <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #0e7b61; color: #fff; font-size: 12px; white-space: nowrap;">{{$proj.ProjectStatusTitleEn}}</span>
               {{else}}-{{end}}
             </p>
           </div>
 
           <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
             <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Phase:</p>
-            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
-              {{if $proj.ProjectPhaseTitleEn}}
-              <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #1967d2; color: #fff; font-size: 12px;">{{$proj.ProjectPhaseTitleEn}}</span>
-              {{else}}-{{end}}
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $proj.ProjectPhaseTitleEn}}{{$proj.ProjectPhaseTitleEn}}{{else}}-{{end}}
             </p>
           </div>
           <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
@@ -209,7 +201,7 @@
           <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
             <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Budget:</p>
             <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
-              {{if $proj.Budget}}${{$proj.Budget}}{{else}}-{{end}}
+              {{if $proj.Budget}}{{$proj.Budget}}{{else}}-{{end}}
             </p>
           </div>
 
@@ -465,7 +457,7 @@
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $asset.AssetCategoryTitleEn}}{{$asset.AssetCategoryTitleEn}}{{else}}-{{end}}</td>
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
                 {{if $asset.AssetStatusTitleEn}}
-                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $asset.AssetStatusColorCode}}{{$asset.AssetStatusColorCode}}{{else}}#0e7b61{{end}}; color: #fff; font-size: 12px;">{{$asset.AssetStatusTitleEn}}</span>
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $asset.AssetStatusColorCode}}{{$asset.AssetStatusColorCode}}{{else}}#0e7b61{{end}}; color: #fff; font-size: 12px; white-space: nowrap;">{{$asset.AssetStatusTitleEn}}</span>
                 {{else}}-{{end}}
               </td>
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
@@ -501,9 +493,9 @@
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $inc.ReferenceNumber}}{{$inc.ReferenceNumber}}{{else}}-{{end}}</td>
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$inc.Title}}</td>
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $inc.IncidentCategoryTitleEn}}{{$inc.IncidentCategoryTitleEn}}{{else}}-{{end}}</td>
-              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left; white-space: nowrap;">
                 {{if $inc.IncidentStatusTitleEn}}
-                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $inc.IncidentStatusColorCode}}{{$inc.IncidentStatusColorCode}}{{else}}#0e7b61{{end}}; color: #fff; font-size: 12px;">{{$inc.IncidentStatusTitleEn}}</span>
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $inc.IncidentStatusColorCode}}{{$inc.IncidentStatusColorCode}}{{else}}#0e7b61{{end}}; color: #fff; font-size: 12px; white-space: nowrap;">{{$inc.IncidentStatusTitleEn}}</span>
                 {{else}}-{{end}}
               </td>
             </tr>
@@ -527,11 +519,11 @@
           <thead>
             <tr style="border: 1px solid #eaedf2">
               <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
-              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">Title</th>
-              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">Description</th>
-              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">Planned Date</th>
-              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">Actual Date</th>
-              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 11%;">Status</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 28%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 27%;">Description</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 13%;">Planned Date</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 13%;">Actual Date</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 14%;">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -542,9 +534,9 @@
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $m.DescriptionEn}}{{$m.DescriptionEn}}{{else}}-{{end}}</td>
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $m.PlannedDate}}{{$m.PlannedDate}}{{else}}-{{end}}</td>
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $m.ActualDate}}{{$m.ActualDate}}{{else}}-{{end}}</td>
-              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left; white-space: nowrap;">
                 {{if $m.ProjectMilestoneStatusTitleEn}}
-                <span style="background: #e5f4f0; color: #0e7b61; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #afd6cc; font-weight: 400;">{{$m.ProjectMilestoneStatusTitleEn}}</span>
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $m.ProjectMilestoneStatusColorCode}}{{$m.ProjectMilestoneStatusColorCode}}{{else}}#0e7b61{{end}}; color: #ffffff; font-size: 12px; font-weight: 400; white-space: nowrap;">{{$m.ProjectMilestoneStatusTitleEn}}</span>
                 {{else}}-{{end}}
               </td>
             </tr>
@@ -585,16 +577,16 @@
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
                 {{if $ap.ResponsibleUserFirstNameEn}}{{$ap.ResponsibleUserFirstNameEn}} {{$ap.ResponsibleUserLastNameEn}}{{else}}-{{end}}
               </td>
-              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left; white-space: nowrap;">
                 {{if $ap.SeverityLevelTitleEn}}
-                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $ap.SeverityLevelColorCode}}{{$ap.SeverityLevelColorCode}}{{else}}#D93025{{end}}; color: #fff; font-size: 12px;">
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $ap.SeverityLevelColorCode}}{{$ap.SeverityLevelColorCode}}{{else}}#D93025{{end}}; color: #fff; font-size: 12px; white-space: nowrap;">
                   {{$ap.SeverityLevelTitleEn}}
                 </span>
                 {{else}}-{{end}}
               </td>
-              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left; white-space: nowrap;">
                 {{if $ap.ActionPlanStatusTitleEn}}
-                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $ap.ActionPlanStatusColorCode}}{{$ap.ActionPlanStatusColorCode}}{{else}}#0B7A55{{end}}; color: #fff; font-size: 12px;">
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $ap.ActionPlanStatusColorCode}}{{$ap.ActionPlanStatusColorCode}}{{else}}#0B7A55{{end}}; color: #fff; font-size: 12px; white-space: nowrap;">
                   {{$ap.ActionPlanStatusTitleEn}}
                 </span>
                 {{else}}-{{end}}
@@ -636,7 +628,7 @@
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $cr.Impact}}{{$cr.Impact}}{{else}}-{{end}}</td>
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
                 {{if $cr.WorkflowStatusTitleEn}}
-                <span style="background: #e8f0fe; color: {{if $cr.WorkflowStatusColorCode}}{{$cr.WorkflowStatusColorCode}}{{else}}#1967d2{{end}}; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #bfd3f9; font-weight: 400;">
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $cr.WorkflowStatusColorCode}}{{$cr.WorkflowStatusColorCode}}{{else}}#1967d2{{end}}; color: #ffffff; font-size: 12px; font-weight: 400;">
                   {{$cr.WorkflowStatusTitleEn}}
                 </span>
                 {{else}}-{{end}}
@@ -678,7 +670,7 @@
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $dl.DecisionDate}}{{$dl.DecisionDate}}{{else}}-{{end}}</td>
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
                 {{if $dl.WorkflowStatusTitleEn}}
-                <span style="background: #e8f0fe; color: {{if $dl.WorkflowStatusColorCode}}{{$dl.WorkflowStatusColorCode}}{{else}}#1967d2{{end}}; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #bfd3f9; font-weight: 400;">
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $dl.WorkflowStatusColorCode}}{{$dl.WorkflowStatusColorCode}}{{else}}#1967d2{{end}}; color: #ffffff; font-size: 12px; font-weight: 400;">
                   {{$dl.WorkflowStatusTitleEn}}
                 </span>
                 {{else}}-{{end}}
