@@ -773,6 +773,20 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "risk_requires_implementation_gap":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "risk_requires_implementation_gap",
+			})
+			errors = append(errors, errorMessage)
+
+		case "risk_already_finalized":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "risk_already_finalized",
+			})
+			errors = append(errors, errorMessage)
+
 		case "checklist_not_marked_as_exception":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{

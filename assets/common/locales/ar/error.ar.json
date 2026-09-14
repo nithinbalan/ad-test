@@ -350,6 +350,14 @@
   "translation": "لا يمكن تغيير المرحلة بعد إنشاء بوابة الأمان."
 },
 {
+  "id": "risk_requires_implementation_gap",
+  "translation": "لا يمكن رفع خطر إلا على عنصر قائمة تحقق حالته «تم التنفيذ جزئياً» أو «لم يتم التنفيذ»."
+},
+{
+  "id": "risk_already_finalized",
+  "translation": "تم اعتماد هذا الخطر ولم يعد من الممكن تعديله."
+},
+{
   "id": "checklist_not_marked_as_exception",
   "translation": "لا يمكن إرسال قائمة التحقق للمراجعة إلا إذا تم تحديدها كاستثناء."
 },

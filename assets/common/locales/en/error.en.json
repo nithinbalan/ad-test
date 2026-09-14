@@ -356,6 +356,14 @@
   "translation": "Stage cannot be changed after the security gate is created."
 },
 {
+  "id": "risk_requires_implementation_gap",
+  "translation": "A risk can only be raised against a checklist item that is Partially Implemented or Not Implemented."
+},
+{
+  "id": "risk_already_finalized",
+  "translation": "This risk has already been finalized and can no longer be edited."
+},
+{
   "id": "checklist_not_marked_as_exception",
   "translation": "Only a checklist marked as exception can be submitted for review."
 },

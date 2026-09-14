@@ -122,6 +122,23 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 		detail.Controls = append(detail.Controls, &controlDTO)
 	}
 
+	detail.Risks = make([]*dtos.ProjectSecurityGateChecklistRiskDTO, 0, len(checklist.Risks))
+	for _, mapping := range checklist.Risks {
+		if mapping.RiskRegister == nil {
+			continue
+		}
+
+		var riskDTO dtos.ProjectSecurityGateChecklistRiskDTO
+		if err := mapstructure.Decode(mapping.RiskRegister, &riskDTO); err != nil {
+			return nil, err
+		}
+
+		riskDTO.RegistrationDate = mapping.RiskRegister.RegistrationDate
+		riskDTO.CreatedAt = mapping.CreatedAt
+
+		detail.Risks = append(detail.Risks, &riskDTO)
+	}
+
 	return &detail, nil
 }
 

@@ -49,6 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectSecurityGateChecklistCommentController := app.ProjectModule.ProjectSecurityGateChecklistCommentController
 	projectSecurityGateChecklistExceptionWorkflowController := app.ProjectModule.ProjectSecurityGateChecklistExceptionWorkflowController
 	projectSecurityGateChecklistExceptionReviewController := app.ProjectModule.ProjectSecurityGateChecklistExceptionReviewController
+	projectSecurityGateChecklistRiskController := app.ProjectModule.ProjectSecurityGateChecklistRiskController
 
 	// Source-module controllers
 	controlController := app.OrganizationModule.ControlController
@@ -296,6 +297,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	unauthenticatedRoutes.GET("/project-security-gates/:id/checklists/:checklistId/comments/:commentId/documents/document-download", projectSecurityGateChecklistCommentController.DownloadProjectSecurityGateChecklistCommentDocument)
 	unauthenticatedRoutes.GET("/project-security-gates/:id/checklists/:checklistId/comments/:commentId/documents/document-preview", projectSecurityGateChecklistCommentController.GetProjectSecurityGateChecklistCommentDocumentPreview)
+
+	// Project Security Gate Checklist Risk
+	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/risks", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistRiskController.CreateProjectSecurityGateChecklistRisk)
+	projectRoutes.PUT("/project-security-gates/:id/checklists/:checklistId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistRiskController.UpdateProjectSecurityGateChecklistRisk)
+	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/risks/:riskId/finalize", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistRiskController.FinalizeProjectSecurityGateChecklistRisk)
 
 	// Project Security Gate Checklist Exception Workflow
 	projectRoutes.GET("/project-security-gates/:id/checklists/:checklistId/exception/workflow-list", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistExceptionWorkflowController.GetProjectSecurityGateChecklistExceptionWorkflowList)

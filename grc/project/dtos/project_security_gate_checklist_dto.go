@@ -74,6 +74,7 @@ type ProjectSecurityGateChecklistDetailDTO struct {
 	Documents              []*ProjectSecurityGateChecklistResponseDocumentDTO  `json:"documents"`
 	Comments               []*ProjectSecurityGateChecklistCommentDTO           `json:"comments"`
 	Controls               []*organizationDTOs.ControlMinimalListDTO           `json:"controls"`
+	Risks                  []*ProjectSecurityGateChecklistRiskDTO              `json:"risks"`
 }
 
 type ProjectSecurityGateChecklistResponseDocumentDTO struct {
