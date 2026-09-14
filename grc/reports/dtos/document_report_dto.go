@@ -56,15 +56,19 @@ type DocumentByAccessDTO struct {
 }
 
 type DocumentByYearDTO struct {
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Count   int64  `json:"count"`
+	TitleEn  string `json:"title_en"`
+	TitleAr  string `json:"title_ar"`
+	Count    int64  `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type DocumentByMonthDTO struct {
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Count   int64  `json:"count"`
+	TitleEn  string `json:"title_en"`
+	TitleAr  string `json:"title_ar"`
+	Count    int64  `json:"count"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type DocumentChangeRequestByTypeDTO struct {

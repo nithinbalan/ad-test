@@ -92,6 +92,8 @@ type DocumentListQueryParamsDTO struct {
 	DocumentTypes            []string
 	DocumentStatus           []string
 	Export                   bool
+	DateFrom                 string
+	DateTo                   string
 }
 
 type DocumentListResponseDTO struct {
