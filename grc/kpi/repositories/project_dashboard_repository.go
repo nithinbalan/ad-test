@@ -60,14 +60,14 @@ func (repo *ProjectDashboardRepository) GetProjectSummary(params *dtos.ProjectDa
 	query := repo.db.Table("projects p").
 		Select(`
 			COUNT(*) AS total_projects,
-			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) THEN 1 END) AS active_projects,
-			(COUNT(CASE WHEN ws.type = 'approve' THEN 1 END) + COUNT(CASE WHEN ph.type = 'go_live' THEN 1 END)) AS completed_projects,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR ph.type != 'go_live') THEN 1 END) AS active_projects,
+			COUNT(CASE WHEN ws.type = 'approve' AND ph.type = 'go_live' THEN 1 END) AS completed_projects,
 			ROUND(COALESCE(AVG(CAST(p.completion_percentage AS FLOAT)), 0), 2) AS avg_completion,
-			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND ps.type = 'on_track' THEN 1 END) AS on_track,
-			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND ps.type = 'at_risk' THEN 1 END) AS at_risk,
-			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND ps.type = 'delayed' THEN 1 END) AS delayed,
-			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND p.end_date >= CAST(GETDATE() AS DATE) AND p.end_date <= DATEADD(day, 30, CAST(GETDATE() AS DATE)) THEN 1 END) AS projects_due_soon,
-			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND p.end_date < CAST(GETDATE() AS DATE) THEN 1 END) AS overdue_projects
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR ph.type != 'go_live') AND ps.type = 'on_track' THEN 1 END) AS on_track,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR ph.type != 'go_live') AND ps.type = 'at_risk' THEN 1 END) AS at_risk,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR ph.type != 'go_live') AND ps.type = 'delayed' THEN 1 END) AS delayed,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR ph.type != 'go_live') AND p.end_date >= CAST(GETDATE() AS DATE) AND p.end_date <= DATEADD(day, 30, CAST(GETDATE() AS DATE)) THEN 1 END) AS projects_due_soon,
+			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR ph.type != 'go_live') AND p.end_date < CAST(GETDATE() AS DATE) THEN 1 END) AS overdue_projects
 		`).
 		Joins("LEFT JOIN project_phases ph ON ph.id = p.project_phase_id").
 		Joins("LEFT JOIN workflow_statuses ws ON ws.id = p.workflow_status_id").
@@ -86,7 +86,7 @@ func (repo *ProjectDashboardRepository) GetProjectSummary(params *dtos.ProjectDa
 		Joins("LEFT JOIN workflow_statuses ws ON ws.id = p.workflow_status_id").
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = project_action_plans.action_plan_status_id").
 		Where("action_plan_statuses.is_closed = 0 AND action_plan_statuses.type NOT IN ('completed', 'closed')").
-		Where("ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure'))")
+		Where("ws.type = 'approve' AND (ph.type IS NULL OR ph.type != 'go_live')")
 
 	issuesQuery = repo.applyDateFilter(issuesQuery, params, "project_action_plans")
 
@@ -101,7 +101,7 @@ func (repo *ProjectDashboardRepository) GetProjectSummary(params *dtos.ProjectDa
 		Joins("LEFT JOIN workflow_statuses ws_proj ON ws_proj.id = p.workflow_status_id").
 		Joins("LEFT JOIN workflow_statuses ON workflow_statuses.id = project_change_requests.workflow_status_id").
 		Where("project_change_requests.workflow_status_id IS NULL OR workflow_statuses.type NOT IN ('approve', 'reject')").
-		Where("ws_proj.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure'))")
+		Where("ws_proj.type = 'approve' AND (ph.type IS NULL OR ph.type != 'go_live')")
 
 	crQuery = repo.applyDateFilter(crQuery, params, "project_change_requests")
 
@@ -113,7 +113,7 @@ func (repo *ProjectDashboardRepository) GetProjectSummary(params *dtos.ProjectDa
 	if summary.TotalProjects > 0 {
 		summary.CompletionPercentage = math.Round((float64(summary.CompletedProjects)/float64(summary.TotalProjects))*100*100) / 100
 	}
-	summary.AvgCompletion = math.Round(summary.AvgCompletion*100) / 100
+	summary.AvgCompletion = summary.CompletionPercentage
 
 	// Calculate percentages against active projects
 	if summary.ActiveProjects > 0 {
@@ -340,7 +340,7 @@ func (repo *ProjectDashboardRepository) GetProjectCompletion(params *dtos.Projec
 		Joins("LEFT JOIN workflow_statuses ws ON ws.id = p.workflow_status_id").
 		Joins("LEFT JOIN project_classifications pc ON pc.id = p.project_classification_id").
 		Joins("JOIN project_statuses ps ON ps.id = p.project_status_id").
-		Where("ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure'))")
+		Where("ws.type = 'approve' AND ph.type = 'go_live'")
 
 	query = repo.applyDateFilter(query, params, "p")
 
@@ -444,7 +444,7 @@ func (repo *ProjectDashboardRepository) GetProjectsDueSoonAndOverdue(params *dto
 		Joins("LEFT JOIN workflow_statuses ws ON ws.id = p.workflow_status_id").
 		Joins("LEFT JOIN project_classifications pc ON pc.id = p.project_classification_id").
 		Joins("JOIN project_statuses ps ON ps.id = p.project_status_id").
-		Where("ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure'))").
+		Where("ws.type = 'approve' AND (ph.type IS NULL OR ph.type != 'go_live')").
 		Where("p.end_date < CAST(GETDATE() AS DATE) OR (p.end_date >= CAST(GETDATE() AS DATE) AND p.end_date <= DATEADD(day, 30, CAST(GETDATE() AS DATE)))")
 
 	query = repo.applyDateFilter(query, params, "p")
