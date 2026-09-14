@@ -15,8 +15,6 @@ type ProjectSecurityGateChecklistExceptionWorkflowHistory struct {
 	Checklist      *ProjectSecurityGateChecklist `json:"checklist" gorm:"foreignKey:ChecklistID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	WorkflowStatus *WorkflowStatus               `json:"workflow_status" gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser  *User                         `json:"created_by_user" gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-
-	Documents []*ProjectSecurityGateChecklistExceptionWorkflowReviewDocument `json:"documents" gorm:"foreignKey:HistoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (ProjectSecurityGateChecklistExceptionWorkflowHistory) TableName() string {

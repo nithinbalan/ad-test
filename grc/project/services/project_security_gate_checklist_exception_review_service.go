@@ -2,8 +2,6 @@ package services
 
 import (
 	"fmt"
-	"path/filepath"
-	"strconv"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -18,9 +16,10 @@ import (
 )
 
 type ProjectSecurityGateChecklistExceptionReviewServiceInterface interface {
-	Submit(securityGateID uint, checklistID uint, currentUserID uint) error
-	Approve(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistExceptionReviewFormDTO) error
-	Revert(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistExceptionReviewFormDTO) error
+	CreateComment(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistCommentFormDTO) (uint, error)
+	Submit(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistCommentFormDTO) (uint, error)
+	Approve(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistCommentFormDTO) (uint, error)
+	Revert(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistCommentFormDTO) (uint, error)
 }
 
 type ProjectSecurityGateChecklistExceptionReviewService struct {
@@ -29,6 +28,7 @@ type ProjectSecurityGateChecklistExceptionReviewService struct {
 	checklistSvc      ProjectSecurityGateChecklistServiceInterface
 	securityGateSvc   ProjectSecurityGateServiceInterface
 	workflowSvc       ProjectSecurityGateChecklistExceptionWorkflowServiceInterface
+	commentSvc        ProjectSecurityGateChecklistCommentServiceInterface
 	workflowStatusSvc masterServices.WorkflowStatusServiceInterface
 	userSvc           organizationSvc.UserServiceInterface
 	notificationSvc   commonServices.NotificationServiceInterface
@@ -40,6 +40,7 @@ func NewProjectSecurityGateChecklistExceptionReviewService(
 	checklistSvc ProjectSecurityGateChecklistServiceInterface,
 	securityGateSvc ProjectSecurityGateServiceInterface,
 	workflowSvc ProjectSecurityGateChecklistExceptionWorkflowServiceInterface,
+	commentSvc ProjectSecurityGateChecklistCommentServiceInterface,
 	workflowStatusSvc masterServices.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
@@ -50,13 +51,35 @@ func NewProjectSecurityGateChecklistExceptionReviewService(
 		checklistSvc:      checklistSvc,
 		securityGateSvc:   securityGateSvc,
 		workflowSvc:       workflowSvc,
+		commentSvc:        commentSvc,
 		workflowStatusSvc: workflowStatusSvc,
 		userSvc:           userSvc,
 		notificationSvc:   notificationSvc,
 	}
 }
 
-func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securityGateID uint, checklistID uint, currentUserID uint) (err error) {
+func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) CreateComment(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistCommentFormDTO) (uint, error) {
+	if form.Action == nil {
+		return psgcers.commentSvc.Create(securityGateID, checklistID, currentUserID, form, nil)
+	}
+
+	switch *form.Action {
+	case "submit":
+		return psgcers.Submit(securityGateID, checklistID, currentUserID, form)
+	case "approve":
+		return psgcers.Approve(securityGateID, checklistID, currentUserID, form)
+	case "revert":
+		return psgcers.Revert(securityGateID, checklistID, currentUserID, form)
+	}
+
+	return 0, utility.NewValidationError(
+		fmt.Errorf("unsupported action %q", *form.Action),
+		"invalid",
+		"action",
+	)
+}
+
+func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistCommentFormDTO) (commentID uint, err error) {
 	tx := psgcers.repo.BeginTransaction()
 
 	var notify func()
@@ -81,13 +104,18 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securi
 		}
 	}()
 
+	var comment *string
+	if form != nil && form.Comment != "" {
+		comment = &form.Comment
+	}
+
 	checklist, err := psgcers.checklistSvc.GetByID(securityGateID, checklistID, tx)
 	if err != nil {
-		return err
+		return commentID, err
 	}
 
 	if !checklist.IsException {
-		return utility.NewValidationError(
+		return commentID, utility.NewValidationError(
 			fmt.Errorf("checklist item is not marked as an exception"),
 			"checklist_not_marked_as_exception",
 			"exception",
@@ -95,7 +123,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securi
 	}
 
 	if checklist.NextReviewLevel != nil {
-		return utility.NewValidationError(
+		return commentID, utility.NewValidationError(
 			fmt.Errorf("exception has already been submitted"),
 			"workflow_already_submitted",
 			"checklist exception",
@@ -103,7 +131,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securi
 	}
 
 	if checklist.ApprovedBYID != nil {
-		return utility.NewValidationError(
+		return commentID, utility.NewValidationError(
 			fmt.Errorf("exception workflow has already been completed"),
 			"workflow_already_completed",
 			"checklist exception",
@@ -111,20 +139,20 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securi
 	}
 
 	if err := psgcers.workflowSvc.ValidateWorkflowBeforeCreate(tx); err != nil {
-		return err
+		return commentID, err
 	}
 
 	if err := psgcers.workflowSvc.DeleteAllWorkflowsForChecklist(checklistID, tx); err != nil {
-		return err
+		return commentID, err
 	}
 
 	if err := psgcers.workflowSvc.CreateWorkflow(checklistID, currentUserID, tx); err != nil {
-		return err
+		return commentID, err
 	}
 
 	submitStatus, err := psgcers.workflowStatusSvc.GetByType("submit")
 	if err != nil {
-		return err
+		return commentID, err
 	}
 
 	oldData := map[string]interface{}{
@@ -160,16 +188,22 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securi
 	changes := utility.CompareFieldChanges(oldData, newData)
 
 	if err := psgcers.repo.UpdateChecklist(checklist, tx); err != nil {
-		return err
+		return commentID, err
 	}
 
 	workflowLevel, err := psgcers.workflowSvc.GetWorkflowByLevel(checklistID, level, tx)
 	if err != nil {
-		return err
+		return commentID, err
 	}
 
-	if err := psgcers.createReviewWithHistory(securityGateID, workflowLevel.ID, checklistID, level, submitStatus.ID, nil, nil, currentUserID, tx); err != nil {
-		return err
+	historyID, err := psgcers.createReviewWithHistory(workflowLevel.ID, checklistID, level, submitStatus.ID, comment, currentUserID, tx)
+	if err != nil {
+		return commentID, err
+	}
+
+	commentID, err = psgcers.commentSvc.Create(securityGateID, checklistID, currentUserID, form, &historyID, tx)
+	if err != nil {
+		return commentID, err
 	}
 
 	notify = func() {
@@ -187,10 +221,10 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Submit(securi
 		psgcers.notifyWorkflowParticipants(securityGateID, checklistID, workflowLevel, currentUserID)
 	}
 
-	return err
+	return commentID, err
 }
 
-func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistExceptionReviewFormDTO) (err error) {
+func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistCommentFormDTO) (commentID uint, err error) {
 	tx := psgcers.repo.BeginTransaction()
 
 	var notify func()
@@ -215,47 +249,42 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 		}
 	}()
 
+	var comment *string
+	if form != nil && form.Comment != "" {
+		comment = &form.Comment
+	}
+
 	checklist, err := psgcers.checklistSvc.GetByID(securityGateID, checklistID, tx)
 	if err != nil {
-		return err
+		return commentID, err
 	}
 
 	if checklist.NextReviewLevel == nil {
-		return utility.NewValidationError(fmt.Errorf("workflow not active"), "workflow_not_active", "checklist exception")
+		return commentID, utility.NewValidationError(fmt.Errorf("workflow not active"), "workflow_not_active", "checklist exception")
 	}
 	currentApprovalLevel := *checklist.NextReviewLevel
 
 	currentWorkflow, err := psgcers.workflowSvc.GetWorkflowByLevel(checklistID, currentApprovalLevel, tx)
 	if err != nil {
-		return err
+		return commentID, err
 	}
 
 	approveStatus, err := psgcers.workflowStatusSvc.GetByType("approve")
 	if err != nil {
-		return err
+		return commentID, err
 	}
 
 	pendingStatus, err := psgcers.workflowStatusSvc.GetByType("pending")
 	if err != nil {
-		return err
-	}
-
-	var comment *string
-	if form != nil && form.Comment != nil && *form.Comment != "" {
-		comment = form.Comment
-	}
-
-	var formDocuments []*commonDTOs.DocumentFormDTO
-	if form != nil {
-		formDocuments = form.Documents
+		return commentID, err
 	}
 
 	alreadyApproved, err := psgcers.workflowSvc.HasUserApproved(currentWorkflow.ID, currentUserID, tx)
 	if err != nil {
-		return err
+		return commentID, err
 	}
 	if alreadyApproved {
-		return utility.NewValidationError(
+		return commentID, utility.NewValidationError(
 			fmt.Errorf("user has already approved this level"),
 			"workflow_already_approved",
 			"checklist exception",
@@ -265,11 +294,17 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 	switch currentWorkflow.WorkflowLevelType.Type {
 	case "individual", "hod":
 		if len(currentWorkflow.Participants) == 0 || currentUserID != currentWorkflow.Participants[0].UserID {
-			return utility.NewForbiddenError("you have no permission to approve")
+			return commentID, utility.NewForbiddenError("you have no permission to approve")
 		}
 
-		if err := psgcers.createReviewWithHistory(securityGateID, currentWorkflow.ID, checklistID, currentApprovalLevel, approveStatus.ID, comment, formDocuments, currentUserID, tx); err != nil {
-			return err
+		historyID, err := psgcers.createReviewWithHistory(currentWorkflow.ID, checklistID, currentApprovalLevel, approveStatus.ID, comment, currentUserID, tx)
+		if err != nil {
+			return commentID, err
+		}
+
+		commentID, err = psgcers.commentSvc.Create(securityGateID, checklistID, currentUserID, form, &historyID, tx)
+		if err != nil {
+			return commentID, err
 		}
 
 	case "multiple-users", "role":
@@ -281,38 +316,44 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 			}
 		}
 		if approvingParticipant == nil {
-			return utility.NewForbiddenError("you have no permission to approve")
+			return commentID, utility.NewForbiddenError("you have no permission to approve")
 		}
 
-		if err := psgcers.createReviewWithHistory(securityGateID, currentWorkflow.ID, checklistID, currentApprovalLevel, approveStatus.ID, comment, formDocuments, currentUserID, tx); err != nil {
-			return err
+		historyID, err := psgcers.createReviewWithHistory(currentWorkflow.ID, checklistID, currentApprovalLevel, approveStatus.ID, comment, currentUserID, tx)
+		if err != nil {
+			return commentID, err
+		}
+
+		commentID, err = psgcers.commentSvc.Create(securityGateID, checklistID, currentUserID, form, &historyID, tx)
+		if err != nil {
+			return commentID, err
 		}
 
 		if currentWorkflow.ApprovalTypes == "all" {
 			allApproved, allApprovedErr := psgcers.workflowSvc.CheckAllParticipantsApproved(currentWorkflow.ID, currentWorkflow.Participants, tx)
 			if allApprovedErr != nil {
-				return allApprovedErr
+				return commentID, allApprovedErr
 			}
 
 			// The remaining approvers still have to act, so the level stays open.
 			if !allApproved {
-				return err
+				return commentID, err
 			}
 		}
 
 	default:
-		return utility.NewForbiddenError("you have no permission to approve")
+		return commentID, utility.NewForbiddenError("you have no permission to approve")
 	}
 
 	currentWorkflow.WorkflowStatusID = approveStatus.ID
 	currentWorkflow.UpdatedBYID = &currentUserID
 	if err := psgcers.workflowSvc.UpdateWorkflow(currentWorkflow, tx); err != nil {
-		return err
+		return commentID, err
 	}
 
 	nextWorkflowLevel, err := psgcers.workflowSvc.GetNextLevel(checklistID, currentApprovalLevel, tx)
 	if err != nil {
-		return err
+		return commentID, err
 	}
 
 	oldData := map[string]interface{}{
@@ -341,7 +382,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 		checklist.NextReviewLevel = &nextWorkflowLevel.Level
 
 		if err := psgcers.workflowSvc.UpdateWorkflowStatus(nextWorkflowLevel.ID, pendingStatus.ID, tx); err != nil {
-			return err
+			return commentID, err
 		}
 	}
 	checklist.UpdatedBYID = &currentUserID
@@ -364,13 +405,13 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 	changes := utility.CompareFieldChanges(oldData, newData)
 
 	if err := psgcers.repo.UpdateChecklist(checklist, tx); err != nil {
-		return err
+		return commentID, err
 	}
 
 	if nextWorkflowLevel != nil {
 		nextWorkflow, err := psgcers.workflowSvc.GetWorkflowByLevel(checklistID, nextWorkflowLevel.Level, tx)
 		if err != nil {
-			return err
+			return commentID, err
 		}
 
 		notify = func() {
@@ -406,10 +447,10 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Approve(secur
 		}
 	}
 
-	return err
+	return commentID, err
 }
 
-func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistExceptionReviewFormDTO) (err error) {
+func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securityGateID uint, checklistID uint, currentUserID uint, form *projectDTOs.ProjectSecurityGateChecklistCommentFormDTO) (commentID uint, err error) {
 	tx := psgcers.repo.BeginTransaction()
 
 	var notify func()
@@ -434,19 +475,24 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 		}
 	}()
 
+	var comment *string
+	if form != nil && form.Comment != "" {
+		comment = &form.Comment
+	}
+
 	checklist, err := psgcers.checklistSvc.GetByID(securityGateID, checklistID, tx)
 	if err != nil {
-		return err
+		return commentID, err
 	}
 
 	if checklist.NextReviewLevel == nil {
-		return utility.NewValidationError(fmt.Errorf("workflow not active"), "workflow_not_active", "checklist exception")
+		return commentID, utility.NewValidationError(fmt.Errorf("workflow not active"), "workflow_not_active", "checklist exception")
 	}
 	currentLevel := *checklist.NextReviewLevel
 
 	currentWorkflow, err := psgcers.workflowSvc.GetWorkflowByLevel(checklistID, currentLevel, tx)
 	if err != nil {
-		return err
+		return commentID, err
 	}
 
 	allowed := false
@@ -457,30 +503,26 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 		}
 	}
 	if !allowed {
-		return utility.NewForbiddenError("you have no permission to revert")
+		return commentID, utility.NewForbiddenError("you have no permission to revert")
 	}
 
 	revertStatus, err := psgcers.workflowStatusSvc.GetByType("revert")
 	if err != nil {
-		return err
-	}
-
-	var comment *string
-	if form != nil && form.Comment != nil && *form.Comment != "" {
-		comment = form.Comment
-	}
-
-	var formDocuments []*commonDTOs.DocumentFormDTO
-	if form != nil {
-		formDocuments = form.Documents
+		return commentID, err
 	}
 
 	if err := psgcers.workflowSvc.DeleteReviewsByWorkflowID(currentWorkflow.ID, tx); err != nil {
-		return err
+		return commentID, err
 	}
 
-	if err := psgcers.createReviewWithHistory(securityGateID, currentWorkflow.ID, checklistID, currentLevel, revertStatus.ID, comment, formDocuments, currentUserID, tx); err != nil {
-		return err
+	historyID, err := psgcers.createReviewWithHistory(currentWorkflow.ID, checklistID, currentLevel, revertStatus.ID, comment, currentUserID, tx)
+	if err != nil {
+		return commentID, err
+	}
+
+	commentID, err = psgcers.commentSvc.Create(securityGateID, checklistID, currentUserID, form, &historyID, tx)
+	if err != nil {
+		return commentID, err
 	}
 
 	previousLevel := currentLevel - 1
@@ -489,20 +531,20 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 	if previousLevel > 0 {
 		pendingStatus, err := psgcers.workflowStatusSvc.GetByType("pending")
 		if err != nil {
-			return err
+			return commentID, err
 		}
 
 		previousLevelWorkflow, err = psgcers.workflowSvc.GetWorkflowByLevel(checklistID, previousLevel, tx)
 		if err != nil {
-			return err
+			return commentID, err
 		}
 
 		if err := psgcers.workflowSvc.DeleteReviewsByWorkflowID(previousLevelWorkflow.ID, tx); err != nil {
-			return err
+			return commentID, err
 		}
 
 		if err := psgcers.workflowSvc.UpdateWorkflowStatus(previousLevelWorkflow.ID, pendingStatus.ID, tx); err != nil {
-			return err
+			return commentID, err
 		}
 	}
 
@@ -539,7 +581,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 	} else {
 		pendingStatus, err := psgcers.workflowStatusSvc.GetByType("pending")
 		if err != nil {
-			return err
+			return commentID, err
 		}
 
 		checklist.WorkflowStatusID = &pendingStatus.ID
@@ -569,7 +611,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 	changes := utility.CompareFieldChanges(oldData, newData)
 
 	if err := psgcers.repo.UpdateChecklist(checklist, tx); err != nil {
-		return err
+		return commentID, err
 	}
 
 	createdByID := checklist.CreatedBYID
@@ -606,7 +648,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) Revert(securi
 		}
 	}
 
-	return err
+	return commentID, err
 }
 
 func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) notifyWorkflowParticipants(securityGateID uint, checklistID uint, workflowLevel *models.ProjectSecurityGateChecklistExceptionWorkflow, currentUserID uint) {
@@ -938,7 +980,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) sendRevertNot
 }
 
 // Helper function to create review in both current and history tables
-func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) createReviewWithHistory(securityGateID uint, workflowID uint, checklistID uint, level int, workflowStatusID uint, comment *string, formDocuments []*commonDTOs.DocumentFormDTO, currentUserID uint, tx utility.DatabaseTransaction) error {
+func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) createReviewWithHistory(workflowID uint, checklistID uint, level int, workflowStatusID uint, comment *string, currentUserID uint, tx utility.DatabaseTransaction) (uint, error) {
 	review := &models.ProjectSecurityGateChecklistExceptionWorkflowReview{
 		ExceptionWorkflowID: workflowID,
 		WorkflowStatusID:    workflowStatusID,
@@ -948,7 +990,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) createReviewW
 	}
 
 	if err := psgcers.repo.CreateReview(review, tx); err != nil {
-		return err
+		return 0, err
 	}
 
 	history := &models.ProjectSecurityGateChecklistExceptionWorkflowHistory{
@@ -961,59 +1003,8 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) createReviewW
 	}
 
 	if err := psgcers.repo.CreateHistory(history, tx); err != nil {
-		return err
+		return 0, err
 	}
 
-	if len(formDocuments) == 0 {
-		return nil
-	}
-
-	var documents []*models.ProjectSecurityGateChecklistExceptionWorkflowReviewDocument
-
-	for _, doc := range formDocuments {
-		encryptedFileName, err := utility.EncryptData([]byte(doc.FileName))
-		if err != nil {
-			return err
-		}
-
-		url := utility.GenerateDocumentURL(
-			"project",
-			"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
-			"checklists", strconv.FormatUint(uint64(checklistID), 10),
-			"reviews", strconv.FormatUint(uint64(history.ID), 10),
-			"documents",
-		)
-
-		documents = append(documents, &models.ProjectSecurityGateChecklistExceptionWorkflowReviewDocument{
-			HistoryID:    history.ID,
-			URL:          url,
-			Name:         doc.FileName,
-			Size:         doc.Size,
-			Token:        encryptedFileName,
-			OriginalName: doc.OriginalName,
-			Type:         doc.Type,
-			CreatedBYID:  currentUserID,
-			CreatedAt:    time.Now(),
-		})
-	}
-
-	if err := psgcers.repo.CreateReviewDocuments(documents, tx); err != nil {
-		return err
-	}
-
-	storagePath := filepath.Join(
-		"project",
-		"security-gates", strconv.FormatUint(uint64(securityGateID), 10),
-		"checklists", strconv.FormatUint(uint64(checklistID), 10),
-		"reviews", strconv.FormatUint(uint64(history.ID), 10),
-		"documents",
-	)
-
-	for _, document := range documents {
-		if err := utility.StoreFile(document.Name, storagePath); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return history.ID, nil
 }

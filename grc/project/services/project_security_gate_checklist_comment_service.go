@@ -18,7 +18,7 @@ import (
 
 type ProjectSecurityGateChecklistCommentServiceInterface interface {
 	GetByID(securityGateID uint, checklistID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistComment, error)
-	Create(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO) (uint, error)
+	Create(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO, workflowHistoryID *uint, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(securityGateID uint, checklistID uint, id uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO) error
 	Delete(securityGateID uint, checklistID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(securityGateID uint, checklistID uint, id uint, token string) (string, error)
@@ -99,33 +99,42 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) GetDocumentPath(securi
 	return fullPath, nil
 }
 
-func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO) (id uint, err error) {
-	tx := psgccs.repo.BeginTransaction()
+func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO, workflowHistoryID *uint, tx ...utility.DatabaseTransaction) (id uint, err error) {
+	ownsTx := len(tx) == 0 || tx[0] == nil
+
+	var dbTx utility.DatabaseTransaction
+	if ownsTx {
+		dbTx = psgccs.repo.BeginTransaction()
+	} else {
+		dbTx = tx[0]
+	}
 
 	defer func() {
 		if p := recover(); p != nil {
-			tx.Rollback()
+			if ownsTx {
+				dbTx.Rollback()
+			}
 			panic(p)
 		}
 
-		if err != nil {
-			tx.Rollback()
-			return
+		if err != nil && ownsTx {
+			dbTx.Rollback()
 		}
 	}()
 
-	if _, err = psgccs.checklistSvc.GetByID(securityGateID, checklistID, tx); err != nil {
+	if _, err = psgccs.checklistSvc.GetByID(securityGateID, checklistID, dbTx); err != nil {
 		return 0, err
 	}
 
 	comment := &models.ProjectSecurityGateChecklistComment{
-		ChecklistID: checklistID,
-		Comment:     form.Comment,
-		CreatedBYID: currentUserID,
-		CreatedAt:   time.Now(),
+		ChecklistID:       checklistID,
+		WorkflowHistoryID: workflowHistoryID,
+		Comment:           form.Comment,
+		CreatedBYID:       currentUserID,
+		CreatedAt:         time.Now(),
 	}
 
-	if err = psgccs.repo.Create(comment, tx); err != nil {
+	if err = psgccs.repo.Create(comment, dbTx); err != nil {
 		return 0, err
 	}
 
@@ -162,7 +171,7 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID 
 	}
 
 	if len(documents) > 0 {
-		if err = psgccs.repo.CreateDocuments(documents, tx); err != nil {
+		if err = psgccs.repo.CreateDocuments(documents, dbTx); err != nil {
 			return 0, err
 		}
 
@@ -181,8 +190,10 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID 
 		}
 	}
 
-	if err = tx.Commit(); err != nil {
-		return 0, err
+	if ownsTx {
+		if err = dbTx.Commit(); err != nil {
+			return 0, err
+		}
 	}
 
 	go func() {

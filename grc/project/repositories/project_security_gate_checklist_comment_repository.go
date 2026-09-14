@@ -43,7 +43,6 @@ func (repo *ProjectSecurityGateChecklistCommentRepository) GetByID(id uint, tx .
 
 	var comment *models.ProjectSecurityGateChecklistComment
 	result := db.
-		Preload("CreatedByUser").
 		Preload("Documents").
 		First(&comment, id)
 
