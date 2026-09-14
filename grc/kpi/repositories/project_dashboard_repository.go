@@ -480,27 +480,13 @@ func (repo *ProjectDashboardRepository) GetProjectsDueSoonAndOverdue(params *dto
 			statusTitleAr = fmt.Sprintf("متأخر %d يوم", absDays)
 			statusType = "overdue"
 			statusColorCode = "#DC3545" // red
-		} else if daysDiff == 0 {
-			overdueDays = 0
-			daysRemaining = 0
-			statusTitleEn = "Due today"
-			statusTitleAr = "مستحق اليوم"
-			statusType = "due_today"
-			statusColorCode = "#FD7E14" // orange
 		} else {
 			overdueDays = 0
 			daysRemaining = absDays
-			statusTitleEn = fmt.Sprintf("%dd remaining", absDays)
-			statusTitleAr = fmt.Sprintf("متبقي %d يوم", absDays)
-			if daysDiff <= 7 {
-				statusType = "due_soon"
-				statusColorCode = "#FFC107" // yellow
 			if daysDiff == 0 {
 				statusTitleEn = "Due today"
 				statusTitleAr = "مستحق اليوم"
 			} else {
-				statusType = "on_track"
-				statusColorCode = "#28A745" // green
 				statusTitleEn = fmt.Sprintf("%dd remaining", absDays)
 				statusTitleAr = fmt.Sprintf("متبقي %d يوم", absDays)
 			}
