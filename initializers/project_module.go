@@ -40,6 +40,9 @@ type ProjectModule struct {
 	ProjectSecurityGateChecklistController               *controllers.ProjectSecurityGateChecklistController
 	ProjectReportController                              *controllers.ProjectReportController
 	ProjectSecurityGateChecklistCommentController        *controllers.ProjectSecurityGateChecklistCommentController
+	ProjectWorkflowController                            *controllers.ProjectWorkflowController
+	ProjectReviewController                              *controllers.ProjectReviewController
+	ProjectReviewCommentController                       *controllers.ProjectReviewCommentController
 
 	ProjectSecurityGateChecklistExceptionWorkflowController *controllers.ProjectSecurityGateChecklistExceptionWorkflowController
 	ProjectSecurityGateChecklistExceptionReviewController   *controllers.ProjectSecurityGateChecklistExceptionReviewController
@@ -47,6 +50,9 @@ type ProjectModule struct {
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
 	projectActionPlanSvc                 services.ProjectActionPlanServiceInterface
+	projectWorkflowSvc                   services.ProjectWorkflowServiceInterface
+	projectReviewSvc                     services.ProjectReviewServiceInterface
+	projectReviewCommentSvc              services.ProjectReviewCommentServiceInterface
 	projectChangeRequestSvc              services.ProjectChangeRequestServiceInterface
 	projectChangeRequestWorkflowSvc      services.ProjectChangeRequestWorkflowServiceInterface
 	projectChangeRequestReviewSvc        services.ProjectChangeRequestReviewServiceInterface
@@ -61,7 +67,7 @@ type ProjectModule struct {
 	projectReportSvc                     services.ProjectReportServiceInterface
 }
 
-func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule, settingsModule *SettingsModule) *ProjectModule {
+func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule, settingsModule *SettingsModule, incidentModule *IncidentModule) *ProjectModule {
 	projectTypeRepo := repositories.NewProjectTypeRepository(db)
 	projectTypeSvc := services.NewProjectTypeService(projectTypeRepo, sharedModule.ActivityLogService)
 	projectTypeController := controllers.NewProjectTypeController(projectTypeSvc)
@@ -79,8 +85,46 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		organizationModule.UserSvc,
 		organizationModule.UserSettingSvc,
 		commonModule.NotificationService,
+		incidentModule.IncidentActionPlanSvc,
 	)
 	projectController := controllers.NewProjectController(projectSvc)
+
+	projectWorkflowRepo := repositories.NewProjectWorkflowRepository(db)
+	projectReviewRepo := repositories.NewProjectReviewRepository(db)
+	projectWorkflowSvc := services.NewProjectWorkflowService(
+		projectWorkflowRepo,
+		projectReviewRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+		commonModule.NotificationService,
+		organizationModule.OrganizationUnitsSvc,
+	)
+	projectWorkflowSvc.SetProjectService(projectSvc)
+	projectWorkflowController := controllers.NewProjectWorkflowController(projectWorkflowSvc)
+
+	projectReviewSvc := services.NewProjectReviewService(
+		projectReviewRepo,
+		sharedModule.ActivityLogService,
+		projectSvc,
+		projectWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+	)
+	projectReviewController := controllers.NewProjectReviewController(projectReviewSvc)
+
+	projectReviewCommentRepo := repositories.NewProjectReviewCommentRepository(db)
+	projectReviewCommentSvc := services.NewProjectReviewCommentService(
+		projectReviewCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		projectSvc,
+		masterModule.CommentStatusSvc,
+	)
+	projectReviewCommentController := controllers.NewProjectReviewCommentController(projectReviewCommentSvc)
 
 	projectMilestoneRepo := repositories.NewProjectMilestoneRepository(db)
 	projectMilestoneSvc := services.NewProjectMilestoneService(
@@ -382,6 +426,9 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectSecurityGateChecklistController:               projectSecurityGateChecklistController,
 		ProjectReportController:                              projectReportController,
 		ProjectSecurityGateChecklistCommentController:        projectSecurityGateChecklistCommentController,
+		ProjectWorkflowController:                            projectWorkflowController,
+		ProjectReviewController:                              projectReviewController,
+		ProjectReviewCommentController:                       projectReviewCommentController,
 
 		ProjectSecurityGateChecklistExceptionWorkflowController: projectSecurityGateChecklistExceptionWorkflowController,
 		ProjectSecurityGateChecklistExceptionReviewController:   projectSecurityGateChecklistExceptionReviewController,
@@ -389,6 +436,9 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,
 		projectActionPlanSvc:                 projectActionPlanSvc,
+		projectWorkflowSvc:                   projectWorkflowSvc,
+		projectReviewSvc:                     projectReviewSvc,
+		projectReviewCommentSvc:              projectReviewCommentSvc,
 		projectChangeRequestSvc:              projectChangeRequestSvc,
 		projectChangeRequestWorkflowSvc:      projectChangeRequestWorkflowSvc,
 		projectChangeRequestReviewSvc:        projectChangeRequestReviewSvc,

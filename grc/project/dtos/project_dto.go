@@ -3,6 +3,7 @@ package dtos
 import (
 	"time"
 
+	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 )
 
@@ -37,6 +38,32 @@ type ProjectListDTO struct {
 	ResponsibleUserColor            string   `json:"responsible_user_color"`
 	ResponsibleUserEmail            string   `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath string   `json:"responsible_user_profile_image_path"`
+	WorkflowStatusID                *uint    `json:"workflow_status_id"`
+	WorkflowStatusTitleEn           *string  `json:"workflow_status_title_en"`
+	WorkflowStatusTitleAr           *string  `json:"workflow_status_title_ar"`
+	WorkflowStatusColorCode         *string  `json:"workflow_status_color_code"`
+	WorkflowStatusType              *string  `json:"workflow_status_type"`
+	NextReviewLevel                 *int     `json:"next_review_level"`
+	IncidentActionPlanID            *uint    `json:"incident_action_plan_id"`
+	IncidentActionPlanTitle         *string  `json:"incident_action_plan_title"`
+	SubmittedAt                     *string  `json:"submitted_at"`
+	SubmittedUserID                 *uint    `json:"submitted_user_id"`
+	SubmittedUserFirstNameEn        *string  `json:"submitted_user_first_name_en"`
+	SubmittedUserFirstNameAr        *string  `json:"submitted_user_first_name_ar"`
+	SubmittedUserLastNameEn         *string  `json:"submitted_user_last_name_en"`
+	SubmittedUserLastNameAr         *string  `json:"submitted_user_last_name_ar"`
+	ApprovedAt                      *string  `json:"approved_at"`
+	ApprovedUserID                  *uint    `json:"approved_user_id"`
+	ApprovedUserFirstNameEn         *string  `json:"approved_user_first_name_en"`
+	ApprovedUserFirstNameAr         *string  `json:"approved_user_first_name_ar"`
+	ApprovedUserLastNameEn          *string  `json:"approved_user_last_name_en"`
+	ApprovedUserLastNameAr          *string  `json:"approved_user_last_name_ar"`
+	RejectedAt                      *string  `json:"rejected_at"`
+	RejectedUserID                  *uint    `json:"rejected_user_id"`
+	RejectedUserFirstNameEn         *string  `json:"rejected_user_first_name_en"`
+	RejectedUserFirstNameAr         *string  `json:"rejected_user_first_name_ar"`
+	RejectedUserLastNameEn          *string  `json:"rejected_user_last_name_en"`
+	RejectedUserLastNameAr          *string  `json:"rejected_user_last_name_ar"`
 	CreatedUserID                   uint     `json:"created_user_id"`
 	CreatedUserFirstNameEn          string   `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string   `json:"created_user_first_name_ar"`
@@ -96,6 +123,24 @@ type ProjectFormDTO struct {
 	ProjectStatusID         uint     `json:"project_status_id" binding:"required"`
 	ProjectPhaseID          *uint    `json:"project_phase_id"`
 	ProjectClassificationID uint     `json:"project_classification_id" binding:"required"`
+	IncidentActionPlanID    *uint    `json:"incident_action_plan_id"`
+}
+
+type ProjectIncidentActionPlanDTO struct {
+	ID                      uint                             `json:"id"`
+	IncidentRegisterID      uint                             `json:"incident_register_id"`
+	IncidentReferenceNumber *string                          `json:"incident_reference_number"`
+	IncidentTitle           *string                          `json:"incident_title"`
+	Title                   string                           `json:"title"`
+	Description             *string                          `json:"description"`
+	TargetDate              *string                          `json:"target_date"`
+	Percentage              *uint                            `json:"percentage"`
+	ActionPlanStatusID      uint                             `json:"action_plan_status_id"`
+	ActionPlanStatusTitleEn *string                          `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr *string                          `json:"action_plan_status_title_ar"`
+	ActionPlanStatusColor   *string                          `json:"action_plan_status_color_code"`
+	ResponsibleUserID       uint                             `json:"responsible_user_id"`
+	ResponsibleUser         *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
 }
 
 type ProjectDetailDTO struct {
@@ -117,6 +162,17 @@ type ProjectDetailDTO struct {
 	ProjectPhase            *ProjectPhaseDTO                 `json:"project_phase"`
 	ProjectClassificationID *uint                            `json:"project_classification_id"`
 	ProjectClassification   *ProjectClassificationDTO        `json:"project_classification"`
+	WorkflowStatusID        *uint                            `json:"workflow_status_id"`
+	WorkflowStatus          *masterDTOs.WorkflowStatusDTO    `json:"workflow_status"`
+	NextReviewLevel         *int                             `json:"next_review_level"`
+	IncidentActionPlanID    *uint                            `json:"incident_action_plan_id"`
+	IncidentActionPlan      *ProjectIncidentActionPlanDTO    `json:"incident_action_plan" mapstructure:"-"`
+	SubmittedAt             *time.Time                       `json:"submitted_at"`
+	SubmittedByUser         *organizationDTOs.UserMinimalDTO `json:"submitted_by_user"`
+	ApprovedAt              *time.Time                       `json:"approved_at"`
+	ApprovedByUser          *organizationDTOs.UserMinimalDTO `json:"approved_by_user"`
+	RejectedAt              *time.Time                       `json:"rejected_at"`
+	RejectedByUser          *organizationDTOs.UserMinimalDTO `json:"rejected_by_user"`
 	CreatedAt               time.Time                        `json:"created_at"`
 	UpdatedAt               *time.Time                       `json:"updated_at"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO  `json:"created_by"`

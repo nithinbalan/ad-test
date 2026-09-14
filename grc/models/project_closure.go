@@ -12,6 +12,7 @@ type ProjectClosure struct {
 	ClosureComments       *string    `json:"closure_comments" gorm:"type:nvarchar(max);null"`
 	LessonLearned         *string    `json:"lesson_learned" gorm:"type:nvarchar(max);null"`
 	ApproverID            uint       `json:"approver_id" gorm:"not null"`
+	IsApproved            bool       `json:"is_approved" gorm:"not null;default:0"`
 	CreatedByID           uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedByID           *uint      `json:"updated_by_id" gorm:"null"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`

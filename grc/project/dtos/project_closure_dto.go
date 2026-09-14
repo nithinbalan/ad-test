@@ -13,6 +13,7 @@ type ProjectClosureListDTO struct {
 	ClosureComments              *string `json:"closure_comments"`
 	LessonLearned                *string `json:"lesson_learned"`
 	ApproverID                   uint    `json:"approver_id"`
+	IsApproved                   bool    `json:"is_approved"`
 	ApproverUserFirstNameEn      string  `json:"approver_user_first_name_en"`
 	ApproverUserFirstNameAr      string  `json:"approver_user_first_name_ar"`
 	ApproverUserLastNameEn       string  `json:"approver_user_last_name_en"`
@@ -42,6 +43,7 @@ type ProjectClosureDetailDTO struct {
 	ClosureComments       *string                          `json:"closure_comments"`
 	LessonLearned         *string                          `json:"lesson_learned"`
 	ApproverID            uint                             `json:"approver_id"`
+	IsApproved            bool                             `json:"is_approved"`
 	ApproverUser          *organizationDTOs.UserMinimalDTO `json:"approver_user"`
 	CreatedByUser         *organizationDTOs.UserMinimalDTO `json:"created_by"`
 	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`

@@ -62,7 +62,7 @@ func NewApp(db *gorm.DB) *App {
 	kpiModule := NewKPIModule(db, riskModule, organizationModule, documentModule)
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule, commonModule)
 	tprmModule := NewTprmModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule)
-	projectModule := NewProjectModule(db, sharedModule, organizationModule, masterModule, commonModule, taskModule, settingsModule)
+	projectModule := NewProjectModule(db, sharedModule, organizationModule, masterModule, commonModule, taskModule, settingsModule, incidentModule)
 	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, auditInsightsModule, incidentModule, meetingModule, settingsModule, documentModule, sharedModule, kpiModule, commonModule, tprmModule, projectModule)
 	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule, assetModule, documentModule, riskModule, commonModule, taskModule)
 	organizationalContextModule := NewOrganizationalContextModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)

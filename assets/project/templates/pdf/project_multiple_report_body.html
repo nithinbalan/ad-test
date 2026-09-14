@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <style>
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont100}}') format('woff');
+      font-weight: 100;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont200}}') format('woff');
+      font-weight: 200;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont300}}') format('woff');
+      font-weight: 300;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont400}}') format('woff');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont500}}') format('woff');
+      font-weight: 500;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont600}}') format('woff');
+      font-weight: 600;
+      font-style: normal;
+    }
+
+    .keep-together {
+      page-break-inside: avoid;
+    }
+
+    .clearfix::after {
+      display: block;
+      clear: both;
+      content: "";
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    /* HTML content styling for sections */
+    ul,
+    ol {
+      margin: 8px 0;
+      padding-left: 25px;
+    }
+
+    li {
+      margin: 4px 0;
+      line-height: 1.5em;
+    }
+
+    blockquote {
+      margin: 10px 0;
+      padding: 10px 15px;
+      border-left: 3px solid #ddd;
+      background-color: #f9f9f9;
+      font-style: italic;
+    }
+
+    strong,
+    b {
+      font-weight: 600;
+    }
+
+    em,
+    i {
+      font-style: italic;
+    }
+
+    u {
+      text-decoration: underline;
+    }
+
+    a {
+      color: #0066cc;
+      text-decoration: underline;
+    }
+
+    a:hover {
+      color: #0052a3;
+    }
+
+    br {
+      line-height: 1.5em;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    @media print {
+      .section {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+
+<body
+  style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; background-color: #ffffff; color: #000; margin: 0; line-height: 1.4; width: 100%; padding: 0 30px 0 30px;">
+  {{range $index, $proj := .Data.Projects}}
+  <!-- PROJECT {{add $index 1}}: {{$proj.TitleEn}} (#{{$proj.ProjectID}}) -->
+  <div class="" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0px 32px">
+      <div style="padding-top: 0px">
+        {{if eq $index 0}}
+        <!-- Show Executive Summary, Scope, Objective before first project -->
+        {{if $.Data.ExecutiveSummary}}
+        <h4 style="margin: 0 0 8px 0; font-size: 18px; color: #050505; font-weight: 500;">1. Executive Summary</h4>
+        <div style="margin: 0 0 15px 0; font-size: 14px; color: #000; line-height: 1.5em; font-weight: 300;">
+          {{safeHTML $.Data.ExecutiveSummary}}
+        </div>
+        {{end}}
+
+        {{if $.Data.Scope}}
+        <h4 style="margin: 0 0 8px 0; font-size: 18px; color: #050505; font-weight: 500;">2. Scope</h4>
+        <div style="margin: 0 0 15px 0; font-size: 14px; color: #000; line-height: 1.5em; font-weight: 300;">
+          {{safeHTML $.Data.Scope}}
+        </div>
+        {{end}}
+
+        {{if $.Data.Objective}}
+        <h4 style="margin: 0 0 8px 0; font-size: 18px; color: #050505; font-weight: 500;">3. Objective</h4>
+        <div style="margin: 0 0 15px 0; font-size: 14px; color: #000; line-height: 1.5em; font-weight: 300;">
+          {{safeHTML $.Data.Objective}}
+        </div>
+        {{end}}
+
+        <h4 style="margin: 15px 0 15px 0; font-size: 18px; color: #050505; font-weight: 500;">4. Project & Context</h4>
+        {{end}}
+
+        <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 500;">{{add $index 1}}. {{if $proj.TitleEn}}{{$proj.TitleEn}}{{else}}Project{{end}}</h4>
+
+        <h5 style="margin: 15px 0 10px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.1 Basic Project Information</h5>
+        <h6 style="margin: 10px 0 10px 0; font-size: 14px; color: #050505; font-weight: 400;">{{add $index 1}}.1.1 Overview</h6>
+
+        <div style="margin-top: 10px">
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Title:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $proj.TitleEn}}{{$proj.TitleEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Project ID:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              #{{$proj.ProjectID}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Duration:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{$proj.StartDate}} to {{$proj.EndDate}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Status:</p>
+            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
+              {{if $proj.ProjectStatusTitleEn}}
+              <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #0e7b61; color: #fff; font-size: 12px;">{{$proj.ProjectStatusTitleEn}}</span>
+              {{else}}-{{end}}
+            </p>
+          </div>
+
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Phase:</p>
+            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
+              {{if $proj.ProjectPhaseTitleEn}}
+              <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #1967d2; color: #fff; font-size: 12px;">{{$proj.ProjectPhaseTitleEn}}</span>
+              {{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Project Type:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $proj.ProjectTypeTitleEn}}{{$proj.ProjectTypeTitleEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Classification:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $proj.ProjectClassificationTitleEn}}{{$proj.ProjectClassificationTitleEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Budget:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $proj.Budget}}${{$proj.Budget}}{{else}}-{{end}}
+            </p>
+          </div>
+
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Responsible User:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{if $proj.ResponsibleUserNameEn}}{{$proj.ResponsibleUserNameEn}}{{else}}-{{end}}
+            </p>
+          </div>
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Created At:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{$proj.CreatedAt}}
+            </p>
+          </div>
+          {{if $proj.IncidentActionPlanTitle}}
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Linked Action Plan:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{$proj.IncidentActionPlanTitle}}
+            </p>
+          </div>
+          {{if $proj.IncidentActionPlan}}
+          {{if $proj.IncidentActionPlan.IncidentTitle}}
+          <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Originating Incident:</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+              {{$proj.IncidentActionPlan.IncidentTitle}}
+            </p>
+          </div>
+          {{end}}
+          {{end}}
+          {{end}}
+
+          {{if $proj.Scope}}
+          <div style="width: 100%; display: inline-block; vertical-align: top">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Scope</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
+              {{$proj.Scope}}
+            </p>
+          </div>
+          {{end}}
+
+          {{if $proj.DescriptionEn}}
+          <div style="width: 100%; display: inline-block; vertical-align: top">
+            <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Description</p>
+            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
+              {{$proj.DescriptionEn}}
+            </p>
+          </div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSOCIATED ITEMS -->
+  {{if or $proj.StrategicObjectives $proj.KPIs $proj.ComplianceRequirements $proj.Processes $proj.Risks $proj.Controls $proj.AssociatedDocuments $proj.Assets $proj.Incidents}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="border-top: 1px solid #DEDEDE; margin-bottom: 20px;"></div>
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.2 Associated Items</h5>
+
+        {{if $proj.StrategicObjectives}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.1 Strategic Objectives</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Ref No</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 70%;">Title</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $soIndex, $so := $proj.StrategicObjectives}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $soIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $so.ReferenceNumber}}{{$so.ReferenceNumber}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$so.TitleEn}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $proj.KPIs}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.2 KPIs</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Ref No</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 45%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Target Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $kpiIndex, $kpi := $proj.KPIs}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $kpiIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $kpi.ReferenceNumber}}{{$kpi.ReferenceNumber}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$kpi.Title}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $kpi.TargetValue}}{{$kpi.TargetValue}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $proj.ComplianceRequirements}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.3 Compliance Requirements</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 35%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Clause No</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 40%;">Clause Title</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{$rowIndex := 0}}
+            {{range $compIndex, $comp := $proj.ComplianceRequirements}}
+            {{range $clauseIndex, $clause := $comp.Clauses}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $rowIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$comp.ComplianceRegisterTitleEn}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$clause.ClauseNo}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$clause.ClauseTitleEn}}</td>
+            </tr>
+            {{$rowIndex = add $rowIndex 1}}
+            {{end}}
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $proj.Processes}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.4 Processes</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Reference</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 45%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">Process Group</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $procIndex, $proc := $proj.Processes}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $procIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $proc.ReferenceNumber}}{{$proc.ReferenceNumber}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$proc.TitleEn}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $proc.ProcessGroupTitleEn}}{{$proc.ProcessGroupTitleEn}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $proj.Controls}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.5 Controls</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Ref No</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 45%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $ctrlIndex, $ctrl := $proj.Controls}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $ctrlIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $ctrl.ReferenceNumber}}{{$ctrl.ReferenceNumber}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$ctrl.TitleEn}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $ctrl.ControlTypeTitleEn}}{{$ctrl.ControlTypeTitleEn}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $proj.Risks}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.6 Risks</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Ref No</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 45%;">Risk Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $riskIndex, $risk := $proj.Risks}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $riskIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $risk.ReferenceNumber}}{{$risk.ReferenceNumber}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$risk.Title}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $risk.RiskStatusTitleEn}}{{$risk.RiskStatusTitleEn}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $proj.AssociatedDocuments}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.7 Documents</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Doc ID</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 45%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 35%;">Category</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $docIndex, $doc := $proj.AssociatedDocuments}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $docIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">#{{$doc.DocumentID}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$doc.TitleEn}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $doc.DocumentCategoryTitleEn}}{{$doc.DocumentCategoryTitleEn}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $proj.Assets}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.8 Assets</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Asset Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Category</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Status</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Responsible User</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Acquisition Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $assetIndex, $asset := $proj.Assets}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $assetIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$asset.TitleEn}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $asset.AssetCategoryTitleEn}}{{$asset.AssetCategoryTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $asset.AssetStatusTitleEn}}
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $asset.AssetStatusColorCode}}{{$asset.AssetStatusColorCode}}{{else}}#0e7b61{{end}}; color: #fff; font-size: 12px;">{{$asset.AssetStatusTitleEn}}</span>
+                {{else}}-{{end}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                <span style="display: inline-block; margin-left: 8px; vertical-align: middle;">
+                  {{if $asset.ResponsibleUserFirstNameEn}}{{$asset.ResponsibleUserFirstNameEn}} {{$asset.ResponsibleUserLastNameEn}}{{else}}-{{end}}
+                </span>
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $asset.AcquisitionDate}}{{$asset.AcquisitionDate}}{{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+
+        {{if $proj.Incidents}}
+        <h6 style="margin: 15px 0 10px 0; font-size: 14px; color: #050505; font-weight: 500;">{{add $index 1}}.2.9 Incidents</h6>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Ref No</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 35%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Category</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $incIndex, $inc := $proj.Incidents}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $incIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $inc.ReferenceNumber}}{{$inc.ReferenceNumber}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$inc.Title}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $inc.IncidentCategoryTitleEn}}{{$inc.IncidentCategoryTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $inc.IncidentStatusTitleEn}}
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $inc.IncidentStatusColorCode}}{{$inc.IncidentStatusColorCode}}{{else}}#0e7b61{{end}}; color: #fff; font-size: 12px;">{{$inc.IncidentStatusTitleEn}}</span>
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- MILESTONES -->
+  {{if $proj.Milestones}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="border-top: 1px solid #DEDEDE; margin-bottom: 20px;"></div>
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.3 Milestones</h5>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">Description</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">Planned Date</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">Actual Date</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 11%;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $mIndex, $m := $proj.Milestones}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $mIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$m.TitleEn}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $m.DescriptionEn}}{{$m.DescriptionEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $m.PlannedDate}}{{$m.PlannedDate}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $m.ActualDate}}{{$m.ActualDate}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $m.ProjectMilestoneStatusTitleEn}}
+                <span style="background: #e5f4f0; color: #0e7b61; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #afd6cc; font-weight: 400;">{{$m.ProjectMilestoneStatusTitleEn}}</span>
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- ACTION PLANS -->
+  {{if $proj.ActionPlans}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="border-top: 1px solid #DEDEDE; margin-bottom: 20px;"></div>
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.4 Action Plans</h5>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 18%;">Milestone</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 12%;">Target Date</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Responsible User</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 10%;">Priority</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $apIndex, $ap := $proj.ActionPlans}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $apIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$ap.Title}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $ap.ProjectMilestoneTitleEn}}{{$ap.ProjectMilestoneTitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $ap.TargetDate}}{{$ap.TargetDate}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $ap.ResponsibleUserFirstNameEn}}{{$ap.ResponsibleUserFirstNameEn}} {{$ap.ResponsibleUserLastNameEn}}{{else}}-{{end}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $ap.SeverityLevelTitleEn}}
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $ap.SeverityLevelColorCode}}{{$ap.SeverityLevelColorCode}}{{else}}#D93025{{end}}; color: #fff; font-size: 12px;">
+                  {{$ap.SeverityLevelTitleEn}}
+                </span>
+                {{else}}-{{end}}
+              </td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $ap.ActionPlanStatusTitleEn}}
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $ap.ActionPlanStatusColorCode}}{{$ap.ActionPlanStatusColorCode}}{{else}}#0B7A55{{end}}; color: #fff; font-size: 12px;">
+                  {{$ap.ActionPlanStatusTitleEn}}
+                </span>
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- CHANGE REQUESTS -->
+  {{if $proj.ChangeRequests}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="border-top: 1px solid #DEDEDE; margin-bottom: 20px;"></div>
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.5 Change Requests</h5>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Ref No</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 25%;">Justification</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Impact</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $crIndex, $cr := $proj.ChangeRequests}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $crIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $cr.ReferenceNumber}}{{$cr.ReferenceNumber}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$cr.Title}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $cr.BusinessJustification}}{{$cr.BusinessJustification}}{{else if $cr.Description}}{{$cr.Description}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $cr.Impact}}{{$cr.Impact}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $cr.WorkflowStatusTitleEn}}
+                <span style="background: #e8f0fe; color: {{if $cr.WorkflowStatusColorCode}}{{$cr.WorkflowStatusColorCode}}{{else}}#1967d2{{end}}; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #bfd3f9; font-weight: 400;">
+                  {{$cr.WorkflowStatusTitleEn}}
+                </span>
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- DECISION LOGS -->
+  {{if $proj.DecisionLogs}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="border-top: 1px solid #DEDEDE; margin-bottom: 20px;"></div>
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.6 Decision Logs</h5>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Ref No</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 30%;">Decision</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 20%;">Reason</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Date</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 15%;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $dlIndex, $dl := $proj.DecisionLogs}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $dlIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $dl.ReferenceNumber}}{{$dl.ReferenceNumber}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{$dl.Decision}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $dl.Reason}}{{$dl.Reason}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $dl.DecisionDate}}{{$dl.DecisionDate}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
+                {{if $dl.WorkflowStatusTitleEn}}
+                <span style="background: #e8f0fe; color: {{if $dl.WorkflowStatusColorCode}}{{$dl.WorkflowStatusColorCode}}{{else}}#1967d2{{end}}; padding: 4px 8px; border-radius: 5px; font-size: 12px; border: 1px solid #bfd3f9; font-weight: 400;">
+                  {{$dl.WorkflowStatusTitleEn}}
+                </span>
+                {{else}}-{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- SUPPORTING DOCUMENTS -->
+  {{if $proj.SupportingDocuments}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="border-top: 1px solid #DEDEDE; margin-bottom: 20px;"></div>
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.7 Supporting Documents</h5>
+        <table style="background: #fff; width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="border: 1px solid #eaedf2">
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 10%;">#</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 55%;">Title</th>
+              <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 35%;">Uploaded By</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $sdIndex, $doc := $proj.SupportingDocuments}}
+            <tr style="border: 1px solid #eaedf2">
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{add $sdIndex 1}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $doc.TitleEn}}{{$doc.TitleEn}}{{else}}-{{end}}</td>
+              <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if $doc.CreatedUserFirstNameEn}}{{$doc.CreatedUserFirstNameEn}} {{$doc.CreatedUserLastNameEn}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- PROJECT CLOSURE -->
+  {{if $proj.Closure}}
+  <div class="page break-before" style="width: 1000px; margin: 20px auto; background: #fff">
+    <div style="padding: 0 32px">
+      <div style="border-top: 1px solid #DEDEDE; margin-bottom: 20px;"></div>
+      <div>
+        <h5 style="margin: 0 0 15px 0; font-size: 16px; color: #050505; font-weight: 500;">{{add $index 1}}.8 Project Closure</h5>
+
+        <div style="margin-bottom: 20px;">
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Overall Project Outcome:</p>
+          <div style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+            {{if $proj.Closure.OverallProjectOutcome}}{{$proj.Closure.OverallProjectOutcome | safeHTML}}{{else}}-{{end}}
+          </div>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Closure Reason:</p>
+          <div style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+            {{if $proj.Closure.ClosureReason}}{{$proj.Closure.ClosureReason | safeHTML}}{{else}}-{{end}}
+          </div>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Lessons Learned:</p>
+          <div style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+            {{if $proj.Closure.LessonLearned}}{{$proj.Closure.LessonLearned | safeHTML}}{{else}}-{{end}}
+          </div>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Closure Comments:</p>
+          <div style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+            {{if $proj.Closure.ClosureComments}}{{$proj.Closure.ClosureComments | safeHTML}}{{else}}-{{end}}
+          </div>
+
+          <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">Approver:</p>
+          <p style="margin: 0; font-size: 14px; color: #1a1a1a; font-weight: 400;">
+            {{if $proj.Closure.ApproverUser}}{{$proj.Closure.ApproverUser.FirstNameEN}} {{$proj.Closure.ApproverUser.LastNameEN}}{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  {{end}}
+
+</body>
+
+</html>

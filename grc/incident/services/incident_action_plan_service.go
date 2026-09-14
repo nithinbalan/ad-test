@@ -25,6 +25,7 @@ import (
 type IncidentActionPlanServiceInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
 	GetByID(incidentID uint, id uint) (*models.IncidentActionPlan, error)
+	GetActionPlanByID(id uint) (*models.IncidentActionPlan, error)
 	GetFullDetailsByID(incidentID uint, id uint) (*incidentDTOs.IncidentActionPlanDetailDTO, error)
 	GetUsedActionPlanMasterIDs(incidentID uint) ([]uint, error)
 	Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error)
@@ -97,6 +98,17 @@ func (iaps IncidentActionPlanService) GetByID(incidentID uint, id uint) (*models
 		return nil, err
 	}
 
+	incidentActionPlan, err := iaps.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return incidentActionPlan, nil
+}
+
+func (iaps IncidentActionPlanService) GetActionPlanByID(id uint) (*models.IncidentActionPlan, error) {
 	incidentActionPlan, err := iaps.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

@@ -1,0 +1,255 @@
+package repositories
+
+import (
+	"jethur/grc/models"
+	projectDTOs "jethur/grc/project/dtos"
+	"jethur/utility"
+
+	"gorm.io/gorm"
+)
+
+type ProjectReviewCommentRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+	GetAll(projectID uint, currentUserID uint, params *projectDTOs.ProjectReviewCommentListQueryParamsDTO) (*projectDTOs.ProjectReviewCommentListResponseDTO, error)
+	GetByID(id uint) (*models.ProjectReviewComment, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectReviewComment, error)
+	Create(comment *models.ProjectReviewComment, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(comment *models.ProjectReviewComment, tx ...utility.DatabaseTransaction) error
+	Delete(commentID uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(documents []*models.ProjectReviewCommentDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.ProjectReviewCommentDocument, error)
+	DeleteDocuments(documentIDs []*uint, tx ...utility.DatabaseTransaction) error
+}
+
+type ProjectReviewCommentRepository struct {
+	db *gorm.DB
+}
+
+func NewProjectReviewCommentRepository(db *gorm.DB) ProjectReviewCommentRepositoryInterface {
+	return &ProjectReviewCommentRepository{
+		db: db,
+	}
+}
+
+func (prcr *ProjectReviewCommentRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(prcr.db)
+}
+
+func (prcr *ProjectReviewCommentRepository) GetAll(projectID uint, currentUserID uint, params *projectDTOs.ProjectReviewCommentListQueryParamsDTO) (*projectDTOs.ProjectReviewCommentListResponseDTO, error) {
+	var comments []*projectDTOs.ProjectReviewCommentListDTO
+	var statusCounts []struct {
+		Status string
+		Count  int
+	}
+
+	if params == nil {
+		params = &projectDTOs.ProjectReviewCommentListQueryParamsDTO{}
+	}
+
+	query := prcr.db.
+		Table("project_review_comments").
+		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = project_review_comments.comment_status_id").
+		Joins("LEFT JOIN users ON users.id = project_review_comments.created_by_id").
+		Where("project_review_comments.project_id = ?", projectID)
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where("project_review_comments."+columnName+" IN (?)", values)
+		}
+	}
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where("project_review_comments.comment LIKE ?", keyword)
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "open":
+			query = query.Where("comment_statuses.type = ?", "open")
+		case "resolved":
+			query = query.Where("comment_statuses.type = ?", "resolved")
+		case "my_comment":
+			query = query.Where("project_review_comments.created_by_id = ?", currentUserID)
+		}
+	}
+
+	query = query.Select(`
+        project_review_comments.id,
+        project_review_comments.comment,
+        project_review_comments.is_edited,
+        project_review_comments.project_id,
+        project_review_comments.level,
+        project_review_comments.created_at,
+        project_review_comments.created_by_id AS created_user_id,
+        project_review_comments.parent_comment_id AS parent_comment_id,
+        comment_statuses.title_en AS comment_status_title_en,
+        comment_statuses.title_ar AS comment_status_title_ar,
+        comment_statuses.type AS comment_status_type,
+        comment_statuses.color_code AS comment_status_color_code,
+        users.first_name_en AS created_user_first_name_en,
+        users.first_name_ar AS created_user_first_name_ar,
+        users.last_name_en AS created_user_last_name_en,
+        users.last_name_ar AS created_user_last_name_ar,
+        users.initial AS created_user_initial,
+        users.color AS created_user_color,
+        users.email AS created_user_email,
+        users.profile_image_path AS created_user_profile_image_path
+    `).Order("project_review_comments.created_at DESC")
+
+	if err := query.Scan(&comments).Error; err != nil {
+		return nil, err
+	}
+
+	for _, comment := range comments {
+		var documents []*projectDTOs.ProjectReviewCommentDocumentDTO
+
+		err := prcr.db.
+			Table("project_review_comment_documents").
+			Select("id, token, name, original_name, type, size").
+			Where("project_review_comment_id = ?", comment.ID).
+			Scan(&documents).Error
+
+		if err != nil {
+			return nil, err
+		}
+
+		if documents == nil {
+			documents = []*projectDTOs.ProjectReviewCommentDocumentDTO{}
+		}
+
+		comment.Documents = documents
+	}
+
+	countQuery := prcr.db.
+		Table("project_review_comments").
+		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = project_review_comments.comment_status_id").
+		Where("project_review_comments.project_id = ? AND parent_comment_id IS NULL", projectID)
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			countQuery = countQuery.Where("project_review_comments."+columnName+" IN (?)", values)
+		}
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		countQuery = countQuery.Where("project_review_comments.comment LIKE ?", keyword)
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "open":
+			countQuery = countQuery.Where("comment_statuses.type = ?", "open")
+		case "resolved":
+			countQuery = countQuery.Where("comment_statuses.type = ?", "resolved")
+		case "my_comment":
+			countQuery = countQuery.Where("project_review_comments.created_by_id = ?", currentUserID)
+		}
+	}
+
+	countQuery = countQuery.
+		Select("comment_statuses.type AS status, COUNT(*) as count").
+		Group("comment_statuses.type")
+
+	if err := countQuery.Scan(&statusCounts).Error; err != nil {
+		return nil, err
+	}
+
+	openCount, resolvedCount := 0, 0
+	for _, sc := range statusCounts {
+		if sc.Status == "open" {
+			openCount = sc.Count
+		}
+		if sc.Status == "resolved" {
+			resolvedCount = sc.Count
+		}
+	}
+
+	return &projectDTOs.ProjectReviewCommentListResponseDTO{
+		Comments:      comments,
+		OpenCount:     openCount,
+		ResolvedCount: resolvedCount,
+	}, nil
+}
+
+func (prcr *ProjectReviewCommentRepository) GetByID(id uint) (*models.ProjectReviewComment, error) {
+	var comment models.ProjectReviewComment
+	result := prcr.db.First(&comment, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &comment, nil
+}
+
+func (prcr *ProjectReviewCommentRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectReviewComment, error) {
+	db := prcr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var comment models.ProjectReviewComment
+	result := db.
+		Preload("Project").
+		Preload("CreatedByUser").
+		Preload("Documents").
+		Where("id = ?", id).
+		First(&comment)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &comment, nil
+}
+
+func (prcr *ProjectReviewCommentRepository) Create(comment *models.ProjectReviewComment, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := prcr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(comment).Error; err != nil {
+		return 0, err
+	}
+	return comment.ID, nil
+}
+
+func (prcr *ProjectReviewCommentRepository) Update(comment *models.ProjectReviewComment, tx ...utility.DatabaseTransaction) error {
+	db := prcr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.ProjectReviewComment{}).Where("id = ?", comment.ID).Updates(comment).Error
+}
+
+func (prcr *ProjectReviewCommentRepository) Delete(commentID uint, tx ...utility.DatabaseTransaction) error {
+	db := prcr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("id = ?", commentID).Delete(&models.ProjectReviewComment{}).Error
+}
+
+func (prcr *ProjectReviewCommentRepository) CreateDocuments(documents []*models.ProjectReviewCommentDocument, tx ...utility.DatabaseTransaction) error {
+	db := prcr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&documents).Error
+}
+
+func (prcr *ProjectReviewCommentRepository) GetDocumentByID(id uint) (*models.ProjectReviewCommentDocument, error) {
+	var document models.ProjectReviewCommentDocument
+	result := prcr.db.First(&document, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &document, nil
+}
+
+func (prcr *ProjectReviewCommentRepository) DeleteDocuments(documentIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := prcr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("id IN ?", documentIDs).Delete(&models.ProjectReviewCommentDocument{}).Error
+}

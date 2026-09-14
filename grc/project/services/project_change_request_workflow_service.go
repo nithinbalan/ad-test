@@ -142,11 +142,11 @@ func (pcrws *ProjectChangeRequestWorkflowService) GetWorkflowList(projectChangeR
 
 	for _, workflow := range pcr.Workflows {
 		workflowDTO := &projectDTOs.ProjectChangeRequestWorkflowLevelDTO{
-			Level:          workflow.Level,
-			ApprovalType:   workflow.ApprovalTypes,
-			WorkflowStatus: pcrws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
-			ReviewUsers:    []*organizationDTOs.UserMinimalDTO{},
-			ApprovedUsers:  []*organizationDTOs.UserMinimalDTO{},
+			Level:         workflow.Level,
+			ApprovalType:  workflow.ApprovalTypes,
+			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
+			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
+			CurrentStatus: pcrws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
 		}
 
 		for _, participant := range workflow.ProjectChangeRequestWorkflowParticipants {
