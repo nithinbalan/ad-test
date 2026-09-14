@@ -61,7 +61,8 @@ func (repo *ProjectDashboardRepository) GetProjectSummary(params *dtos.ProjectDa
 		Select(`
 			COUNT(*) AS total_projects,
 			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) THEN 1 END) AS active_projects,
-			COUNT(CASE WHEN ph.type IN ('go_live', 'closure') THEN 1 END) AS completed_projects,
+			(COUNT(CASE WHEN ws.type = 'approve' THEN 1 END) + COUNT(CASE WHEN ph.type = 'go_live' THEN 1 END)) AS completed_projects,
+			ROUND(COALESCE(AVG(CAST(p.completion_percentage AS FLOAT)), 0), 2) AS avg_completion,
 			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND ps.type = 'on_track' THEN 1 END) AS on_track,
 			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND ps.type = 'at_risk' THEN 1 END) AS at_risk,
 			COUNT(CASE WHEN ws.type = 'approve' AND (ph.type IS NULL OR (ph.type != 'go_live' AND ph.type != 'closure')) AND ps.type = 'delayed' THEN 1 END) AS delayed,
@@ -108,11 +109,11 @@ func (repo *ProjectDashboardRepository) GetProjectSummary(params *dtos.ProjectDa
 		return nil, err
 	}
 
-	// Calculate completion percentage: projects in go live against all projects
+	// Calculate completion percentage: projects with completed workflow + go live phase against all projects
 	if summary.TotalProjects > 0 {
 		summary.CompletionPercentage = math.Round((float64(summary.CompletedProjects)/float64(summary.TotalProjects))*100*100) / 100
-		summary.AvgCompletion = summary.CompletionPercentage
 	}
+	summary.AvgCompletion = math.Round(summary.AvgCompletion*100) / 100
 
 	// Calculate percentages against active projects
 	if summary.ActiveProjects > 0 {
@@ -480,18 +481,27 @@ func (repo *ProjectDashboardRepository) GetProjectsDueSoonAndOverdue(params *dto
 			statusTitleAr = fmt.Sprintf("متأخر %d يوم", absDays)
 			statusType = "overdue"
 			statusColorCode = "#DC3545" // red
+		} else if daysDiff == 0 {
+			overdueDays = 0
+			daysRemaining = 0
+			statusTitleEn = "Due today"
+			statusTitleAr = "مستحق اليوم"
+			statusType = "due_soon"
+			statusColorCode = "#FFC107" // yellow
+		} else if daysDiff <= 7 {
+			overdueDays = 0
+			daysRemaining = absDays
+			statusTitleEn = fmt.Sprintf("%dd remaining", absDays)
+			statusTitleAr = fmt.Sprintf("متبقي %d يوم", absDays)
+			statusType = "due_soon"
+			statusColorCode = "#FFC107" // yellow
 		} else {
 			overdueDays = 0
 			daysRemaining = absDays
-			if daysDiff == 0 {
-				statusTitleEn = "Due today"
-				statusTitleAr = "مستحق اليوم"
-			} else {
-				statusTitleEn = fmt.Sprintf("%dd remaining", absDays)
-				statusTitleAr = fmt.Sprintf("متبقي %d يوم", absDays)
-			}
-			statusType = "due_soon"
-			statusColorCode = "#FFC107" // yellow
+			statusTitleEn = fmt.Sprintf("%dd remaining", absDays)
+			statusTitleAr = fmt.Sprintf("متبقي %d يوم", absDays)
+			statusType = "on_track"
+			statusColorCode = "#28A745" // green
 		}
 
 		var startDateStr, startDateFormatted, endDateStr, endDateFormatted string

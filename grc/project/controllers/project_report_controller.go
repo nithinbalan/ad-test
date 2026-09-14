@@ -40,7 +40,12 @@ func (prc *ProjectReportController) GetAllProjectReports(c *gin.Context) {
 		"created_at": "project_reports.created_at",
 	}
 
-	filters := utility.ParseQueryFilters([]string{}, c.Request.URL.Query())
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"created_by_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {

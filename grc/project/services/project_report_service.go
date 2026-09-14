@@ -547,22 +547,6 @@ func (prs *ProjectReportService) GetProjectReportDetails(id uint) (*dtos.Project
 			})
 		}
 
-		milestones, _ := prs.repo.GetAllMilestones(rp.ProjectID)
-		controls, _ := prs.repo.GetAllControls(rp.ProjectID)
-		risks, _ := prs.repo.GetAllRisks(rp.ProjectID)
-		processes, _ := prs.repo.GetAllProcesses(rp.ProjectID)
-		objectives, _ := prs.repo.GetAllStrategicObjectives(rp.ProjectID)
-		kpis, _ := prs.repo.GetAllKPIs(rp.ProjectID)
-		docs, _ := prs.repo.GetAllAssociatedDocuments(rp.ProjectID)
-		assets, _ := prs.repo.GetAllAssets(rp.ProjectID)
-		incidents, _ := prs.repo.GetAllIncidents(rp.ProjectID)
-		complianceRequirements, _ := prs.repo.GetAllComplianceRequirements(rp.ProjectID)
-		actionPlans, _ := prs.repo.GetAllActionPlans(rp.ProjectID)
-		changeRequests, _ := prs.repo.GetAllChangeRequests(rp.ProjectID)
-		decisionLogs, _ := prs.repo.GetAllDecisionLogs(rp.ProjectID)
-		supportingDocs, _ := prs.repo.GetAllSupportingDocuments(rp.ProjectID)
-		closure, _ := prs.repo.GetProjectClosure(rp.ProjectID)
-
 		var incidentActionPlanDTO *dtos.ProjectIncidentActionPlanDTO
 		if rp.Project != nil && rp.Project.IncidentActionPlan != nil {
 			iap := rp.Project.IncidentActionPlan
@@ -603,7 +587,7 @@ func (prs *ProjectReportService) GetProjectReportDetails(id uint) (*dtos.Project
 			}
 		}
 
-		projectsDTO = append(projectsDTO, &dtos.ProjectReportProjectDetailDTO{
+		projectDetail := &dtos.ProjectReportProjectDetailDTO{
 			ID:                           rp.ID,
 			ProjectID:                    rp.ProjectID,
 			TitleEn:                      rp.TitleEn,
@@ -629,22 +613,55 @@ func (prs *ProjectReportService) GetProjectReportDetails(id uint) (*dtos.Project
 			IncidentActionPlan:           incidentActionPlanDTO,
 			CreatedAt:                    rp.CreatedAt.Format("2006-01-02"),
 			Documents:                    docsDTO,
-			Milestones:                   milestones,
-			Controls:                     controls,
-			Risks:                        risks,
-			Processes:                    processes,
-			StrategicObjectives:          objectives,
-			KPIs:                         kpis,
-			AssociatedDocuments:          docs,
-			Assets:                       assets,
-			Incidents:                    incidents,
-			ComplianceRequirements:       complianceRequirements,
-			ActionPlans:                  actionPlans,
-			ChangeRequests:               changeRequests,
-			DecisionLogs:                 decisionLogs,
-			SupportingDocuments:          supportingDocs,
-			Closure:                      closure,
-		})
+		}
+
+		if milestones, err := prs.repo.GetAllMilestones(rp.ProjectID); err == nil {
+			projectDetail.Milestones = milestones
+		}
+		if controls, err := prs.repo.GetAllControls(rp.ProjectID); err == nil {
+			projectDetail.Controls = controls
+		}
+		if risks, err := prs.repo.GetAllRisks(rp.ProjectID); err == nil {
+			projectDetail.Risks = risks
+		}
+		if processes, err := prs.repo.GetAllProcesses(rp.ProjectID); err == nil {
+			projectDetail.Processes = processes
+		}
+		if objectives, err := prs.repo.GetAllStrategicObjectives(rp.ProjectID); err == nil {
+			projectDetail.StrategicObjectives = objectives
+		}
+		if kpis, err := prs.repo.GetAllKPIs(rp.ProjectID); err == nil {
+			projectDetail.KPIs = kpis
+		}
+		if docs, err := prs.repo.GetAllAssociatedDocuments(rp.ProjectID); err == nil {
+			projectDetail.AssociatedDocuments = docs
+		}
+		if assets, err := prs.repo.GetAllAssets(rp.ProjectID); err == nil {
+			projectDetail.Assets = assets
+		}
+		if incidents, err := prs.repo.GetAllIncidents(rp.ProjectID); err == nil {
+			projectDetail.Incidents = incidents
+		}
+		if complianceRequirements, err := prs.repo.GetAllComplianceRequirements(rp.ProjectID); err == nil {
+			projectDetail.ComplianceRequirements = complianceRequirements
+		}
+		if actionPlans, err := prs.repo.GetAllActionPlans(rp.ProjectID); err == nil {
+			projectDetail.ActionPlans = actionPlans
+		}
+		if changeRequests, err := prs.repo.GetAllChangeRequests(rp.ProjectID); err == nil {
+			projectDetail.ChangeRequests = changeRequests
+		}
+		if decisionLogs, err := prs.repo.GetAllDecisionLogs(rp.ProjectID); err == nil {
+			projectDetail.DecisionLogs = decisionLogs
+		}
+		if supportingDocs, err := prs.repo.GetAllSupportingDocuments(rp.ProjectID); err == nil {
+			projectDetail.SupportingDocuments = supportingDocs
+		}
+		if closure, err := prs.repo.GetProjectClosure(rp.ProjectID); err == nil && closure != nil {
+			projectDetail.Closure = closure
+		}
+
+		projectsDTO = append(projectsDTO, projectDetail)
 	}
 
 	var createdUserDTO *organizationDTOs.UserMinimalDTO
