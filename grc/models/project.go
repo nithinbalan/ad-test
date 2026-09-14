@@ -25,15 +25,32 @@ type Project struct {
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;null"`
 	CreatedBYID             uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID             *uint      `json:"updated_by_id" gorm:"null"`
+	WorkflowStatusID        *uint      `json:"workflow_status_id" gorm:"null"`
+	SubmittedBYID           *uint      `json:"submitted_by_id" gorm:"null"`
+	SubmittedAt             *time.Time `json:"submitted_at" gorm:"type:datetime;null"`
+	NextReviewLevel         *int       `json:"next_review_level" gorm:"null"`
+	ApprovedBYID            *uint      `json:"approved_by_id" gorm:"null"`
+	ApprovedAt              *time.Time `json:"approved_at" gorm:"type:datetime;null"`
+	RejectedBYID            *uint      `json:"rejected_by_id" gorm:"null"`
+	RejectedAt              *time.Time `json:"rejected_at" gorm:"type:datetime;null"`
+	IncidentActionPlanID    *uint      `json:"incident_action_plan_id" gorm:"null"`
 
 	// Relationships
-	ResponsibleUser       *User                  `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ProjectType           *ProjectType           `gorm:"foreignKey:ProjectTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ProjectStatus         *ProjectStatus         `gorm:"foreignKey:ProjectStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ProjectPhase          *ProjectPhase          `gorm:"foreignKey:ProjectPhaseID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	ProjectClassification *ProjectClassification `gorm:"foreignKey:ProjectClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	ResponsibleUser       *User                     `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ProjectType           *ProjectType              `gorm:"foreignKey:ProjectTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ProjectStatus         *ProjectStatus            `gorm:"foreignKey:ProjectStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ProjectPhase          *ProjectPhase             `gorm:"foreignKey:ProjectPhaseID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	ProjectClassification *ProjectClassification    `gorm:"foreignKey:ProjectClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser         *User                     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	UpdatedByUser         *User                     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	WorkflowStatus        *WorkflowStatus           `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SubmittedByUser       *User                     `gorm:"foreignKey:SubmittedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ApprovedByUser        *User                     `gorm:"foreignKey:ApprovedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RejectedByUser        *User                     `gorm:"foreignKey:RejectedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	IncidentActionPlan    *IncidentActionPlan       `gorm:"foreignKey:IncidentActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Workflows             []*ProjectWorkflow        `json:"workflows" gorm:"foreignKey:ProjectID"`
+	Histories             []*ProjectWorkflowHistory `json:"histories" gorm:"foreignKey:ProjectID"`
+	ReviewComments        []*ProjectReviewComment   `json:"review_comments" gorm:"foreignKey:ProjectID"`
 }
 
 // TableName overrides the table name used by Project to `projects`

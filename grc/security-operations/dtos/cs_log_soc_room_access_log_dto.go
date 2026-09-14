@@ -28,8 +28,8 @@ type CSLogSocRoomAccessLogListDTO struct {
 	AuthorizingOfficerInitial          string    `json:"authorizing_officer_initial"`
 	AuthorizingOfficerColor            string    `json:"authorizing_officer_color"`
 	AuthorizingOfficerProfileImagePath string    `json:"authorizing_officer_profile_image_path"`
-	CreatedAt                          string    `json:"created_at"`
-	UpdatedAt                          *string   `json:"updated_at"`
+	CreatedAt                          time.Time  `json:"created_at"`
+	UpdatedAt                          *time.Time `json:"updated_at"`
 	CreatedUserID                      uint      `json:"created_user_id"`
 	CreatedUserFirstNameEn             string    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr             string    `json:"created_user_first_name_ar"`

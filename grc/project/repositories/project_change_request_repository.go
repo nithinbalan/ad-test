@@ -14,7 +14,7 @@ import (
 
 type ProjectChangeRequestRepositoryInterface interface {
 	GetAll(projectID uint, params *dtos.ProjectChangeRequestListQueryParamsDTO) (*dtos.ProjectChangeRequestListResponseDTO, error)
-	GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error)
+	GetByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequest, error)
 	GetFullDetailsByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequest, error)
 	GenerateReferenceNumber() (string, error)
 	Create(changeRequest *models.ProjectChangeRequest, tx ...utility.DatabaseTransaction) (uint, error)
@@ -28,7 +28,7 @@ type ProjectChangeRequestRepositoryInterface interface {
 	CreateImpactAssessments(impactAssessments []*models.ProjectImpactAssessment, tx ...utility.DatabaseTransaction) error
 	GetImpactAssessments(changeRequestID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectImpactAssessment, error)
 	CreateDocuments(documents []*models.ProjectChangeRequestDocument, tx ...utility.DatabaseTransaction) error
-	GetDocumentByID(id uint) (*models.ProjectChangeRequestDocument, error)
+	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequestDocument, error)
 	GetSummary(projectID uint) (*dtos.ProjectChangeRequestSummaryDTO, error)
 	BeginTransaction() utility.DatabaseTransaction
 }
@@ -59,6 +59,7 @@ func (pcrr *ProjectChangeRequestRepository) GetAll(projectID uint, params *dtos.
 			project_change_requests.business_justification,
 			project_change_requests.anticipated_benefits,
 			project_change_requests.risks_of_deferral,
+			COALESCE(cr_impacts.impact, '') AS impact,
 			project_change_requests.requested_by_user_id,
 			requested_user.first_name_en AS requested_by_user_first_name_en,
 			requested_user.first_name_ar AS requested_by_user_first_name_ar,
@@ -114,6 +115,19 @@ func (pcrr *ProjectChangeRequestRepository) GetAll(projectID uint, params *dtos.
 		`).
 		Joins(`LEFT JOIN projects ON project_change_requests.project_id = projects.id`).
 		Joins(`LEFT JOIN workflow_statuses ON workflow_statuses.id = project_change_requests.workflow_status_id`).
+		Joins(`LEFT JOIN (
+			SELECT 
+				pcia.project_change_request_id,
+				STRING_AGG(CAST(pcia.title_en AS NVARCHAR(MAX)), ', ') AS impact
+			FROM (
+				SELECT DISTINCT 
+					ia.project_change_request_id,
+					piat.title_en
+				FROM project_change_request_impact_assessments ia
+				JOIN project_impact_assessment_types piat ON piat.id = ia.project_impact_assessment_type_id
+			) pcia
+			GROUP BY pcia.project_change_request_id
+		) cr_impacts ON cr_impacts.project_change_request_id = project_change_requests.id`).
 		Joins(`LEFT JOIN users AS requested_user ON project_change_requests.requested_by_user_id = requested_user.id`).
 		Joins(`LEFT JOIN users AS submitted_user ON project_change_requests.submitted_by_id = submitted_user.id`).
 		Joins(`LEFT JOIN users AS approved_user ON project_change_requests.approved_by_id = approved_user.id`).
@@ -157,8 +171,9 @@ func (pcrr *ProjectChangeRequestRepository) GetAll(projectID uint, params *dtos.
 			(project_change_requests.title LIKE ? OR
 			project_change_requests.reference_number LIKE ? OR
 			project_change_requests.description LIKE ? OR
-			project_change_requests.business_justification LIKE ?)
-		`, keyword, keyword, keyword, keyword)
+			project_change_requests.business_justification LIKE ? OR
+			cr_impacts.impact LIKE ?)
+		`, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.Sort != "asc" && params.Sort != "desc" {
@@ -191,9 +206,13 @@ func (pcrr *ProjectChangeRequestRepository) GetAll(projectID uint, params *dtos.
 	return response, nil
 }
 
-func (pcrr *ProjectChangeRequestRepository) GetByID(projectID uint, id uint) (*models.ProjectChangeRequest, error) {
+func (pcrr *ProjectChangeRequestRepository) GetByID(projectID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequest, error) {
+	db := pcrr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var changeRequest models.ProjectChangeRequest
-	result := pcrr.db.Where("project_id = ? AND id = ?", projectID, id).First(&changeRequest)
+	result := db.Where("project_id = ? AND id = ?", projectID, id).First(&changeRequest)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -270,7 +289,10 @@ func (pcrr *ProjectChangeRequestRepository) Update(changeRequest *models.Project
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Save(changeRequest).Error
+	return db.Model(&models.ProjectChangeRequest{}).
+		Where("id = ?", changeRequest.ID).
+		Select("title", "description", "business_justification", "anticipated_benefits", "risks_of_deferral", "requested_by_user_id", "requested_on", "updated_by_id", "updated_at").
+		Updates(changeRequest).Error
 }
 
 func (pcrr *ProjectChangeRequestRepository) CreateImpactAssessments(impactAssessments []*models.ProjectImpactAssessment, tx ...utility.DatabaseTransaction) error {
@@ -297,9 +319,13 @@ func (pcrr *ProjectChangeRequestRepository) CreateDocuments(documents []*models.
 	return db.Create(&documents).Error
 }
 
-func (pcrr *ProjectChangeRequestRepository) GetDocumentByID(id uint) (*models.ProjectChangeRequestDocument, error) {
+func (pcrr *ProjectChangeRequestRepository) GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectChangeRequestDocument, error) {
+	db := pcrr.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var document models.ProjectChangeRequestDocument
-	result := pcrr.db.First(&document, id)
+	result := db.First(&document, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}

@@ -9,8 +9,11 @@ import (
 
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
+	incidentServices "jethur/grc/incident/services"
 	logServices "jethur/grc/logs/services"
+	masterDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/grc/project/dtos"
 	"jethur/grc/project/repositories"
@@ -24,7 +27,7 @@ import (
 
 type ProjectServiceInterface interface {
 	GetAll(params *dtos.ProjectListQueryParamsDTO) (*dtos.ProjectListResponseDTO, error)
-	GetByID(id uint) (*models.Project, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error)
 	GetProjectByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.ProjectDetailDTO, error)
 	Create(currentUserID uint, form *dtos.ProjectFormDTO) (uint, error)
@@ -36,13 +39,14 @@ type ProjectServiceInterface interface {
 }
 
 type ProjectService struct {
-	repo             repositories.ProjectRepositoryInterface
-	activityLog      logServices.ActivityLogServiceInterface
-	projectTypeSvc   ProjectTypeServiceInterface
-	projectStatusSvc ProjectStatusServiceInterface
-	userSvc          organizationServices.UserServiceInterface
-	userSettingSvc   organizationServices.UserSettingServiceInterface
-	notificationSvc  commonServices.NotificationServiceInterface
+	repo                  repositories.ProjectRepositoryInterface
+	activityLog           logServices.ActivityLogServiceInterface
+	projectTypeSvc        ProjectTypeServiceInterface
+	projectStatusSvc      ProjectStatusServiceInterface
+	userSvc               organizationServices.UserServiceInterface
+	userSettingSvc        organizationServices.UserSettingServiceInterface
+	notificationSvc       commonServices.NotificationServiceInterface
+	incidentActionPlanSvc incidentServices.IncidentActionPlanServiceInterface
 }
 
 func NewProjectService(
@@ -53,15 +57,17 @@ func NewProjectService(
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	incidentActionPlanSvc incidentServices.IncidentActionPlanServiceInterface,
 ) ProjectServiceInterface {
 	return &ProjectService{
-		repo:             repo,
-		activityLog:      activityLog,
-		projectTypeSvc:   projectTypeSvc,
-		projectStatusSvc: projectStatusSvc,
-		userSvc:          userSvc,
-		userSettingSvc:   userSettingSvc,
-		notificationSvc:  notificationSvc,
+		repo:                  repo,
+		activityLog:           activityLog,
+		projectTypeSvc:        projectTypeSvc,
+		projectStatusSvc:      projectStatusSvc,
+		userSvc:               userSvc,
+		userSettingSvc:        userSettingSvc,
+		notificationSvc:       notificationSvc,
+		incidentActionPlanSvc: incidentActionPlanSvc,
 	}
 }
 
@@ -69,8 +75,8 @@ func (s *ProjectService) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dtos.P
 	return s.repo.GetAll(params)
 }
 
-func (s *ProjectService) GetByID(id uint) (*models.Project, error) {
-	project, err := s.repo.GetByID(id)
+func (s *ProjectService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error) {
+	project, err := s.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -81,14 +87,7 @@ func (s *ProjectService) GetByID(id uint) (*models.Project, error) {
 }
 
 func (s *ProjectService) GetProjectByID(id uint, tx ...utility.DatabaseTransaction) (*models.Project, error) {
-	project, err := s.repo.GetFullDetailsByID(id, tx...)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, &utility.ResourceNotFoundError{}
-		}
-		return nil, err
-	}
-	return project, nil
+	return s.GetByID(id, tx...)
 }
 
 func (s *ProjectService) UpdateProject(project *models.Project, tx ...utility.DatabaseTransaction) error {
@@ -124,10 +123,118 @@ func (s *ProjectService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 	projectDTO.CreatedAt = project.CreatedAt
 	projectDTO.UpdatedAt = project.UpdatedAt
 
+	projectDTO.IncidentActionPlanID = project.IncidentActionPlanID
+	if project.IncidentActionPlan != nil {
+		actionPlanDTO := &dtos.ProjectIncidentActionPlanDTO{
+			ID:                 project.IncidentActionPlan.ID,
+			IncidentRegisterID: project.IncidentActionPlan.IncidentRegisterID,
+			Title:              project.IncidentActionPlan.Title,
+			Description:        project.IncidentActionPlan.Description,
+			Percentage:         project.IncidentActionPlan.Percentage,
+			ActionPlanStatusID: project.IncidentActionPlan.ActionPlanStatusID,
+			ResponsibleUserID:  project.IncidentActionPlan.ResponsibleUserID,
+		}
+		if project.IncidentActionPlan.IncidentRegister != nil {
+			actionPlanDTO.IncidentReferenceNumber = &project.IncidentActionPlan.IncidentRegister.ReferenceNumber
+			actionPlanDTO.IncidentTitle = &project.IncidentActionPlan.IncidentRegister.Title
+		}
+		if project.IncidentActionPlan.TargetDate != nil {
+			targetDateStr := project.IncidentActionPlan.TargetDate.Format("2006-01-02")
+			actionPlanDTO.TargetDate = &targetDateStr
+		}
+		if project.IncidentActionPlan.ActionPlanStatus != nil {
+			actionPlanDTO.ActionPlanStatusTitleEn = &project.IncidentActionPlan.ActionPlanStatus.TitleEn
+			actionPlanDTO.ActionPlanStatusTitleAr = &project.IncidentActionPlan.ActionPlanStatus.TitleAr
+			actionPlanDTO.ActionPlanStatusColor = &project.IncidentActionPlan.ActionPlanStatus.ColorCode
+		}
+		if project.IncidentActionPlan.ResponsibleUser != nil {
+			actionPlanDTO.ResponsibleUser = &organizationDTOs.UserMinimalDTO{
+				ID:               int(project.IncidentActionPlan.ResponsibleUser.ID),
+				FirstNameEN:      project.IncidentActionPlan.ResponsibleUser.FirstNameEn,
+				LastNameEN:       project.IncidentActionPlan.ResponsibleUser.LastNameEn,
+				FirstNameAR:      project.IncidentActionPlan.ResponsibleUser.FirstNameAr,
+				LastNameAR:       project.IncidentActionPlan.ResponsibleUser.LastNameAr,
+				ProfileImagePath: project.IncidentActionPlan.ResponsibleUser.ProfileImagePath,
+				Email:            project.IncidentActionPlan.ResponsibleUser.Email,
+				Initial:          project.IncidentActionPlan.ResponsibleUser.Initial,
+				Color:            project.IncidentActionPlan.ResponsibleUser.Color,
+			}
+		}
+		projectDTO.IncidentActionPlan = actionPlanDTO
+	}
+
+	if project.WorkflowStatus != nil {
+		projectDTO.WorkflowStatus = &masterDTOs.WorkflowStatusDTO{
+			ID:        project.WorkflowStatus.ID,
+			TitleEn:   project.WorkflowStatus.TitleEn,
+			TitleAr:   project.WorkflowStatus.TitleAr,
+			ColorCode: project.WorkflowStatus.ColorCode,
+			Type:      project.WorkflowStatus.Type,
+			Status:    project.WorkflowStatus.Status,
+		}
+	}
+	if project.SubmittedByUser != nil {
+		projectDTO.SubmittedByUser = &organizationDTOs.UserMinimalDTO{
+			ID:               int(project.SubmittedByUser.ID),
+			FirstNameEN:      project.SubmittedByUser.FirstNameEn,
+			LastNameEN:       project.SubmittedByUser.LastNameEn,
+			FirstNameAR:      project.SubmittedByUser.FirstNameAr,
+			LastNameAR:       project.SubmittedByUser.LastNameAr,
+			ProfileImagePath: project.SubmittedByUser.ProfileImagePath,
+			Email:            project.SubmittedByUser.Email,
+			Initial:          project.SubmittedByUser.Initial,
+			Color:            project.SubmittedByUser.Color,
+		}
+	}
+	if project.ApprovedByUser != nil {
+		projectDTO.ApprovedByUser = &organizationDTOs.UserMinimalDTO{
+			ID:               int(project.ApprovedByUser.ID),
+			FirstNameEN:      project.ApprovedByUser.FirstNameEn,
+			LastNameEN:       project.ApprovedByUser.LastNameEn,
+			FirstNameAR:      project.ApprovedByUser.FirstNameAr,
+			LastNameAR:       project.ApprovedByUser.LastNameAr,
+			ProfileImagePath: project.ApprovedByUser.ProfileImagePath,
+			Email:            project.ApprovedByUser.Email,
+			Initial:          project.ApprovedByUser.Initial,
+			Color:            project.ApprovedByUser.Color,
+		}
+	}
+	if project.RejectedByUser != nil {
+		projectDTO.RejectedByUser = &organizationDTOs.UserMinimalDTO{
+			ID:               int(project.RejectedByUser.ID),
+			FirstNameEN:      project.RejectedByUser.FirstNameEn,
+			LastNameEN:       project.RejectedByUser.LastNameEn,
+			FirstNameAR:      project.RejectedByUser.FirstNameAr,
+			LastNameAR:       project.RejectedByUser.LastNameAr,
+			ProfileImagePath: project.RejectedByUser.ProfileImagePath,
+			Email:            project.RejectedByUser.Email,
+			Initial:          project.RejectedByUser.Initial,
+			Color:            project.RejectedByUser.Color,
+		}
+	}
+
 	return &projectDTO, nil
 }
 
 func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (uint, error) {
+	if form.IncidentActionPlanID != nil && *form.IncidentActionPlanID != 0 {
+		_, err := s.incidentActionPlanSvc.GetActionPlanByID(*form.IncidentActionPlanID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return 0, utility.NewValidationError(fmt.Errorf("incident action plan does not exist"), "not_exist", "incident action plan")
+			}
+			return 0, err
+		}
+
+		exists, err := s.repo.ExistsByIncidentActionPlanID(*form.IncidentActionPlanID)
+		if err != nil {
+			return 0, err
+		}
+		if exists {
+			return 0, utility.NewValidationError(fmt.Errorf("incident action plan has already been used"), "already_used", "incident action plan")
+		}
+	}
+
 	startDate, endDate, err := parseProjectDates(form)
 	if err != nil {
 		return 0, err
@@ -148,6 +255,7 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 		ProjectStatusID:         form.ProjectStatusID,
 		ProjectPhaseID:          form.ProjectPhaseID,
 		ProjectClassificationID: &form.ProjectClassificationID,
+		IncidentActionPlanID:    form.IncidentActionPlanID,
 		CreatedBYID:             currentUserID,
 	}
 
@@ -172,6 +280,7 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 			"project_status_id":         form.ProjectStatusID,
 			"project_phase_id":          form.ProjectPhaseID,
 			"project_classification_id": form.ProjectClassificationID,
+			"incident_action_plan_id":   form.IncidentActionPlanID,
 		}
 		err := s.activityLog.LogActivity(models.CreateAction, models.Project{}.TableName(), id, activityData, currentUserID, "project", "project_register", "", nil)
 		if err != nil {
@@ -277,6 +386,30 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 		"project_status_id":         project.ProjectStatusID,
 		"project_phase_id":          project.ProjectPhaseID,
 		"project_classification_id": project.ProjectClassificationID,
+		"incident_action_plan_id":   project.IncidentActionPlanID,
+	}
+
+	if form.IncidentActionPlanID != nil {
+		if *form.IncidentActionPlanID != 0 {
+			_, err := s.incidentActionPlanSvc.GetActionPlanByID(*form.IncidentActionPlanID)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return utility.NewValidationError(fmt.Errorf("incident action plan does not exist"), "not_exist", "incident action plan")
+				}
+				return err
+			}
+
+			exists, err := s.repo.ExistsByIncidentActionPlanIDExcludingID(id, *form.IncidentActionPlanID)
+			if err != nil {
+				return err
+			}
+			if exists {
+				return utility.NewValidationError(fmt.Errorf("incident action plan has already been used"), "already_used", "incident action plan")
+			}
+			project.IncidentActionPlanID = form.IncidentActionPlanID
+		} else {
+			project.IncidentActionPlanID = nil
+		}
 	}
 
 	startDate, endDate, err := parseProjectDates(form)
@@ -321,6 +454,7 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 			"project_status_id":         form.ProjectStatusID,
 			"project_phase_id":          form.ProjectPhaseID,
 			"project_classification_id": form.ProjectClassificationID,
+			"incident_action_plan_id":   project.IncidentActionPlanID,
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
 		if len(changes) > 0 {

@@ -669,6 +669,12 @@ func (pdlrs *ProjectDecisionLogReviewService) Revert(projectID uint, decisionLog
 		return err
 	}
 
+	currentWorkflow.WorkflowStatusID = revertStatus.ID
+
+	if err := pdlrs.workflowSvc.UpdateProjectDecisionLogWorkflow(currentWorkflow, tx); err != nil {
+		return err
+	}
+
 	previousLevel := currentLevel - 1
 
 	var previousLevelWorkflow *models.ProjectDecisionLogWorkflow
@@ -841,6 +847,9 @@ func (pdlrs *ProjectDecisionLogReviewService) Reject(projectID uint, decisionLog
 	currentWorkflow.WorkflowStatusID = workflowStatus.ID
 
 	if err := pdlrs.workflowSvc.UpdateProjectDecisionLogWorkflow(currentWorkflow, tx); err != nil {
+		return err
+	}
+	if err := pdlrs.workflowSvc.UpdateWorkflowStatus(currentWorkflow.ID, workflowStatus.ID, tx); err != nil {
 		return err
 	}
 

@@ -142,11 +142,11 @@ func (pdlws *ProjectDecisionLogWorkflowService) GetWorkflowList(projectDecisionL
 
 	for _, workflow := range pdl.Workflows {
 		workflowDTO := &projectDTOs.ProjectDecisionLogWorkflowLevelDTO{
-			Level:          workflow.Level,
-			ApprovalType:   workflow.ApprovalTypes,
-			WorkflowStatus: pdlws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
-			ReviewUsers:    []*organizationDTOs.UserMinimalDTO{},
-			ApprovedUsers:  []*organizationDTOs.UserMinimalDTO{},
+			Level:         workflow.Level,
+			ApprovalType:  workflow.ApprovalTypes,
+			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
+			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
+			CurrentStatus: pdlws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
 		}
 
 		for _, participant := range workflow.ProjectDecisionLogWorkflowParticipants {

@@ -19,8 +19,8 @@ type PenetrationTestFindingListDTO struct {
 	ActionPlanStatusTitleAr   string  `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode string  `json:"action_plan_status_color_code"`
 	ActionPlanStatusType      string  `json:"action_plan_status_type"`
-	Description               string  `json:"description"`
-	Recommendation            string  `json:"recommendation"`
+	Description               *string `json:"description"`
+	Recommendation            *string `json:"recommendation"`
 	SeverityLevelID           uint    `json:"severity_level_id"`
 	SeverityLevelTitleEn      string  `json:"severity_level_title_en"`
 	SeverityLevelTitleAr      string  `json:"severity_level_title_ar"`
@@ -43,8 +43,8 @@ type PenetrationTestFindingFormDTO struct {
 	PenetrationTestID     uint    `json:"penetration_test_id" binding:"required"`
 	Title                 string  `json:"title" binding:"required,max=255"`
 	SeverityLevelID       uint    `json:"severity_level_id" binding:"required"`
-	Description           string  `json:"description" binding:"required"`
-	Recommendation        string  `json:"recommendation" binding:"required"`
+	Description           *string `json:"description"`
+	Recommendation        *string `json:"recommendation"`
 	OwnerID               uint    `json:"owner_id" binding:"required"`
 	TargetRemediationDate *string `json:"target_remediation_date" binding:"omitempty,datetime=2006-01-02"`
 }
@@ -59,8 +59,8 @@ type PenetrationTestFindingDetailDTO struct {
 	ActionPlanStatus      masterDTOs.ActionPlanStatusDTO   `json:"action_plan_status"`
 	SeverityLevelID       uint                             `json:"severity_level_id"`
 	SeverityLevel         masterDTOs.SeverityLevelDTO      `json:"severity_level"`
-	Description           string                           `json:"description"`
-	Recommendation        string                           `json:"recommendation"`
+	Description           *string                          `json:"description"`
+	Recommendation        *string                          `json:"recommendation"`
 	OwnerID               uint                             `json:"owner_id"`
 	Owner                 organizationDTOs.UserMinimalDTO  `json:"owner"`
 	TargetRemediationDate *time.Time                       `json:"target_remediation_date"`

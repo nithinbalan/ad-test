@@ -138,6 +138,10 @@ func (pcs *ProjectClosureService) Update(projectID uint, id uint, currentUserID 
 		return err
 	}
 
+	if closure.IsApproved {
+		return utility.NewValidationError(errors.New("cannot update an already approved project closure"), "already_approved", "is_approved")
+	}
+
 	if _, err := pcs.userSvc.GetByID(form.ApproverID); err != nil {
 		return utility.NewValidationError(errors.New("approver user not found"), "user_not_found", "approver_id")
 	}
@@ -206,6 +210,10 @@ func (pcs *ProjectClosureService) Delete(projectID uint, id uint, currentUserID 
 		return err
 	}
 
+	if closure.IsApproved {
+		return utility.NewValidationError(errors.New("cannot delete an already approved project closure"), "already_approved", "is_approved")
+	}
+
 	tx := pcs.repo.BeginTransaction()
 	if err := pcs.repo.Delete(id, tx); err != nil {
 		tx.Rollback()
@@ -247,12 +255,26 @@ func (pcs *ProjectClosureService) Approve(projectID uint, id uint, currentUserID
 		return utility.NewForbiddenError("only the assigned approver can approve this project closure")
 	}
 
+	if closure.IsApproved {
+		return utility.NewValidationError(errors.New("project closure is already approved"), "already_approved", "is_approved")
+	}
+
 	goLivePhase, err := pcs.projectPhaseSvc.GetByType("go_live")
 	if err != nil {
 		return err
 	}
 
+	closure.IsApproved = true
+	closure.UpdatedByID = &currentUserID
+	updatedAt := time.Now()
+	closure.UpdatedAt = &updatedAt
+
 	tx := pcs.repo.BeginTransaction()
+
+	if err := pcs.repo.Update(closure, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	if err := pcs.repo.UpdateProjectPhase(projectID, goLivePhase.ID, tx); err != nil {
 		tx.Rollback()
@@ -264,6 +286,14 @@ func (pcs *ProjectClosureService) Approve(projectID uint, id uint, currentUserID
 	}
 
 	go func() {
+		_ = pcs.activityLog.LogActivity(
+			models.UpdateAction,
+			models.ProjectClosure{}.TableName(),
+			id,
+			map[string]interface{}{"is_approved": true},
+			currentUserID,
+			"project", "project_register", "", nil,
+		)
 		_ = pcs.activityLog.LogActivity(
 			models.UpdateAction,
 			models.Project{}.TableName(),

@@ -1756,6 +1756,9 @@ func (rrs *RiskRegisterService) UpdateProcessRiskRating(riskID uint, tx utility.
 
 			riskDetail, err := rrs.repo.GetFullDetailsByID(processRisk.RiskRegisterID, tx)
 			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					continue
+				}
 				tx.Rollback()
 				return err
 			}
@@ -1812,6 +1815,9 @@ func (rrs *RiskRegisterService) UpdateControlRiskRating(riskID uint, tx utility.
 
 			riskDetail, err := rrs.repo.GetFullDetailsByID(controlRisk.RiskRegisterID, tx)
 			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					continue
+				}
 				tx.Rollback()
 				return err
 			}

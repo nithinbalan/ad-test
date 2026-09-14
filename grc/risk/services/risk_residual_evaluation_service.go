@@ -20,7 +20,7 @@ type RiskResidualEvaluationServiceInterface interface {
 	GetFullDetailsByID(riskID uint) (*riskDTOs.RiskResidualEvaluationDetailsDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskEvaluation, error)
 	Create(riskID uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(riskID uint, id uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO) error
+	Update(riskID uint, id uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO, tx ...utility.DatabaseTransaction) error
 	Delete(riskID uint, id uint, currentUserID uint) (uint, error)
 	GetHistoryByRiskID(riskID uint) ([]*riskDTOs.RiskResidualEvaluationHistoryDTO, error)
 }
@@ -421,10 +421,24 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 	return id, nil
 }
 
-func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO) error {
-	tx := ries.repo.BeginTransaction()
+func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO, tx ...utility.DatabaseTransaction) error {
+	var transaction utility.DatabaseTransaction
+	isOwnTransaction := len(tx) == 0 || tx[0] == nil
 
-	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
+	if !isOwnTransaction {
+		transaction = tx[0]
+	} else {
+		transaction = ries.repo.BeginTransaction()
+		defer transaction.Rollback()
+	}
+
+	return ries.update(riskID, id, currentUserID, residualEvaluationFormDTO, transaction, isOwnTransaction)
+}
+
+func (ries *RiskResidualEvaluationService) update(riskID uint, id uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO, tx utility.DatabaseTransaction, commitTransaction bool) error {
+
+	if _, err := ries.riskRegisterSvc.GetByID(riskID, tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -435,10 +449,12 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 	// Get inherent evaluation to use as base for residual calculation
 	inherentEvaluation, err := ries.riskInherentEvaluationSvc.GetFullDetailsByID(riskID, tx)
 	if err != nil {
+
 		tx.Rollback()
 		return err
 	}
 	if inherentEvaluation == nil {
+
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("inherent evaluation must be completed before updating residual evaluation"), "not_exist", "inherent evaluation")
 	}
@@ -446,6 +462,7 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 	// Get control analyses to calculate average risk reduction
 	controlAnalyses, err := ries.repo.GetControlAnalysesByRiskID(riskID, tx)
 	if err != nil {
+
 		tx.Rollback()
 		return err
 	}
@@ -482,6 +499,10 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+	if oldRiskEvaluation == nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, id)
 	}
 
 	var existingImpactAnalysis []map[string]interface{}
@@ -676,70 +697,72 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 		}
 	}
 
-	tx.Commit()
-	go func() {
-		existingRiskEvaluation, err := ries.GetFullDetailsByID(riskID)
-		if err != nil {
-			return
-		}
-		changedData := make(map[string]interface{})
-		// log changes
-		oldData := map[string]interface{}{
-			"risk_matrix_impact":            oldRiskEvaluation.RiskMatrixImpact.TitleEn,
-			"risk_matrix_likelihood":        oldRiskEvaluation.RiskMatrixLikelihood.TitleEn,
-			"risk_matrix_risk_rating":       oldRiskEvaluation.RiskMatrixRiskRating.TitleEn,
-			"risk_matirx_risk_rating_value": oldRiskEvaluation.RiskMatrixRiskRatingValue.Value,
-		}
-
-		newData := map[string]interface{}{
-			"risk_matrix_impact":            existingRiskEvaluation.RiskMatrixImpact.TitleEn,
-			"risk_matrix_likelihood":        existingRiskEvaluation.RiskMatrixLikelihood.TitleEn,
-			"risk_matrix_risk_rating":       existingRiskEvaluation.RiskMatrixRiskRating.TitleEn,
-			"risk_matirx_risk_rating_value": existingRiskEvaluation.RiskMatrixRiskRatingValue.Value,
-		}
-		// Compare other fields and add them to changedData
-		fieldChanges := utility.CompareFieldChanges(oldData, newData)
-		for k, v := range fieldChanges {
-			changedData[k] = v
-		}
-
-		if len(riskImpactAnalysis) > 0 || len(existingImpactAnalysis) > 0 {
-			changedData["impact_analysis"] = map[string]interface{}{
-				"added":   riskImpactAnalysis,
-				"removed": existingImpactAnalysis,
-			}
-		}
-
-		if len(riskAppetiteAlignments) > 0 || len(existingAppetiteAlignment) > 0 {
-			changedData["appetite_analysis"] = map[string]interface{}{
-				"added":   riskAppetiteAlignments,
-				"removed": existingAppetiteAlignment,
-			}
-		}
-
-		// Log activity if there are any changes
-		if len(changedData) > 0 {
-			err = ries.activityLogSvc.LogActivity(
-				models.UpdateAction,
-				models.RiskEvaluation{}.TableName(),
-				id,
-				changedData,
-				currentUserID,
-				"risk", "risk_register", "residual_evaluation", nil,
-			)
+	if commitTransaction {
+		tx.Commit()
+		go func() {
+			existingRiskEvaluation, err := ries.GetFullDetailsByID(riskID)
 			if err != nil {
-				fields := map[string]interface{}{
-					"action":    models.UpdateAction,
-					"tableName": models.RiskEvaluation{}.TableName(),
-					"recordID":  id,
-					"userID":    currentUserID,
-					"error":     err.Error(),
-				}
-
-				utility.LogError("Failed to log activity", fields)
+				return
 			}
-		}
-	}()
+			changedData := make(map[string]interface{})
+			// log changes
+			oldData := map[string]interface{}{
+				"risk_matrix_impact":            oldRiskEvaluation.RiskMatrixImpact.TitleEn,
+				"risk_matrix_likelihood":        oldRiskEvaluation.RiskMatrixLikelihood.TitleEn,
+				"risk_matrix_risk_rating":       oldRiskEvaluation.RiskMatrixRiskRating.TitleEn,
+				"risk_matirx_risk_rating_value": oldRiskEvaluation.RiskMatrixRiskRatingValue.Value,
+			}
+
+			newData := map[string]interface{}{
+				"risk_matrix_impact":            existingRiskEvaluation.RiskMatrixImpact.TitleEn,
+				"risk_matrix_likelihood":        existingRiskEvaluation.RiskMatrixLikelihood.TitleEn,
+				"risk_matrix_risk_rating":       existingRiskEvaluation.RiskMatrixRiskRating.TitleEn,
+				"risk_matirx_risk_rating_value": existingRiskEvaluation.RiskMatrixRiskRatingValue.Value,
+			}
+			// Compare other fields and add them to changedData
+			fieldChanges := utility.CompareFieldChanges(oldData, newData)
+			for k, v := range fieldChanges {
+				changedData[k] = v
+			}
+
+			if len(riskImpactAnalysis) > 0 || len(existingImpactAnalysis) > 0 {
+				changedData["impact_analysis"] = map[string]interface{}{
+					"added":   riskImpactAnalysis,
+					"removed": existingImpactAnalysis,
+				}
+			}
+
+			if len(riskAppetiteAlignments) > 0 || len(existingAppetiteAlignment) > 0 {
+				changedData["appetite_analysis"] = map[string]interface{}{
+					"added":   riskAppetiteAlignments,
+					"removed": existingAppetiteAlignment,
+				}
+			}
+
+			// Log activity if there are any changes
+			if len(changedData) > 0 {
+				err = ries.activityLogSvc.LogActivity(
+					models.UpdateAction,
+					models.RiskEvaluation{}.TableName(),
+					id,
+					changedData,
+					currentUserID,
+					"risk", "risk_register", "residual_evaluation", nil,
+				)
+				if err != nil {
+					fields := map[string]interface{}{
+						"action":    models.UpdateAction,
+						"tableName": models.RiskEvaluation{}.TableName(),
+						"recordID":  id,
+						"userID":    currentUserID,
+						"error":     err.Error(),
+					}
+
+					utility.LogError("Failed to log activity", fields)
+				}
+			}
+		}()
+	}
 	return nil
 }
 
@@ -793,6 +816,7 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 
 	inherentEvaluationDetailsDTO, err := ries.riskInherentEvaluationSvc.GetFullDetailsByID(riskID, tx)
 	if err != nil {
+
 		tx.Rollback()
 		return 0, err
 	}

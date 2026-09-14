@@ -1,4 +1,4 @@
-﻿<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -70,6 +70,9 @@
       font-weight: 400;
       line-height: 1.4;
    }
+   .field-value p {
+      margin: 0 0 4px 0;
+   }
    .badge {
       padding: 3px 8px;
       border-radius: 4px;
@@ -91,13 +94,9 @@
                <p class="field-label">Project ID:</p>
                <p class="field-value">#{{ .Data.ID }}</p>
             </div>
-            <div style="width: 48%; display: inline-block; vertical-align: top;">
-               <p class="field-label">Title (EN):</p>
+            <div style="width: 72%; display: inline-block; vertical-align: top;">
+               <p class="field-label">Title:</p>
                <p class="field-value">{{ .Data.TitleEn }}</p>
-            </div>
-            <div style="width: 24%; display: inline-block; vertical-align: top;">
-               <p class="field-label">Title (AR):</p>
-               <p class="field-value">{{if .Data.TitleAr}}{{ .Data.TitleAr }}{{else}}-{{end}}</p>
             </div>
          </div>
 
@@ -105,7 +104,7 @@
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Status:</p>
                <p class="field-value">
-                  <span class="badge" style="background: #E5F4F0; color: #0B7A55; border: 1px solid #AFD6CC;">
+                  <span class="badge" style="background: #E5F4F0; color: {{if .Data.ProjectStatus.ColorCode}}{{.Data.ProjectStatus.ColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
                      {{ .Data.ProjectStatus.TitleEn }}
                   </span>
                </p>
@@ -135,7 +134,7 @@
          <div style="margin-top: 5px;">
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Responsible User:</p>
-               <p class="field-value">{{ .Data.ResponsibleUser.FirstNameEn }} {{ .Data.ResponsibleUser.LastNameEn }}</p>
+               <p class="field-value">{{ .Data.ResponsibleUser.FirstNameEN }} {{ .Data.ResponsibleUser.LastNameEN }}</p>
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Start Date:</p>
@@ -162,25 +161,33 @@
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Created By:</p>
-               <p class="field-value">{{ .Data.CreatedByUser.FirstNameEn }} {{ .Data.CreatedByUser.LastNameEn }}</p>
+               <p class="field-value">{{ .Data.CreatedByUser.FirstNameEN }} {{ .Data.CreatedByUser.LastNameEN }}</p>
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Updated By:</p>
-               <p class="field-value">{{if .Data.UpdatedByUser}}{{ .Data.UpdatedByUser.FirstNameEn }} {{ .Data.UpdatedByUser.LastNameEn }}{{else}}-{{end}}</p>
+               <p class="field-value">{{if .Data.UpdatedByUser}}{{ .Data.UpdatedByUser.FirstNameEN }} {{ .Data.UpdatedByUser.LastNameEN }}{{else}}-{{end}}</p>
             </div>
          </div>
 
-         {{if .Data.DescriptionEn}}
+         {{if .Data.IncidentActionPlan}}
          <div style="margin-top: 5px;">
-            <p class="field-label">Description (EN):</p>
-            <p class="field-value">{{ .Data.DescriptionEn }}</p>
+            <div style="width: 48%; display: inline-block; vertical-align: top;">
+               <p class="field-label">Linked Incident Action Plan:</p>
+               <p class="field-value">{{ .Data.IncidentActionPlan.Title }}</p>
+            </div>
+            {{if .Data.IncidentActionPlan.IncidentTitle}}
+            <div style="width: 48%; display: inline-block; vertical-align: top;">
+               <p class="field-label">Originating Incident:</p>
+               <p class="field-value">{{ .Data.IncidentActionPlan.IncidentTitle }}</p>
+            </div>
+            {{end}}
          </div>
          {{end}}
 
-         {{if .Data.DescriptionAr}}
+         {{if .Data.DescriptionEn}}
          <div style="margin-top: 5px;">
-            <p class="field-label">Description (AR):</p>
-            <p class="field-value">{{ .Data.DescriptionAr }}</p>
+            <p class="field-label">Description:</p>
+            <p class="field-value">{{ .Data.DescriptionEn }}</p>
          </div>
          {{end}}
 
@@ -215,7 +222,7 @@
                   <td>{{if .PlannedDate}}{{ .PlannedDate }}{{else}}-{{end}}</td>
                   <td>{{if .ActualDate}}{{ .ActualDate }}{{else}}-{{end}}</td>
                   <td>
-                     <span class="badge" style="background: #E5F4F0; color: #0B7A55;">
+                     <span class="badge" style="background: #E5F4F0; color: {{if .ProjectMilestoneStatusColorCode}}{{.ProjectMilestoneStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
                         {{ .ProjectMilestoneStatusTitleEn }}
                      </span>
                   </td>
@@ -239,21 +246,21 @@
          <table>
             <thead>
                <tr>
-                  <th style="width: 20%;">Control Number</th>
-                  <th style="width: 35%;">Name</th>
+                  <th style="width: 20%;">Reference No</th>
+                  <th style="width: 35%;">Title</th>
                   <th style="width: 15%;">Type</th>
-                  <th style="width: 15%;">Classification</th>
-                  <th style="width: 15%;">Owner</th>
+                  <th style="width: 15%;">Category</th>
+                  <th style="width: 15%;">Owner Unit</th>
                </tr>
             </thead>
             <tbody>
                {{range .Data.Controls}}
                <tr>
-                  <td>{{if .ControlNumber}}{{ .ControlNumber }}{{else}}-{{end}}</td>
-                  <td>{{ .Name }}</td>
+                  <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
+                  <td>{{ .TitleEn }}</td>
                   <td>{{if .ControlTypeTitleEn}}{{ .ControlTypeTitleEn }}{{else}}-{{end}}</td>
-                  <td>{{if .ControlClassificationTitleEn}}{{ .ControlClassificationTitleEn }}{{else}}-{{end}}</td>
-                  <td>{{if .ControlOwnerTitleEn}}{{ .ControlOwnerTitleEn }}{{else}}-{{end}}</td>
+                  <td>{{if .ControlCategoryTitleEn}}{{ .ControlCategoryTitleEn }}{{else}}-{{end}}</td>
+                  <td>{{if .OwnerUnitTitleEn}}{{ .OwnerUnitTitleEn }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
             </tbody>
@@ -269,20 +276,20 @@
             <thead>
                <tr>
                   <th style="width: 15%;">Ref No</th>
-                  <th style="width: 40%;">Subject</th>
+                  <th style="width: 40%;">Title</th>
                   <th style="width: 15%;">Status</th>
-                  <th style="width: 15%;">Inherent Score</th>
-                  <th style="width: 15%;">Residual Score</th>
+                  <th style="width: 15%;">Inherent Rating</th>
+                  <th style="width: 15%;">Residual Rating</th>
                </tr>
             </thead>
             <tbody>
                {{range .Data.Risks}}
                <tr>
                   <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
-                  <td>{{ .Subject }}</td>
+                  <td>{{ .Title }}</td>
                   <td>{{if .RiskStatusTitleEn}}{{ .RiskStatusTitleEn }}{{else}}-{{end}}</td>
-                  <td>{{if .InherentRiskScore}}{{ .InherentRiskScore }}{{else}}-{{end}}</td>
-                  <td>{{if .ResidualRiskScore}}{{ .ResidualRiskScore }}{{else}}-{{end}}</td>
+                  <td>{{if .InherentRiskRatingTitleEn}}{{ .InherentRiskRatingTitleEn }}{{else}}-{{end}}</td>
+                  <td>{{if .ResidualRiskRatingTitleEn}}{{ .ResidualRiskRatingTitleEn }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
             </tbody>
@@ -299,7 +306,7 @@
                <tr>
                   <th style="width: 20%;">Ref No</th>
                   <th style="width: 50%;">Title</th>
-                  <th style="width: 30%;">Category</th>
+                  <th style="width: 30%;">Process Group</th>
                </tr>
             </thead>
             <tbody>
@@ -307,7 +314,7 @@
                <tr>
                   <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
                   <td>{{ .TitleEn }}</td>
-                  <td>{{if .ProcessCategoryTitleEn}}{{ .ProcessCategoryTitleEn }}{{else}}-{{end}}</td>
+                  <td>{{if .ProcessGroupTitleEn}}{{ .ProcessGroupTitleEn }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
             </tbody>
@@ -345,18 +352,16 @@
          <table>
             <thead>
                <tr>
-                  <th style="width: 20%;">Ref No</th>
-                  <th style="width: 40%;">Title</th>
-                  <th style="width: 20%;">Current Value</th>
-                  <th style="width: 20%;">Target Value</th>
+                  <th style="width: 25%;">Ref No</th>
+                  <th style="width: 50%;">Title</th>
+                  <th style="width: 25%;">Target Value</th>
                </tr>
             </thead>
             <tbody>
                {{range .Data.KPIs}}
                <tr>
                   <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
-                  <td>{{ .TitleEn }}</td>
-                  <td>{{if .CurrentValue}}{{ .CurrentValue }}{{else}}-{{end}}</td>
+                  <td>{{ .Title }}</td>
                   <td>{{if .TargetValue}}{{ .TargetValue }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
@@ -372,8 +377,8 @@
          <table>
             <thead>
                <tr>
-                  <th style="width: 20%;">Ref No</th>
-                  <th style="width: 35%;">Title</th>
+                  <th style="width: 15%;">#</th>
+                  <th style="width: 40%;">Title</th>
                   <th style="width: 20%;">Category</th>
                   <th style="width: 25%;">Responsible User</th>
                </tr>
@@ -381,7 +386,7 @@
             <tbody>
                {{range .Data.AssociatedDocuments}}
                <tr>
-                  <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
+                  <td>#{{ .DocumentID }}</td>
                   <td>{{ .TitleEn }}</td>
                   <td>{{if .DocumentCategoryTitleEn}}{{ .DocumentCategoryTitleEn }}{{else}}-{{end}}</td>
                   <td>{{if .ResponsibleUserFirstNameEn}}{{ .ResponsibleUserFirstNameEn }} {{ .ResponsibleUserLastNameEn }}{{else}}-{{end}}</td>
@@ -392,6 +397,99 @@
          {{else}}
          <p style="font-size: 12px; color: #777; margin-bottom: 15px;">No associated documents recorded.</p>
          {{end}}
+
+         <!-- 3.7 Associated Assets -->
+         <h4 class="sub-section-title">3.7 Associated Assets</h4>
+         {{if .Data.Assets}}
+         <table>
+            <thead>
+               <tr>
+                  <th style="width: 20%;">Ref No</th>
+                  <th style="width: 35%;">Title</th>
+                  <th style="width: 20%;">Category</th>
+                  <th style="width: 25%;">Status</th>
+               </tr>
+            </thead>
+            <tbody>
+               {{range .Data.Assets}}
+               <tr>
+                  <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
+                  <td>{{ .TitleEn }}</td>
+                  <td>{{if .AssetCategoryTitleEn}}{{ .AssetCategoryTitleEn }}{{else}}-{{end}}</td>
+                  <td>
+                     {{if .AssetStatusTitleEn}}
+                     <span class="badge" style="background: #E5F4F0; color: {{if .AssetStatusColorCode}}{{.AssetStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
+                        {{ .AssetStatusTitleEn }}
+                     </span>
+                     {{else}}-{{end}}
+                  </td>
+               </tr>
+               {{end}}
+            </tbody>
+         </table>
+         {{else}}
+         <p style="font-size: 12px; color: #777; margin-bottom: 15px;">No associated assets recorded.</p>
+         {{end}}
+
+         <!-- 3.8 Associated Incidents -->
+         <h4 class="sub-section-title">3.8 Associated Incidents</h4>
+         {{if .Data.Incidents}}
+         <table>
+            <thead>
+               <tr>
+                  <th style="width: 20%;">Ref No</th>
+                  <th style="width: 40%;">Title</th>
+                  <th style="width: 20%;">Category</th>
+                  <th style="width: 20%;">Status</th>
+               </tr>
+            </thead>
+            <tbody>
+               {{range .Data.Incidents}}
+               <tr>
+                  <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
+                  <td>{{ .Title }}</td>
+                  <td>{{if .IncidentCategoryTitleEn}}{{ .IncidentCategoryTitleEn }}{{else}}-{{end}}</td>
+                  <td>
+                     {{if .IncidentStatusTitleEn}}
+                     <span class="badge" style="background: #E5F4F0; color: {{if .IncidentStatusColorCode}}{{.IncidentStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
+                        {{ .IncidentStatusTitleEn }}
+                     </span>
+                     {{else}}-{{end}}
+                  </td>
+               </tr>
+               {{end}}
+            </tbody>
+         </table>
+         {{else}}
+         <p style="font-size: 12px; color: #777; margin-bottom: 15px;">No associated incidents recorded.</p>
+         {{end}}
+
+         <!-- 3.9 Associated Compliance Requirements -->
+         <h4 class="sub-section-title">3.9 Associated Compliance Requirements</h4>
+         {{if .Data.ComplianceRequirements}}
+         <table>
+            <thead>
+               <tr>
+                  <th style="width: 35%;">Title</th>
+                  <th style="width: 20%;">Clause No</th>
+                  <th style="width: 45%;">Clause Title</th>
+               </tr>
+            </thead>
+            <tbody>
+               {{range $comp := .Data.ComplianceRequirements}}
+               {{range $clause := $comp.Clauses}}
+               <tr>
+                  <td>{{ $comp.ComplianceRegisterTitleEn }}</td>
+                  <td>{{ $clause.ClauseNo }}</td>
+                  <td>{{ $clause.ClauseTitleEn }}</td>
+               </tr>
+               {{end}}
+               {{end}}
+            </tbody>
+         </table>
+         {{else}}
+         <p style="font-size: 12px; color: #777; margin-bottom: 15px;">No associated compliance requirements recorded.</p>
+         {{end}}
       </div>
 
       <!-- 4. Action Plans -->
@@ -401,8 +499,8 @@
          <table>
             <thead>
                <tr>
-                  <th style="width: 15%;">Ref No</th>
-                  <th style="width: 30%;">Title</th>
+                  <th style="width: 10%;">#</th>
+                  <th style="width: 35%;">Title</th>
                   <th style="width: 15%;">Milestone</th>
                   <th style="width: 12%;">Target Date</th>
                   <th style="width: 13%;">Priority</th>
@@ -412,19 +510,19 @@
             <tbody>
                {{range .Data.ActionPlans}}
                <tr>
-                  <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
+                  <td>#{{ .ID }}</td>
                   <td>{{ .Title }}</td>
                   <td>{{if .ProjectMilestoneTitleEn}}{{ .ProjectMilestoneTitleEn }}{{else}}-{{end}}</td>
                   <td>{{if .TargetDate}}{{ .TargetDate }}{{else}}-{{end}}</td>
                   <td>
                      {{if .SeverityLevelTitleEn}}
-                     <span class="badge" style="background: #FEE8E8; color: #D93025;">
+                     <span class="badge" style="background: #FEE8E8; color: {{if .SeverityLevelColorCode}}{{.SeverityLevelColorCode}}{{else}}#D93025{{end}}; border: 1px solid #F6AEA9;">
                         {{ .SeverityLevelTitleEn }}
                      </span>
                      {{else}}-{{end}}
                   </td>
                   <td>
-                     <span class="badge" style="background: #E5F4F0; color: #0B7A55;">
+                     <span class="badge" style="background: #E5F4F0; color: {{if .ActionPlanStatusColorCode}}{{.ActionPlanStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
                         {{ .ActionPlanStatusTitleEn }}
                      </span>
                   </td>
@@ -444,11 +542,12 @@
          <table>
             <thead>
                <tr>
-                  <th style="width: 15%;">Ref No</th>
-                  <th style="width: 25%;">Title</th>
-                  <th style="width: 25%;">Reason / Benefits</th>
-                  <th style="width: 20%;">Impact (Scope/Schedule/Cost)</th>
-                  <th style="width: 15%;">Workflow Status</th>
+                  <th style="width: 12%;">Ref No</th>
+                  <th style="width: 20%;">Title</th>
+                  <th style="width: 24%;">Justification</th>
+                  <th style="width: 20%;">Anticipated Benefits</th>
+                  <th style="width: 12%;">Risks of Deferral</th>
+                  <th style="width: 12%;">Workflow Status</th>
                </tr>
             </thead>
             <tbody>
@@ -456,18 +555,12 @@
                <tr>
                   <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
                   <td>{{ .Title }}</td>
-                  <td>
-                     {{if .BusinessJustification}}<strong>Justification:</strong> {{ .BusinessJustification }}<br/>{{end}}
-                     {{if .AnticipatedBenefits}}<strong>Benefits:</strong> {{ .AnticipatedBenefits }}{{end}}
-                  </td>
-                  <td>
-                     {{if .ScopeImpact}}Scope: {{ .ScopeImpact }}<br/>{{end}}
-                     {{if .ScheduleImpact}}Schedule: {{ .ScheduleImpact }}<br/>{{end}}
-                     {{if .CostImpact}}Cost: {{ .CostImpact }}{{end}}
-                  </td>
+                  <td>{{if .BusinessJustification}}{{ .BusinessJustification }}{{else}}-{{end}}</td>
+                  <td>{{if .AnticipatedBenefits}}{{ .AnticipatedBenefits }}{{else}}-{{end}}</td>
+                  <td>{{if .RisksOfDeferral}}{{ .RisksOfDeferral }}{{else}}-{{end}}</td>
                   <td>
                      {{if .WorkflowStatusTitleEn}}
-                     <span class="badge" style="background: #E8F0FE; color: #1967D2;">
+                     <span class="badge" style="background: #E8F0FE; color: {{if .WorkflowStatusColorCode}}{{.WorkflowStatusColorCode}}{{else}}#1967D2{{end}}; border: 1px solid #BFD3F9;">
                         {{ .WorkflowStatusTitleEn }}
                      </span>
                      {{else}}-{{end}}
@@ -488,11 +581,13 @@
          <table>
             <thead>
                <tr>
-                  <th style="width: 15%;">Ref No</th>
-                  <th style="width: 25%;">Decision</th>
-                  <th style="width: 25%;">Reason / Notes</th>
-                  <th style="width: 15%;">Decision Date</th>
-                  <th style="width: 20%;">Status / Requested By</th>
+                  <th style="width: 10%;">Ref No</th>
+                  <th style="width: 20%;">Decision</th>
+                  <th style="width: 18%;">Reason</th>
+                  <th style="width: 16%;">Notes</th>
+                  <th style="width: 12%;">Decision Date</th>
+                  <th style="width: 12%;">Requested By</th>
+                  <th style="width: 12%;">Workflow Status</th>
                </tr>
             </thead>
             <tbody>
@@ -500,19 +595,16 @@
                <tr>
                   <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
                   <td>{{ .Decision }}</td>
-                  <td>
-                     {{if .Reason}}<strong>Reason:</strong> {{ .Reason }}<br/>{{end}}
-                     {{if .DecisionNotes}}<strong>Notes:</strong> {{ .DecisionNotes }}{{end}}
-                  </td>
+                  <td>{{if .Reason}}{{ .Reason }}{{else}}-{{end}}</td>
+                  <td>{{if .DecisionNotes}}{{ .DecisionNotes }}{{else}}-{{end}}</td>
                   <td>{{if .DecisionDate}}{{ .DecisionDate }}{{else}}-{{end}}</td>
+                  <td>{{if .RequestedByUserFirstNameEn}}{{ .RequestedByUserFirstNameEn }} {{ .RequestedByUserLastNameEn }}{{else}}-{{end}}</td>
                   <td>
                      {{if .WorkflowStatusTitleEn}}
-                     <span class="badge" style="background: #E8F0FE; color: #1967D2;">
+                     <span class="badge" style="background: #E8F0FE; color: {{if .WorkflowStatusColorCode}}{{.WorkflowStatusColorCode}}{{else}}#1967D2{{end}}; border: 1px solid #BFD3F9;">
                         {{ .WorkflowStatusTitleEn }}
                      </span>
-                     <br/>
-                     {{end}}
-                     {{if .RequestedByUserFirstNameEn}}{{ .RequestedByUserFirstNameEn }} {{ .RequestedByUserLastNameEn }}{{end}}
+                     {{else}}-{{end}}
                   </td>
                </tr>
                {{end}}
@@ -530,17 +622,17 @@
          <table>
             <thead>
                <tr>
-                  <th style="width: 40%;">Title (EN)</th>
-                  <th style="width: 30%;">Title (AR)</th>
-                  <th style="width: 30%;">Uploaded By</th>
+                  <th style="width: 10%;">#</th>
+                  <th style="width: 55%;">Title</th>
+                  <th style="width: 35%;">Uploaded By</th>
                </tr>
             </thead>
             <tbody>
-               {{range .Data.SupportingDocuments}}
+               {{range $i, $doc := .Data.SupportingDocuments}}
                <tr>
-                  <td>{{ .TitleEn }}</td>
-                  <td>{{if .TitleAr}}{{ .TitleAr }}{{else}}-{{end}}</td>
-                  <td>{{ .CreatedUserFirstNameEn }} {{ .CreatedUserLastNameEn }}</td>
+                  <td>{{add $i 1}}</td>
+                  <td>{{if $doc.TitleEn}}{{$doc.TitleEn}}{{else}}-{{end}}</td>
+                  <td>{{if $doc.CreatedUserFirstNameEn}}{{$doc.CreatedUserFirstNameEn}} {{$doc.CreatedUserLastNameEn}}{{else}}-{{end}}</td>
                </tr>
                {{end}}
             </tbody>
@@ -556,38 +648,38 @@
          {{if .Data.Closure}}
          <div style="margin-top: 10px;">
             <div style="width: 48%; display: inline-block; vertical-align: top;">
-               <p class="field-label">Overall Project Outcome:</p>
-               <p class="field-value">{{if .Data.Closure.OverallProjectOutcome}}{{ .Data.Closure.OverallProjectOutcome }}{{else}}-{{end}}</p>
+               <div class="field-label">Overall Project Outcome:</div>
+               <div class="field-value">{{if .Data.Closure.OverallProjectOutcome}}{{ .Data.Closure.OverallProjectOutcome | safeHTML }}{{else}}-{{end}}</div>
             </div>
             <div style="width: 48%; display: inline-block; vertical-align: top;">
-               <p class="field-label">Closure Reason:</p>
-               <p class="field-value">{{if .Data.Closure.ClosureReason}}{{ .Data.Closure.ClosureReason }}{{else}}-{{end}}</p>
-            </div>
-         </div>
-
-         <div style="margin-top: 5px;">
-            <div style="width: 48%; display: inline-block; vertical-align: top;">
-               <p class="field-label">Closure Comments:</p>
-               <p class="field-value">{{if .Data.Closure.ClosureComments}}{{ .Data.Closure.ClosureComments }}{{else}}-{{end}}</p>
-            </div>
-            <div style="width: 48%; display: inline-block; vertical-align: top;">
-               <p class="field-label">Lessons Learned:</p>
-               <p class="field-value">{{if .Data.Closure.LessonLearned}}{{ .Data.Closure.LessonLearned }}{{else}}-{{end}}</p>
+               <div class="field-label">Closure Reason:</div>
+               <div class="field-value">{{if .Data.Closure.ClosureReason}}{{ .Data.Closure.ClosureReason | safeHTML }}{{else}}-{{end}}</div>
             </div>
          </div>
 
          <div style="margin-top: 5px;">
             <div style="width: 48%; display: inline-block; vertical-align: top;">
-               <p class="field-label">Approver User:</p>
-               <p class="field-value">
+               <div class="field-label">Closure Comments:</div>
+               <div class="field-value">{{if .Data.Closure.ClosureComments}}{{ .Data.Closure.ClosureComments | safeHTML }}{{else}}-{{end}}</div>
+            </div>
+            <div style="width: 48%; display: inline-block; vertical-align: top;">
+               <div class="field-label">Lessons Learned:</div>
+               <div class="field-value">{{if .Data.Closure.LessonLearned}}{{ .Data.Closure.LessonLearned | safeHTML }}{{else}}-{{end}}</div>
+            </div>
+         </div>
+
+         <div style="margin-top: 5px;">
+            <div style="width: 48%; display: inline-block; vertical-align: top;">
+               <div class="field-label">Approver User:</div>
+               <div class="field-value">
                   {{if .Data.Closure.ApproverUser}}
-                     {{ .Data.Closure.ApproverUser.FirstNameEn }} {{ .Data.Closure.ApproverUser.LastNameEn }}
+                     {{ .Data.Closure.ApproverUser.FirstNameEN }} {{ .Data.Closure.ApproverUser.LastNameEN }}
                   {{else}}-{{end}}
-               </p>
+               </div>
             </div>
             <div style="width: 48%; display: inline-block; vertical-align: top;">
-               <p class="field-label">Created Date:</p>
-               <p class="field-value">{{ .Data.Closure.CreatedAtFormatted }}</p>
+               <div class="field-label">Created Date:</div>
+               <div class="field-value">{{ .Data.Closure.CreatedAtFormatted }}</div>
             </div>
          </div>
          {{else}}
