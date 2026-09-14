@@ -74,11 +74,12 @@
       margin: 0 0 4px 0;
    }
    .badge {
-      padding: 3px 8px;
+      padding: 4px 8px;
       border-radius: 4px;
       font-size: 11px;
       font-weight: 500;
       display: inline-block;
+      white-space: nowrap;
    }
 </style>
 
@@ -90,11 +91,7 @@
          <h3 class="section-title">1. Project Overview</h3>
          
          <div style="margin-top: 10px;">
-            <div style="width: 24%; display: inline-block; vertical-align: top;">
-               <p class="field-label">Project ID:</p>
-               <p class="field-value">#{{ .Data.ID }}</p>
-            </div>
-            <div style="width: 72%; display: inline-block; vertical-align: top;">
+            <div style="width: 100%; display: inline-block; vertical-align: top;">
                <p class="field-label">Title:</p>
                <p class="field-value">{{ .Data.TitleEn }}</p>
             </div>
@@ -104,20 +101,14 @@
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Status:</p>
                <p class="field-value">
-                  <span class="badge" style="background: #E5F4F0; color: {{if .Data.ProjectStatus.ColorCode}}{{.Data.ProjectStatus.ColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
+                  <span class="badge" style="background: {{if .Data.ProjectStatus.ColorCode}}{{.Data.ProjectStatus.ColorCode}}{{else}}#0B7A55{{end}}; color: #ffffff; border: 1px solid {{if .Data.ProjectStatus.ColorCode}}{{.Data.ProjectStatus.ColorCode}}{{else}}#0B7A55{{end}};">
                      {{ .Data.ProjectStatus.TitleEn }}
                   </span>
                </p>
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Phase:</p>
-               <p class="field-value">
-                  {{if .Data.ProjectPhase}}
-                     <span class="badge" style="background: #E8F0FE; color: #1967D2; border: 1px solid #BFD3F9;">
-                        {{ .Data.ProjectPhase.TitleEn }}
-                     </span>
-                  {{else}}-{{end}}
-               </p>
+               <p class="field-value">{{if .Data.ProjectPhase}}{{ .Data.ProjectPhase.TitleEn }}{{else}}-{{end}}</p>
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Type:</p>
@@ -206,12 +197,12 @@
          <table>
             <thead>
                <tr>
-                  <th style="width: 25%;">Title</th>
-                  <th style="width: 25%;">Description</th>
-                  <th style="width: 12%;">Planned Date</th>
-                  <th style="width: 12%;">Actual Date</th>
-                  <th style="width: 13%;">Status</th>
-                  <th style="width: 13%;">Phase</th>
+                  <th style="width: 23%;">Title</th>
+                  <th style="width: 23%;">Description</th>
+                  <th style="width: 13%;">Planned Date</th>
+                  <th style="width: 13%;">Actual Date</th>
+                  <th style="width: 14%;">Status</th>
+                  <th style="width: 14%;">Phase</th>
                </tr>
             </thead>
             <tbody>
@@ -221,10 +212,12 @@
                   <td>{{if .DescriptionEn}}{{ .DescriptionEn }}{{else}}-{{end}}</td>
                   <td>{{if .PlannedDate}}{{ .PlannedDate }}{{else}}-{{end}}</td>
                   <td>{{if .ActualDate}}{{ .ActualDate }}{{else}}-{{end}}</td>
-                  <td>
-                     <span class="badge" style="background: #E5F4F0; color: {{if .ProjectMilestoneStatusColorCode}}{{.ProjectMilestoneStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
+                  <td style="white-space: nowrap;">
+                     {{if .ProjectMilestoneStatusTitleEn}}
+                     <span class="badge" style="background: {{if .ProjectMilestoneStatusColorCode}}{{.ProjectMilestoneStatusColorCode}}{{else}}#0B7A55{{end}}; color: #ffffff; border: 1px solid {{if .ProjectMilestoneStatusColorCode}}{{.ProjectMilestoneStatusColorCode}}{{else}}#0B7A55{{end}};">
                         {{ .ProjectMilestoneStatusTitleEn }}
                      </span>
+                     {{else}}-{{end}}
                   </td>
                   <td>{{if .ProjectPhaseTitleEn}}{{ .ProjectPhaseTitleEn }}{{else}}-{{end}}</td>
                </tr>
@@ -418,7 +411,7 @@
                   <td>{{if .AssetCategoryTitleEn}}{{ .AssetCategoryTitleEn }}{{else}}-{{end}}</td>
                   <td>
                      {{if .AssetStatusTitleEn}}
-                     <span class="badge" style="background: #E5F4F0; color: {{if .AssetStatusColorCode}}{{.AssetStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
+                     <span class="badge" style="background: {{if .AssetStatusColorCode}}{{.AssetStatusColorCode}}{{else}}#0B7A55{{end}}; color: #ffffff; border: 1px solid {{if .AssetStatusColorCode}}{{.AssetStatusColorCode}}{{else}}#0B7A55{{end}};">
                         {{ .AssetStatusTitleEn }}
                      </span>
                      {{else}}-{{end}}
@@ -451,7 +444,7 @@
                   <td>{{if .IncidentCategoryTitleEn}}{{ .IncidentCategoryTitleEn }}{{else}}-{{end}}</td>
                   <td>
                      {{if .IncidentStatusTitleEn}}
-                     <span class="badge" style="background: #E5F4F0; color: {{if .IncidentStatusColorCode}}{{.IncidentStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
+                     <span class="badge" style="background: {{if .IncidentStatusColorCode}}{{.IncidentStatusColorCode}}{{else}}#0B7A55{{end}}; color: #ffffff; border: 1px solid {{if .IncidentStatusColorCode}}{{.IncidentStatusColorCode}}{{else}}#0B7A55{{end}};">
                         {{ .IncidentStatusTitleEn }}
                      </span>
                      {{else}}-{{end}}
@@ -516,15 +509,17 @@
                   <td>{{if .TargetDate}}{{ .TargetDate }}{{else}}-{{end}}</td>
                   <td>
                      {{if .SeverityLevelTitleEn}}
-                     <span class="badge" style="background: #FEE8E8; color: {{if .SeverityLevelColorCode}}{{.SeverityLevelColorCode}}{{else}}#D93025{{end}}; border: 1px solid #F6AEA9;">
+                     <span class="badge" style="background: {{if .SeverityLevelColorCode}}{{.SeverityLevelColorCode}}{{else}}#D93025{{end}}; color: #ffffff; border: 1px solid {{if .SeverityLevelColorCode}}{{.SeverityLevelColorCode}}{{else}}#D93025{{end}};">
                         {{ .SeverityLevelTitleEn }}
                      </span>
                      {{else}}-{{end}}
                   </td>
                   <td>
-                     <span class="badge" style="background: #E5F4F0; color: {{if .ActionPlanStatusColorCode}}{{.ActionPlanStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
+                     {{if .ActionPlanStatusTitleEn}}
+                     <span class="badge" style="background: {{if .ActionPlanStatusColorCode}}{{.ActionPlanStatusColorCode}}{{else}}#0B7A55{{end}}; color: #ffffff; border: 1px solid {{if .ActionPlanStatusColorCode}}{{.ActionPlanStatusColorCode}}{{else}}#0B7A55{{end}};">
                         {{ .ActionPlanStatusTitleEn }}
                      </span>
+                     {{else}}-{{end}}
                   </td>
                </tr>
                {{end}}
@@ -560,7 +555,7 @@
                   <td>{{if .RisksOfDeferral}}{{ .RisksOfDeferral }}{{else}}-{{end}}</td>
                   <td>
                      {{if .WorkflowStatusTitleEn}}
-                     <span class="badge" style="background: #E8F0FE; color: {{if .WorkflowStatusColorCode}}{{.WorkflowStatusColorCode}}{{else}}#1967D2{{end}}; border: 1px solid #BFD3F9;">
+                     <span class="badge" style="background: {{if .WorkflowStatusColorCode}}{{.WorkflowStatusColorCode}}{{else}}#1967D2{{end}}; color: #ffffff; border: 1px solid {{if .WorkflowStatusColorCode}}{{.WorkflowStatusColorCode}}{{else}}#1967D2{{end}};">
                         {{ .WorkflowStatusTitleEn }}
                      </span>
                      {{else}}-{{end}}
@@ -601,7 +596,7 @@
                   <td>{{if .RequestedByUserFirstNameEn}}{{ .RequestedByUserFirstNameEn }} {{ .RequestedByUserLastNameEn }}{{else}}-{{end}}</td>
                   <td>
                      {{if .WorkflowStatusTitleEn}}
-                     <span class="badge" style="background: #E8F0FE; color: {{if .WorkflowStatusColorCode}}{{.WorkflowStatusColorCode}}{{else}}#1967D2{{end}}; border: 1px solid #BFD3F9;">
+                     <span class="badge" style="background: {{if .WorkflowStatusColorCode}}{{.WorkflowStatusColorCode}}{{else}}#1967D2{{end}}; color: #ffffff; border: 1px solid {{if .WorkflowStatusColorCode}}{{.WorkflowStatusColorCode}}{{else}}#1967D2{{end}};">
                         {{ .WorkflowStatusTitleEn }}
                      </span>
                      {{else}}-{{end}}
