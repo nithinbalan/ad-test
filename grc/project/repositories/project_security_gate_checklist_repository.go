@@ -236,8 +236,8 @@ func (repo *ProjectSecurityGateChecklistRepository) GetFullDetailsByID(id uint) 
 		}).
 		Preload("Comments.CreatedByUser").
 		Preload("Comments.Documents").
-		Preload("Comments.History").
-		Preload("Comments.History.WorkflowStatus").
+		Preload("Comments.WorkflowHistory").
+		Preload("Comments.WorkflowHistory.WorkflowStatus").
 		Preload("Controls").
 		Preload("Controls.Control").
 		First(&checklist, id)

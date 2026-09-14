@@ -43,11 +43,7 @@ func (repo *ProjectSecurityGateChecklistCommentRepository) GetByID(id uint, tx .
 
 	var comment *models.ProjectSecurityGateChecklistComment
 	result := db.
-		Preload("CreatedByUser").
 		Preload("Documents").
-		Preload("History").
-		Preload("History.WorkflowStatus").
-		Preload("History.CreatedByUser").
 		First(&comment, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {

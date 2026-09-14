@@ -18,7 +18,7 @@ import (
 
 type ProjectSecurityGateChecklistCommentServiceInterface interface {
 	GetByID(securityGateID uint, checklistID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklistComment, error)
-	Create(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO, historyID *uint, tx ...utility.DatabaseTransaction) (uint, error)
+	Create(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO, workflowHistoryID *uint, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(securityGateID uint, checklistID uint, id uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO) error
 	Delete(securityGateID uint, checklistID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(securityGateID uint, checklistID uint, id uint, token string) (string, error)
@@ -99,7 +99,7 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) GetDocumentPath(securi
 	return fullPath, nil
 }
 
-func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO, historyID *uint, tx ...utility.DatabaseTransaction) (id uint, err error) {
+func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistCommentFormDTO, workflowHistoryID *uint, tx ...utility.DatabaseTransaction) (id uint, err error) {
 	ownsTx := len(tx) == 0 || tx[0] == nil
 
 	var dbTx utility.DatabaseTransaction
@@ -127,11 +127,11 @@ func (psgccs *ProjectSecurityGateChecklistCommentService) Create(securityGateID 
 	}
 
 	comment := &models.ProjectSecurityGateChecklistComment{
-		ChecklistID: checklistID,
-		HistoryID:   historyID,
-		Comment:     form.Comment,
-		CreatedBYID: currentUserID,
-		CreatedAt:   time.Now(),
+		ChecklistID:       checklistID,
+		WorkflowHistoryID: workflowHistoryID,
+		Comment:           form.Comment,
+		CreatedBYID:       currentUserID,
+		CreatedAt:         time.Now(),
 	}
 
 	if err = psgccs.repo.Create(comment, dbTx); err != nil {

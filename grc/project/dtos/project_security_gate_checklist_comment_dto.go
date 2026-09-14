@@ -8,12 +8,12 @@ import (
 )
 
 type ProjectSecurityGateChecklistCommentDTO struct {
-	ID            uint                                                         `json:"id"`
-	Comment       string                                                       `json:"comment"`
-	History       *ProjectSecurityGateChecklistExceptionWorkflowHistoryItemDTO `json:"review"`
-	CreatedByUser *organizationDTOs.UserMinimalDTO                             `json:"created_by"`
-	CreatedAt     time.Time                                                    `json:"created_at"`
-	Documents     []*ProjectSecurityGateChecklistCommentDocumentDTO            `json:"documents"`
+	ID              uint                                                         `json:"id"`
+	Comment         string                                                       `json:"comment"`
+	WorkflowHistory *ProjectSecurityGateChecklistExceptionWorkflowHistoryItemDTO `json:"review"`
+	CreatedByUser   *organizationDTOs.UserMinimalDTO                             `json:"created_by"`
+	CreatedAt       time.Time                                                    `json:"created_at"`
+	Documents       []*ProjectSecurityGateChecklistCommentDocumentDTO            `json:"documents"`
 }
 
 type ProjectSecurityGateChecklistCommentDocumentDTO struct {
