@@ -9,43 +9,43 @@ import (
 )
 
 type ProjectModule struct {
-	ProjectTypeController                                *controllers.ProjectTypeController
-	ProjectStatusController                              *controllers.ProjectStatusController
-	ProjectController                                    *controllers.ProjectController
-	ProjectMilestoneController                           *controllers.ProjectMilestoneController
-	ProjectActionPlanController                          *controllers.ProjectActionPlanController
-	ProjectActionPlanStatusUpdateController              *controllers.ProjectActionPlanStatusUpdateController
-	ProjectActionPlanCommentController                   *controllers.ProjectActionPlanCommentController
-	ProjectAssociatedItemController                      *controllers.ProjectAssociatedItemController
-	ProjectClassificationController                      *controllers.ProjectClassificationController
-	ProjectPhaseController                               *controllers.ProjectPhaseController
-	ProjectChangeRequestController                       *controllers.ProjectChangeRequestController
-	ProjectChangeRequestWorkflowController               *controllers.ProjectChangeRequestWorkflowController
-	ProjectChangeRequestReviewController                 *controllers.ProjectChangeRequestReviewController
-	ProjectChangeRequestReviewCommentController          *controllers.ProjectChangeRequestReviewCommentController
-	ProjectImpactAssessmentTypeController                *controllers.ProjectImpactAssessmentTypeController
-	ProjectSecurityGateClassificationController          *controllers.ProjectSecurityGateClassificationController
-	ProjectSecurityGateStageController                   *controllers.ProjectSecurityGateStageController
-	ProjectSecurityGateChecklistTemplateController       *controllers.ProjectSecurityGateChecklistTemplateController
-	ProjectSecurityGateChecklistResponseStatusController *controllers.ProjectSecurityGateChecklistResponseStatusController
-	ProjectWorkflowLevelController                       *controllers.ProjectWorkflowLevelController
-	ProjectDecisionLogController                         *controllers.ProjectDecisionLogController
-	ProjectDecisionLogWorkflowController                 *controllers.ProjectDecisionLogWorkflowController
-	ProjectDecisionLogReviewController                   *controllers.ProjectDecisionLogReviewController
-	ProjectDecisionLogReviewCommentController            *controllers.ProjectDecisionLogReviewCommentController
-	ProjectSupportingDocumentController                  *controllers.ProjectSupportingDocumentController
-	ProjectClosureController                             *controllers.ProjectClosureController
-	ProjectSecurityGateReadinessStatusController         *controllers.ProjectSecurityGateReadinessStatusController
-	ProjectSecurityGateController                        *controllers.ProjectSecurityGateController
-	ProjectSecurityGateChecklistController               *controllers.ProjectSecurityGateChecklistController
-	ProjectReportController                              *controllers.ProjectReportController
-	ProjectSecurityGateChecklistCommentController        *controllers.ProjectSecurityGateChecklistCommentController
-	ProjectWorkflowController                            *controllers.ProjectWorkflowController
-	ProjectReviewController                              *controllers.ProjectReviewController
-	ProjectReviewCommentController                       *controllers.ProjectReviewCommentController
-
+	ProjectTypeController                                   *controllers.ProjectTypeController
+	ProjectStatusController                                 *controllers.ProjectStatusController
+	ProjectController                                       *controllers.ProjectController
+	ProjectMilestoneController                              *controllers.ProjectMilestoneController
+	ProjectActionPlanController                             *controllers.ProjectActionPlanController
+	ProjectActionPlanStatusUpdateController                 *controllers.ProjectActionPlanStatusUpdateController
+	ProjectActionPlanCommentController                      *controllers.ProjectActionPlanCommentController
+	ProjectAssociatedItemController                         *controllers.ProjectAssociatedItemController
+	ProjectClassificationController                         *controllers.ProjectClassificationController
+	ProjectPhaseController                                  *controllers.ProjectPhaseController
+	ProjectChangeRequestController                          *controllers.ProjectChangeRequestController
+	ProjectChangeRequestWorkflowController                  *controllers.ProjectChangeRequestWorkflowController
+	ProjectChangeRequestReviewController                    *controllers.ProjectChangeRequestReviewController
+	ProjectChangeRequestReviewCommentController             *controllers.ProjectChangeRequestReviewCommentController
+	ProjectImpactAssessmentTypeController                   *controllers.ProjectImpactAssessmentTypeController
+	ProjectSecurityGateClassificationController             *controllers.ProjectSecurityGateClassificationController
+	ProjectSecurityGateStageController                      *controllers.ProjectSecurityGateStageController
+	ProjectSecurityGateChecklistTemplateController          *controllers.ProjectSecurityGateChecklistTemplateController
+	ProjectSecurityGateChecklistResponseStatusController    *controllers.ProjectSecurityGateChecklistResponseStatusController
+	ProjectWorkflowLevelController                          *controllers.ProjectWorkflowLevelController
+	ProjectDecisionLogController                            *controllers.ProjectDecisionLogController
+	ProjectDecisionLogWorkflowController                    *controllers.ProjectDecisionLogWorkflowController
+	ProjectDecisionLogReviewController                      *controllers.ProjectDecisionLogReviewController
+	ProjectDecisionLogReviewCommentController               *controllers.ProjectDecisionLogReviewCommentController
+	ProjectSupportingDocumentController                     *controllers.ProjectSupportingDocumentController
+	ProjectClosureController                                *controllers.ProjectClosureController
+	ProjectSecurityGateReadinessStatusController            *controllers.ProjectSecurityGateReadinessStatusController
+	ProjectSecurityGateController                           *controllers.ProjectSecurityGateController
+	ProjectSecurityGateChecklistController                  *controllers.ProjectSecurityGateChecklistController
+	ProjectReportController                                 *controllers.ProjectReportController
+	ProjectSecurityGateChecklistCommentController           *controllers.ProjectSecurityGateChecklistCommentController
+	ProjectWorkflowController                               *controllers.ProjectWorkflowController
+	ProjectReviewController                                 *controllers.ProjectReviewController
+	ProjectReviewCommentController                          *controllers.ProjectReviewCommentController
 	ProjectSecurityGateChecklistExceptionWorkflowController *controllers.ProjectSecurityGateChecklistExceptionWorkflowController
 	ProjectSecurityGateChecklistExceptionReviewController   *controllers.ProjectSecurityGateChecklistExceptionReviewController
+	ProjectSecurityGateChecklistRiskController              *controllers.ProjectSecurityGateChecklistRiskController
 
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
@@ -394,44 +394,54 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectSecurityGateChecklistExceptionReviewController := controllers.NewProjectSecurityGateChecklistExceptionReviewController(projectSecurityGateChecklistExceptionReviewSvc)
 
-	return &ProjectModule{
-		ProjectTypeController:                                projectTypeController,
-		ProjectStatusController:                              projectStatusController,
-		ProjectController:                                    projectController,
-		ProjectMilestoneController:                           projectMilestoneController,
-		ProjectActionPlanController:                          projectActionPlanController,
-		ProjectActionPlanStatusUpdateController:              projectActionPlanStatusUpdateController,
-		ProjectActionPlanCommentController:                   projectActionPlanCommentController,
-		ProjectAssociatedItemController:                      projectAssociatedItemController,
-		ProjectClassificationController:                      projectClassificationController,
-		ProjectPhaseController:                               projectPhaseController,
-		ProjectChangeRequestController:                       projectChangeRequestController,
-		ProjectChangeRequestWorkflowController:               projectChangeRequestWorkflowController,
-		ProjectChangeRequestReviewController:                 projectChangeRequestReviewController,
-		ProjectChangeRequestReviewCommentController:          projectChangeRequestReviewCommentController,
-		ProjectImpactAssessmentTypeController:                projectImpactAssessmentTypeController,
-		ProjectSecurityGateClassificationController:          projectSecurityGateClassificationController,
-		ProjectSecurityGateStageController:                   projectSecurityGateStageController,
-		ProjectSecurityGateChecklistTemplateController:       projectSecurityGateChecklistTemplateController,
-		ProjectSecurityGateChecklistResponseStatusController: projectSecurityGateChecklistResponseStatusController,
-		ProjectWorkflowLevelController:                       projectWorkflowLevelController,
-		ProjectDecisionLogController:                         projectDecisionLogController,
-		ProjectDecisionLogWorkflowController:                 projectDecisionLogWorkflowController,
-		ProjectDecisionLogReviewController:                   projectDecisionLogReviewController,
-		ProjectDecisionLogReviewCommentController:            projectDecisionLogReviewCommentController,
-		ProjectSupportingDocumentController:                  projectSupportingDocumentController,
-		ProjectClosureController:                             projectClosureController,
-		ProjectSecurityGateReadinessStatusController:         projectSecurityGateReadinessStatusController,
-		ProjectSecurityGateController:                        projectSecurityGateController,
-		ProjectSecurityGateChecklistController:               projectSecurityGateChecklistController,
-		ProjectReportController:                              projectReportController,
-		ProjectSecurityGateChecklistCommentController:        projectSecurityGateChecklistCommentController,
-		ProjectWorkflowController:                            projectWorkflowController,
-		ProjectReviewController:                              projectReviewController,
-		ProjectReviewCommentController:                       projectReviewCommentController,
+	projectSecurityGateChecklistRiskRepo := repositories.NewProjectSecurityGateChecklistRiskRepository(db)
+	projectSecurityGateChecklistRiskSvc := services.NewProjectSecurityGateChecklistRiskService(
+		projectSecurityGateChecklistRiskRepo,
+		projectSecurityGateChecklistSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		sharedModule.ActivityLogService,
+	)
+	projectSecurityGateChecklistRiskController := controllers.NewProjectSecurityGateChecklistRiskController(projectSecurityGateChecklistRiskSvc)
 
+	return &ProjectModule{
+		ProjectTypeController:                                   projectTypeController,
+		ProjectStatusController:                                 projectStatusController,
+		ProjectController:                                       projectController,
+		ProjectMilestoneController:                              projectMilestoneController,
+		ProjectActionPlanController:                             projectActionPlanController,
+		ProjectActionPlanStatusUpdateController:                 projectActionPlanStatusUpdateController,
+		ProjectActionPlanCommentController:                      projectActionPlanCommentController,
+		ProjectAssociatedItemController:                         projectAssociatedItemController,
+		ProjectClassificationController:                         projectClassificationController,
+		ProjectPhaseController:                                  projectPhaseController,
+		ProjectChangeRequestController:                          projectChangeRequestController,
+		ProjectChangeRequestWorkflowController:                  projectChangeRequestWorkflowController,
+		ProjectChangeRequestReviewController:                    projectChangeRequestReviewController,
+		ProjectChangeRequestReviewCommentController:             projectChangeRequestReviewCommentController,
+		ProjectImpactAssessmentTypeController:                   projectImpactAssessmentTypeController,
+		ProjectSecurityGateClassificationController:             projectSecurityGateClassificationController,
+		ProjectSecurityGateStageController:                      projectSecurityGateStageController,
+		ProjectSecurityGateChecklistTemplateController:          projectSecurityGateChecklistTemplateController,
+		ProjectSecurityGateChecklistResponseStatusController:    projectSecurityGateChecklistResponseStatusController,
+		ProjectWorkflowLevelController:                          projectWorkflowLevelController,
+		ProjectDecisionLogController:                            projectDecisionLogController,
+		ProjectDecisionLogWorkflowController:                    projectDecisionLogWorkflowController,
+		ProjectDecisionLogReviewController:                      projectDecisionLogReviewController,
+		ProjectDecisionLogReviewCommentController:               projectDecisionLogReviewCommentController,
+		ProjectSupportingDocumentController:                     projectSupportingDocumentController,
+		ProjectClosureController:                                projectClosureController,
+		ProjectSecurityGateReadinessStatusController:            projectSecurityGateReadinessStatusController,
+		ProjectSecurityGateController:                           projectSecurityGateController,
+		ProjectSecurityGateChecklistController:                  projectSecurityGateChecklistController,
+		ProjectReportController:                                 projectReportController,
+		ProjectSecurityGateChecklistCommentController:           projectSecurityGateChecklistCommentController,
+		ProjectWorkflowController:                               projectWorkflowController,
+		ProjectReviewController:                                 projectReviewController,
+		ProjectReviewCommentController:                          projectReviewCommentController,
 		ProjectSecurityGateChecklistExceptionWorkflowController: projectSecurityGateChecklistExceptionWorkflowController,
 		ProjectSecurityGateChecklistExceptionReviewController:   projectSecurityGateChecklistExceptionReviewController,
+		ProjectSecurityGateChecklistRiskController:              projectSecurityGateChecklistRiskController,
 
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,

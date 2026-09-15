@@ -240,6 +240,13 @@ func (repo *ProjectSecurityGateChecklistRepository) GetFullDetailsByID(id uint) 
 		Preload("Comments.WorkflowHistory.WorkflowStatus").
 		Preload("Controls").
 		Preload("Controls.Control").
+		Preload("Risks").
+		Preload("Risks.RiskRegister").
+		Preload("Risks.RiskRegister.RiskStatus").
+		Preload("Risks.RiskRegister.RiskCategory").
+		Preload("Risks.RiskRegister.Division").
+		Preload("Risks.RiskRegister.ResponsibleUnit").
+		Preload("Risks.RiskRegister.ResponsibleUser").
 		First(&checklist, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {

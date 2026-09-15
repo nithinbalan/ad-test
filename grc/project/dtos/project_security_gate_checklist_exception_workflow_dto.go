@@ -12,9 +12,9 @@ type ProjectSecurityGateChecklistExceptionWorkflowListDTO struct {
 	ChecklistID     uint                                                           `json:"checklist_id"`
 	NextReviewLevel *int                                                           `json:"next_review_level"`
 	SubmittedAt     *time.Time                                                     `json:"submitted_at"`
-	SubmittedByUser *organizationDTOs.UserMinimalDTO                               `json:"submitted_by_user"`
+	SubmittedByUser *organizationDTOs.UserMinimalDTO                               `json:"submitted_by"`
 	ApprovedAt      *time.Time                                                     `json:"approved_at"`
-	ApprovedByUser  *organizationDTOs.UserMinimalDTO                               `json:"approved_by_user"`
+	ApprovedByUser  *organizationDTOs.UserMinimalDTO                               `json:"approved_by"`
 	WorkflowStatus  *masterDTOs.WorkflowStatusDTO                                  `json:"workflow_status"`
 	Workflows       []*ProjectSecurityGateChecklistExceptionWorkflowLevelDTO       `json:"workflows"`
 	History         []*ProjectSecurityGateChecklistExceptionWorkflowHistoryItemDTO `json:"history"`
@@ -36,6 +36,6 @@ type ProjectSecurityGateChecklistExceptionWorkflowHistoryItemDTO struct {
 	Level          int                              `json:"level"`
 	WorkflowStatus masterDTOs.WorkflowStatusDTO     `json:"workflow_status"`
 	Comment        *string                          `json:"comment"`
-	CreatedByUser  *organizationDTOs.UserMinimalDTO `json:"created_by_user"`
+	CreatedByUser  *organizationDTOs.UserMinimalDTO `json:"created_by"`
 	CreatedAt      time.Time                        `json:"created_at"`
 }
