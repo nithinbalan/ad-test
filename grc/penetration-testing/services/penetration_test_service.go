@@ -28,14 +28,14 @@ type PenetrationTestServiceInterface interface {
 }
 
 type PenetrationTestService struct {
-	repo               repositories.PenetrationTestRepositoryInterface
-	activityLogSvc     logServices.ActivityLogServiceInterface
-	typeSvc            PenetrationTestTypeServiceInterface
-	planSvc            PenetrationTestPlanServiceInterface
-	classificationSvc  PenetrationTestClassificationServiceInterface
-	executorSvc        PenetrationTestExecutorServiceInterface
-	userSvc            organizationServices.UserServiceInterface
-	statusSvc          PenetrationTestStatusServiceInterface
+	repo              repositories.PenetrationTestRepositoryInterface
+	activityLogSvc    logServices.ActivityLogServiceInterface
+	typeSvc           PenetrationTestTypeServiceInterface
+	planSvc           PenetrationTestPlanServiceInterface
+	classificationSvc PenetrationTestClassificationServiceInterface
+	executorSvc       PenetrationTestExecutorServiceInterface
+	userSvc           organizationServices.UserServiceInterface
+	statusSvc         PenetrationTestStatusServiceInterface
 }
 
 func NewPenetrationTestService(
@@ -49,14 +49,14 @@ func NewPenetrationTestService(
 	statusSvc PenetrationTestStatusServiceInterface,
 ) PenetrationTestServiceInterface {
 	return &PenetrationTestService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		typeSvc:            typeSvc,
-		planSvc:            planSvc,
-		classificationSvc:  classificationSvc,
-		executorSvc:        executorSvc,
-		userSvc:            userSvc,
-		statusSvc:          statusSvc,
+		repo:              repo,
+		activityLogSvc:    activityLogSvc,
+		typeSvc:           typeSvc,
+		planSvc:           planSvc,
+		classificationSvc: classificationSvc,
+		executorSvc:       executorSvc,
+		userSvc:           userSvc,
+		statusSvc:         statusSvc,
 	}
 }
 
@@ -318,8 +318,10 @@ func (ptls *PenetrationTestService) validatePenetrationTestFormDTO(formDTO *pene
 	if _, err := ptls.classificationSvc.GetByID(formDTO.PenetrationTestClassificationID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("penetration test classification does not exist"), "not_exist", "penetration test classification")
 	}
-	if _, err := ptls.executorSvc.GetByID(formDTO.PenetrationTestExecutorID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("penetration test executor does not exist"), "not_exist", "penetration test executor")
+	if formDTO.PenetrationTestExecutorID != nil {
+		if _, err := ptls.executorSvc.GetByID(*formDTO.PenetrationTestExecutorID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("penetration test executor does not exist"), "not_exist", "penetration test executor")
+		}
 	}
 	if _, err := ptls.userSvc.GetByID(formDTO.CSResponsibleEmployeeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("CS responsible employee does not exist"), "not_exist", "CS responsible employee")

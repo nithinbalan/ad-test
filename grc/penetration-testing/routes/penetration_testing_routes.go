@@ -59,7 +59,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes.POST("/penetration-test-retests/:id/findings/:retestFindingId/result", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), retest.DecidePenetrationTestRetestFinding)
 	unauthenticatedRoutes.GET("/penetration-test-retests/:id/findings/:retestFindingId/document-preview", retest.GetPenetrationTestRetestFindingDocumentPreview)
 	unauthenticatedRoutes.GET("/penetration-test-retests/:id/findings/:retestFindingId/document-download", retest.DownloadPenetrationTestRetestFindingDocument)
-	penetrationTestingRoutes.POST("/penetration-test-retests/:id/complete", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), retest.CompletePenetrationTestRetest)
 	penetrationTestingRoutes.POST("/penetration-test-retests/delete", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), retest.DeletePenetrationTestRetests)
 	supportingDocument := m.PenetrationTestSupportingDocumentController
 	unauthenticatedRoutes.GET("/penetration-testing/pentest-logs/:id/supporting-documents/:supportingDocumentId/documents/:documentId/download", supportingDocument.DownloadDocument)

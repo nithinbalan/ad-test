@@ -11,9 +11,9 @@ type PenetrationTest struct {
 	Year                            int        `json:"year" gorm:"not null" binding:"required"`
 	Period                          string     `json:"period" gorm:"type:varchar(2);not null" binding:"required"`
 	PenetrationTestClassificationID uint       `json:"penetration_test_classification_id" gorm:"not null" binding:"required"`
-	PenetrationTestExecutorID       uint       `json:"penetration_test_executor_id" gorm:"not null" binding:"required"`
+	PenetrationTestExecutorID       *uint      `json:"penetration_test_executor_id" gorm:"default:null"`
 	CSResponsibleEmployeeID         uint       `json:"cs_responsible_employee_id" gorm:"not null" binding:"required"`
-	Scope                           string     `json:"scope" gorm:"type:nvarchar(max);not null" binding:"required"`
+	Scope                           *string    `json:"scope" gorm:"type:nvarchar(max);default:null"`
 	PenetrationTestStatusID         uint       `json:"penetration_test_status_id" gorm:"not null"`
 	CreatedBYID                     uint       `json:"created_by_id" gorm:"not null"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
