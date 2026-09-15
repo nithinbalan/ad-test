@@ -372,11 +372,9 @@
 {
   "id": "security_gate_already_go_live",
   "translation": "تم إطلاق بوابة الأمان هذه بالفعل."
+},
+{
+  "id": "findings_not_closed",
+  "translation": "يجب إغلاق جميع النتائج قبل إغلاق اختبار الاختراق."
 }
-
-
-
-
-
-
 ]

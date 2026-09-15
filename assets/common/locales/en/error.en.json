@@ -378,18 +378,9 @@
 {
   "id": "security_gate_already_go_live",
   "translation": "This security gate is already go live."
+},
+{
+  "id": "findings_not_closed",
+  "translation": "All findings must be closed before closing the penetration test."
 }
-
-
-
-
-
-
-
-
-
-
-  
-  
-  
 ]

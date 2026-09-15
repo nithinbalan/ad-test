@@ -818,6 +818,13 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "findings_not_closed":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "findings_not_closed",
+			})
+			errors = append(errors, errorMessage)
+
 		}
 
 		return errors

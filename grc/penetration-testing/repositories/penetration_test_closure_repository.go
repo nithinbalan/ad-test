@@ -15,6 +15,7 @@ type PenetrationTestClosureRepositoryInterface interface {
 	Update(closure *models.PenetrationTestClosure, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	ExistsByPenetrationTestID(penetrationTestID uint, tx ...utility.DatabaseTransaction) (bool, error)
+	HasOpenFindings(penetrationTestID uint, tx ...utility.DatabaseTransaction) (bool, error)
 }
 
 type PenetrationTestClosureRepository struct {
@@ -111,6 +112,26 @@ func (repo *PenetrationTestClosureRepository) ExistsByPenetrationTestID(penetrat
 	var count int64
 	err := db.Model(&models.PenetrationTestClosure{}).
 		Where("penetration_test_id = ?", penetrationTestID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+
+	return count > 0, nil
+}
+
+func (repo *PenetrationTestClosureRepository) HasOpenFindings(penetrationTestID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	err := db.Model(&models.PenetrationTestFinding{}).
+		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = penetration_test_findings.action_plan_status_id").
+		Where("penetration_test_findings.penetration_test_id = ?", penetrationTestID).
+		Where("action_plan_statuses.type <> ?", "close").
 		Count(&count).Error
 
 	if err != nil {
