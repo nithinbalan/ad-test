@@ -9,6 +9,7 @@ import (
 
 type PenetrationTestExecutionRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
+	ExistsByPenetrationTestID(penetrationTestID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	GetByID(penetrationTestID uint) (*models.PenetrationTestExecution, error)
 	GetFullDetailsByID(penetrationTestID uint, tx ...utility.DatabaseTransaction) (*models.PenetrationTestExecution, error)
 	Create(execution *models.PenetrationTestExecution, tx ...utility.DatabaseTransaction) (uint, error)
@@ -101,4 +102,22 @@ func (repo *PenetrationTestExecutionRepository) Delete(id uint, tx ...utility.Da
 	}
 
 	return nil
+}
+
+func (repo *PenetrationTestExecutionRepository) ExistsByPenetrationTestID(penetrationTestID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	err := db.Model(&models.PenetrationTestExecution{}).
+		Where("penetration_test_id = ?", penetrationTestID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+
+	return count > 0, nil
 }

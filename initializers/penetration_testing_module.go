@@ -8,6 +8,8 @@ import (
 )
 
 type PenetrationTestingModule struct {
+	PenetrationTestSvc                              services.PenetrationTestServiceInterface
+	PenetrationTestFindingSvc                       services.PenetrationTestFindingServiceInterface
 	PenetrationTestReportController                 *controllers.PenetrationTestReportController
 	PenetrationTestController                       *controllers.PenetrationTestController
 	PenetrationTestEnvironmentPreparationController *controllers.PenetrationTestEnvironmentPreparationController
@@ -56,6 +58,7 @@ func NewPenetrationTestingModule(
 		executorService,
 		organizationModule.UserSvc,
 		statusService,
+		organizationModule.UserSettingSvc,
 	)
 	environmentPreparationService := services.NewPenetrationTestEnvironmentPreparationService(
 		repositories.NewPenetrationTestEnvironmentPreparationRepository(db),
@@ -82,6 +85,7 @@ func NewPenetrationTestingModule(
 		masterModule.SeverityLevelSvc,
 		masterModule.ActionPlanStatusSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 	)
 	penetrationTestFindingStatusUpdateService := services.NewPenetrationTestFindingStatusUpdateService(
 		repositories.NewPenetrationTestFindingStatusUpdateRepository(db),
@@ -117,6 +121,8 @@ func NewPenetrationTestingModule(
 	penetrationTestReportController := controllers.NewPenetrationTestReportController(penetrationTestReportSvc)
 
 	return &PenetrationTestingModule{
+		PenetrationTestSvc:                              penetrationTestService,
+		PenetrationTestFindingSvc:                       penetrationTestFindingService,
 		PenetrationTestReportController:                 penetrationTestReportController,
 		PenetrationTestController:                       controllers.NewPenetrationTestController(penetrationTestService),
 		PenetrationTestEnvironmentPreparationController: controllers.NewPenetrationTestEnvironmentPreparationController(environmentPreparationService),

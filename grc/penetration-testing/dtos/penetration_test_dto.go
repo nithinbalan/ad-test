@@ -7,6 +7,15 @@ import (
 )
 
 type PenetrationTestListDTO struct {
+	CreatedByID                           uint    `json:"created_by_id"`
+	CreatedUserFirstNameEn                string  `json:"created_user_first_name_en"`
+	CreatedUserLastNameEn                 string  `json:"created_user_last_name_en"`
+	CreatedUserFirstNameAr                string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameAr                 string  `json:"created_user_last_name_ar"`
+	ResponsibleUnitID                     *uint   `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn                *string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr                *string `json:"responsible_unit_title_ar"`
+	CreatedAt                             string  `json:"created_at"`
 	ID                                    uint    `json:"id"`
 	ReferenceNumber                       string  `json:"reference_number"`
 	SystemApplicationName                 string  `json:"system_application_name"`
@@ -126,6 +135,9 @@ type PenetrationTestSeverityBreakdownDTO struct {
 }
 
 type PenetrationTestListQueryParamsDTO struct {
+	Export      bool
+	DateFrom    string
+	DateTo      string
 	Sort        string
 	SortBy      string
 	Keyword     string

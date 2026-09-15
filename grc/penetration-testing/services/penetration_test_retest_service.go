@@ -180,7 +180,7 @@ func (ptrs *PenetrationTestRetestService) Create(currentUserID uint, formDTO *pe
 			return 0, utility.NewValidationError(err, "invalid", "end_date")
 		}
 		if endDate.Before(startDate) {
-			return 0, utility.NewValidationError(fmt.Errorf("end date cannot be before start date"), "invalid", "end_date")
+			return 0, utility.NewValidationError(fmt.Errorf("end date cannot be before start date"), "retest_end_before_start", "end_date")
 		}
 	}
 	retestStatus, err := ptrs.retestStatusSvc.GetByType("draft")
@@ -271,7 +271,7 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 		}
 		if endDate.Before(startDate) {
 			tx.Rollback()
-			return utility.NewValidationError(fmt.Errorf("end date cannot be before start date"), "invalid", "end_date")
+			return utility.NewValidationError(fmt.Errorf("end date cannot be before start date"), "retest_end_before_start", "end_date")
 		}
 	}
 	updated := &models.PenetrationTestRetest{
@@ -782,6 +782,11 @@ func (ptrs *PenetrationTestRetestService) Delete(ids []uint, currentUserID uint)
 			continue
 		}
 		tx := ptrs.repo.BeginTransaction()
+		if err := ptrs.repo.DeleteRetestFindingDocumentsByRetestID(id, tx); err != nil {
+			tx.Rollback()
+			failedIDs = append(failedIDs, id)
+			continue
+		}
 		if err := ptrs.repo.DeleteRetestFindings(id, tx); err != nil {
 			tx.Rollback()
 			failedIDs = append(failedIDs, id)
@@ -795,6 +800,10 @@ func (ptrs *PenetrationTestRetestService) Delete(ids []uint, currentUserID uint)
 		if err := tx.Commit(); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
+		}
+		folderPath := filepath.Join("penetration-testing", "penetration-test-retests", strconv.FormatUint(uint64(id), 10))
+		if err := utility.RemoveFolder(folderPath); err != nil {
+			utility.LogError("Failed to remove re-test storage folder", map[string]interface{}{"retestID": id, "error": err.Error()})
 		}
 		successfulIDs = append(successfulIDs, id)
 		deleted = append(deleted, map[string]interface{}{"id": id, "reference_number": value.ReferenceNumber})

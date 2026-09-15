@@ -63,7 +63,8 @@ func NewApp(db *gorm.DB) *App {
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule, commonModule)
 	tprmModule := NewTprmModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule)
 	projectModule := NewProjectModule(db, sharedModule, organizationModule, masterModule, commonModule, taskModule, settingsModule, incidentModule)
-	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, auditInsightsModule, incidentModule, meetingModule, settingsModule, documentModule, sharedModule, kpiModule, commonModule, tprmModule, projectModule)
+	penetrationTestingModule := NewPenetrationTestingModule(db, sharedModule, settingsModule, masterModule, organizationModule)
+	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, auditInsightsModule, incidentModule, meetingModule, settingsModule, documentModule, sharedModule, kpiModule, commonModule, tprmModule, projectModule, penetrationTestingModule)
 	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule, assetModule, documentModule, riskModule, commonModule, taskModule)
 	organizationalContextModule := NewOrganizationalContextModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule, assetModule, tprmModule, complianceModule, documentModule, projectModule)
@@ -74,7 +75,6 @@ func NewApp(db *gorm.DB) *App {
 	violationReportModule := NewViolationReportModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule, assetModule)
 	identityAccessReviewModule := NewIdentityAccessReviewModule(db, sharedModule, organizationModule, settingsModule, masterModule, taskModule, commonModule)
 	securityOperationsModule := NewSecurityOperationsModule(db, sharedModule, settingsModule, organizationModule, commonModule)
-	penetrationTestingModule := NewPenetrationTestingModule(db, sharedModule, settingsModule, masterModule, organizationModule)
 	threatIntelligenceModule := NewThreatIntelligenceModule(db, sharedModule)
 
 	return &App{

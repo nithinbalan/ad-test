@@ -357,10 +357,17 @@
               {{end}}
             {{end}}
             {{if eq $section.Type "findings"}}
-              <h4 style="margin: 24px 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">3. Findings</h4>
+              {{if not .Findings}}
+                <h4 style="margin: 24px 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">3. Findings</h4>
+              {{end}}
               {{if .Findings}}
                 <table style="background: #fff; width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 20px;">
                   <thead>
+                    <tr>
+                      <td colspan="7" style="padding: 0; text-align: left; border: none;">
+                        <h4 style="margin: 24px 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">3. Findings</h4>
+                      </td>
+                    </tr>
                     <tr>
                       <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: left; background: #f9fbfc; font-weight: 400; width: 5%;">
                         #

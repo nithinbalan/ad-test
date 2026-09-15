@@ -101,6 +101,13 @@ func (ptes *PenetrationTestExecutionService) Create(penetrationTestID uint, curr
 		return 0, err
 	}
 
+	if exists, err := ptes.repo.ExistsByPenetrationTestID(penetrationTestID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	} else if exists {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("execution already exists"), "unique", "execution")
+	}
 	if _, err := ptes.executionStatusSvc.GetByID(form.ExecutionStatusID); err != nil {
 		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid execution status"), "invalid", "execution_status_id")

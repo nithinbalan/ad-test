@@ -31,6 +31,22 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmReportController := app.ReportsModule.TPRMReportController
 	projectReportController := app.ReportsModule.ProjectReportController
 
+	penetrationTestReportController := app.ReportsModule.PenetrationTestReportController
+	reportsRoutes.GET("/reports/penetration-tests", penetrationTestReportController.GetAllPenetrationTests)
+	reportsRoutes.GET("/reports/penetration-tests/export", penetrationTestReportController.GetPenetrationTestExport)
+	reportsRoutes.GET("/reports/penetration-test-findings", penetrationTestReportController.GetAllPenetrationTestFindings)
+	reportsRoutes.GET("/reports/penetration-test-findings/export", penetrationTestReportController.GetPenetrationTestFindingExport)
+	reportsRoutes.GET("/reports/penetration-test-by-type", penetrationTestReportController.GetPenetrationTestByType)
+	reportsRoutes.GET("/reports/penetration-test-by-status", penetrationTestReportController.GetPenetrationTestByStatus)
+	reportsRoutes.GET("/reports/penetration-test-by-classification", penetrationTestReportController.GetPenetrationTestByClassification)
+	reportsRoutes.GET("/reports/penetration-test-by-plan", penetrationTestReportController.GetPenetrationTestByPlan)
+	reportsRoutes.GET("/reports/penetration-test-by-executor", penetrationTestReportController.GetPenetrationTestByExecutor)
+	reportsRoutes.GET("/reports/penetration-test-by-responsible-user", penetrationTestReportController.GetPenetrationTestByResponsibleUser)
+	reportsRoutes.GET("/reports/penetration-test-by-created-user", penetrationTestReportController.GetPenetrationTestByCreatedUser)
+	reportsRoutes.GET("/reports/penetration-test-by-responsible-unit", penetrationTestReportController.GetPenetrationTestByResponsibleUnit)
+	reportsRoutes.GET("/reports/penetration-test-by-year", penetrationTestReportController.GetPenetrationTestByYear)
+	reportsRoutes.GET("/reports/penetration-test-by-period", penetrationTestReportController.GetPenetrationTestByPeriod)
+
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
 	reportsRoutes.GET("/reports/compliance-registers/export", complianceReportController.ComplianceRegisterReportExport)
