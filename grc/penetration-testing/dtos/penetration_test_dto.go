@@ -56,15 +56,15 @@ type PenetrationTestListDTO struct {
 }
 
 type PenetrationTestFormDTO struct {
-	SystemApplicationName           string `json:"system_application_name" binding:"required,max=255"`
-	PenetrationTestTypeID           uint   `json:"penetration_test_type_id" binding:"required"`
-	PenetrationTestPlanID           uint   `json:"penetration_test_plan_id" binding:"required"`
-	Year                            int    `json:"year" binding:"required"`
-	Period                          string `json:"period" binding:"required,oneof=Q1 Q2 Q3 Q4"`
-	PenetrationTestClassificationID uint   `json:"penetration_test_classification_id" binding:"required"`
-	PenetrationTestExecutorID       uint   `json:"penetration_test_executor_id" binding:"required"`
-	CSResponsibleEmployeeID         uint   `json:"cs_responsible_employee_id" binding:"required"`
-	Scope                           string `json:"scope" binding:"required"`
+	SystemApplicationName           string  `json:"system_application_name" binding:"required,max=255"`
+	PenetrationTestTypeID           uint    `json:"penetration_test_type_id" binding:"required"`
+	PenetrationTestPlanID           uint    `json:"penetration_test_plan_id" binding:"required"`
+	Year                            int     `json:"year" binding:"required"`
+	Period                          string  `json:"period" binding:"required,oneof=Q1 Q2 Q3 Q4"`
+	PenetrationTestClassificationID uint    `json:"penetration_test_classification_id" binding:"required"`
+	PenetrationTestExecutorID       *uint   `json:"penetration_test_executor_id"`
+	CSResponsibleEmployeeID         uint    `json:"cs_responsible_employee_id" binding:"required"`
+	Scope                           *string `json:"scope"`
 }
 
 type PenetrationTestStatusDTO struct {

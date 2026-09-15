@@ -633,7 +633,30 @@ func (ptrs *PenetrationTestRetestService) DecideFinding(id uint, retestFindingID
 			return err
 		}
 	}
-	if err := ptrs.UpdateStatus(id, "in-progress", tx); err != nil {
+	allDecided := len(existing.RetestFindings) > 0
+	for _, finding := range existing.RetestFindings {
+		if finding.ID == retestFinding.ID {
+			continue
+		}
+		if finding.RetestResultID == nil {
+			allDecided = false
+			break
+		}
+	}
+	if allDecided {
+		completedStatus, err := ptrs.retestStatusSvc.GetByType("completed")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		now := time.Now()
+		existing.PenetrationTestRetestStatusID, existing.EndDate = completedStatus.ID, &now
+		existing.UpdatedBYID, existing.UpdatedAt = &currentUserID, &now
+		if err := ptrs.repo.Update(existing, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else if err := ptrs.UpdateStatus(id, "in-progress", tx); err != nil {
 		tx.Rollback()
 		return err
 	}
