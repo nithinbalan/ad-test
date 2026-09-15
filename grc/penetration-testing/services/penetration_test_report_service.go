@@ -148,7 +148,7 @@ func (ptrs *PenetrationTestReportService) UpdateSection(penetrationTestReportID 
 				sectionID,
 				changedData,
 				currentUserID,
-				"penetration_testing", "penetration_testing_pentest_log", "report", nil,
+				"penetration_testing", "penetration_testing_report", "report", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -188,7 +188,7 @@ func (ptrs *PenetrationTestReportService) DeletePenetrationTestReportSection(pen
 			sectionID,
 			section,
 			currentUserID,
-			"penetration_testing", "penetration_testing_pentest_log", "report", nil,
+			"penetration_testing", "penetration_testing_report", "report", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -599,7 +599,7 @@ func (ptrs *PenetrationTestReportService) Create(currentUserID uint, dto penetra
 			reportID,
 			report,
 			currentUserID,
-			"penetration_testing", "penetration_testing_pentest_log", "report", nil,
+			"penetration_testing", "penetration_testing_report", "report", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -761,7 +761,7 @@ func (ptrs *PenetrationTestReportService) DeletePenetrationTestReport(penetratio
 			penetrationTestReportID,
 			existingReport,
 			currentUserID,
-			"penetration_testing", "penetration_testing_pentest_log", "report", nil,
+			"penetration_testing", "penetration_testing_report", "report", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
