@@ -217,6 +217,58 @@ func (ptrs *PenetrationTestReportService) Create(currentUserID uint, dto penetra
 		return 0, err
 	}
 
+	queryParams := &penetrationTestDTOs.PenetrationTestReportQueryParamsDTO{
+		Year:                            dto.Year,
+		PenetrationTestExecutorID:       dto.PenetrationTestExecutorID,
+		PenetrationTestTypeID:           dto.PenetrationTestTypeID,
+		PenetrationTestClassificationID: dto.PenetrationTestClassificationID,
+		PenetrationTestPlanID:           dto.PenetrationTestPlanID,
+		CSResponsibleEmployeeID:         dto.CSResponsibleEmployeeID,
+		ResponsibleUnitID:               dto.ResponsibleUnitID,
+		PenetrationTestStatusID:         dto.PenetrationTestStatusID,
+	}
+	switch dto.Type {
+	case "year":
+		if dto.Year == nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(errors.New("year is required for year reports"), "required", "year")
+		}
+		start := time.Date(*dto.Year, time.January, 1, 0, 0, 0, 0, time.UTC)
+		end := time.Date(*dto.Year, time.December, 31, 0, 0, 0, 0, time.UTC)
+		dates.StartDate = &start
+		dates.EndDate = &end
+	case "date-range":
+		if dates.StartDate == nil || dates.EndDate == nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(errors.New("start_date and end_date are required for date-range reports"), "required", "start_date")
+		}
+		if dates.StartDate.After(*dates.EndDate) {
+			tx.Rollback()
+			return 0, utility.NewValidationError(errors.New("start_date must be less than or equal to end_date"), "invalid", "start_date")
+		}
+		queryParams.StartDate = dates.StartDate
+		queryParams.EndDate = dates.EndDate
+	case "individual":
+		if dto.PenetrationTestIDs == nil || len(*dto.PenetrationTestIDs) == 0 {
+			tx.Rollback()
+			return 0, utility.NewValidationError(errors.New("penetration_test_ids are required for individual reports"), "required", "penetration_test_ids")
+		}
+		queryParams.PenetrationTestIDs = *dto.PenetrationTestIDs
+	case "filtered":
+	default:
+		tx.Rollback()
+		return 0, utility.NewValidationError(errors.New("invalid report type"), "invalid", "type")
+	}
+	penetrationTests, err := ptrs.repo.GetReportPenetrationTests(queryParams, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if len(penetrationTests) == 0 {
+		tx.Rollback()
+		return 0, utility.NewValidationError(errors.New("no penetration tests found for the specified criteria"), "empty_result", "filters")
+	}
+
 	report := &models.PenetrationTestReport{
 		Title:       dto.Title,
 		StartDate:   dates.StartDate,
@@ -250,84 +302,6 @@ func (ptrs *PenetrationTestReportService) Create(currentUserID uint, dto penetra
 			tx.Rollback()
 			return 0, err
 		}
-	}
-
-	var penetrationTests []penetrationTestDTOs.PenetrationTestReportPenetrationTestSourceDTO
-
-	switch dto.Type {
-
-	case "date-range":
-		if dates.StartDate == nil || dates.EndDate == nil {
-			tx.Rollback()
-			return 0, utility.NewValidationError(
-				errors.New("start_date and end_date are required for date-range reports"),
-				"required",
-				"start_date",
-			)
-		}
-
-		if dates.StartDate.After(*dates.EndDate) {
-			tx.Rollback()
-			return 0, utility.NewValidationError(
-				errors.New("start_date must be less than or equal to end_date"),
-				"invalid",
-				"start_date",
-			)
-		}
-
-		penetrationTests, err = ptrs.repo.GetReportPenetrationTestsByDateRange(
-			*dates.StartDate,
-			*dates.EndDate,
-			tx,
-		)
-
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-
-		if len(penetrationTests) == 0 {
-			tx.Rollback()
-			return 0, utility.NewValidationError(
-				errors.New("no penetration tests found for the specified criteria"),
-				"empty_result",
-				"date_range",
-			)
-		}
-
-	case "individual":
-		if dto.PenetrationTestIDs == nil || len(*dto.PenetrationTestIDs) == 0 {
-			tx.Rollback()
-			return 0, utility.NewValidationError(
-				errors.New("penetration_test_ids are required for individual reports"),
-				"required",
-				"penetration_test_ids",
-			)
-		}
-
-		penetrationTests, err = ptrs.repo.GetPenetrationTestsByIDs(*dto.PenetrationTestIDs, tx)
-
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-
-		if len(penetrationTests) == 0 {
-			tx.Rollback()
-			return 0, utility.NewValidationError(
-				errors.New("no penetration tests found for the specified criteria"),
-				"empty_result",
-				"penetration_test_ids",
-			)
-		}
-
-	default:
-		tx.Rollback()
-		return 0, utility.NewValidationError(
-			errors.New("invalid report type"),
-			"invalid",
-			"type",
-		)
 	}
 
 	penetrationTestDocumentsMap := make(map[uint][]penetrationTestDTOs.PenetrationTestReportDocumentSourceDTO)

@@ -5,7 +5,6 @@ import (
 	"jethur/grc/models"
 	penetrationTestDTOs "jethur/grc/penetration-testing/dtos"
 	"jethur/utility"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -22,7 +21,7 @@ type PenetrationTestReportRepositoryInterface interface {
 	DeletePenetrationTestReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error
 	ReorderPenetrationTestReportSections(penetrationTestReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
 	GetPenetrationTestsByIDs(ids []uint, tx utility.DatabaseTransaction) ([]penetrationTestDTOs.PenetrationTestReportPenetrationTestSourceDTO, error)
-	GetReportPenetrationTestsByDateRange(start time.Time, end time.Time, tx utility.DatabaseTransaction) ([]penetrationTestDTOs.PenetrationTestReportPenetrationTestSourceDTO, error)
+	GetReportPenetrationTests(params *penetrationTestDTOs.PenetrationTestReportQueryParamsDTO, tx utility.DatabaseTransaction) ([]penetrationTestDTOs.PenetrationTestReportPenetrationTestSourceDTO, error)
 	GetFindingsByPenetrationTestID(penetrationTestID uint, tx utility.DatabaseTransaction) ([]penetrationTestDTOs.PenetrationTestReportFindingSourceDTO, error)
 	GetRetestsByPenetrationTestID(penetrationTestID uint, tx utility.DatabaseTransaction) ([]penetrationTestDTOs.PenetrationTestReportRetestSourceDTO, error)
 	GetRetestFindingsByRetestID(retestID uint, tx utility.DatabaseTransaction) ([]penetrationTestDTOs.PenetrationTestReportRetestFindingSourceDTO, error)
@@ -291,7 +290,7 @@ func (repo *PenetrationTestReportRepository) GetPenetrationTestsByIDs(ids []uint
 	return items, nil
 }
 
-func (repo *PenetrationTestReportRepository) GetReportPenetrationTestsByDateRange(start time.Time, end time.Time, tx utility.DatabaseTransaction) ([]penetrationTestDTOs.PenetrationTestReportPenetrationTestSourceDTO, error) {
+func (repo *PenetrationTestReportRepository) GetReportPenetrationTests(params *penetrationTestDTOs.PenetrationTestReportQueryParamsDTO, tx utility.DatabaseTransaction) ([]penetrationTestDTOs.PenetrationTestReportPenetrationTestSourceDTO, error) {
 	db := repo.db
 	if tx != nil {
 		db = tx.DB()
@@ -352,7 +351,37 @@ func (repo *PenetrationTestReportRepository) GetReportPenetrationTestsByDateRang
 		Joins("LEFT JOIN penetration_test_management_sharings AS management ON management.penetration_test_id = pt.id").
 		Joins("LEFT JOIN penetration_test_closures AS closure ON closure.penetration_test_id = pt.id").
 		Joins("LEFT JOIN users AS closure_owner ON closure_owner.id = closure.closure_owner_id")
-	query = query.Where("pt.created_at BETWEEN ? AND ?", start, end)
+
+	if len(params.PenetrationTestIDs) > 0 {
+		query = query.Where("pt.id IN ?", params.PenetrationTestIDs)
+	}
+	if params.StartDate != nil && params.EndDate != nil {
+		query = query.Where("pt.created_at BETWEEN ? AND ?", *params.StartDate, *params.EndDate)
+	}
+	if params.Year != nil {
+		query = query.Where("pt.year = ?", *params.Year)
+	}
+	if params.PenetrationTestExecutorID != nil {
+		query = query.Where("pt.penetration_test_executor_id = ?", *params.PenetrationTestExecutorID)
+	}
+	if params.PenetrationTestTypeID != nil {
+		query = query.Where("pt.penetration_test_type_id = ?", *params.PenetrationTestTypeID)
+	}
+	if params.PenetrationTestClassificationID != nil {
+		query = query.Where("pt.penetration_test_classification_id = ?", *params.PenetrationTestClassificationID)
+	}
+	if params.PenetrationTestPlanID != nil {
+		query = query.Where("pt.penetration_test_plan_id = ?", *params.PenetrationTestPlanID)
+	}
+	if params.CSResponsibleEmployeeID != nil {
+		query = query.Where("pt.cs_responsible_employee_id = ?", *params.CSResponsibleEmployeeID)
+	}
+	if params.ResponsibleUnitID != nil {
+		query = query.Where("employee.organization_unit_1_id = ?", *params.ResponsibleUnitID)
+	}
+	if params.PenetrationTestStatusID != nil {
+		query = query.Where("pt.penetration_test_status_id = ?", *params.PenetrationTestStatusID)
+	}
 	if err := query.Order("pt.created_at DESC").Find(&items).Error; err != nil {
 		return nil, err
 	}
