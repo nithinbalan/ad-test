@@ -8,6 +8,7 @@ import (
 )
 
 type PenetrationTestingModule struct {
+	PenetrationTestReportController                 *controllers.PenetrationTestReportController
 	PenetrationTestController                       *controllers.PenetrationTestController
 	PenetrationTestEnvironmentPreparationController *controllers.PenetrationTestEnvironmentPreparationController
 	PenetrationTestExecutionController              *controllers.PenetrationTestExecutionController
@@ -32,6 +33,7 @@ type PenetrationTestingModule struct {
 func NewPenetrationTestingModule(
 	db *gorm.DB,
 	sharedModule *SharedModule,
+	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
 ) *PenetrationTestingModule {
@@ -110,7 +112,12 @@ func NewPenetrationTestingModule(
 		penetrationTestService,
 		organizationModule.UserSvc,
 	)
+	penetrationTestReportRepo := repositories.NewPenetrationTestReportRepository(db)
+	penetrationTestReportSvc := services.NewPenetrationTestReportService(penetrationTestReportRepo, settingsModule.ReportTemplateSettingSvc, sharedModule.ActivityLogService)
+	penetrationTestReportController := controllers.NewPenetrationTestReportController(penetrationTestReportSvc)
+
 	return &PenetrationTestingModule{
+		PenetrationTestReportController:                 penetrationTestReportController,
 		PenetrationTestController:                       controllers.NewPenetrationTestController(penetrationTestService),
 		PenetrationTestEnvironmentPreparationController: controllers.NewPenetrationTestEnvironmentPreparationController(environmentPreparationService),
 		PenetrationTestExecutionController:              controllers.NewPenetrationTestExecutionController(executionService),
