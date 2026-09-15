@@ -96,11 +96,11 @@ func (csrals *CSLogSocRoomAccessLogService) GetFullDetailsByID(id uint, tx ...ut
 	entryDTO.UpdatedAt = entry.UpdatedAt
 
 	if entry.EntryTime != nil {
-		entryTime := entry.EntryTime.Format("2006-01-02 15:04:05")
+		entryTime := entry.EntryTime.UTC().Format(time.RFC3339)
 		entryDTO.EntryTimeString = &entryTime
 	}
 	if entry.ExitTime != nil {
-		exitTime := entry.ExitTime.Format("2006-01-02 15:04:05")
+		exitTime := entry.ExitTime.UTC().Format(time.RFC3339)
 		entryDTO.ExitTimeString = &exitTime
 	}
 
@@ -624,11 +624,27 @@ func (csrals *CSLogSocRoomAccessLogService) parseCSLogSocRoomAccessLogDates(form
 
 	entryTime, err := utility.ParseDateTime(form.EntryTime)
 	if err != nil {
+		parsedTime, parseErr := time.Parse(time.RFC3339, form.EntryTime)
+		err = parseErr
+		if err == nil {
+			parsedTime = parsedTime.UTC()
+			entryTime = &parsedTime
+		}
+	}
+	if err != nil {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid entry time"), "invalid_date", "entry time")
 	}
 	parsed.EntryTime = entryTime
 
 	exitTime, err := utility.ParseDateTime(form.ExitTime)
+	if err != nil {
+		parsedTime, parseErr := time.Parse(time.RFC3339, form.ExitTime)
+		err = parseErr
+		if err == nil {
+			parsedTime = parsedTime.UTC()
+			exitTime = &parsedTime
+		}
+	}
 	if err != nil {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid exit time"), "invalid_date", "exit time")
 	}
@@ -795,8 +811,8 @@ func (csrals *CSLogSocRoomAccessLogService) ExportCSLogSocRoomAccessLog(data []*
 				i + 1,
 				entry.ReferenceNumber,
 				entry.VisitorFullName,
-				entry.EntryTime,
-				entry.ExitTime,
+				entry.EntryTime.Format("2006-01-02 15:04:05"),
+				entry.ExitTime.Format("2006-01-02 15:04:05"),
 				entry.VisitorIDNumber,
 				entry.DepartmentTitleAr,
 				entry.ExternalPartyName,
@@ -808,8 +824,8 @@ func (csrals *CSLogSocRoomAccessLogService) ExportCSLogSocRoomAccessLog(data []*
 				i + 1,
 				entry.ReferenceNumber,
 				entry.VisitorFullName,
-				entry.EntryTime,
-				entry.ExitTime,
+				entry.EntryTime.Format("2006-01-02 15:04:05"),
+				entry.ExitTime.Format("2006-01-02 15:04:05"),
 				entry.VisitorIDNumber,
 				entry.DepartmentTitleEn,
 				entry.ExternalPartyName,
