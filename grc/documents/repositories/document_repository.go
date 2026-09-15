@@ -231,6 +231,38 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 		}
 	}
 
+	// Apply date filters if provided
+	if params.DateFrom != "" || params.DateTo != "" {
+		isPublishedFilter := false
+		for _, filter := range params.QuickFilter {
+			if filter == "published" {
+				isPublishedFilter = true
+				break
+			}
+		}
+		if !isPublishedFilter {
+			for _, status := range params.DocumentStatus {
+				if status == "published" {
+					isPublishedFilter = true
+					break
+				}
+			}
+		}
+
+		dateField := "documents.created_at"
+		if isPublishedFilter {
+			dateField = "documents.published_at"
+		}
+
+		if params.DateFrom != "" && params.DateTo != "" {
+			query = query.Where(dateField+" BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		} else if params.DateFrom != "" {
+			query = query.Where(dateField+" >= ?", params.DateFrom+" 00:00:00")
+		} else if params.DateTo != "" {
+			query = query.Where(dateField+" <= ?", params.DateTo+" 23:59:59")
+		}
+	}
+
 	// Apply access control restrictions if not super admin
 	if !isUserSuperAdmin {
 		query = query.Where(`
