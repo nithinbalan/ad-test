@@ -12,8 +12,8 @@ import (
 type DocumentDashboardRepositoryInterface interface {
 	GetDocumentSummary(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentDashboardSummaryDTO, error)
 	GetDocumentStatusByType(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentStatusByTypeDTO, error)
-	GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentConfidentialityClassificationDTO, error)
-	GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentResponsibleUnitDTO, error)
+	GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentConfidentialityClassificationResponseDTO, error)
+	GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentResponsibleUnitResponseDTO, error)
 	GetDocumentReviewCountTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentReviewCountTrendDTO, error)
 }
 
@@ -22,6 +22,7 @@ type DocumentDashboardRepository struct {
 }
 
 type documentReviewTimelinessCounts struct {
+	TotalReviews               int64
 	CurrentPeriodReviews       int64
 	CurrentPeriodOnTimeReviews int64
 	CurrentThirtyDayReviews    int64
@@ -68,7 +69,7 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 	documentCountsQuery := repo.db.Table("documents d").
 		Select(`
 			COUNT(d.id) AS total_documents,
-			COALESCE(SUM(CASE WHEN ds.type IN ('approved', 'published') THEN 1 ELSE 0 END), 0) AS approved_documents,
+			COALESCE(SUM(CASE WHEN ds.type = 'approved' THEN 1 ELSE 0 END), 0) AS approved_documents,
 			COALESCE(SUM(CASE WHEN ds.type = 'published' THEN 1 ELSE 0 END), 0) AS published_documents
 		`).
 		Joins("LEFT JOIN document_statuses ds ON ds.id = d.document_status_id").
@@ -95,12 +96,12 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 			COALESCE(SUM(CASE
 				WHEN d.created_at >= DATEADD(day, -29, CAST(GETDATE() AS date))
 					AND d.created_at < DATEADD(day, 1, CAST(GETDATE() AS date))
-					AND ds.type IN ('approved', 'published')
+					AND ds.type = 'approved'
 				THEN 1 ELSE 0 END), 0) AS current_approved,
 			COALESCE(SUM(CASE
 				WHEN d.created_at >= DATEADD(day, -59, CAST(GETDATE() AS date))
 					AND d.created_at < DATEADD(day, -29, CAST(GETDATE() AS date))
-					AND ds.type IN ('approved', 'published')
+					AND ds.type = 'approved'
 				THEN 1 ELSE 0 END), 0) AS previous_approved,
 			COALESCE(SUM(CASE
 				WHEN d.created_at >= DATEADD(day, -29, CAST(GETDATE() AS date))
@@ -139,38 +140,39 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 	reviewCounts := &documentReviewTimelinessCounts{}
 	reviewCountsQuery := repo.db.Table("document_reviews dr").
 		Select(`
+			COUNT(dr.id) AS total_reviews,
 			COALESCE(SUM(CASE
 				WHEN dr.review_date >= DATEADD(month, -12, CAST(GETDATE() AS date))
 					AND dr.review_date <= CAST(GETDATE() AS date)
-					AND d.next_review_date IS NOT NULL
+					AND COALESCE(dr.target_review_date, d.next_review_date) IS NOT NULL
 				THEN 1 ELSE 0 END), 0) AS current_period_reviews,
 			COALESCE(SUM(CASE
 				WHEN dr.review_date >= DATEADD(month, -12, CAST(GETDATE() AS date))
 					AND dr.review_date <= CAST(GETDATE() AS date)
-					AND d.next_review_date IS NOT NULL
-					AND dr.review_date <= d.next_review_date
+					AND COALESCE(dr.target_review_date, d.next_review_date) IS NOT NULL
+					AND dr.review_date <= COALESCE(dr.target_review_date, d.next_review_date)
 				THEN 1 ELSE 0 END), 0) AS current_period_on_time_reviews,
 			COALESCE(SUM(CASE
 				WHEN dr.review_date >= DATEADD(day, -29, CAST(GETDATE() AS date))
 					AND dr.review_date < DATEADD(day, 1, CAST(GETDATE() AS date))
-					AND d.next_review_date IS NOT NULL
+					AND COALESCE(dr.target_review_date, d.next_review_date) IS NOT NULL
 				THEN 1 ELSE 0 END), 0) AS current_thirty_day_reviews,
 			COALESCE(SUM(CASE
 				WHEN dr.review_date >= DATEADD(day, -29, CAST(GETDATE() AS date))
 					AND dr.review_date < DATEADD(day, 1, CAST(GETDATE() AS date))
-					AND d.next_review_date IS NOT NULL
-					AND dr.review_date <= d.next_review_date
+					AND COALESCE(dr.target_review_date, d.next_review_date) IS NOT NULL
+					AND dr.review_date <= COALESCE(dr.target_review_date, d.next_review_date)
 				THEN 1 ELSE 0 END), 0) AS current_thirty_day_on_time,
 			COALESCE(SUM(CASE
 				WHEN dr.review_date >= DATEADD(day, -59, CAST(GETDATE() AS date))
 					AND dr.review_date < DATEADD(day, -29, CAST(GETDATE() AS date))
-					AND d.next_review_date IS NOT NULL
+					AND COALESCE(dr.target_review_date, d.next_review_date) IS NOT NULL
 				THEN 1 ELSE 0 END), 0) AS previous_thirty_day_reviews,
 			COALESCE(SUM(CASE
 				WHEN dr.review_date >= DATEADD(day, -59, CAST(GETDATE() AS date))
 					AND dr.review_date < DATEADD(day, -29, CAST(GETDATE() AS date))
-					AND d.next_review_date IS NOT NULL
-					AND dr.review_date <= d.next_review_date
+					AND COALESCE(dr.target_review_date, d.next_review_date) IS NOT NULL
+					AND dr.review_date <= COALESCE(dr.target_review_date, d.next_review_date)
 				THEN 1 ELSE 0 END), 0) AS previous_thirty_day_on_time
 		`).
 		Joins("INNER JOIN documents d ON d.id = dr.document_id").
@@ -188,14 +190,8 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 			float64(reviewCounts.CurrentPeriodOnTimeReviews) * 100 / float64(reviewCounts.CurrentPeriodReviews),
 		)
 	}
-	if reviewCounts.CurrentThirtyDayReviews > 0 && reviewCounts.PreviousThirtyDayReviews > 0 {
-		currentOnTimePercentage := float64(reviewCounts.CurrentThirtyDayOnTime) * 100 / float64(reviewCounts.CurrentThirtyDayReviews)
-		previousOnTimePercentage := float64(reviewCounts.PreviousThirtyDayOnTime) * 100 / float64(reviewCounts.PreviousThirtyDayReviews)
-		result.ReviewedOnTimeChangePercentage = calculateMetricPercentageChange(
-			currentOnTimePercentage,
-			previousOnTimePercentage,
-		)
-	}
+
+	result.ReviewCount = reviewCounts.TotalReviews
 
 	approvalTime := &documentApprovalTimeResult{}
 	approvalTimeQuery := repo.db.Table("document_versions dv").
@@ -298,11 +294,8 @@ func (repo *DocumentDashboardRepository) GetDocumentSummary(params *kpiDTOs.Docu
 			return nil, err
 		}
 
-		if totalECCControlCount > 0 {
-			result.ECCControlsDocumentedPercentage = roundToOneDecimal(
-				float64(documentedECCControlCount) * 100 / float64(totalECCControlCount),
-			)
-		}
+		result.TotalECCControls = totalECCControlCount
+		result.ECCControlsCount = documentedECCControlCount
 	}
 
 	return result, nil
@@ -379,7 +372,7 @@ func (repo *DocumentDashboardRepository) GetDocumentStatusByType(params *kpiDTOs
 	return result, nil
 }
 
-func (repo *DocumentDashboardRepository) GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentConfidentialityClassificationDTO, error) {
+func (repo *DocumentDashboardRepository) GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentConfidentialityClassificationResponseDTO, error) {
 	result := []kpiDTOs.DocumentConfidentialityClassificationDTO{}
 	documentCategoryIDs := params.Filters["document_category_id"]
 
@@ -421,10 +414,13 @@ func (repo *DocumentDashboardRepository) GetDocumentsByConfidentialityClassifica
 		}
 	}
 
-	return result, nil
+	return &kpiDTOs.DocumentConfidentialityClassificationResponseDTO{
+		Total:                          totalDocumentCount,
+		ConfidentialityClassifications: result,
+	}, nil
 }
 
-func (repo *DocumentDashboardRepository) GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentResponsibleUnitDTO, error) {
+func (repo *DocumentDashboardRepository) GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentResponsibleUnitResponseDTO, error) {
 	result := []kpiDTOs.DocumentResponsibleUnitDTO{}
 	documentCategoryIDs := params.Filters["document_category_id"]
 
@@ -465,7 +461,10 @@ func (repo *DocumentDashboardRepository) GetDocumentsByResponsibleUnit(params *k
 		}
 	}
 
-	return result, nil
+	return &kpiDTOs.DocumentResponsibleUnitResponseDTO{
+		Total:            totalDocumentCount,
+		ResponsibleUnits: result,
+	}, nil
 }
 
 func (repo *DocumentDashboardRepository) GetDocumentReviewCountTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentReviewCountTrendDTO, error) {

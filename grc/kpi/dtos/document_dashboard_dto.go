@@ -12,10 +12,11 @@ type DocumentDashboardSummaryDTO struct {
 	PublishedDocuments                  int64    `json:"published_documents"`
 	PublishedDocumentsChangePercentage  *float64 `json:"published_documents_change_percentage"`
 	ReviewedOnTimePercentage            float64  `json:"reviewed_on_time_percentage"`
-	ReviewedOnTimeChangePercentage      *float64 `json:"reviewed_on_time_change_percentage"`
+	ReviewCount                         int64    `json:"review_count"`
 	AverageApprovalTimeDays             float64  `json:"average_approval_time_days"`
 	AverageApprovalTimeChangePercentage *float64 `json:"average_approval_time_change_percentage"`
-	ECCControlsDocumentedPercentage     float64  `json:"ecc_controls_documented_percentage"`
+	TotalECCControls                    int64    `json:"total_ecc_controls"`
+	ECCControlsCount                    int64    `json:"ecc_controls_count"`
 }
 
 type DocumentStatusByTypeDTO struct {
@@ -41,12 +42,22 @@ type DocumentConfidentialityClassificationDTO struct {
 	Percentage                      float64 `json:"percentage"`
 }
 
+type DocumentConfidentialityClassificationResponseDTO struct {
+	Total                          int64                                      `json:"total"`
+	ConfidentialityClassifications []DocumentConfidentialityClassificationDTO `json:"confidentiality_classifications"`
+}
+
 type DocumentResponsibleUnitDTO struct {
 	ResponsibleUnitID uint    `json:"responsible_unit_id"`
 	TitleEn           string  `json:"title_en"`
 	TitleAr           string  `json:"title_ar"`
 	Count             int64   `json:"count"`
 	Percentage        float64 `json:"percentage"`
+}
+
+type DocumentResponsibleUnitResponseDTO struct {
+	Total            int64                        `json:"total"`
+	ResponsibleUnits []DocumentResponsibleUnitDTO `json:"responsible_units"`
 }
 
 type DocumentReviewCountTrendDTO struct {
