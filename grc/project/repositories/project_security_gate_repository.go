@@ -16,6 +16,9 @@ type ProjectSecurityGateRepositoryInterface interface {
 	GetAll(params *projectDTOs.ProjectSecurityGateListQueryParamsDTO) (*projectDTOs.ProjectSecurityGateListResponseDTO, error)
 	GetSummary() (*projectDTOs.ProjectSecurityGateSummaryDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGate, error)
+	GetReadinessStatusTitle(id uint) (string, error)
+	GetStageTitle(id uint) (string, error)
+	GetClassificationTitle(id uint) (string, error)
 	GetFullDetailsByID(id uint) (*models.ProjectSecurityGate, error)
 	Create(projectSecurityGate *models.ProjectSecurityGate, tx ...utility.DatabaseTransaction) error
 	Update(projectSecurityGate *models.ProjectSecurityGate, tx ...utility.DatabaseTransaction) error
@@ -101,6 +104,24 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 			keyword, keyword, keyword, keyword)
 	}
 
+	if params.ReadinessStatusID > 0 {
+		query = query.Where("project_security_gates.readiness_status_id = ?", params.ReadinessStatusID)
+	}
+
+	if params.StageID > 0 {
+		query = query.Where("project_security_gates.stage_id = ?", params.StageID)
+	}
+
+	if params.ClassificationID > 0 {
+		// EXISTS not a join, so a gate with several classifications is returned once
+		query = query.Where(`
+			EXISTS (
+				SELECT 1 FROM project_security_gate_classification_mappings AS classification_mapping
+				WHERE classification_mapping.security_gate_id = project_security_gates.id
+					AND classification_mapping.classification_id = ?
+			)`, params.ClassificationID)
+	}
+
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
@@ -115,12 +136,20 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-	if err := query.Offset(offset).Limit(params.PageSize).Find(&projectSecurityGates).Error; err != nil {
+	// An export takes every matching row, not just the current page
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&projectSecurityGates).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 
 	return &projectDTOs.ProjectSecurityGateListResponseDTO{
 		Items: projectSecurityGates,
@@ -179,6 +208,45 @@ func (repo *ProjectSecurityGateRepository) GetByID(id uint, tx ...utility.Databa
 	}
 
 	return projectSecurityGate, nil
+}
+
+func (repo *ProjectSecurityGateRepository) GetReadinessStatusTitle(id uint) (string, error) {
+	var title string
+	if err := repo.db.
+		Table("project_security_gate_readiness_statuses").
+		Select("title_en").
+		Where("id = ?", id).
+		Scan(&title).Error; err != nil {
+		return "", err
+	}
+
+	return title, nil
+}
+
+func (repo *ProjectSecurityGateRepository) GetStageTitle(id uint) (string, error) {
+	var title string
+	if err := repo.db.
+		Table("project_security_gate_stages").
+		Select("title_en").
+		Where("id = ?", id).
+		Scan(&title).Error; err != nil {
+		return "", err
+	}
+
+	return title, nil
+}
+
+func (repo *ProjectSecurityGateRepository) GetClassificationTitle(id uint) (string, error) {
+	var title string
+	if err := repo.db.
+		Table("project_security_gate_classifications").
+		Select("title_en").
+		Where("id = ?", id).
+		Scan(&title).Error; err != nil {
+		return "", err
+	}
+
+	return title, nil
 }
 
 func (repo *ProjectSecurityGateRepository) GetFullDetailsByID(id uint) (*models.ProjectSecurityGate, error) {

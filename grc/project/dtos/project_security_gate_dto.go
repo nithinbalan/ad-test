@@ -82,6 +82,12 @@ type ProjectSecurityGateListQueryParamsDTO struct {
 	Keyword  string
 	Page     int
 	PageSize int
+	Export   bool
+
+	// Optional filters, zero means unfiltered
+	ReadinessStatusID uint
+	StageID           uint
+	ClassificationID  uint
 }
 
 type ProjectSecurityGateListResponseDTO struct {

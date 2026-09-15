@@ -1,8 +1,11 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -20,6 +23,10 @@ import (
 type ProjectSecurityGateServiceInterface interface {
 	SetChecklistService(svc ProjectSecurityGateChecklistServiceInterface)
 	GetAll(params *dtos.ProjectSecurityGateListQueryParamsDTO) (*dtos.ProjectSecurityGateListResponseDTO, error)
+	ExportProjectSecurityGates(data []*dtos.ProjectSecurityGateListDTO, currentUserID uint) (*os.File, error)
+	GetReadinessStatusExportFilename(readinessStatusID uint) string
+	GetStageExportFilename(stageID uint) string
+	GetClassificationExportFilename(classificationID uint) string
 	GetSummary() (*dtos.ProjectSecurityGateSummaryDTO, error)
 	GetByID(id uint) (*models.ProjectSecurityGate, error)
 	GetFullDetailsByID(id uint) (*dtos.ProjectSecurityGateDetailDTO, error)
@@ -37,6 +44,7 @@ type ProjectSecurityGateService struct {
 	checklistTemplateSvc ProjectSecurityGateChecklistTemplateServiceInterface
 	readinessStatusSvc   ProjectSecurityGateReadinessStatusServiceInterface
 	userSvc              organizationServices.UserServiceInterface
+	userSettingSvc       organizationServices.UserSettingServiceInterface
 	activityLog          logServices.ActivityLogServiceInterface
 	notificationSvc      commonServices.NotificationServiceInterface
 }
@@ -48,6 +56,7 @@ func NewProjectSecurityGateService(
 	checklistTemplateSvc ProjectSecurityGateChecklistTemplateServiceInterface,
 	readinessStatusSvc ProjectSecurityGateReadinessStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 	activityLog logServices.ActivityLogServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 ) ProjectSecurityGateServiceInterface {
@@ -58,6 +67,7 @@ func NewProjectSecurityGateService(
 		checklistTemplateSvc: checklistTemplateSvc,
 		readinessStatusSvc:   readinessStatusSvc,
 		userSvc:              userSvc,
+		userSettingSvc:       userSettingSvc,
 		activityLog:          activityLog,
 		notificationSvc:      notificationSvc,
 	}
@@ -69,6 +79,121 @@ func (psgs *ProjectSecurityGateService) SetChecklistService(svc ProjectSecurityG
 
 func (psgs *ProjectSecurityGateService) GetAll(params *dtos.ProjectSecurityGateListQueryParamsDTO) (*dtos.ProjectSecurityGateListResponseDTO, error) {
 	return psgs.repo.GetAll(params)
+}
+
+func (psgs *ProjectSecurityGateService) ExportProjectSecurityGates(data []*dtos.ProjectSecurityGateListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := psgs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	headers := []string{
+		"SL No.",
+		"Project Title",
+		"Checklist Count",
+		"Stage",
+		"Business Owner",
+		"Readiness Status",
+		"Notes",
+		"Created By",
+		"Created At",
+		"Updated By",
+		"Updated At",
+	}
+
+	rows := make([][]interface{}, 0, len(data))
+	for i, item := range data {
+		notes := ""
+		if item.Notes != nil {
+			notes = *item.Notes
+		}
+
+		createdAt := item.CreatedAt.Format("2006-01-02")
+		updatedAt := ""
+		if item.UpdatedAt != nil {
+			updatedAt = item.UpdatedAt.Format("2006-01-02")
+		}
+
+		if userSetting.Language == "ar" {
+			updatedBy := ""
+			if item.UpdatedUserFirstNameAr != nil && item.UpdatedUserLastNameAr != nil {
+				updatedBy = strings.TrimSpace(*item.UpdatedUserFirstNameAr + " " + *item.UpdatedUserLastNameAr)
+			}
+
+			rows = append(rows, []interface{}{
+				i + 1,
+				item.ProjectTitleAr,
+				item.ChecklistCount,
+				item.StageTitleAr,
+				strings.TrimSpace(item.BusinessOwnerFirstNameAr + " " + item.BusinessOwnerLastNameAr),
+				item.ReadinessStatusTitleAr,
+				notes,
+				strings.TrimSpace(item.CreatedUserFirstNameAr + " " + item.CreatedUserLastNameAr),
+				createdAt,
+				updatedBy,
+				updatedAt,
+			})
+		} else {
+			updatedBy := ""
+			if item.UpdatedUserFirstNameEn != nil && item.UpdatedUserLastNameEn != nil {
+				updatedBy = strings.TrimSpace(*item.UpdatedUserFirstNameEn + " " + *item.UpdatedUserLastNameEn)
+			}
+
+			rows = append(rows, []interface{}{
+				i + 1,
+				item.ProjectTitleEn,
+				item.ChecklistCount,
+				item.StageTitleEn,
+				strings.TrimSpace(item.BusinessOwnerFirstNameEn + " " + item.BusinessOwnerLastNameEn),
+				item.ReadinessStatusTitleEn,
+				notes,
+				strings.TrimSpace(item.CreatedUserFirstNameEn + " " + item.CreatedUserLastNameEn),
+				createdAt,
+				updatedBy,
+				updatedAt,
+			})
+		}
+	}
+
+	file, err := utility.GenerateExcelFile(headers, rows)
+	if err != nil {
+		return nil, errors.New("failed to generate export file: " + err.Error())
+	}
+
+	return file, nil
+}
+
+func (psgs *ProjectSecurityGateService) GetReadinessStatusExportFilename(readinessStatusID uint) string {
+	title, err := psgs.repo.GetReadinessStatusTitle(readinessStatusID)
+	if err != nil || title == "" {
+		title = "Project Security Gates"
+	} else {
+		title += " Project Security Gates"
+	}
+
+	return utility.SanitizeExportFileName(title + ".xlsx")
+}
+
+func (psgs *ProjectSecurityGateService) GetStageExportFilename(stageID uint) string {
+	title, err := psgs.repo.GetStageTitle(stageID)
+	if err != nil || title == "" {
+		title = "Project Security Gates"
+	} else {
+		title += " Project Security Gates"
+	}
+
+	return utility.SanitizeExportFileName(title + ".xlsx")
+}
+
+func (psgs *ProjectSecurityGateService) GetClassificationExportFilename(classificationID uint) string {
+	title, err := psgs.repo.GetClassificationTitle(classificationID)
+	if err != nil || title == "" {
+		title = "Project Security Gates"
+	} else {
+		title += " Project Security Gates"
+	}
+
+	return utility.SanitizeExportFileName(title + ".xlsx")
 }
 
 func (psgs *ProjectSecurityGateService) GetSummary() (*dtos.ProjectSecurityGateSummaryDTO, error) {

@@ -46,6 +46,7 @@ type ProjectModule struct {
 	ProjectSecurityGateChecklistExceptionWorkflowController *controllers.ProjectSecurityGateChecklistExceptionWorkflowController
 	ProjectSecurityGateChecklistExceptionReviewController   *controllers.ProjectSecurityGateChecklistExceptionReviewController
 	ProjectSecurityGateChecklistRiskController              *controllers.ProjectSecurityGateChecklistRiskController
+	ProjectSecurityGateReportController                     *controllers.ProjectSecurityGateReportController
 
 	projectSvc                           services.ProjectServiceInterface
 	projectMilestoneSvc                  services.ProjectMilestoneServiceInterface
@@ -335,6 +336,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectSecurityGateChecklistTemplateSvc,
 		projectSecurityGateReadinessStatusSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 		sharedModule.ActivityLogService,
 		commonModule.NotificationService,
 	)
@@ -404,6 +406,14 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	)
 	projectSecurityGateChecklistRiskController := controllers.NewProjectSecurityGateChecklistRiskController(projectSecurityGateChecklistRiskSvc)
 
+	projectSecurityGateReportRepo := repositories.NewProjectSecurityGateReportRepository(db)
+	projectSecurityGateReportSvc := services.NewProjectSecurityGateReportService(
+		projectSecurityGateReportRepo,
+		projectSecurityGateChecklistSvc,
+		settingsModule.ReportTemplateSettingSvc,
+	)
+	projectSecurityGateReportController := controllers.NewProjectSecurityGateReportController(projectSecurityGateReportSvc)
+
 	return &ProjectModule{
 		ProjectTypeController:                                   projectTypeController,
 		ProjectStatusController:                                 projectStatusController,
@@ -442,6 +452,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		ProjectSecurityGateChecklistExceptionWorkflowController: projectSecurityGateChecklistExceptionWorkflowController,
 		ProjectSecurityGateChecklistExceptionReviewController:   projectSecurityGateChecklistExceptionReviewController,
 		ProjectSecurityGateChecklistRiskController:              projectSecurityGateChecklistRiskController,
+		ProjectSecurityGateReportController:                     projectSecurityGateReportController,
 
 		projectSvc:                           projectSvc,
 		projectMilestoneSvc:                  projectMilestoneSvc,

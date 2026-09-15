@@ -1,0 +1,365 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap" rel="stylesheet">
+</head>
+<style>
+   .keep-together {
+      page-break-inside: avoid;
+   }
+   table {
+      border-collapse: collapse;
+      width: 100%;
+   }
+   th {
+      background-color: #F4F6F8;
+      color: #333;
+      font-weight: 500;
+      font-size: 12px;
+      text-align: left;
+      padding: 8px 10px;
+      border: 1px solid #E0E0E0;
+   }
+   td {
+      font-size: 12px;
+      color: #222;
+      padding: 8px 10px;
+      border: 1px solid #E0E0E0;
+      vertical-align: top;
+   }
+   .section-title {
+      margin: 20px 0 12px 0;
+      font-size: 16px;
+      color: #050505;
+      font-weight: 600;
+      border-bottom: 2px solid #EAEAEA;
+      padding-bottom: 6px;
+   }
+   .sub-section-title {
+      margin: 14px 0 8px 0;
+      font-size: 14px;
+      color: #1a1a1a;
+      font-weight: 500;
+   }
+   .field-label {
+      margin: 0 0 2px 0;
+      font-size: 11px;
+      color: #666;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+   }
+   .field-value {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      color: #000;
+      font-weight: 400;
+      line-height: 1.4;
+   }
+   .badge {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      display: inline-block;
+   }
+   .empty-note {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 15px;
+   }
+   .summary-card {
+      display: inline-block;
+      vertical-align: top;
+      width: 24%;
+      border: 1px solid #E0E0E0;
+      border-radius: 4px;
+      padding: 10px 12px;
+      box-sizing: border-box;
+      margin-right: 4px;
+   }
+   .summary-value {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #050505;
+   }
+   .summary-label {
+      margin: 2px 0 0 0;
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+   }
+   /* Scoped to .timeline-table to beat the global td styles */
+   .timeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 0;
+   }
+   .timeline-table td {
+      border: none;
+      padding: 0;
+      font-size: 12px;
+      color: #111827;
+      vertical-align: top;
+   }
+   .timeline-table td.timeline-node {
+      width: 28px;
+      padding-right: 12px;
+      text-align: center;
+   }
+   .timeline-table td.timeline-card-cell {
+      padding-bottom: 14px;
+   }
+   .timeline-step {
+      background: #b6630a;
+      color: #ffffff;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-block;
+      text-align: center;
+      line-height: 22px;
+      font-size: 11px;
+      font-weight: 500;
+   }
+   .timeline-connector {
+      width: 1px;
+      border-left: 1.5px dotted #b6630a;
+      height: 100%;
+      margin: 4px auto 0 auto;
+      min-height: 52px;
+   }
+   .timeline-card {
+      border: 1px solid #eaedf2;
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 14px 20px;
+   }
+   .timeline-card-table {
+      width: 100%;
+      border-collapse: collapse;
+   }
+   .timeline-label {
+      margin: 0 0 6px 0;
+      color: #4b5563;
+      font-size: 11px;
+      line-height: 1.4;
+      font-weight: 400;
+   }
+   .timeline-value {
+      margin: 0;
+      color: #111827;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 400;
+   }
+   .timeline-status {
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 10px;
+      border: 1px solid transparent;
+      display: inline-block;
+   }
+   .timeline-avatar {
+      background: #0d5f4e;
+      color: #ffffff;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: inline-block;
+      text-align: center;
+      line-height: 22px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-right: 6px;
+      vertical-align: middle;
+   }
+</style>
+
+<body style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; height: 100%; line-height: 1.4; width: 100% !important; word-break: break-word; margin: 0;">
+   <div class="page" style="width: 1000px; margin: 0; background: #fff; padding: 0px 32px;">
+
+      <!-- 1. Summary -->
+      <div class="keep-together" style="padding-top: 10px;">
+         <h3 class="section-title">1. Summary</h3>
+         <div style="margin-top: 10px;">
+            <div class="summary-card">
+               <p class="summary-value">{{ .Data.TotalCount }}</p>
+               <p class="summary-label">Total Exceptions</p>
+            </div>
+            <div class="summary-card">
+               <p class="summary-value">{{ .Data.ApprovedCount }}</p>
+               <p class="summary-label">Approved</p>
+            </div>
+            <div class="summary-card">
+               <p class="summary-value">{{ .Data.PendingCount }}</p>
+               <p class="summary-label">Pending Approval</p>
+            </div>
+            <div class="summary-card">
+               <p class="summary-value">{{ .Data.CriticalCount }}</p>
+               <p class="summary-label">Critical</p>
+            </div>
+         </div>
+      </div>
+
+      <!-- 2. Exceptions Overview -->
+      <div style="margin-top: 20px;">
+         <h3 class="section-title">2. Exceptions Overview</h3>
+         {{if .Data.Exceptions}}
+         <table>
+            <thead>
+               <tr>
+                  <th style="width: 6%;">#</th>
+                  <th style="width: 22%;">Project</th>
+                  <th style="width: 12%;">Stage</th>
+                  <th style="width: 26%;">Checklist</th>
+                  <th style="width: 8%;">Critical</th>
+                  <th style="width: 13%;">Workflow Status</th>
+                  <th style="width: 13%;">Approved By</th>
+               </tr>
+            </thead>
+            <tbody>
+               {{range $i, $exception := .Data.Exceptions}}
+               <tr>
+                  <td>{{ add $i 1 }}</td>
+                  <td>{{ $exception.ProjectTitleEn }}</td>
+                  <td>{{if $exception.StageTitleEn}}{{ $exception.StageTitleEn }}{{else}}-{{end}}</td>
+                  <td>{{if $exception.TitleEn}}{{ $exception.TitleEn }}{{else}}-{{end}}</td>
+                  <td>{{if $exception.IsCritical}}Yes{{else}}No{{end}}</td>
+                  <td>
+                     {{if $exception.WorkflowStatusTitleEn}}
+                     <span class="badge" style="color: {{$exception.WorkflowStatusTextColor}}; border: 1px solid {{$exception.WorkflowStatusBorderColor}}; background: {{$exception.WorkflowStatusBackgroundColor}};">
+                        {{ $exception.WorkflowStatusTitleEn }}
+                     </span>
+                     {{else}}-{{end}}
+                  </td>
+                  <td>{{if $exception.ApprovedByEn}}{{ $exception.ApprovedByEn }}{{else}}-{{end}}</td>
+               </tr>
+               {{end}}
+            </tbody>
+         </table>
+         {{else}}
+         <p class="empty-note">No exceptions raised.</p>
+         {{end}}
+      </div>
+
+      <!-- 3. Exceptions & Approvals -->
+      <div style="margin-top: 20px;">
+         <h3 class="section-title">3. Exceptions &amp; Approvals</h3>
+         {{if .Data.Exceptions}}
+            {{range $index, $exception := .Data.Exceptions}}
+            <div class="keep-together" style="margin-top: 14px;">
+               <h4 class="sub-section-title">3.{{ add $index 1 }} {{ $exception.ProjectTitleEn }} &mdash; {{if $exception.TitleEn}}{{ $exception.TitleEn }}{{else}}-{{end}}</h4>
+
+               <div style="margin-top: 5px;">
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">Stage:</p>
+                     <p class="field-value">{{if $exception.StageTitleEn}}{{ $exception.StageTitleEn }}{{else}}-{{end}}</p>
+                  </div>
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">Readiness Status:</p>
+                     <p class="field-value">{{if $exception.ReadinessStatusTitleEn}}{{ $exception.ReadinessStatusTitleEn }}{{else}}-{{end}}</p>
+                  </div>
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">Business Owner:</p>
+                     <p class="field-value">{{if $exception.BusinessOwnerEn}}{{ $exception.BusinessOwnerEn }}{{else}}-{{end}}</p>
+                  </div>
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">Critical:</p>
+                     <p class="field-value">{{if $exception.IsCritical}}Yes{{else}}No{{end}}</p>
+                  </div>
+               </div>
+
+               <div style="margin-top: 5px;">
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">Workflow Status:</p>
+                     <p class="field-value">
+                        {{if $exception.WorkflowStatusTitleEn}}
+                        <span class="badge" style="color: {{$exception.WorkflowStatusTextColor}}; border: 1px solid {{$exception.WorkflowStatusBorderColor}}; background: {{$exception.WorkflowStatusBackgroundColor}};">
+                           {{ $exception.WorkflowStatusTitleEn }}
+                        </span>
+                        {{else}}-{{end}}
+                     </p>
+                  </div>
+                  <div style="width: 36%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">Submitted By:</p>
+                     <p class="field-value">{{if $exception.SubmittedByEn}}{{ $exception.SubmittedByEn }}{{else}}-{{end}} {{if $exception.SubmittedAtFormatted}}({{ $exception.SubmittedAtFormatted }}){{end}}</p>
+                  </div>
+                  <div style="width: 36%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">Approved By:</p>
+                     <p class="field-value">{{if $exception.ApprovedByEn}}{{ $exception.ApprovedByEn }}{{else}}-{{end}} {{if $exception.ApprovedAtFormatted}}({{ $exception.ApprovedAtFormatted }}){{end}}</p>
+                  </div>
+               </div>
+
+               <div style="margin-top: 5px;">
+                  <p class="field-label">Justification:</p>
+                  <div class="field-value">{{if $exception.Justification}}{{ $exception.Justification | safeHTML }}{{else}}-{{end}}</div>
+               </div>
+
+               {{if $exception.Reviews}}
+               <div class="sub-section-title">Review History</div>
+               <div style="margin-top: 10px;">
+                  {{$totalReviews := len $exception.Reviews}}
+                  {{range $reviewIndex, $review := $exception.Reviews}}
+                  {{$isLast := eq (add $reviewIndex 1) $totalReviews}}
+                  <table class="timeline-table">
+                     <tr>
+                        <!-- Step Number Node Column -->
+                        <td class="timeline-node">
+                           <span class="timeline-step">{{$review.StepNumber}}</span>
+                           {{if not $isLast}}
+                           <div class="timeline-connector"></div>
+                           {{end}}
+                        </td>
+                        <!-- Review Card Column -->
+                        <td class="timeline-card-cell">
+                           <div class="timeline-card">
+                              <table class="timeline-card-table">
+                                 <tr>
+                                    <td style="width: 22%; vertical-align: top; padding: 0;">
+                                       <p class="timeline-label">Status</p>
+                                       <span class="timeline-status" style="color: {{$review.StatusTextColor}}; border-color: {{$review.StatusBorderColor}}; background: {{$review.StatusBackgroundColor}};">{{if $review.StatusTitleEn}}{{$review.StatusTitleEn}}{{else}}-{{end}}</span>
+                                    </td>
+                                    <td style="width: 12%; vertical-align: top; padding: 0;">
+                                       <p class="timeline-label">Level</p>
+                                       <p class="timeline-value">{{$review.Level}}</p>
+                                    </td>
+                                    <td style="width: 28%; vertical-align: top; padding: 0;">
+                                       <p class="timeline-label">{{$review.ActionDateLabelEn}}</p>
+                                       <p class="timeline-value">{{if $review.CreatedAtString}}{{$review.CreatedAtString}}{{else}}-{{end}}</p>
+                                    </td>
+                                    <td style="width: 38%; vertical-align: top; padding: 0;">
+                                       <p class="timeline-label">{{$review.ActionByLabelEn}}</p>
+                                       <div class="timeline-value">
+                                          {{if $review.UserInitial}}
+                                          <span class="timeline-avatar">{{$review.UserInitial}}</span>
+                                          {{end}}
+                                          <span style="vertical-align: middle;">{{if $review.UserFullNameEn}}{{$review.UserFullNameEn}}{{else}}-{{end}}</span>
+                                       </div>
+                                    </td>
+                                 </tr>
+                              </table>
+                           </div>
+                        </td>
+                     </tr>
+                  </table>
+                  {{end}}
+               </div>
+               {{else}}
+               <p class="empty-note">No review history recorded.</p>
+               {{end}}
+            </div>
+            {{end}}
+         {{else}}
+         <p class="empty-note">No exceptions raised.</p>
+         {{end}}
+      </div>
+
+   </div>
+</body>
+</html>
