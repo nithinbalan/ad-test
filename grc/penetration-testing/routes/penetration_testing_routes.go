@@ -13,15 +13,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	db := app.DB
 	m := app.PenetrationTestingModule
 	penetrationTestReport := m.PenetrationTestReportController
-	penetrationTestingRoutes.GET("/penetration-testing/pentest-reports", penetrationTestReport.GetAllPenetrationTestReports)
-	penetrationTestingRoutes.GET("/penetration-testing/pentest-reports/:penetrationTestReportId", penetrationTestReport.GetPenetrationTestReportDetails)
-	penetrationTestingRoutes.POST("/penetration-testing/pentest-reports", penetrationTestReport.CreatePenetrationTestReport)
-	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-reports/:penetrationTestReportId", penetrationTestReport.DeletePenetrationTestReports)
-	penetrationTestingRoutes.GET("/penetration-testing/pentest-reports/:penetrationTestReportId/sections/:sectionId", penetrationTestReport.GetPenetrationTestReportSection)
-	penetrationTestingRoutes.PUT("/penetration-testing/pentest-reports/:penetrationTestReportId/sections/:sectionId", penetrationTestReport.UpdatePenetrationTestReportSection)
-	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-reports/:penetrationTestReportId/sections/:sectionId", penetrationTestReport.DeletePenetrationTestReportSection)
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-reports", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTestReport.GetAllPenetrationTestReports)
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-reports/:penetrationTestReportId", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTestReport.GetPenetrationTestReportDetails)
+	penetrationTestingRoutes.POST("/penetration-testing/pentest-reports", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTestReport.CreatePenetrationTestReport)
+	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-reports/:penetrationTestReportId", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTestReport.DeletePenetrationTestReports)
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-reports/:penetrationTestReportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTestReport.GetPenetrationTestReportSection)
+	penetrationTestingRoutes.PUT("/penetration-testing/pentest-reports/:penetrationTestReportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTestReport.UpdatePenetrationTestReportSection)
+	penetrationTestingRoutes.DELETE("/penetration-testing/pentest-reports/:penetrationTestReportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), penetrationTestReport.DeletePenetrationTestReportSection)
 
-	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/export-pdf", penetrationTestReport.ExportPenetrationTestReportToPDF)
+	penetrationTestingRoutes.GET("/penetration-testing/pentest-logs/:id/export-pdf", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTestReport.ExportPenetrationTestReportToPDF)
 	penetrationTestingRoutes.GET("/penetration-testing/pentest-reports/:penetrationTestReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), penetrationTestReport.GetPenetrationTestReportExportZip)
 
 	penetrationTest := m.PenetrationTestController
