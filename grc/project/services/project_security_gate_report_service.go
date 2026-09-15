@@ -134,12 +134,17 @@ func (psgrs *ProjectSecurityGateReportService) GetFullReportDetailsByID(id uint)
 		if checklist.UpdatedByUser != nil {
 			checklistItem.RespondedByEn = strings.TrimSpace(checklist.UpdatedByUser.FirstNameEn + " " + checklist.UpdatedByUser.LastNameEn)
 			checklistItem.RespondedByAr = strings.TrimSpace(checklist.UpdatedByUser.FirstNameAr + " " + checklist.UpdatedByUser.LastNameAr)
+		} else if checklist.CreatedByUser != nil {
+			checklistItem.RespondedByEn = strings.TrimSpace(checklist.CreatedByUser.FirstNameEn + " " + checklist.CreatedByUser.LastNameEn)
+			checklistItem.RespondedByAr = strings.TrimSpace(checklist.CreatedByUser.FirstNameAr + " " + checklist.CreatedByUser.LastNameAr)
 		}
 		if checklistItem.RespondedByAr == "" {
 			checklistItem.RespondedByAr = checklistItem.RespondedByEn
 		}
 		if checklist.UpdatedAt != nil {
 			checklistItem.RespondedAtFormatted = checklist.UpdatedAt.Format("01/02/2006")
+		} else if checklist.CreatedAt != nil {
+			checklistItem.RespondedAtFormatted = checklist.CreatedAt.Format("01/02/2006")
 		}
 		report.Checklists = append(report.Checklists, checklistItem)
 
