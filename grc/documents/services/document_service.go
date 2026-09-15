@@ -480,6 +480,34 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			utility.LogError("Failed to log activity", fields)
 		}
 
+		// Prepare and send DB notification to responsible user
+		entity := "document"
+		action := "responsible-user-assign"
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{documentFormDTO.ResponsibleUserID},
+			ModuleIdentifier:     "document",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Document Register Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية سجل الوثائق",
+			TitleEn:              existingDocument.TitleEn,
+			TitleAr:              existingDocument.TitleAr,
+			ReferenceNumber:      existingDocument.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		err = ds.notificationSvc.SendNotification(dbNotificationDTO, nil, "document")
+		if err != nil {
+			utility.LogError("Failed to send responsible user notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
 		documentVersion, err := ds.repo.GetDocumentVersionByID(existingDocument.LatestDocumentVersion.ID)
 		if err != nil {
 			log.Printf("Failed to get document version: %v", err)
