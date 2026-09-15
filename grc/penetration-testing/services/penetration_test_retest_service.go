@@ -27,7 +27,7 @@ type PenetrationTestRetestServiceInterface interface {
 	GetFullDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestRetestDetailDTO, error)
 	Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFormDTO) error
-	GetEligibleFindings(id uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error)
+	GetEligibleFindingsByPenetrationTestID(penetrationTestID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error)
 	UpdateFindings(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingUpdateFormDTO) error
 	DeleteFinding(id uint, retestFindingID uint, currentUserID uint) error
 	SaveFinding(id uint, retestFindingID uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingSaveFormDTO) error
@@ -328,16 +328,17 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 	return nil
 }
 
-func (ptrs *PenetrationTestRetestService) GetEligibleFindings(id uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error) {
-	existing, err := ptrs.repo.GetByID(id)
-	if err != nil {
+func (ptrs *PenetrationTestRetestService) GetEligibleFindingsByPenetrationTestID(penetrationTestID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error) {
+	if _, err := ptrs.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
 		return nil, err
 	}
+
 	closedStatus, err := ptrs.actionPlanStatusSvc.GetByType("close")
 	if err != nil {
 		return nil, err
 	}
-	return ptrs.repo.GetEligibleOpenFindings(id, existing.PenetrationTestID, closedStatus.ID)
+
+	return ptrs.repo.GetEligibleOpenFindings(penetrationTestID, closedStatus.ID)
 }
 
 func (ptrs *PenetrationTestRetestService) UpdateFindings(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingUpdateFormDTO) error {

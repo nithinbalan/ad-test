@@ -52,7 +52,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	penetrationTestingRoutes.GET("/penetration-test-retests/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), retest.GetPenetrationTestRetestDetails)
 	penetrationTestingRoutes.POST("/penetration-test-retests", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), retest.CreatePenetrationTestRetest)
 	penetrationTestingRoutes.PUT("/penetration-test-retests/:id", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), retest.UpdatePenetrationTestRetest)
-	penetrationTestingRoutes.GET("/penetration-test-retests/:id/eligible-findings", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), retest.GetEligiblePenetrationTestRetestFindings)
+	penetrationTestingRoutes.GET("/penetration-test-retests/eligible-findings", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "view"), retest.GetEligiblePenetrationTestFindingsForRetest)
 	penetrationTestingRoutes.PUT("/penetration-test-retests/:id/findings", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), retest.UpdatePenetrationTestRetestFindings)
 	penetrationTestingRoutes.DELETE("/penetration-test-retests/:id/findings/:retestFindingId", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), retest.DeletePenetrationTestRetestFinding)
 	penetrationTestingRoutes.PUT("/penetration-test-retests/:id/findings/:retestFindingId/save", middlewares.RolePermissionMiddleware(db, "penetration_testing_pentest_log", "modify"), retest.SavePenetrationTestRetestFinding)
