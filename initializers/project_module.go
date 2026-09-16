@@ -66,6 +66,7 @@ type ProjectModule struct {
 	projectSupportingDocumentSvc         services.ProjectSupportingDocumentServiceInterface
 	projectClosureSvc                    services.ProjectClosureServiceInterface
 	projectReportSvc                     services.ProjectReportServiceInterface
+	projectSecurityGateSvc               services.ProjectSecurityGateServiceInterface
 }
 
 func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule, settingsModule *SettingsModule, incidentModule *IncidentModule) *ProjectModule {
@@ -472,5 +473,6 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectSupportingDocumentSvc:         projectSupportingDocumentSvc,
 		projectClosureSvc:                    projectClosureSvc,
 		projectReportSvc:                     projectReportSvc,
+		projectSecurityGateSvc:               projectSecurityGateSvc,
 	}
 }

@@ -133,7 +133,9 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 			return nil, err
 		}
 
-		riskDTO.RegistrationDate = mapping.RiskRegister.RegistrationDate
+		if mapping.RiskRegister.RegistrationDate != nil {
+			riskDTO.RegistrationDateStr = mapping.RiskRegister.RegistrationDate.Format("2006-01-02")
+		}
 		riskDTO.CreatedAt = mapping.CreatedAt
 
 		detail.Risks = append(detail.Risks, &riskDTO)

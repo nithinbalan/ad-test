@@ -24,9 +24,6 @@ type ProjectSecurityGateServiceInterface interface {
 	SetChecklistService(svc ProjectSecurityGateChecklistServiceInterface)
 	GetAll(params *dtos.ProjectSecurityGateListQueryParamsDTO) (*dtos.ProjectSecurityGateListResponseDTO, error)
 	ExportProjectSecurityGates(data []*dtos.ProjectSecurityGateListDTO, currentUserID uint) (*os.File, error)
-	GetReadinessStatusExportFilename(readinessStatusID uint) string
-	GetStageExportFilename(stageID uint) string
-	GetClassificationExportFilename(classificationID uint) string
 	GetSummary() (*dtos.ProjectSecurityGateSummaryDTO, error)
 	GetByID(id uint) (*models.ProjectSecurityGate, error)
 	GetFullDetailsByID(id uint) (*dtos.ProjectSecurityGateDetailDTO, error)
@@ -163,39 +160,6 @@ func (psgs *ProjectSecurityGateService) ExportProjectSecurityGates(data []*dtos.
 	return file, nil
 }
 
-func (psgs *ProjectSecurityGateService) GetReadinessStatusExportFilename(readinessStatusID uint) string {
-	title, err := psgs.repo.GetReadinessStatusTitle(readinessStatusID)
-	if err != nil || title == "" {
-		title = "Project Security Gates"
-	} else {
-		title += " Project Security Gates"
-	}
-
-	return utility.SanitizeExportFileName(title + ".xlsx")
-}
-
-func (psgs *ProjectSecurityGateService) GetStageExportFilename(stageID uint) string {
-	title, err := psgs.repo.GetStageTitle(stageID)
-	if err != nil || title == "" {
-		title = "Project Security Gates"
-	} else {
-		title += " Project Security Gates"
-	}
-
-	return utility.SanitizeExportFileName(title + ".xlsx")
-}
-
-func (psgs *ProjectSecurityGateService) GetClassificationExportFilename(classificationID uint) string {
-	title, err := psgs.repo.GetClassificationTitle(classificationID)
-	if err != nil || title == "" {
-		title = "Project Security Gates"
-	} else {
-		title += " Project Security Gates"
-	}
-
-	return utility.SanitizeExportFileName(title + ".xlsx")
-}
-
 func (psgs *ProjectSecurityGateService) GetSummary() (*dtos.ProjectSecurityGateSummaryDTO, error) {
 	return psgs.repo.GetSummary()
 }
@@ -288,6 +252,8 @@ func (psgs *ProjectSecurityGateService) Create(currentUserID uint, form *dtos.Pr
 		StageID:           form.StageID,
 		TemplateVersionID: latestPublishedVersion.ID,
 		BusinessOwnerID:   form.BusinessOwnerID,
+		DivisionID:        &form.DivisionID,
+		DepartmentID:      &form.DepartmentID,
 		ReadinessStatusID: draftReadinessStatus.ID,
 		Notes:             form.Notes,
 		CreatedBYID:       currentUserID,
@@ -385,7 +351,7 @@ func (psgs *ProjectSecurityGateService) notifyBusinessOwner(id uint, securityGat
 		"CreatedByFirstNameEn": createdBy.FirstNameEn,
 		"CreatedByLastNameEn":  createdBy.LastNameEn,
 		"AssignedOn":           time.Now().Format("2006-01-02"),
-		"RedirectURL":          fmt.Sprintf("%s/projects/security-gate/%d", appURL, id),
+		"RedirectURL":          fmt.Sprintf("%s/projects/security-gate/%d/overview", appURL, id),
 	}
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -574,11 +540,21 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 		return err
 	}
 
+	var oldDivisionID, oldDepartmentID uint
+	if existing.DivisionID != nil {
+		oldDivisionID = *existing.DivisionID
+	}
+	if existing.DepartmentID != nil {
+		oldDepartmentID = *existing.DepartmentID
+	}
+
 	oldData := map[string]interface{}{
 		"project_title_en":  existing.ProjectTitleEn,
 		"project_title_ar":  existing.ProjectTitleAr,
 		"stage_id":          existing.StageID,
 		"business_owner_id": existing.BusinessOwnerID,
+		"division_id":       oldDivisionID,
+		"department_id":     oldDepartmentID,
 		"notes":             existing.Notes,
 	}
 
@@ -587,6 +563,8 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 	existing.ProjectTitleAr = form.ProjectTitleAr
 	existing.StageID = form.StageID
 	existing.BusinessOwnerID = form.BusinessOwnerID
+	existing.DivisionID = &form.DivisionID
+	existing.DepartmentID = &form.DepartmentID
 	existing.Notes = form.Notes
 	existing.UpdatedBYID = &currentUserID
 	existing.UpdatedAt = &now
@@ -609,6 +587,8 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 			"project_title_ar":  form.ProjectTitleAr,
 			"stage_id":          form.StageID,
 			"business_owner_id": form.BusinessOwnerID,
+			"division_id":       form.DivisionID,
+			"department_id":     form.DepartmentID,
 			"notes":             form.Notes,
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)

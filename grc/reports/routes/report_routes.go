@@ -28,6 +28,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	grcReportWorkflowReviewCommentController := app.ReportsModule.GRCReportWorkflowReviewCommentController
 	tprmReportController := app.ReportsModule.TPRMReportController
 	projectReportController := app.ReportsModule.ProjectReportController
+	projectSecurityGateReportController := app.ReportsModule.ProjectSecurityGateReportController
 
 	penetrationTestReportController := app.ReportsModule.PenetrationTestReportController
 	reportsRoutes.GET("/reports/penetration-tests", penetrationTestReportController.GetAllPenetrationTests)
@@ -208,6 +209,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/project-action-plan-by-status", projectReportController.GetProjectActionPlanByStatus)
 	reportsRoutes.GET("/reports/project-action-plan-by-responsible-user", projectReportController.GetProjectActionPlanByResponsibleUser)
 	reportsRoutes.GET("/reports/project-action-plan-by-responsible-unit", projectReportController.GetProjectActionPlanByResponsibleUnit)
+
+	//Project Security Gates
+	reportsRoutes.GET("/reports/project-security-gates", projectSecurityGateReportController.GetAllProjectSecurityGates)
+	reportsRoutes.GET("/reports/project-security-gates/export", projectSecurityGateReportController.GetProjectSecurityGateExport)
+	reportsRoutes.GET("/reports/project-security-gate-by-stage", projectSecurityGateReportController.GetProjectSecurityGateByStage)
+	reportsRoutes.GET("/reports/project-security-gate-by-readiness-status", projectSecurityGateReportController.GetProjectSecurityGateByReadinessStatus)
+	reportsRoutes.GET("/reports/project-security-gate-by-classification", projectSecurityGateReportController.GetProjectSecurityGateByClassification)
 
 	reportsRoutes.GET("/reports/audit-insight-audits", auditInsightReportController.GetAllAuditInsightsAudits)
 	reportsRoutes.GET("/reports/audit-insight-audits/export", auditInsightReportController.GetAllAuditInsightsAuditsExport)

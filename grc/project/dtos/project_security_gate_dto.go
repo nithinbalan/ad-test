@@ -61,6 +61,8 @@ type ProjectSecurityGateDetailDTO struct {
 	Stage           *ProjectSecurityGateStageDTO            `json:"stage"`
 	TemplateVersion *ProjectSecurityGateTemplateVersionDTO  `json:"template_version"`
 	BusinessOwner   *organizationDTOs.UserMinimalDTO        `json:"business_owner"`
+	Division        *organizationDTOs.OrganizationUnitDTO   `json:"division"`
+	Department      *organizationDTOs.OrganizationUnitDTO   `json:"department"`
 	ReadinessStatus *ProjectSecurityGateReadinessStatusDTO  `json:"readiness_status"`
 	Notes           *string                                 `json:"notes"`
 	CreatedByUser   *organizationDTOs.UserMinimalDTO        `json:"created_by"`
@@ -77,17 +79,14 @@ type ProjectSecurityGateTemplateVersionDTO struct {
 }
 
 type ProjectSecurityGateListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Export   bool
-
-	// Optional filters, zero means unfiltered
-	ReadinessStatusID uint
-	StageID           uint
-	ClassificationID  uint
+	Sort        string
+	SortBy      string
+	Keyword     string
+	QuickFilter []string
+	Filters     map[string][]string
+	Page        int
+	PageSize    int
+	Export      bool
 }
 
 type ProjectSecurityGateListResponseDTO struct {
@@ -106,6 +105,8 @@ type ProjectSecurityGateFormDTO struct {
 	ProjectTitleAr    string  `json:"project_title_ar" binding:"required,max=100"`
 	StageID           uint    `json:"stage_id" binding:"required"`
 	BusinessOwnerID   uint    `json:"business_owner_id" binding:"required"`
+	DivisionID        uint    `json:"division_id" binding:"required"`
+	DepartmentID      uint    `json:"department_id" binding:"required"`
 	ClassificationIDs []uint  `json:"classification_ids" binding:"required,min=1"`
 	Notes             *string `json:"notes"`
 }

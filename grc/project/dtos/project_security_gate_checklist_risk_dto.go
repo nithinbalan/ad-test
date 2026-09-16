@@ -19,16 +19,16 @@ type ProjectSecurityGateChecklistRiskFormDTO struct {
 }
 
 type ProjectSecurityGateChecklistRiskDTO struct {
-	ID               uint                                  `json:"id"`
-	ReferenceNumber  *string                               `json:"reference_number"`
-	RiskCode         *string                               `json:"risk_code"`
-	Title            string                                `json:"title"`
-	RegistrationDate *time.Time                            `json:"registration_date"`
-	Justification    *string                               `json:"justification"`
-	RiskStatus       *riskDTOs.RiskStatusDTO               `json:"risk_status"`
-	RiskCategory     *riskDTOs.RiskCategoryDTO             `json:"risk_category"`
-	Division         *organizationDTOs.OrganizationUnitDTO `json:"division"`
-	ResponsibleUnit  *organizationDTOs.OrganizationUnitDTO `json:"responsible_unit"`
-	ResponsibleUser  *organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
-	CreatedAt        time.Time                             `json:"created_at"`
+	ID                  uint                                  `json:"id"`
+	ReferenceNumber     *string                               `json:"reference_number"`
+	RiskCode            *string                               `json:"risk_code"`
+	Title               string                                `json:"title"`
+	RegistrationDateStr string                                `json:"registration_date"`
+	Justification       *string                               `json:"justification"`
+	RiskStatus          *riskDTOs.RiskStatusDTO               `json:"risk_status"`
+	RiskCategory        *riskDTOs.RiskCategoryDTO             `json:"risk_category"`
+	Division            *organizationDTOs.OrganizationUnitDTO `json:"division"`
+	ResponsibleUnit     *organizationDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser     *organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
+	CreatedAt           time.Time                             `json:"created_at"`
 }

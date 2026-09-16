@@ -46,7 +46,7 @@ func (arrc *AssetRiskRegisterController) GetAllAssetRiskRegisters(c *gin.Context
 
 	allowedParams := []string{
 		"division_ids",
-		"section_ids",
+		"responsible_unit_ids",
 		"risk_category_ids",
 		"current_risk_rating_ids",
 		"is_strategic",
@@ -56,19 +56,19 @@ func (arrc *AssetRiskRegisterController) GetAllAssetRiskRegisters(c *gin.Context
 	}
 
 	validSortFields := map[string]string{
-		"risk_code":         "risk_register.risk_code",
-		"title":             "risk_register.title",
-		"registration_date": "risk_register.registration_date",
-		"risk_category_en":  "risk_categories.title_en",
-		"risk_category_ar":  "risk_categories.title_ar",
-		"division_en":       "division.title_en",
-		"division_ar":       "division.title_ar",
-		"section_en":        "section.title_en",
-		"section_ar":        "section.title_ar",
-		"risk_rating_en":    "current_risk_rating.title_en",
-		"risk_rating_ar":    "current_risk_rating.title_ar",
-		"created_at":        "risk_register.created_at",
-		"updated_at":        "risk_register.updated_at",
+		"risk_code":           "risk_register.risk_code",
+		"title":               "risk_register.title",
+		"registration_date":   "risk_register.registration_date",
+		"risk_category_en":    "risk_categories.title_en",
+		"risk_category_ar":    "risk_categories.title_ar",
+		"division_en":         "division.title_en",
+		"division_ar":         "division.title_ar",
+		"responsible_unit_en": "responsible_unit.title_en",
+		"responsible_unit_ar": "responsible_unit.title_ar",
+		"risk_rating_en":      "current_risk_rating.title_en",
+		"risk_rating_ar":      "current_risk_rating.title_ar",
+		"created_at":          "risk_register.created_at",
+		"updated_at":          "risk_register.updated_at",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

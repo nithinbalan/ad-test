@@ -341,12 +341,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Project Security Gate Checklist Exception Workflow
 	projectRoutes.GET("/project-security-gates/:id/checklists/:checklistId/exception/workflow-list", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistExceptionWorkflowController.GetProjectSecurityGateChecklistExceptionWorkflowList)
 
-	// Project Security Gates excel reports
+	// Project Security Gate exception report
 	projectRoutes.GET("/project-security-gates/exceptions/export-pdf", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.ExportProjectSecurityGateExceptionReportToPDF)
-	projectRoutes.GET("/project-security-gates/readiness-status/:readinessStatusId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateController.GetProjectSecurityGatesByReadinessStatus)
-	projectRoutes.GET("/project-security-gates/readiness-status/:readinessStatusId/export", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateController.GetProjectSecurityGatesByReadinessStatusExport)
-	projectRoutes.GET("/project-security-gates/stage/:stageId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateController.GetProjectSecurityGatesByStage)
-	projectRoutes.GET("/project-security-gates/stage/:stageId/export", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateController.GetProjectSecurityGatesByStageExport)
-	projectRoutes.GET("/project-security-gates/classification/:classificationId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateController.GetProjectSecurityGatesByClassification)
-	projectRoutes.GET("/project-security-gates/classification/:classificationId/export", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateController.GetProjectSecurityGatesByClassificationExport)
 }
