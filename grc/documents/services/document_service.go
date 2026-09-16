@@ -1988,7 +1988,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/document/register/%d/overview", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -2409,7 +2409,7 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 		action := "published"
 		appURL := utility.GetAppURL()
 		subject := fmt.Sprintf("Document/%s: Published Notification", document.TitleEn)
-		redirectURL := fmt.Sprintf("%s/document/register/%d", appURL, documentID)
+		redirectURL := fmt.Sprintf("%s/document/register/%d/overview", appURL, documentID)
 
 		publishedUser, _ := ds.userSvc.GetByID(publishedBy)
 
