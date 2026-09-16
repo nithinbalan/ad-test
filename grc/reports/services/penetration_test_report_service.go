@@ -6,6 +6,10 @@ import (
 )
 
 type PenetrationTestReportServiceInterface interface {
+	GetPenetrationTestFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingBySeverityLevelDTO, error)
+	GetPenetrationTestFindingByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByResponsibleUserDTO, error)
+	GetPenetrationTestFindingByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByResponsibleUnitDTO, error)
+	GetPenetrationTestFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByStatusDTO, error)
 	GetPenetrationTestByType(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestByTypeDTO, error)
 	GetPenetrationTestByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestByStatusDTO, error)
 	GetPenetrationTestByClassification(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestByClassificationDTO, error)
@@ -64,4 +68,20 @@ func (ptrs *PenetrationTestReportService) GetPenetrationTestByYear(params *repor
 
 func (ptrs *PenetrationTestReportService) GetPenetrationTestByPeriod(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestByPeriodDTO, error) {
 	return ptrs.repo.GetPenetrationTestByPeriod(params)
+}
+
+func (ptrs *PenetrationTestReportService) GetPenetrationTestFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByStatusDTO, error) {
+	return ptrs.repo.GetPenetrationTestFindingByStatus(params)
+}
+
+func (ptrs *PenetrationTestReportService) GetPenetrationTestFindingByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByResponsibleUnitDTO, error) {
+	return ptrs.repo.GetPenetrationTestFindingByResponsibleUnit(params)
+}
+
+func (ptrs *PenetrationTestReportService) GetPenetrationTestFindingByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByResponsibleUserDTO, error) {
+	return ptrs.repo.GetPenetrationTestFindingByResponsibleUser(params)
+}
+
+func (ptrs *PenetrationTestReportService) GetPenetrationTestFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingBySeverityLevelDTO, error) {
+	return ptrs.repo.GetPenetrationTestFindingBySeverityLevel(params)
 }

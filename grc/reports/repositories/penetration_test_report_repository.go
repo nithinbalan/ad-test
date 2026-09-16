@@ -8,6 +8,10 @@ import (
 )
 
 type PenetrationTestReportRepositoryInterface interface {
+	GetPenetrationTestFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingBySeverityLevelDTO, error)
+	GetPenetrationTestFindingByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByResponsibleUserDTO, error)
+	GetPenetrationTestFindingByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByResponsibleUnitDTO, error)
+	GetPenetrationTestFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByStatusDTO, error)
 	GetPenetrationTestByType(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestByTypeDTO, error)
 	GetPenetrationTestByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestByStatusDTO, error)
 	GetPenetrationTestByClassification(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestByClassificationDTO, error)
@@ -288,4 +292,100 @@ func (repo *PenetrationTestReportRepository) GetPenetrationTestByPeriod(params *
 	}
 
 	return results, nil
+}
+
+func (repo *PenetrationTestReportRepository) GetPenetrationTestFindingByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByStatusDTO, error) {
+	results := []*reportDTOs.PenetrationTestFindingByStatusDTO{}
+
+	query := repo.db.Table("action_plan_statuses").
+		Select(`
+            action_plan_statuses.id,
+            action_plan_statuses.title_en,
+            action_plan_statuses.title_ar,
+            action_plan_statuses.color_code,
+            COUNT(penetration_test_findings.id) AS count
+        `).
+		Joins("LEFT JOIN penetration_test_findings ON penetration_test_findings.action_plan_status_id = action_plan_statuses.id").
+		Group("action_plan_statuses.id, action_plan_statuses.title_en, action_plan_statuses.title_ar, action_plan_statuses.color_code")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("penetration_test_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *PenetrationTestReportRepository) GetPenetrationTestFindingByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByResponsibleUnitDTO, error) {
+	results := []*reportDTOs.PenetrationTestFindingByResponsibleUnitDTO{}
+
+	query := repo.db.Table("penetration_test_findings").
+		Select(`
+			organization_units.id AS responsible_unit_id,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			organization_units.color_code AS color_code,
+			COUNT(penetration_test_findings.id) AS count
+        `).
+		Joins("JOIN users AS owner_user ON owner_user.id = penetration_test_findings.owner_id").
+		Joins("JOIN organization_units ON organization_units.id = owner_user.organization_unit_1_id").
+		Group("organization_units.id, organization_units.title_en, organization_units.title_ar, organization_units.color_code")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("penetration_test_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *PenetrationTestReportRepository) GetPenetrationTestFindingByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingByResponsibleUserDTO, error) {
+	results := []*reportDTOs.PenetrationTestFindingByResponsibleUserDTO{}
+
+	query := repo.db.Table("penetration_test_findings").
+		Select(`
+            users.id AS responsible_user_id,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
+            CONCAT(users.first_name_en, ' ', users.last_name_en) AS responsible_user_title_en,
+            CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS responsible_user_title_ar,
+            users.initial AS responsible_user_initial,
+            users.color AS responsible_user_color,
+            users.email AS responsible_user_email,
+            users.profile_image_path AS responsible_user_profile_image_path,
+            COUNT(penetration_test_findings.id) AS count
+        `).
+		Joins("JOIN users ON users.id = penetration_test_findings.owner_id").
+		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("penetration_test_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *PenetrationTestReportRepository) GetPenetrationTestFindingBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.PenetrationTestFindingBySeverityLevelDTO, error) {
+	results := []*reportDTOs.PenetrationTestFindingBySeverityLevelDTO{}
+
+	query := repo.db.Table("severity_levels").
+		Select(`
+            severity_levels.id,
+            severity_levels.title_en,
+            severity_levels.title_ar,
+            severity_levels.color_code,
+            COUNT(penetration_test_findings.id) AS count
+        `).
+		Joins("LEFT JOIN penetration_test_findings ON penetration_test_findings.severity_level_id = severity_levels.id").
+		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("penetration_test_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
 }
