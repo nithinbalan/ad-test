@@ -853,6 +853,14 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 						"Field": translatedFieldName,
 					},
 				})
+			case "max":
+				errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+					MessageID: "field_max_length",
+					TemplateData: map[string]interface{}{
+						"Field": translatedFieldName,
+						"Max":   fe.Param(),
+					},
+				})
 			default:
 				errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
 					MessageID: "field_invalid",

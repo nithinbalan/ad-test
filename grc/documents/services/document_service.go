@@ -217,6 +217,11 @@ func (ds *DocumentService) GetFullDetailsByID(id uint, currentUserID *uint, tx .
 	documentDTO.CreatedAt = document.CreatedAt
 	documentDTO.UpdatedAt = document.UpdatedAt
 
+	if document.NextReviewDate != nil {
+		nextReviewDate := document.NextReviewDate.Format("2006-01-02")
+		documentDTO.NextReviewDate = &nextReviewDate
+	}
+
 	return &documentDTO, nil
 }
 
@@ -1505,7 +1510,7 @@ func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token s
 
 	if document.CreatedByUser.ID != int(currentUserID) && document.ResponsibleUser.ID != int(currentUserID) {
 		tx.Rollback()
-		return "", utility.NewForbiddenError("Access denied: user is neither creator nor responsible user.")
+		return "", utility.NewForbiddenError("Access denied: Only the creator or responsible user can check out this document.")
 	}
 
 	currentDateStr := time.Now().Format("2006-01-02")
@@ -1580,7 +1585,7 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 
 	if document.CreatedByUser.ID != int(currentUserID) && document.ResponsibleUser.ID != int(currentUserID) {
 		tx.Rollback()
-		return fmt.Errorf("access denied: user is neither creator nor responsible user")
+		return utility.NewForbiddenError("Access denied: Only the creator or responsible user can check in this document.")
 	}
 
 	dataToEncrypt := []byte(documentCheckinFormDTO.Document.FileName)
@@ -2577,6 +2582,7 @@ func (ds *DocumentService) UpdateDocumentRecoveryObjective(document *models.Docu
 }
 
 func (ds *DocumentService) calculateNextReviewDate(baseDate time.Time, frequencyType string) time.Time {
+	baseDate = time.Date(baseDate.Year(), baseDate.Month(), baseDate.Day(), 0, 0, 0, 0, baseDate.Location())
 	switch frequencyType {
 	case "daily":
 		return baseDate.AddDate(0, 0, 1)
