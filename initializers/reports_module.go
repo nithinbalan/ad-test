@@ -25,6 +25,7 @@ type ReportsModule struct {
 	GRCReportWorkflowReviewCommentController *controllers.GRCReportWorkflowReviewCommentController
 	TPRMReportController                     *controllers.TPRMReportController
 	ProjectReportController                  *controllers.ProjectReportController
+	ProjectSecurityGateReportController      *controllers.ProjectSecurityGateReportController
 }
 
 func NewReportsModule(db *gorm.DB,
@@ -140,6 +141,10 @@ func NewReportsModule(db *gorm.DB,
 	projectReportSvc := services.NewProjectReportService(projectReportRepo)
 	projectReportController := controllers.NewProjectReportController(projectReportSvc, projectModule.projectSvc, projectModule.projectActionPlanSvc)
 
+	projectSecurityGateReportRepo := repositories.NewProjectSecurityGateReportRepository(db)
+	projectSecurityGateReportSvc := services.NewProjectSecurityGateReportService(projectSecurityGateReportRepo)
+	projectSecurityGateReportController := controllers.NewProjectSecurityGateReportController(projectSecurityGateReportSvc, projectModule.projectSecurityGateSvc)
+
 	penetrationTestReportRepo := repositories.NewPenetrationTestReportRepository(db)
 	penetrationTestReportSvc := services.NewPenetrationTestReportService(penetrationTestReportRepo)
 	penetrationTestReportController := controllers.NewPenetrationTestReportController(penetrationTestReportSvc, penetrationTestingModule.PenetrationTestSvc, penetrationTestingModule.PenetrationTestFindingSvc)
@@ -160,5 +165,6 @@ func NewReportsModule(db *gorm.DB,
 		GRCReportWorkflowReviewCommentController: grcReportWorkflowReviewCommentController,
 		TPRMReportController:                     tprmReportController,
 		ProjectReportController:                  projectReportController,
+		ProjectSecurityGateReportController:      projectSecurityGateReportController,
 	}
 }

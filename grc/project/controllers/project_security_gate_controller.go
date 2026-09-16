@@ -29,22 +29,36 @@ func (psgc *ProjectSecurityGateController) GetAllProjectSecurityGates(c *gin.Con
 	sort := c.DefaultQuery("sort_order", "desc")
 	sortBy := c.DefaultQuery("sort_by", "project_title_en")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	allowedParams := []string{
+		"stage_ids",
+		"readiness_status_ids",
+		"classification_ids",
+	}
 
 	if sort != "asc" && sort != "desc" {
 		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_order' parameter"))
 		return
 	}
 
+	// One entry per column of the excel export
 	validSortFields := map[string]string{
 		"project_title_en":             "project_security_gates.project_title_en",
 		"project_title_ar":             "project_security_gates.project_title_ar",
+		"checklist_count":              "checklist_count",
 		"stage_title_en":               "stages.title_en",
 		"stage_title_ar":               "stages.title_ar",
 		"business_owner_first_name_en": "business_owner.first_name_en",
 		"business_owner_first_name_ar": "business_owner.first_name_ar",
 		"readiness_status_title_en":    "readiness_status.title_en",
 		"readiness_status_title_ar":    "readiness_status.title_ar",
+		"notes":                        "project_security_gates.notes",
+		"created_user_first_name_en":   "created_user.first_name_en",
+		"created_user_first_name_ar":   "created_user.first_name_ar",
 		"created_at":                   "project_security_gates.created_at",
+		"updated_user_first_name_en":   "updated_user.first_name_en",
+		"updated_user_first_name_ar":   "updated_user.first_name_ar",
 		"updated_at":                   "project_security_gates.updated_at",
 	}
 
@@ -79,12 +93,14 @@ func (psgc *ProjectSecurityGateController) GetAllProjectSecurityGates(c *gin.Con
 	}
 
 	queryParams := dtos.ProjectSecurityGateListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   dbField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Export:   export,
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		QuickFilter: quickFilter,
+		Filters:     utility.ParseQueryFilters(allowedParams, c.Request.URL.Query()),
+		Page:        page,
+		PageSize:    pageSize,
+		Export:      export,
 	}
 
 	projectSecurityGates, err := psgc.service.GetAll(&queryParams)
@@ -121,324 +137,6 @@ func (psgc *ProjectSecurityGateController) GetAllProjectSecurityGates(c *gin.Con
 func (psgc *ProjectSecurityGateController) GetProjectSecurityGatesExport(c *gin.Context) {
 	c.Set("export", true)
 	psgc.GetAllProjectSecurityGates(c)
-}
-
-func (psgc *ProjectSecurityGateController) GetProjectSecurityGatesByReadinessStatus(c *gin.Context) {
-	readinessStatusIDStr := c.Param("readinessStatusId")
-	readinessStatusID, err := strconv.ParseUint(readinessStatusIDStr, 10, 32)
-	if err != nil {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'readinessStatusId' parameter"))
-		return
-	}
-
-	sort := c.DefaultQuery("sort_order", "desc")
-	sortBy := c.DefaultQuery("sort_by", "project_title_en")
-	keyword := c.Query("keyword")
-
-	if sort != "asc" && sort != "desc" {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_order' parameter"))
-		return
-	}
-
-	validSortFields := map[string]string{
-		"project_title_en":             "project_security_gates.project_title_en",
-		"project_title_ar":             "project_security_gates.project_title_ar",
-		"stage_title_en":               "stages.title_en",
-		"stage_title_ar":               "stages.title_ar",
-		"business_owner_first_name_en": "business_owner.first_name_en",
-		"business_owner_first_name_ar": "business_owner.first_name_ar",
-		"readiness_status_title_en":    "readiness_status.title_en",
-		"readiness_status_title_ar":    "readiness_status.title_ar",
-		"created_at":                   "project_security_gates.created_at",
-		"updated_at":                   "project_security_gates.updated_at",
-	}
-
-	dbField, valid := validSortFields[sortBy]
-	if !valid {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_by' parameter"))
-		return
-	}
-
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(psgc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(psgc.db, c, "Invalid page_size parameter")
-		return
-	}
-
-	exportFromContext, exists := c.Get("export")
-	var export bool
-	if exists {
-		export = exportFromContext.(bool)
-	} else {
-		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
-		if err != nil {
-			utility.SendInvalidErrResp(c, errors.New("invalid 'export' parameter"))
-			return
-		}
-	}
-
-	queryParams := dtos.ProjectSecurityGateListQueryParamsDTO{
-		Sort:              sort,
-		SortBy:            dbField,
-		Keyword:           keyword,
-		Page:              page,
-		PageSize:          pageSize,
-		Export:            export,
-		ReadinessStatusID: uint(readinessStatusID),
-	}
-
-	projectSecurityGates, err := psgc.service.GetAll(&queryParams)
-	if err != nil {
-		utility.SendInternalErrResp(psgc.db, c, err.Error())
-		return
-	}
-
-	if export {
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(psgc.db, c, err.Error())
-			return
-		}
-
-		excelFile, err := psgc.service.ExportProjectSecurityGates(projectSecurityGates.Items, currentUserID)
-		if err != nil {
-			utility.SendInternalErrResp(psgc.db, c, err.Error())
-			return
-		}
-		defer excelFile.Close()
-
-		fileName := psgc.service.GetReadinessStatusExportFilename(uint(readinessStatusID))
-		c.Header("Content-Description", "File Transfer")
-		c.Header("Content-Disposition", `attachment; filename="`+fileName+`"`)
-		c.Header("Content-Type", "application/octet-stream")
-		c.File(excelFile.Name())
-		return
-	}
-
-	c.JSON(http.StatusOK, projectSecurityGates)
-}
-
-func (psgc *ProjectSecurityGateController) GetProjectSecurityGatesByReadinessStatusExport(c *gin.Context) {
-	c.Set("export", true)
-	psgc.GetProjectSecurityGatesByReadinessStatus(c)
-}
-
-func (psgc *ProjectSecurityGateController) GetProjectSecurityGatesByStage(c *gin.Context) {
-	stageIDStr := c.Param("stageId")
-	stageID, err := strconv.ParseUint(stageIDStr, 10, 32)
-	if err != nil {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'stageId' parameter"))
-		return
-	}
-
-	sort := c.DefaultQuery("sort_order", "desc")
-	sortBy := c.DefaultQuery("sort_by", "project_title_en")
-	keyword := c.Query("keyword")
-
-	if sort != "asc" && sort != "desc" {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_order' parameter"))
-		return
-	}
-
-	validSortFields := map[string]string{
-		"project_title_en":             "project_security_gates.project_title_en",
-		"project_title_ar":             "project_security_gates.project_title_ar",
-		"stage_title_en":               "stages.title_en",
-		"stage_title_ar":               "stages.title_ar",
-		"business_owner_first_name_en": "business_owner.first_name_en",
-		"business_owner_first_name_ar": "business_owner.first_name_ar",
-		"readiness_status_title_en":    "readiness_status.title_en",
-		"readiness_status_title_ar":    "readiness_status.title_ar",
-		"created_at":                   "project_security_gates.created_at",
-		"updated_at":                   "project_security_gates.updated_at",
-	}
-
-	dbField, valid := validSortFields[sortBy]
-	if !valid {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_by' parameter"))
-		return
-	}
-
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(psgc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(psgc.db, c, "Invalid page_size parameter")
-		return
-	}
-
-	exportFromContext, exists := c.Get("export")
-	var export bool
-	if exists {
-		export = exportFromContext.(bool)
-	} else {
-		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
-		if err != nil {
-			utility.SendInvalidErrResp(c, errors.New("invalid 'export' parameter"))
-			return
-		}
-	}
-
-	queryParams := dtos.ProjectSecurityGateListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   dbField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Export:   export,
-		StageID:  uint(stageID),
-	}
-
-	projectSecurityGates, err := psgc.service.GetAll(&queryParams)
-	if err != nil {
-		utility.SendInternalErrResp(psgc.db, c, err.Error())
-		return
-	}
-
-	if export {
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(psgc.db, c, err.Error())
-			return
-		}
-
-		excelFile, err := psgc.service.ExportProjectSecurityGates(projectSecurityGates.Items, currentUserID)
-		if err != nil {
-			utility.SendInternalErrResp(psgc.db, c, err.Error())
-			return
-		}
-		defer excelFile.Close()
-
-		fileName := psgc.service.GetStageExportFilename(uint(stageID))
-		c.Header("Content-Description", "File Transfer")
-		c.Header("Content-Disposition", `attachment; filename="`+fileName+`"`)
-		c.Header("Content-Type", "application/octet-stream")
-		c.File(excelFile.Name())
-		return
-	}
-
-	c.JSON(http.StatusOK, projectSecurityGates)
-}
-
-func (psgc *ProjectSecurityGateController) GetProjectSecurityGatesByStageExport(c *gin.Context) {
-	c.Set("export", true)
-	psgc.GetProjectSecurityGatesByStage(c)
-}
-
-func (psgc *ProjectSecurityGateController) GetProjectSecurityGatesByClassification(c *gin.Context) {
-	classificationIDStr := c.Param("classificationId")
-	classificationID, err := strconv.ParseUint(classificationIDStr, 10, 32)
-	if err != nil {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'classificationId' parameter"))
-		return
-	}
-
-	sort := c.DefaultQuery("sort_order", "desc")
-	sortBy := c.DefaultQuery("sort_by", "project_title_en")
-	keyword := c.Query("keyword")
-
-	if sort != "asc" && sort != "desc" {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_order' parameter"))
-		return
-	}
-
-	validSortFields := map[string]string{
-		"project_title_en":             "project_security_gates.project_title_en",
-		"project_title_ar":             "project_security_gates.project_title_ar",
-		"stage_title_en":               "stages.title_en",
-		"stage_title_ar":               "stages.title_ar",
-		"business_owner_first_name_en": "business_owner.first_name_en",
-		"business_owner_first_name_ar": "business_owner.first_name_ar",
-		"readiness_status_title_en":    "readiness_status.title_en",
-		"readiness_status_title_ar":    "readiness_status.title_ar",
-		"created_at":                   "project_security_gates.created_at",
-		"updated_at":                   "project_security_gates.updated_at",
-	}
-
-	dbField, valid := validSortFields[sortBy]
-	if !valid {
-		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_by' parameter"))
-		return
-	}
-
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(psgc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(psgc.db, c, "Invalid page_size parameter")
-		return
-	}
-
-	exportFromContext, exists := c.Get("export")
-	var export bool
-	if exists {
-		export = exportFromContext.(bool)
-	} else {
-		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
-		if err != nil {
-			utility.SendInvalidErrResp(c, errors.New("invalid 'export' parameter"))
-			return
-		}
-	}
-
-	queryParams := dtos.ProjectSecurityGateListQueryParamsDTO{
-		Sort:             sort,
-		SortBy:           dbField,
-		Keyword:          keyword,
-		Page:             page,
-		PageSize:         pageSize,
-		Export:           export,
-		ClassificationID: uint(classificationID),
-	}
-
-	projectSecurityGates, err := psgc.service.GetAll(&queryParams)
-	if err != nil {
-		utility.SendInternalErrResp(psgc.db, c, err.Error())
-		return
-	}
-
-	if export {
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(psgc.db, c, err.Error())
-			return
-		}
-
-		excelFile, err := psgc.service.ExportProjectSecurityGates(projectSecurityGates.Items, currentUserID)
-		if err != nil {
-			utility.SendInternalErrResp(psgc.db, c, err.Error())
-			return
-		}
-		defer excelFile.Close()
-
-		fileName := psgc.service.GetClassificationExportFilename(uint(classificationID))
-		c.Header("Content-Description", "File Transfer")
-		c.Header("Content-Disposition", `attachment; filename="`+fileName+`"`)
-		c.Header("Content-Type", "application/octet-stream")
-		c.File(excelFile.Name())
-		return
-	}
-
-	c.JSON(http.StatusOK, projectSecurityGates)
-}
-
-func (psgc *ProjectSecurityGateController) GetProjectSecurityGatesByClassificationExport(c *gin.Context) {
-	c.Set("export", true)
-	psgc.GetProjectSecurityGatesByClassification(c)
 }
 
 func (psgc *ProjectSecurityGateController) GetProjectSecurityGateSummary(c *gin.Context) {

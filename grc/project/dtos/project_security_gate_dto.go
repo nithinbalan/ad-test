@@ -77,17 +77,14 @@ type ProjectSecurityGateTemplateVersionDTO struct {
 }
 
 type ProjectSecurityGateListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Export   bool
-
-	// Optional filters, zero means unfiltered
-	ReadinessStatusID uint
-	StageID           uint
-	ClassificationID  uint
+	Sort        string
+	SortBy      string
+	Keyword     string
+	QuickFilter []string
+	Filters     map[string][]string
+	Page        int
+	PageSize    int
+	Export      bool
 }
 
 type ProjectSecurityGateListResponseDTO struct {

@@ -16,9 +16,6 @@ type ProjectSecurityGateRepositoryInterface interface {
 	GetAll(params *projectDTOs.ProjectSecurityGateListQueryParamsDTO) (*projectDTOs.ProjectSecurityGateListResponseDTO, error)
 	GetSummary() (*projectDTOs.ProjectSecurityGateSummaryDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGate, error)
-	GetReadinessStatusTitle(id uint) (string, error)
-	GetStageTitle(id uint) (string, error)
-	GetClassificationTitle(id uint) (string, error)
 	GetFullDetailsByID(id uint) (*models.ProjectSecurityGate, error)
 	Create(projectSecurityGate *models.ProjectSecurityGate, tx ...utility.DatabaseTransaction) error
 	Update(projectSecurityGate *models.ProjectSecurityGate, tx ...utility.DatabaseTransaction) error
@@ -104,22 +101,43 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 			keyword, keyword, keyword, keyword)
 	}
 
-	if params.ReadinessStatusID > 0 {
-		query = query.Where("project_security_gates.readiness_status_id = ?", params.ReadinessStatusID)
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			if columnName == "classification_id" {
+				query = query.Where("project_security_gates.id IN (SELECT security_gate_id FROM project_security_gate_classification_mappings WHERE classification_id IN (?))", values)
+			} else {
+				query = query.Where("project_security_gates."+columnName+" IN (?)", values)
+			}
+		}
 	}
 
-	if params.StageID > 0 {
-		query = query.Where("project_security_gates.stage_id = ?", params.StageID)
-	}
-
-	if params.ClassificationID > 0 {
-		// EXISTS not a join, so a gate with several classifications is returned once
-		query = query.Where(`
-			EXISTS (
-				SELECT 1 FROM project_security_gate_classification_mappings AS classification_mapping
-				WHERE classification_mapping.security_gate_id = project_security_gates.id
-					AND classification_mapping.classification_id = ?
-			)`, params.ClassificationID)
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "exception_pending":
+			query = query.Where(`
+				EXISTS (
+					SELECT 1 FROM project_security_gate_checklists AS exception_checklist
+					WHERE exception_checklist.security_gate_id = project_security_gates.id
+						AND exception_checklist.is_exception = 1
+						AND exception_checklist.approved_by_id IS NULL
+				)`)
+		case "outstanding":
+			query = query.Where(`
+				EXISTS (
+					SELECT 1 FROM project_security_gate_checklists AS pending_checklist
+					WHERE pending_checklist.security_gate_id = project_security_gates.id
+						AND pending_checklist.response_status_id IS NULL
+						AND pending_checklist.is_exception = 0
+				)`)
+		case "risk_raised":
+			query = query.Where(`
+				EXISTS (
+					SELECT 1 FROM project_security_gate_checklist_risks AS checklist_risk
+					JOIN project_security_gate_checklists AS risk_checklist
+						ON risk_checklist.id = checklist_risk.checklist_id
+					WHERE risk_checklist.security_gate_id = project_security_gates.id
+				)`)
+		}
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -208,45 +226,6 @@ func (repo *ProjectSecurityGateRepository) GetByID(id uint, tx ...utility.Databa
 	}
 
 	return projectSecurityGate, nil
-}
-
-func (repo *ProjectSecurityGateRepository) GetReadinessStatusTitle(id uint) (string, error) {
-	var title string
-	if err := repo.db.
-		Table("project_security_gate_readiness_statuses").
-		Select("title_en").
-		Where("id = ?", id).
-		Scan(&title).Error; err != nil {
-		return "", err
-	}
-
-	return title, nil
-}
-
-func (repo *ProjectSecurityGateRepository) GetStageTitle(id uint) (string, error) {
-	var title string
-	if err := repo.db.
-		Table("project_security_gate_stages").
-		Select("title_en").
-		Where("id = ?", id).
-		Scan(&title).Error; err != nil {
-		return "", err
-	}
-
-	return title, nil
-}
-
-func (repo *ProjectSecurityGateRepository) GetClassificationTitle(id uint) (string, error) {
-	var title string
-	if err := repo.db.
-		Table("project_security_gate_classifications").
-		Select("title_en").
-		Where("id = ?", id).
-		Scan(&title).Error; err != nil {
-		return "", err
-	}
-
-	return title, nil
 }
 
 func (repo *ProjectSecurityGateRepository) GetFullDetailsByID(id uint) (*models.ProjectSecurityGate, error) {

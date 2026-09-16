@@ -24,9 +24,6 @@ type ProjectSecurityGateServiceInterface interface {
 	SetChecklistService(svc ProjectSecurityGateChecklistServiceInterface)
 	GetAll(params *dtos.ProjectSecurityGateListQueryParamsDTO) (*dtos.ProjectSecurityGateListResponseDTO, error)
 	ExportProjectSecurityGates(data []*dtos.ProjectSecurityGateListDTO, currentUserID uint) (*os.File, error)
-	GetReadinessStatusExportFilename(readinessStatusID uint) string
-	GetStageExportFilename(stageID uint) string
-	GetClassificationExportFilename(classificationID uint) string
 	GetSummary() (*dtos.ProjectSecurityGateSummaryDTO, error)
 	GetByID(id uint) (*models.ProjectSecurityGate, error)
 	GetFullDetailsByID(id uint) (*dtos.ProjectSecurityGateDetailDTO, error)
@@ -161,39 +158,6 @@ func (psgs *ProjectSecurityGateService) ExportProjectSecurityGates(data []*dtos.
 	}
 
 	return file, nil
-}
-
-func (psgs *ProjectSecurityGateService) GetReadinessStatusExportFilename(readinessStatusID uint) string {
-	title, err := psgs.repo.GetReadinessStatusTitle(readinessStatusID)
-	if err != nil || title == "" {
-		title = "Project Security Gates"
-	} else {
-		title += " Project Security Gates"
-	}
-
-	return utility.SanitizeExportFileName(title + ".xlsx")
-}
-
-func (psgs *ProjectSecurityGateService) GetStageExportFilename(stageID uint) string {
-	title, err := psgs.repo.GetStageTitle(stageID)
-	if err != nil || title == "" {
-		title = "Project Security Gates"
-	} else {
-		title += " Project Security Gates"
-	}
-
-	return utility.SanitizeExportFileName(title + ".xlsx")
-}
-
-func (psgs *ProjectSecurityGateService) GetClassificationExportFilename(classificationID uint) string {
-	title, err := psgs.repo.GetClassificationTitle(classificationID)
-	if err != nil || title == "" {
-		title = "Project Security Gates"
-	} else {
-		title += " Project Security Gates"
-	}
-
-	return utility.SanitizeExportFileName(title + ".xlsx")
 }
 
 func (psgs *ProjectSecurityGateService) GetSummary() (*dtos.ProjectSecurityGateSummaryDTO, error) {
