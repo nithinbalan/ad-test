@@ -194,7 +194,7 @@
 },
 {
   "id": "field_max_length",
-  "translation": "لا يمكن أن يتجاوز حقل {{.Field}} الحد الأقصى لعدد الأحرف المسموح به."
+  "translation": "{{if .Max}}لا يمكن أن يتجاوز حقل {{.Field}} {{.Max}} حرفًا.{{else}}لا يمكن أن يتجاوز حقل {{.Field}} الحد الأقصى لعدد الأحرف المسموح به.{{end}}"
 }
 ,
 {
@@ -338,6 +338,10 @@
   "translation": "يوجد بالفعل {{.Field}} نشط."
 },
 {
+  "id": "retest_end_before_start",
+  "translation": "لا يمكن أن يكون تاريخ انتهاء إعادة الاختبار قبل تاريخ البدء."
+},
+{
   "id": "test_end_before_start",
   "translation": "يجب أن يكون تاريخ انتهاء الاختبار في تاريخ بدء الاختبار أو بعده."
 },
@@ -380,11 +384,21 @@
 {
   "id": "security_gate_already_go_live",
   "translation": "تم إطلاق بوابة الأمان هذه بالفعل."
+},
+{
+  "id": "findings_not_closed",
+  "translation": "يجب إغلاق جميع النتائج قبل إغلاق اختبار الاختراق."
+},
+{
+  "id": "penetration_test_closed",
+  "translation": "لا يمكن إضافة نتائج أو إعادة فتحها أثناء إغلاق اختبار الاختراق."
+},
+{
+  "id": "environment_ready_before_notify",
+  "translation": "لا يمكن أن يكون تاريخ الجاهزية المتوقع قبل تاريخ إشعار البيئة."
+},
+{
+  "id": "management_response_before_notify",
+  "translation": "لا يمكن أن يكون تاريخ رد الإدارة قبل تاريخ إشعار الإدارة."
 }
-
-
-
-
-
-
 ]

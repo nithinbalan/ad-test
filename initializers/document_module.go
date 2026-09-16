@@ -244,6 +244,7 @@ func NewDocumentModule(db *gorm.DB,
 		documentSvc,
 		masterModule.ReviewStatusSvc,
 		documentChangeRequestSvc,
+		masterModule.ReviewFrequencySvc,
 	)
 	documentPeriodicReviewController := controllers.NewDocumentPeriodicReviewController(documentPeriodicReviewSvc)
 

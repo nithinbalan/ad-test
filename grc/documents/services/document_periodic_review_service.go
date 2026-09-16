@@ -35,6 +35,7 @@ type DocumentPeriodicReviewService struct {
 	documentSvc              DocumentServiceInterface
 	documentReviewStatusSvc  masterService.ReviewStatusServiceInterface
 	documentChangeRequestSvc DocumentChangeRequestServiceInterface
+	reviewFrequencySvc       masterService.ReviewFrequencyServiceInterface
 }
 
 func NewDocumentPeriodicReviewService(
@@ -43,6 +44,7 @@ func NewDocumentPeriodicReviewService(
 	documentSvc DocumentServiceInterface,
 	documentReviewStatusSvc masterService.ReviewStatusServiceInterface,
 	documentChangeRequestSvc DocumentChangeRequestServiceInterface,
+	reviewFrequencySvc masterService.ReviewFrequencyServiceInterface,
 ) DocumentPeriodicReviewServiceInterface {
 	return &DocumentPeriodicReviewService{
 		repo:                     repo,
@@ -50,6 +52,7 @@ func NewDocumentPeriodicReviewService(
 		documentSvc:              documentSvc,
 		documentReviewStatusSvc:  documentReviewStatusSvc,
 		documentChangeRequestSvc: documentChangeRequestSvc,
+		reviewFrequencySvc:       reviewFrequencySvc,
 	}
 }
 
@@ -81,6 +84,10 @@ func (dprs *DocumentPeriodicReviewService) GetFullDetailsByID(id uint, tx ...uti
 	// Check and format ReviewDate explicitly
 
 	detailsDTO.ReviewDateString = review.ReviewDate.Format("2006-01-02")
+	if review.TargetReviewDate != nil {
+		targetReviewDateStr := review.TargetReviewDate.Format("2006-01-02")
+		detailsDTO.TargetReviewDateString = &targetReviewDateStr
+	}
 
 	// Decode other fields
 	err = mapstructure.Decode(review, &detailsDTO)
@@ -116,6 +123,7 @@ func (dprs *DocumentPeriodicReviewService) Create(currentUserID uint, documentID
 	review := &models.DocumentReview{
 		DocumentID:       documentID,
 		ReviewDate:       *dates.ReviewDate,
+		TargetReviewDate: document.NextReviewDate,
 		ISChangeRequired: formDTO.ISChangeRequired,
 		Description:      formDTO.Description,
 		CreatedBYID:      currentUserID,
@@ -125,6 +133,14 @@ func (dprs *DocumentPeriodicReviewService) Create(currentUserID uint, documentID
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	if document.ReviewFrequencyID != nil && *document.ReviewFrequencyID != 0 {
+		reviewFrequency, err := dprs.reviewFrequencySvc.GetByID(*document.ReviewFrequencyID)
+		if err == nil && reviewFrequency != nil {
+			nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type, *dates.ReviewDate)
+			document.NextReviewDate = &nextReviewDate
+		}
 	}
 
 	document.ReviewStatusID = &reviewStatus.ID

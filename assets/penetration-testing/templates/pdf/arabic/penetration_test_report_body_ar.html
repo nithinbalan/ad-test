@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { direction: rtl; text-align: right; word-break: break-word; -webkit-text-size-adjust: none; }
+
+    .keep-together {
+      page-break-inside: avoid;
+    }
+
+    .clearfix::after {
+      display: block;
+      clear: both;
+      content: "";
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    /* HTML content styling for sections */
+    ul,
+    ol {
+      margin: 8px 0;
+      padding-right: 25px;
+    }
+
+    li {
+      margin: 4px 0;
+      line-height: 1.5em;
+    }
+
+    blockquote {
+      margin: 10px 0;
+      padding: 10px 15px;
+      border-right: 3px solid #ddd;
+      background-color: #f9f9f9;
+      font-style: italic;
+    }
+
+    strong,
+    b {
+      font-weight: 700;
+    }
+
+    em,
+    i {
+      font-style: italic;
+    }
+
+    u {
+      text-decoration: underline;
+    }
+
+    a {
+      color: #0066cc;
+      text-decoration: underline;
+    }
+
+    a:hover {
+      color: #0052a3;
+    }
+
+    br {
+      line-height: 1.5em;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    h4, h5, h6 {
+      page-break-after: avoid;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    tr {
+      page-break-inside: avoid;
+    }
+
+    @media print {
+      .section {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+
+<body style="font-family: 'Almarai', sans-serif; box-sizing: border-box; background-color: #fff; color: #000; margin: 0; line-height: 1.4; width: 100%; padding: 0 30px;">
+  {{range $index, $test := .Data.PenetrationTests}}
+    {{$number := add $index 1}}
+    <div style="width: 1000px; margin: 20px auto; background: #fff;">
+      <div style="padding: 0px 32px;">
+        {{if eq $index 0}}
+          {{range $.Data.Sections}}
+            {{if or (eq .Type "executive-summary") (eq .Type "scope") (eq .Type "objectives")}}
+              {{if .DescriptionAr}}
+                {{if stripHTML .DescriptionAr}}
+                <h4 style="margin: 0 0 8px 0; font-size: 18px; color: #050505; font-weight: 400;">
+                  {{if eq .Type "executive-summary"}}
+                    1.
+                  {{else if eq .Type "scope"}}
+                    2.
+                  {{else}}
+                    3.
+                  {{end}}
+                  {{.TitleAr}}
+                </h4>
+                <div style="margin: 0 0 15px 0; font-size: 14px; color: #000; line-height: 1.5em; font-weight: 300;">
+                  {{safeHTML .DescriptionAr}}
+                </div>
+                {{end}}
+              {{end}}
+            {{end}}
+          {{end}}
+          <h4 style="margin: 15px 0; font-size: 18px; color: #050505; font-weight: 400;">
+            4. اختبار الاختراق والسياق
+          </h4>
+        {{end}}
+        <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+          {{$number}}.
+          {{if .ReferenceNumber}}
+            {{.ReferenceNumber}}
+          {{else}}
+            اختبار الاختراق
+          {{end}}
+        </h4>
+        <h5 style="margin: 15px 0 10px 0; font-size: 16px; color: #050505; font-weight: 400;">
+          {{$number}}.1 المعلومات الأساسية لاختبار الاختراق
+        </h5>
+        {{range $.Data.Sections}}
+          {{$section := .}}
+          {{with $test}}
+            {{if eq $section.Type "overview"}}
+              <h6 style="margin: 10px 0; font-size: 14px; color: #050505; font-weight: 400;">
+                {{$number}}.1.1 نظرة عامة
+              </h6>
+              <div style="margin-bottom: 10px; font-size: 14px;">
+                {{.SystemApplicationName}}
+              </div>
+              <div style="margin-top: 10px">
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    المرجع:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .ReferenceNumber}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    السنة:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .Year}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    الفترة:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .Period}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    النوع:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .PenetrationTestTypeTitleAr}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+              </div>
+              <div style="margin-top: 10px">
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    الخطة:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .PenetrationTestPlanTitleAr}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    التصنيف:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .PenetrationTestClassificationTitleAr}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    الجهة المنفذة:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .PenetrationTestExecutorTitleAr}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    الموظف المسؤول:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .CSResponsibleEmployeeNameAr}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+              </div>
+              <div style="margin-top: 10px">
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    الحالة:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{if .PenetrationTestStatusTitleAr}}
+                      <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{.PenetrationTestStatusColorCode}}; color: #fff; font-size: 12px;">
+                        {{.PenetrationTestStatusTitleAr}}
+                      </span>
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+              </div>
+              <p style="margin: 10px 0 2px; font-size: 13px; font-weight: 300;">
+                النطاق:
+              </p>
+              <div style="font-size: 14px; margin-bottom: 13px;">
+                {{with .Scope}}
+                  {{safeHTML .}}
+                {{else}}
+                  -
+                {{end}}
+              </div>
+              {{with $section.DescriptionAr}}
+                <div style="font-size: 14px; margin: 0 0 15px 0;">
+                  {{safeHTML .}}
+                </div>
+              {{end}}
+            {{end}}
+            {{if eq $section.Type "details"}}
+              <h6 style="margin: 10px 0; font-size: 14px; color: #050505; font-weight: 400;">
+                {{$number}}.1.2 تفاصيل التنفيذ
+              </h6>
+              <div style="margin-top: 10px">
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    جاهزية البيئة:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .EnvironmentReadinessTitleAr}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    تاريخ إشعار البيئة:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .EnvironmentNotifyDate}}
+                      <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    تاريخ الجاهزية المتوقع:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .ExpectedReadyDate}}
+                      <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    بداية التنفيذ:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .ExecutionStartDate}}
+                      <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+              </div>
+              <div style="margin-top: 10px">
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    نهاية التنفيذ:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .ExecutionEndDate}}
+                      <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    حالة التنفيذ:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .ExecutionStatusTitleAr}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    النتيجة الأمنية:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .SecurityResultTitleAr}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+              </div>
+              {{with $section.DescriptionAr}}
+                <div style="font-size: 14px; margin: 0 0 15px 0;">
+                  {{safeHTML .}}
+                </div>
+              {{end}}
+            {{end}}
+            {{if eq $section.Type "findings"}}
+              {{if not .Findings}}
+                <h5 style="margin: 15px 0 10px; font-size: 16px; color: #050505; font-weight: 400;">
+                  {{$number}}.2 الملاحظات
+                </h5>
+              {{end}}
+              {{if .Findings}}
+                <table style="background: #fff; width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 20px;">
+                  <thead>
+                    <tr>
+                      <td colspan="7" style="padding: 0; text-align: right; border: none;">
+                        <h5 style="margin: 15px 0 10px; font-size: 16px; color: #050505; font-weight: 400;">
+                          {{$number}}.2 الملاحظات
+                        </h5>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 5%;">
+                        #
+                      </th>
+                      <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 29%;">
+                        المرجع / العنوان
+                      </th>
+                      <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 14%;">
+                        التاريخ المستهدف
+                      </th>
+                      <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 14%;">
+                        المسؤول
+                      </th>
+                      <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 12%;">
+                        الإنجاز
+                      </th>
+                      <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 12%;">
+                        الخطورة
+                      </th>
+                      <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 14%;">
+                        الحالة
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{range $i, $finding := .Findings}}
+                      <tr style="border: 1px solid #eaedf2">
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                          {{add $i 1}}
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                          {{with .ReferenceNumber}}
+                            {{.}}
+                          {{else}}
+                            -
+                          {{end}}
+                          <br>
+                          {{.Title}}
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                          {{with .TargetRemediationDate}}
+                            <span style="white-space: nowrap; direction: ltr; display: inline-block;">
+                              <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                            </span>
+                          {{else}}
+                            -
+                          {{end}}
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                          {{with .OwnerNameAr}}
+                            {{.}}
+                          {{else}}
+                            -
+                          {{end}}
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                          {{with .Percentage}}
+                            {{.}}%
+                          {{else}}
+                            -
+                          {{end}}
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                          {{if .SeverityLevelTitleAr}}
+                            <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{.SeverityLevelColorCode}}; color: #fff; font-size: 12px;">
+                              {{.SeverityLevelTitleAr}}
+                            </span>
+                          {{else}}
+                            -
+                          {{end}}
+                        </td>
+                        <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                          {{if .ActionPlanStatusTitleAr}}
+                            <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{.ActionPlanStatusColorCode}}; color: #fff; font-size: 12px;">
+                              {{.ActionPlanStatusTitleAr}}
+                            </span>
+                          {{else}}
+                            -
+                          {{end}}
+                        </td>
+                      </tr>
+                    {{end}}
+                  </tbody>
+                </table>
+                {{range .Findings}}
+                  {{if or .Description .Recommendation}}
+                    <div class="keep-together" style="margin: 0 0 24px; padding: 16px 18px; border: 1px solid #eaedf2; border-radius: 4px;">
+                      <h6 style="margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid #eaedf2; font-size: 16px; line-height: 1.5; font-weight: 700; color: #1a1a1a;">
+                        {{.ReferenceNumber}}
+                        —
+                        {{.Title}}
+                      </h6>
+                      {{with .Description}}
+                        <p style="font-size: 13px; font-weight: 700; color: #525967; margin: 0 0 6px;">
+                          الوصف:
+                        </p>
+                        <div style="font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+                          {{safeHTML .}}
+                        </div>
+                      {{end}}
+                      {{with .Recommendation}}
+                        <p style="font-size: 13px; font-weight: 700; color: #525967; margin: 0 0 6px;">
+                          التوصية:
+                        </p>
+                        <div style="font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+                          {{safeHTML .}}
+                        </div>
+                      {{end}}
+                    </div>
+                  {{end}}
+                {{end}}
+              {{else}}
+                <p style="font-size: 13px; color: #98A2B3; font-style: italic;">
+                  لا توجد ملاحظات
+                </p>
+              {{end}}
+              {{with $section.DescriptionAr}}
+                <div style="font-size: 14px; margin: 0 0 15px 0;">
+                  {{safeHTML .}}
+                </div>
+              {{end}}
+            {{end}}
+            {{if eq $section.Type "retest-results"}}
+              <h5 style="margin: 15px 0 10px; font-size: 16px; color: #050505; font-weight: 400;">
+                {{$number}}.3 نتائج إعادة الاختبار
+              </h5>
+              {{range .Retests}}
+                <h6 style="margin: 10px 0; font-size: 14px; font-weight: 400;">
+                  {{.ReferenceNumber}}
+                </h6>
+                <div style="margin-top: 10px">
+                  <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                    <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                      تاريخ البدء:
+                    </p>
+                    <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                      {{with .StartDate}}
+                        <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                      {{else}}
+                        -
+                      {{end}}
+                    </p>
+                  </div>
+                  <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                    <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                      تاريخ الانتهاء:
+                    </p>
+                    <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                      {{with .EndDate}}
+                        <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                      {{else}}
+                        -
+                      {{end}}
+                    </p>
+                  </div>
+                  <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                    <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                      الجهة المنفذة:
+                    </p>
+                    <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                      {{with .ExecutorTitleAr}}
+                        {{.}}
+                      {{else}}
+                        -
+                      {{end}}
+                    </p>
+                  </div>
+                  <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                    <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                      الحالة:
+                    </p>
+                    <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                      {{if .StatusTitleAr}}
+                        <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{.StatusColorCode}}; color: #fff; font-size: 12px;">
+                          {{.StatusTitleAr}}
+                        </span>
+                      {{else}}
+                        -
+                      {{end}}
+                    </p>
+                  </div>
+                </div>
+                <div style="margin-top: 10px">
+                  <div style="width: 100%;">
+                    <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">
+                      ملاحظات:
+                    </p>
+                    <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+                      {{with .Notes}}
+                        {{.}}
+                      {{else}}
+                        -
+                      {{end}}
+                    </p>
+                  </div>
+                </div>
+                {{if .RetestFindings}}
+                  <table style="background: #fff; width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 20px;">
+                    <thead>
+                      <tr>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 5%;">
+                          #
+                        </th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 24%;">
+                          الملاحظة
+                        </th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 10%;">
+                          النتيجة
+                        </th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 16%;">
+                          تاريخ ووقت النتيجة
+                        </th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 29%;">
+                          التعليق
+                        </th>
+                        <th style="font-size: 14px; border: 1px solid #eaedf2; padding: 11px 10px; text-align: right; background: #f9fbfc; font-weight: 400; width: 16%;">
+                          تاريخ ووقت التعليق
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{range $i, $finding := .RetestFindings}}
+                        <tr style="border: 1px solid #eaedf2">
+                          <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                            {{add $i 1}}
+                          </td>
+                          <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                            {{range $test.Findings}}
+                              {{if eq .ID $finding.PenetrationTestReportFindingID}}
+                                {{with .ReferenceNumber}}
+                                  {{.}}
+                                {{end}}
+                                <br>
+                                {{.Title}}
+                              {{end}}
+                            {{end}}
+                          </td>
+                          <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                            {{with .ResultTitleAr}}
+                              {{.}}
+                            {{else}}
+                              -
+                            {{end}}
+                          </td>
+                          <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                            {{with .ResultAt}}
+                              <span style="white-space: nowrap; direction: ltr; display: inline-block;">
+                                <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                              </span>
+                              <br>
+                              <span style="white-space: nowrap; direction: ltr; display: inline-block;">
+                                <span dir="ltr" style="display: inline-block;">{{.Format "15:04"}}</span>
+                              </span>
+                            {{else}}
+                              -
+                            {{end}}
+                          </td>
+                          <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                            {{with .Comment}}
+                              {{.}}
+                            {{else}}
+                              -
+                            {{end}}
+                          </td>
+                          <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: right;">
+                            {{with .CommentAt}}
+                              <span style="white-space: nowrap; direction: ltr; display: inline-block;">
+                                <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                              </span>
+                              <br>
+                              <span style="white-space: nowrap; direction: ltr; display: inline-block;">
+                                <span dir="ltr" style="display: inline-block;">{{.Format "15:04"}}</span>
+                              </span>
+                            {{else}}
+                              -
+                            {{end}}
+                          </td>
+                        </tr>
+                      {{end}}
+                    </tbody>
+                  </table>
+                {{else}}
+                  <p style="font-size: 13px; color: #98A2B3; font-style: italic;">
+                    لا توجد ملاحظات لإعادة الاختبار
+                  </p>
+                {{end}}
+              {{else}}
+                <p style="font-size: 13px; color: #98A2B3; font-style: italic;">
+                  لا توجد عمليات إعادة اختبار
+                </p>
+              {{end}}
+              {{with $section.DescriptionAr}}
+                <div style="font-size: 14px; margin: 0 0 15px 0;">
+                  {{safeHTML .}}
+                </div>
+              {{end}}
+            {{end}}
+            {{if eq $section.Type "management-sharing"}}
+              <h5 style="margin: 15px 0 10px; font-size: 16px; color: #050505; font-weight: 400;">
+                {{$number}}.4 المشاركة مع الإدارة
+              </h5>
+              <p>
+                تمت مشاركة النتائج مع الإدارة:
+                {{if .ResultsSharedWithManagement}}
+                  Yes
+                {{else}}
+                  No
+                {{end}}
+              </p>
+              <div style="margin-top: 10px">
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    تاريخ إشعار الإدارة:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .ManagementNotifyDate}}
+                      <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                  <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                    تاريخ رد الإدارة:
+                  </p>
+                  <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                    {{with .ManagementResponseDate}}
+                      <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+                <div style="width: 100%;">
+                  <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">
+                    ملاحظات المعالجة:
+                  </p>
+                  <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+                    {{with .RemediationNotes}}
+                      {{.}}
+                    {{else}}
+                      -
+                    {{end}}
+                  </p>
+                </div>
+              </div>
+              {{with $section.DescriptionAr}}
+                <div style="font-size: 14px; margin: 0 0 15px 0;">
+                  {{safeHTML .}}
+                </div>
+              {{end}}
+            {{end}}
+            {{if eq $section.Type "closure"}}
+              <div class="keep-together">
+                <h5 style="margin: 15px 0 10px; font-size: 16px; color: #050505; font-weight: 400;">
+                  {{$number}}.5 الإغلاق
+                </h5>
+                <div style="margin-top: 10px">
+                  <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                    <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                      تاريخ الإغلاق:
+                    </p>
+                    <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                      {{with .ClosureDate}}
+                        <span dir="ltr" style="display: inline-block;">{{.Format "2006-01-02"}}</span>
+                      {{else}}
+                        -
+                      {{end}}
+                    </p>
+                  </div>
+                  <div style="width: 22%; padding-left: 1%; display: inline-block; vertical-align: top;">
+                    <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">
+                      مسؤول الإغلاق:
+                    </p>
+                    <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
+                      {{with .ClosureOwnerNameAr}}
+                        {{.}}
+                      {{else}}
+                        -
+                      {{end}}
+                    </p>
+                  </div>
+                  <div style="width: 100%;">
+                    <p style="margin: 0 0 5px 0; font-size: 13px; color: #525967; font-weight: 400;">
+                      ملاحظات الإغلاق:
+                    </p>
+                    <p style="margin: 0 0 20px 0; font-size: 14px; color: #1a1a1a; font-weight: 400; line-height: 1.6;">
+                      {{with .ClosureRemarks}}
+                        {{.}}
+                      {{else}}
+                        -
+                      {{end}}
+                    </p>
+                  </div>
+                </div>
+                {{with $section.DescriptionAr}}
+                  <div style="font-size: 14px; margin: 0 0 15px 0;">
+                    {{safeHTML .}}
+                  </div>
+                {{end}}
+              </div>
+            {{end}}
+          {{end}}
+        {{end}}
+      </div>
+    </div>
+  {{end}}
+</body>
+</html>

@@ -76,6 +76,7 @@ type DocumentListDTO struct {
 	PublishedUserEmail                   string     `json:"published_user_email"`
 	PublishedUserProfileImagePath        string     `json:"published_user_profile_image_path"`
 	PublishedAt                          *time.Time `json:"published_at"`
+	NextReviewDate                       *string    `json:"next_review_date"`
 	UserAccessTypes                      *string    `json:"user_access_types"`
 }
 
@@ -92,6 +93,8 @@ type DocumentListQueryParamsDTO struct {
 	DocumentTypes            []string
 	DocumentStatus           []string
 	Export                   bool
+	DateFrom                 string
+	DateTo                   string
 }
 
 type DocumentListResponseDTO struct {
@@ -144,7 +147,7 @@ type DocumentDetailsDTO struct {
 	UpdatedAt                     *time.Time                       `json:"updated_at"`
 	Acknowledged                  *bool                            `json:"acknowledged,omitempty"`
 	ReviewFrequency               *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	NextReviewDate                *time.Time                       `json:"next_review_date"`
+	NextReviewDate                *string                          `json:"next_review_date" mapstructure:"-"`
 	MarkedAsAuditableItem         bool                             `json:"marked_as_auditable_item"`
 }
 

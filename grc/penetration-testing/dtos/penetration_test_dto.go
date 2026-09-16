@@ -7,6 +7,15 @@ import (
 )
 
 type PenetrationTestListDTO struct {
+	CreatedByID                           uint    `json:"created_by_id"`
+	CreatedUserFirstNameEn                string  `json:"created_user_first_name_en"`
+	CreatedUserLastNameEn                 string  `json:"created_user_last_name_en"`
+	CreatedUserFirstNameAr                string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameAr                 string  `json:"created_user_last_name_ar"`
+	ResponsibleUnitID                     *uint   `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn                *string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr                *string `json:"responsible_unit_title_ar"`
+	CreatedAt                             string  `json:"created_at"`
 	ID                                    uint    `json:"id"`
 	ReferenceNumber                       string  `json:"reference_number"`
 	SystemApplicationName                 string  `json:"system_application_name"`
@@ -56,15 +65,15 @@ type PenetrationTestListDTO struct {
 }
 
 type PenetrationTestFormDTO struct {
-	SystemApplicationName           string `json:"system_application_name" binding:"required,max=255"`
-	PenetrationTestTypeID           uint   `json:"penetration_test_type_id" binding:"required"`
-	PenetrationTestPlanID           uint   `json:"penetration_test_plan_id" binding:"required"`
-	Year                            int    `json:"year" binding:"required"`
-	Period                          string `json:"period" binding:"required,oneof=Q1 Q2 Q3 Q4"`
-	PenetrationTestClassificationID uint   `json:"penetration_test_classification_id" binding:"required"`
-	PenetrationTestExecutorID       uint   `json:"penetration_test_executor_id" binding:"required"`
-	CSResponsibleEmployeeID         uint   `json:"cs_responsible_employee_id" binding:"required"`
-	Scope                           string `json:"scope" binding:"required"`
+	SystemApplicationName           string  `json:"system_application_name" binding:"required,max=255"`
+	PenetrationTestTypeID           uint    `json:"penetration_test_type_id" binding:"required"`
+	PenetrationTestPlanID           uint    `json:"penetration_test_plan_id" binding:"required"`
+	Year                            int     `json:"year" binding:"required"`
+	Period                          string  `json:"period" binding:"required,oneof=Q1 Q2 Q3 Q4"`
+	PenetrationTestClassificationID uint    `json:"penetration_test_classification_id" binding:"required"`
+	PenetrationTestExecutorID       *uint   `json:"penetration_test_executor_id"`
+	CSResponsibleEmployeeID         uint    `json:"cs_responsible_employee_id" binding:"required"`
+	Scope                           *string `json:"scope"`
 }
 
 type PenetrationTestStatusDTO struct {
@@ -126,6 +135,9 @@ type PenetrationTestSeverityBreakdownDTO struct {
 }
 
 type PenetrationTestListQueryParamsDTO struct {
+	Export      bool
+	DateFrom    string
+	DateTo      string
 	Sort        string
 	SortBy      string
 	Keyword     string

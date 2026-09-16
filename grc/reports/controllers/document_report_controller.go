@@ -42,6 +42,8 @@ func (drc *DocumentReportController) GetAllDocuments(c *gin.Context) {
 	enableAcknowledgedStatus := c.Query("enable_acknowledge_status")
 	documentTypes := utility.ParseCommaSeparatedStringToArray(c.Query("document_types"))
 	documentStatus := utility.ParseCommaSeparatedStringToArray(c.Query("document_status"))
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 
 	// Convert the export parameter to a boolean
 	exportFromContext, exists := c.Get("export")
@@ -115,6 +117,8 @@ func (drc *DocumentReportController) GetAllDocuments(c *gin.Context) {
 		DocumentTypes:            documentTypes,
 		DocumentStatus:           documentStatus,
 		Export:                   export,
+		DateFrom:                 dateFrom,
+		DateTo:                   dateTo,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)

@@ -1,0 +1,80 @@
+<head>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap" rel="stylesheet">
+
+</head>
+<body
+   style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box;color: #000; height: 100%; hyphens: auto; line-height: 1.4; margin: 0; -moz-hyphens: auto; -ms-word-break: break-all; width: 100% !important; -webkit-hyphens: auto; -webkit-text-size-adjust: none; word-break: break-word;">
+   <div class="page" style="width: 100%; ">
+      <div
+         style="min-height: 1250px;  background: url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat;  background-size: 100% 100%; padding: 0px 32px; position: relative;">
+         <div>
+            <img src="{{.ApiPath}}/report-template-settings/image-preview?type=logo"
+               style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box;  padding: 5px 0; ">
+         </div>
+
+         <h1 style="font-size: 40px; color: #fff; position: absolute; bottom: 500px; left: 0; right: 0; text-align: center; margin: 0 auto;">
+            Jethur Penetration Testing <br /> Report</h1>
+
+      </div>
+
+      <div style="margin-left: 40px; margin-top: 24px;">
+         <div style="margin-top: 0px; ">
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span>Ref No:</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                  {{ .Data.ReferenceNumber }}
+               </p>
+            </div>
+            <div style="width: 60%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span>Title</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                  {{ .Data.Title }} </p>
+            </div>
+         </div>
+         <div style="margin-top: 10px; ">
+            {{- if .Data.ReportedAt }}
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span>ReportedAt</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">
+                  {{ .Data.ReportedAt }} </p>
+            </div>
+            {{end}}
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span>Reported By:</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">
+                  {{ .Data.CreatedUserFirstNameEn }} {{ .Data.CreatedUserLastNameEn }}</p>
+            </div>
+
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span>Exported At</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">
+                  {{ .Data.GeneratedAt }} </p>
+            </div>
+         </div>
+      </div>
+   </div>

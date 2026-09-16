@@ -191,14 +191,14 @@ func (ptrec *PenetrationTestRetestController) UpdatePenetrationTestRetest(c *gin
 	c.Status(http.StatusOK)
 }
 
-func (ptrec *PenetrationTestRetestController) GetEligiblePenetrationTestRetestFindings(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
+func (ptrec *PenetrationTestRetestController) GetEligiblePenetrationTestFindingsForRetest(c *gin.Context) {
+	penetrationTestID, err := strconv.Atoi(c.Query("penetration_test_id"))
+	if err != nil || penetrationTestID <= 0 {
+		utility.SendInvalidErrResp(c, errors.New("penetration_test_id must be a positive integer"))
 		return
 	}
 
-	values, err := ptrec.service.GetEligibleFindings(uint(id))
+	values, err := ptrec.service.GetEligibleFindingsByPenetrationTestID(uint(penetrationTestID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -433,34 +433,6 @@ func (ptrec *PenetrationTestRetestController) DownloadPenetrationTestRetestFindi
 	c.Header("Pragma", "public")
 
 	c.File(path)
-}
-
-func (ptrec *PenetrationTestRetestController) CompletePenetrationTestRetest(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(ptrec.db, c, err.Error())
-		return
-	}
-	if err := ptrec.service.Complete(uint(id), currentUserID); err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(ptrec.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
 }
 
 func (ptrec *PenetrationTestRetestController) DeletePenetrationTestRetests(c *gin.Context) {

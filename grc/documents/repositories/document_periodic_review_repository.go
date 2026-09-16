@@ -47,6 +47,7 @@ func (repo *DocumentPeriodicReviewRepository) GetAll(params *dtos.DocumentPeriod
 			document_reviews.document_id,
 			documents.title_en AS document_title,
 			document_reviews.review_date,
+			document_reviews.target_review_date,
 			document_reviews.is_change_required,
 			document_reviews.description,
 			created_by_user.id AS created_by_user_id,

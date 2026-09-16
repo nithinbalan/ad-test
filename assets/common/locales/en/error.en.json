@@ -192,9 +192,9 @@
     "translation": "Document must be published to continue."
   },
   {
-  "id": "field_max_length",
-  "translation": "The {{.Field}} field cannot exceed maximum characters supported." 
- }
+    "id": "field_max_length",
+    "translation": "{{if .Max}}The {{.Field}} field cannot exceed {{.Max}} characters.{{else}}The {{.Field}} field cannot exceed maximum characters supported.{{end}}" 
+  }
 ,
 {
   "id": "invalid_total_weightage",
@@ -344,6 +344,10 @@
   "translation": "An active {{.Field}} already exists."
 },
 {
+  "id": "retest_end_before_start",
+  "translation": "Retest end date cannot be before the start date."
+},
+{
   "id": "test_end_before_start",
   "translation": "Test end date must be on or after the test start date."
 },
@@ -386,18 +390,21 @@
 {
   "id": "security_gate_already_go_live",
   "translation": "This security gate is already go live."
+},
+{
+  "id": "findings_not_closed",
+  "translation": "All findings must be closed before closing the penetration test."
+},
+{
+  "id": "penetration_test_closed",
+  "translation": "Findings cannot be added or reopened while the penetration test is closed."
+},
+{
+  "id": "environment_ready_before_notify",
+  "translation": "Expected ready date cannot be before environment notification date."
+},
+{
+  "id": "management_response_before_notify",
+  "translation": "Management response date cannot be before management notification date."
 }
-
-
-
-
-
-
-
-
-
-
-  
-  
-  
 ]

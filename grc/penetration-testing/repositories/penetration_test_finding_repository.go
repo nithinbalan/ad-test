@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PenetrationTestFindingRepositoryInterface interface {
@@ -45,6 +46,11 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 	query := repo.db.Table("penetration_test_findings").
 		Select(`
 			penetration_test_findings.id,
+			penetration_tests.reference_number AS penetration_test_reference_number,
+			penetration_tests.system_application_name,
+			responsible_unit.id AS responsible_unit_id,
+			responsible_unit.title_en AS responsible_unit_title_en,
+			responsible_unit.title_ar AS responsible_unit_title_ar,
 			penetration_test_findings.reference_number,
 			penetration_test_findings.penetration_test_id,
 			penetration_test_findings.title,
@@ -73,9 +79,11 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 			CONVERT(varchar(30), penetration_test_findings.created_at, 126) AS created_at,
 			CONVERT(varchar(30), penetration_test_findings.updated_at, 126) AS updated_at
 		`).
+		Joins("JOIN penetration_tests ON penetration_tests.id = penetration_test_findings.penetration_test_id").
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = penetration_test_findings.severity_level_id").
 		Joins("LEFT JOIN action_plan_statuses ON action_plan_statuses.id = penetration_test_findings.action_plan_status_id").
-		Joins("LEFT JOIN users AS owner_user ON owner_user.id = penetration_test_findings.owner_id")
+		Joins("LEFT JOIN users AS owner_user ON owner_user.id = penetration_test_findings.owner_id").
+		Joins("LEFT JOIN organization_units AS responsible_unit ON responsible_unit.id = owner_user.organization_unit_1_id")
 
 	if params.PenetrationTestID > 0 {
 		query = query.Where("penetration_test_findings.penetration_test_id = ?", params.PenetrationTestID)
@@ -95,9 +103,20 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "responsible_unit_id" {
+				query = query.Where("owner_user.organization_unit_1_id IN (?)", values)
+			} else {
+				query = query.Where("penetration_test_findings."+columnName+" IN (?)", values)
+			}
 		}
 	}
+	if params.TargetDateFrom != "" {
+		query = query.Where("penetration_test_findings.target_remediation_date >= ?", params.TargetDateFrom)
+	}
+	if params.TargetDateTo != "" {
+		query = query.Where("penetration_test_findings.target_remediation_date <= ?", params.TargetDateTo)
+	}
+
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("penetration_test_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -139,8 +158,23 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
-	if err := query.Offset((params.Page - 1) * params.PageSize).Limit(params.PageSize).Find(&penetrationTestFindings).Error; err != nil {
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+	if err := query.Find(&penetrationTestFindings).Error; err != nil {
 		return nil, err
+	}
+
+	if params.Export {
+		return &penetrationTestDTOs.PenetrationTestFindingListResponseDTO{
+			Items: penetrationTestFindings,
+		}, nil
+	}
+
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 	}
 
 	return &penetrationTestDTOs.PenetrationTestFindingListResponseDTO{
@@ -148,7 +182,7 @@ func (repo *PenetrationTestFindingRepository) GetAll(params *penetrationTestDTOs
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
-			TotalPages:  int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize)),
+			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
 	}, nil
@@ -194,7 +228,10 @@ func (repo *PenetrationTestFindingRepository) Update(penetrationTestFinding *mod
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Model(&models.PenetrationTestFinding{}).Where("id = ?", penetrationTestFinding.ID).Updates(penetrationTestFinding).Error
+	if err := db.Omit(clause.Associations).Save(penetrationTestFinding).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func (repo *PenetrationTestFindingRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {

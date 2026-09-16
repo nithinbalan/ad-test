@@ -7,12 +7,13 @@ import (
 )
 
 type DocumentPeriodicReviewListDTO struct {
-	ID               uint      `json:"id"`
-	DocumentID       uint      `json:"document_id"`
-	DocumentTitle    string    `json:"document_title"`
-	ReviewDate       time.Time `json:"review_date"`
-	IsChangeRequired bool      `json:"is_change_required"`
-	Description      *string   `json:"description"`
+	ID               uint       `json:"id"`
+	DocumentID       uint       `json:"document_id"`
+	DocumentTitle    string     `json:"document_title"`
+	ReviewDate       time.Time  `json:"review_date"`
+	TargetReviewDate *time.Time `json:"target_review_date"`
+	IsChangeRequired bool       `json:"is_change_required"`
+	Description      *string    `json:"description"`
 
 	CreatedByUserID               uint   `json:"created_by_user_id"`
 	CreatedByUserFirstNameEn      string `json:"created_by_user_first_name_en"`
@@ -41,11 +42,12 @@ type DocumentPeriodicReviewListDTO struct {
 }
 
 type DocumentPeriodicReviewDetailsDTO struct {
-	ID               uint    `json:"id"`
-	DocumentID       uint    `json:"document_id"`
-	ReviewDateString string  `json:"review_date"`
-	IsChangeRequired bool    `json:"is_change_required"`
-	Description      *string `json:"description"`
+	ID                     uint    `json:"id"`
+	DocumentID             uint    `json:"document_id"`
+	ReviewDateString       string  `json:"review_date"`
+	TargetReviewDateString *string `json:"target_review_date"`
+	IsChangeRequired       bool    `json:"is_change_required"`
+	Description            *string `json:"description"`
 
 	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
 	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`

@@ -192,7 +192,7 @@ func (pws *ProjectWorkflowService) GetWorkflowList(projectID uint) (*projectDTOs
 }
 
 func (pws *ProjectWorkflowService) ValidateWorkflowBeforeCreate(tx ...utility.DatabaseTransaction) error {
-	workflowContext, err := pws.workflowContextSvc.GetByType("project")
+	workflowContext, err := pws.workflowContextSvc.GetByType("project_register")
 	if err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func (pws *ProjectWorkflowService) createWorkflowParticipant(userID uint, workfl
 }
 
 func (pws *ProjectWorkflowService) CreateProjectWorkflow(projectID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
-	workflowContext, err := pws.workflowContextSvc.GetByType("project")
+	workflowContext, err := pws.workflowContextSvc.GetByType("project_register")
 	if err != nil {
 		return err
 	}

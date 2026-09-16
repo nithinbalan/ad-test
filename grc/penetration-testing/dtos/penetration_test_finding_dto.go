@@ -9,34 +9,39 @@ import (
 )
 
 type PenetrationTestFindingListDTO struct {
-	ID                        uint    `json:"id"`
-	ReferenceNumber           string  `json:"reference_number"`
-	PenetrationTestID         uint    `json:"penetration_test_id"`
-	Title                     string  `json:"title"`
-	ActionPlanStatusID        uint    `json:"action_plan_status_id"`
-	Percentage                *uint   `json:"percentage"`
-	ActionPlanStatusTitleEn   string  `json:"action_plan_status_title_en"`
-	ActionPlanStatusTitleAr   string  `json:"action_plan_status_title_ar"`
-	ActionPlanStatusColorCode string  `json:"action_plan_status_color_code"`
-	ActionPlanStatusType      string  `json:"action_plan_status_type"`
-	Description               *string `json:"description"`
-	Recommendation            *string `json:"recommendation"`
-	SeverityLevelID           uint    `json:"severity_level_id"`
-	SeverityLevelTitleEn      string  `json:"severity_level_title_en"`
-	SeverityLevelTitleAr      string  `json:"severity_level_title_ar"`
-	SeverityLevelColorCode    string  `json:"severity_level_color_code"`
-	OwnerID                   uint    `json:"owner_id"`
-	OwnerFirstNameEn          string  `json:"owner_first_name_en"`
-	OwnerLastNameEn           string  `json:"owner_last_name_en"`
-	OwnerFirstNameAr          string  `json:"owner_first_name_ar"`
-	OwnerLastNameAr           string  `json:"owner_last_name_ar"`
-	OwnerInitial              string  `json:"owner_initial"`
-	OwnerColor                string  `json:"owner_color"`
-	OwnerEmail                string  `json:"owner_email"`
-	OwnerProfileImagePath     string  `json:"owner_profile_image_path"`
-	TargetRemediationDate     *string `json:"target_remediation_date"`
-	CreatedAt                 string  `json:"created_at"`
-	UpdatedAt                 *string `json:"updated_at"`
+	PenetrationTestReferenceNumber string  `json:"penetration_test_reference_number"`
+	SystemApplicationName          string  `json:"system_application_name"`
+	ResponsibleUnitID              *uint   `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn         *string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr         *string `json:"responsible_unit_title_ar"`
+	ID                             uint    `json:"id"`
+	ReferenceNumber                string  `json:"reference_number"`
+	PenetrationTestID              uint    `json:"penetration_test_id"`
+	Title                          string  `json:"title"`
+	ActionPlanStatusID             uint    `json:"action_plan_status_id"`
+	Percentage                     *uint   `json:"percentage"`
+	ActionPlanStatusTitleEn        string  `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr        string  `json:"action_plan_status_title_ar"`
+	ActionPlanStatusColorCode      string  `json:"action_plan_status_color_code"`
+	ActionPlanStatusType           string  `json:"action_plan_status_type"`
+	Description                    *string `json:"description"`
+	Recommendation                 *string `json:"recommendation"`
+	SeverityLevelID                uint    `json:"severity_level_id"`
+	SeverityLevelTitleEn           string  `json:"severity_level_title_en"`
+	SeverityLevelTitleAr           string  `json:"severity_level_title_ar"`
+	SeverityLevelColorCode         string  `json:"severity_level_color_code"`
+	OwnerID                        uint    `json:"owner_id"`
+	OwnerFirstNameEn               string  `json:"owner_first_name_en"`
+	OwnerLastNameEn                string  `json:"owner_last_name_en"`
+	OwnerFirstNameAr               string  `json:"owner_first_name_ar"`
+	OwnerLastNameAr                string  `json:"owner_last_name_ar"`
+	OwnerInitial                   string  `json:"owner_initial"`
+	OwnerColor                     string  `json:"owner_color"`
+	OwnerEmail                     string  `json:"owner_email"`
+	OwnerProfileImagePath          string  `json:"owner_profile_image_path"`
+	TargetRemediationDate          *string `json:"target_remediation_date"`
+	CreatedAt                      string  `json:"created_at"`
+	UpdatedAt                      *string `json:"updated_at"`
 }
 
 type PenetrationTestFindingFormDTO struct {
@@ -71,6 +76,9 @@ type PenetrationTestFindingDetailDTO struct {
 }
 
 type PenetrationTestFindingListQueryParamsDTO struct {
+	TargetDateFrom    string
+	TargetDateTo      string
+	Export            bool
 	Sort              string
 	SortBy            string
 	Keyword           string

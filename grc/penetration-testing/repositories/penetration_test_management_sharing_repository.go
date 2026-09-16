@@ -9,6 +9,7 @@ import (
 
 type PenetrationTestManagementSharingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
+	ExistsByPenetrationTestID(penetrationTestID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	GetByID(penetrationTestID uint) (*models.PenetrationTestManagementSharing, error)
 	GetFullDetailsByID(penetrationTestID uint, tx ...utility.DatabaseTransaction) (*models.PenetrationTestManagementSharing, error)
 	Create(managementSharing *models.PenetrationTestManagementSharing, tx ...utility.DatabaseTransaction) (uint, error)
@@ -99,4 +100,22 @@ func (repo *PenetrationTestManagementSharingRepository) Delete(id uint, tx ...ut
 	}
 
 	return nil
+}
+
+func (repo *PenetrationTestManagementSharingRepository) ExistsByPenetrationTestID(penetrationTestID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	err := db.Model(&models.PenetrationTestManagementSharing{}).
+		Where("penetration_test_id = ?", penetrationTestID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+
+	return count > 0, nil
 }

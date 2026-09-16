@@ -27,7 +27,7 @@ type PenetrationTestRetestServiceInterface interface {
 	GetFullDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestRetestDetailDTO, error)
 	Create(currentUserID uint, formDTO *penetrationTestDTOs.PenetrationTestRetestFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFormDTO) error
-	GetEligibleFindings(id uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error)
+	GetEligibleFindingsByPenetrationTestID(penetrationTestID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error)
 	UpdateFindings(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingUpdateFormDTO) error
 	DeleteFinding(id uint, retestFindingID uint, currentUserID uint) error
 	SaveFinding(id uint, retestFindingID uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingSaveFormDTO) error
@@ -180,7 +180,7 @@ func (ptrs *PenetrationTestRetestService) Create(currentUserID uint, formDTO *pe
 			return 0, utility.NewValidationError(err, "invalid", "end_date")
 		}
 		if endDate.Before(startDate) {
-			return 0, utility.NewValidationError(fmt.Errorf("end date cannot be before start date"), "invalid", "end_date")
+			return 0, utility.NewValidationError(fmt.Errorf("end date cannot be before start date"), "retest_end_before_start", "end_date")
 		}
 	}
 	retestStatus, err := ptrs.retestStatusSvc.GetByType("draft")
@@ -271,7 +271,7 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 		}
 		if endDate.Before(startDate) {
 			tx.Rollback()
-			return utility.NewValidationError(fmt.Errorf("end date cannot be before start date"), "invalid", "end_date")
+			return utility.NewValidationError(fmt.Errorf("end date cannot be before start date"), "retest_end_before_start", "end_date")
 		}
 	}
 	updated := &models.PenetrationTestRetest{
@@ -328,16 +328,17 @@ func (ptrs *PenetrationTestRetestService) Update(id uint, currentUserID uint, fo
 	return nil
 }
 
-func (ptrs *PenetrationTestRetestService) GetEligibleFindings(id uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error) {
-	existing, err := ptrs.repo.GetByID(id)
-	if err != nil {
+func (ptrs *PenetrationTestRetestService) GetEligibleFindingsByPenetrationTestID(penetrationTestID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error) {
+	if _, err := ptrs.penetrationTestSvc.GetByID(penetrationTestID); err != nil {
 		return nil, err
 	}
+
 	closedStatus, err := ptrs.actionPlanStatusSvc.GetByType("close")
 	if err != nil {
 		return nil, err
 	}
-	return ptrs.repo.GetEligibleOpenFindings(id, existing.PenetrationTestID, closedStatus.ID)
+
+	return ptrs.repo.GetEligibleOpenFindings(penetrationTestID, closedStatus.ID)
 }
 
 func (ptrs *PenetrationTestRetestService) UpdateFindings(id uint, currentUserID uint, form *penetrationTestDTOs.PenetrationTestRetestFindingUpdateFormDTO) error {
@@ -633,7 +634,30 @@ func (ptrs *PenetrationTestRetestService) DecideFinding(id uint, retestFindingID
 			return err
 		}
 	}
-	if err := ptrs.UpdateStatus(id, "in-progress", tx); err != nil {
+	allDecided := len(existing.RetestFindings) > 0
+	for _, finding := range existing.RetestFindings {
+		if finding.ID == retestFinding.ID {
+			continue
+		}
+		if finding.RetestResultID == nil {
+			allDecided = false
+			break
+		}
+	}
+	if allDecided {
+		completedStatus, err := ptrs.retestStatusSvc.GetByType("completed")
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		now := time.Now()
+		existing.PenetrationTestRetestStatusID, existing.EndDate = completedStatus.ID, &now
+		existing.UpdatedBYID, existing.UpdatedAt = &currentUserID, &now
+		if err := ptrs.repo.Update(existing, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else if err := ptrs.UpdateStatus(id, "in-progress", tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -758,6 +782,11 @@ func (ptrs *PenetrationTestRetestService) Delete(ids []uint, currentUserID uint)
 			continue
 		}
 		tx := ptrs.repo.BeginTransaction()
+		if err := ptrs.repo.DeleteRetestFindingDocumentsByRetestID(id, tx); err != nil {
+			tx.Rollback()
+			failedIDs = append(failedIDs, id)
+			continue
+		}
 		if err := ptrs.repo.DeleteRetestFindings(id, tx); err != nil {
 			tx.Rollback()
 			failedIDs = append(failedIDs, id)
@@ -771,6 +800,10 @@ func (ptrs *PenetrationTestRetestService) Delete(ids []uint, currentUserID uint)
 		if err := tx.Commit(); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
+		}
+		folderPath := filepath.Join("penetration-testing", "penetration-test-retests", strconv.FormatUint(uint64(id), 10))
+		if err := utility.RemoveFolder(folderPath); err != nil {
+			utility.LogError("Failed to remove re-test storage folder", map[string]interface{}{"retestID": id, "error": err.Error()})
 		}
 		successfulIDs = append(successfulIDs, id)
 		deleted = append(deleted, map[string]interface{}{"id": id, "reference_number": value.ReferenceNumber})
