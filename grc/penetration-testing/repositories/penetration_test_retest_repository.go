@@ -30,7 +30,7 @@ type PenetrationTestRetestRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.PenetrationTestRetestFindingDocument, error)
 	DeleteDocuments(docIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteRetestFindingDocumentsByRetestID(penetrationTestRetestID uint, tx ...utility.DatabaseTransaction) error
-	GetEligibleOpenFindings(penetrationTestRetestID uint, penetrationTestID uint, closedStatusID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error)
+	GetEligibleOpenFindings(penetrationTestID uint, closedStatusID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error)
 	GenerateReferenceNumber(penetrationTestID uint, tx ...utility.DatabaseTransaction) (string, error)
 }
 
@@ -369,7 +369,7 @@ func (repo *PenetrationTestRetestRepository) DeleteRetestFindingDocumentsByRetes
 	return db.Where("penetration_test_retest_finding_id IN (?)", db.Model(&models.PenetrationTestRetestFinding{}).Select("id").Where("penetration_test_retest_id = ?", penetrationTestRetestID)).Delete(&models.PenetrationTestRetestFindingDocument{}).Error
 }
 
-func (repo *PenetrationTestRetestRepository) GetEligibleOpenFindings(penetrationTestRetestID uint, penetrationTestID uint, closedStatusID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error) {
+func (repo *PenetrationTestRetestRepository) GetEligibleOpenFindings(penetrationTestID uint, closedStatusID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error) {
 	var penetrationTestFindings []*penetrationTestDTOs.PenetrationTestFindingListDTO
 
 	query := repo.db.Table("penetration_test_findings").
@@ -407,8 +407,7 @@ func (repo *PenetrationTestRetestRepository) GetEligibleOpenFindings(penetration
 		Joins("LEFT JOIN action_plan_statuses ON action_plan_statuses.id = penetration_test_findings.action_plan_status_id").
 		Joins("LEFT JOIN users AS owner_user ON owner_user.id = penetration_test_findings.owner_id").
 		Where("penetration_test_findings.penetration_test_id = ?", penetrationTestID).
-		Where("penetration_test_findings.action_plan_status_id <> ?", closedStatusID).
-		Where("penetration_test_findings.id NOT IN (?)", repo.db.Model(&models.PenetrationTestRetestFinding{}).Select("penetration_test_finding_id").Where("penetration_test_retest_id = ?", penetrationTestRetestID))
+		Where("penetration_test_findings.action_plan_status_id <> ?", closedStatusID)
 
 	if err := query.Order("penetration_test_findings.created_at desc").Find(&penetrationTestFindings).Error; err != nil {
 		return nil, err

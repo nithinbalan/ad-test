@@ -101,6 +101,13 @@ func (ptms *PenetrationTestManagementSharingService) Create(penetrationTestID ui
 		return 0, err
 	}
 
+	if exists, err := ptms.repo.ExistsByPenetrationTestID(penetrationTestID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	} else if exists {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("management sharing already exists"), "unique", "management_sharing")
+	}
 	var managementNotifyDate *time.Time
 	if form.ManagementNotifyDate != nil {
 		parsedDate, err := utility.ParseDate(*form.ManagementNotifyDate)
@@ -119,6 +126,11 @@ func (ptms *PenetrationTestManagementSharingService) Create(penetrationTestID ui
 			return 0, utility.NewValidationError(fmt.Errorf("invalid management response date"), "invalid_date", "management_response_date")
 		}
 		managementResponseDate = parsedDate
+	}
+
+	if managementNotifyDate != nil && managementResponseDate != nil && managementResponseDate.Before(*managementNotifyDate) {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("management response date cannot be before notification"), "management_response_before_notify", "management_response_date")
 	}
 
 	managementSharing := &models.PenetrationTestManagementSharing{
@@ -203,6 +215,11 @@ func (ptms *PenetrationTestManagementSharingService) Update(penetrationTestID ui
 			return utility.NewValidationError(fmt.Errorf("invalid management response date"), "invalid_date", "management_response_date")
 		}
 		managementResponseDate = parsedDate
+	}
+
+	if managementNotifyDate != nil && managementResponseDate != nil && managementResponseDate.Before(*managementNotifyDate) {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("management response date cannot be before notification"), "management_response_before_notify", "management_response_date")
 	}
 
 	existingManagementSharing.ResultsSharedWithManagement = form.ResultsSharedWithManagement

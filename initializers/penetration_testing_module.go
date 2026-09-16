@@ -8,6 +8,9 @@ import (
 )
 
 type PenetrationTestingModule struct {
+	PenetrationTestSvc                              services.PenetrationTestServiceInterface
+	PenetrationTestFindingSvc                       services.PenetrationTestFindingServiceInterface
+	PenetrationTestReportController                 *controllers.PenetrationTestReportController
 	PenetrationTestController                       *controllers.PenetrationTestController
 	PenetrationTestEnvironmentPreparationController *controllers.PenetrationTestEnvironmentPreparationController
 	PenetrationTestExecutionController              *controllers.PenetrationTestExecutionController
@@ -32,6 +35,7 @@ type PenetrationTestingModule struct {
 func NewPenetrationTestingModule(
 	db *gorm.DB,
 	sharedModule *SharedModule,
+	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
 ) *PenetrationTestingModule {
@@ -54,6 +58,7 @@ func NewPenetrationTestingModule(
 		executorService,
 		organizationModule.UserSvc,
 		statusService,
+		organizationModule.UserSettingSvc,
 	)
 	environmentPreparationService := services.NewPenetrationTestEnvironmentPreparationService(
 		repositories.NewPenetrationTestEnvironmentPreparationRepository(db),
@@ -80,6 +85,7 @@ func NewPenetrationTestingModule(
 		masterModule.SeverityLevelSvc,
 		masterModule.ActionPlanStatusSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 	)
 	penetrationTestFindingStatusUpdateService := services.NewPenetrationTestFindingStatusUpdateService(
 		repositories.NewPenetrationTestFindingStatusUpdateRepository(db),
@@ -110,7 +116,14 @@ func NewPenetrationTestingModule(
 		penetrationTestService,
 		organizationModule.UserSvc,
 	)
+	penetrationTestReportRepo := repositories.NewPenetrationTestReportRepository(db)
+	penetrationTestReportSvc := services.NewPenetrationTestReportService(penetrationTestReportRepo, settingsModule.ReportTemplateSettingSvc, sharedModule.ActivityLogService)
+	penetrationTestReportController := controllers.NewPenetrationTestReportController(penetrationTestReportSvc)
+
 	return &PenetrationTestingModule{
+		PenetrationTestSvc:                              penetrationTestService,
+		PenetrationTestFindingSvc:                       penetrationTestFindingService,
+		PenetrationTestReportController:                 penetrationTestReportController,
 		PenetrationTestController:                       controllers.NewPenetrationTestController(penetrationTestService),
 		PenetrationTestEnvironmentPreparationController: controllers.NewPenetrationTestEnvironmentPreparationController(environmentPreparationService),
 		PenetrationTestExecutionController:              controllers.NewPenetrationTestExecutionController(executionService),

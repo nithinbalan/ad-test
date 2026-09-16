@@ -9,6 +9,7 @@ import (
 )
 
 type ReportsModule struct {
+	PenetrationTestReportController           *controllers.PenetrationTestReportController
 	ComplianceReportController               *controllers.ComplianceReportController
 	OrganizationReportController             *controllers.OrganizationReportController
 	RiskReportController                     *controllers.RiskReportController
@@ -41,6 +42,7 @@ func NewReportsModule(db *gorm.DB,
 	commonModule *CommonModule,
 	tprmModule *TprmModule,
 	projectModule *ProjectModule,
+	penetrationTestingModule *PenetrationTestingModule,
 ) *ReportsModule {
 
 	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
@@ -138,7 +140,11 @@ func NewReportsModule(db *gorm.DB,
 	projectReportSvc := services.NewProjectReportService(projectReportRepo)
 	projectReportController := controllers.NewProjectReportController(projectReportSvc, projectModule.projectSvc, projectModule.projectActionPlanSvc)
 
+	penetrationTestReportRepo := repositories.NewPenetrationTestReportRepository(db)
+	penetrationTestReportSvc := services.NewPenetrationTestReportService(penetrationTestReportRepo)
+	penetrationTestReportController := controllers.NewPenetrationTestReportController(penetrationTestReportSvc, penetrationTestingModule.PenetrationTestSvc, penetrationTestingModule.PenetrationTestFindingSvc)
 	return &ReportsModule{
+		PenetrationTestReportController:           penetrationTestReportController,
 		ComplianceReportController:               complianceReportController,
 		OrganizationReportController:             organizationReportController,
 		RiskReportController:                     riskReportController,

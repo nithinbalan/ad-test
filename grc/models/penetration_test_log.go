@@ -29,6 +29,7 @@ type PenetrationTest struct {
 	EnvironmentPreparation        *PenetrationTestEnvironmentPreparation `json:"environment_preparation,omitempty" gorm:"foreignKey:PenetrationTestID"`
 	Execution                     *PenetrationTestExecution              `json:"execution,omitempty" gorm:"foreignKey:PenetrationTestID"`
 	ManagementSharing             *PenetrationTestManagementSharing      `json:"management_sharing,omitempty" gorm:"foreignKey:PenetrationTestID"`
+	Closure                       *PenetrationTestClosure                `json:"closure,omitempty" gorm:"foreignKey:PenetrationTestID"`
 	CreatedByUser                 *User                                  `json:"created_by_user,omitempty" gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser                 *User                                  `json:"updated_by_user,omitempty" gorm:"foreignKey:UpdatedBYID"`
 }

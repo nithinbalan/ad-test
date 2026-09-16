@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	logServices "jethur/grc/logs/services"
@@ -17,6 +18,7 @@ import (
 )
 
 type PenetrationTestServiceInterface interface {
+	ExportPenetrationTest(data []*penetrationTestDTOs.PenetrationTestListDTO, currentUserID uint) (*os.File, error)
 	GetAll(params *penetrationTestDTOs.PenetrationTestListQueryParamsDTO) (*penetrationTestDTOs.PenetrationTestListResponseDTO, error)
 	GetByID(id uint) (*models.PenetrationTest, error)
 	GetFullDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestDetailDTO, error)
@@ -28,6 +30,7 @@ type PenetrationTestServiceInterface interface {
 }
 
 type PenetrationTestService struct {
+	userSettingSvc    organizationServices.UserSettingServiceInterface
 	repo              repositories.PenetrationTestRepositoryInterface
 	activityLogSvc    logServices.ActivityLogServiceInterface
 	typeSvc           PenetrationTestTypeServiceInterface
@@ -47,8 +50,10 @@ func NewPenetrationTestService(
 	executorSvc PenetrationTestExecutorServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	statusSvc PenetrationTestStatusServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) PenetrationTestServiceInterface {
 	return &PenetrationTestService{
+		userSettingSvc:    userSettingSvc,
 		repo:              repo,
 		activityLogSvc:    activityLogSvc,
 		typeSvc:           typeSvc,
@@ -327,4 +332,106 @@ func (ptls *PenetrationTestService) validatePenetrationTestFormDTO(formDTO *pene
 		return utility.NewValidationError(fmt.Errorf("CS responsible employee does not exist"), "not_exist", "CS responsible employee")
 	}
 	return nil
+}
+
+func (ptls *PenetrationTestService) ExportPenetrationTest(data []*penetrationTestDTOs.PenetrationTestListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := ptls.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"System / Application",
+			"Type",
+			"Status",
+			"Classification",
+			"Plan",
+			"Executor",
+			"Responsible Employee",
+			"Responsible Unit",
+			"Created By",
+			"Year",
+			"Quarter",
+			"Critical Findings",
+			"High Findings",
+			"Medium Findings",
+			"Low Findings",
+			"Total Findings",
+			"Created At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"System / Application",
+			"Type",
+			"Status",
+			"Classification",
+			"Plan",
+			"Executor",
+			"Responsible Employee",
+			"Responsible Unit",
+			"Created By",
+			"Year",
+			"Quarter",
+			"Critical Findings",
+			"High Findings",
+			"Medium Findings",
+			"Low Findings",
+			"Total Findings",
+			"Created At",
+		}
+	}
+	rows := make([][]interface{}, len(data))
+	for i, entry := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				entry.ReferenceNumber,
+				entry.SystemApplicationName,
+				entry.PenetrationTestTypeTitleAr,
+				entry.StatusTitleAr,
+				entry.PenetrationTestClassificationTitleAr,
+				entry.PenetrationTestPlanTitleAr,
+				entry.PenetrationTestExecutorTitleAr,
+				entry.CSResponsibleEmployeeFirstNameAr + " " + entry.CSResponsibleEmployeeLastNameAr,
+				utility.GetStringValue(entry.ResponsibleUnitTitleAr),
+				entry.CreatedUserFirstNameAr + " " + entry.CreatedUserLastNameAr,
+				entry.Year,
+				entry.Period,
+				entry.CriticalCount,
+				entry.HighCount,
+				entry.MediumCount,
+				entry.LowCount,
+				entry.TotalCount,
+				entry.CreatedAt,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				entry.ReferenceNumber,
+				entry.SystemApplicationName,
+				entry.PenetrationTestTypeTitleEn,
+				entry.StatusTitleEn,
+				entry.PenetrationTestClassificationTitleEn,
+				entry.PenetrationTestPlanTitleEn,
+				entry.PenetrationTestExecutorTitleEn,
+				entry.CSResponsibleEmployeeFirstNameEn + " " + entry.CSResponsibleEmployeeLastNameEn,
+				utility.GetStringValue(entry.ResponsibleUnitTitleEn),
+				entry.CreatedUserFirstNameEn + " " + entry.CreatedUserLastNameEn,
+				entry.Year,
+				entry.Period,
+				entry.CriticalCount,
+				entry.HighCount,
+				entry.MediumCount,
+				entry.LowCount,
+				entry.TotalCount,
+				entry.CreatedAt,
+			}
+		}
+	}
+	return utility.GenerateExcelFile(headers, rows)
 }

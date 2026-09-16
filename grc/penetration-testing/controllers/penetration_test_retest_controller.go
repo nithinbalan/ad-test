@@ -191,14 +191,14 @@ func (ptrec *PenetrationTestRetestController) UpdatePenetrationTestRetest(c *gin
 	c.Status(http.StatusOK)
 }
 
-func (ptrec *PenetrationTestRetestController) GetEligiblePenetrationTestRetestFindings(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
+func (ptrec *PenetrationTestRetestController) GetEligiblePenetrationTestFindingsForRetest(c *gin.Context) {
+	penetrationTestID, err := strconv.Atoi(c.Query("penetration_test_id"))
+	if err != nil || penetrationTestID <= 0 {
+		utility.SendInvalidErrResp(c, errors.New("penetration_test_id must be a positive integer"))
 		return
 	}
 
-	values, err := ptrec.service.GetEligibleFindings(uint(id))
+	values, err := ptrec.service.GetEligibleFindingsByPenetrationTestID(uint(penetrationTestID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
