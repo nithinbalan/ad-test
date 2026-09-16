@@ -351,7 +351,7 @@ func (psgs *ProjectSecurityGateService) notifyBusinessOwner(id uint, securityGat
 		"CreatedByFirstNameEn": createdBy.FirstNameEn,
 		"CreatedByLastNameEn":  createdBy.LastNameEn,
 		"AssignedOn":           time.Now().Format("2006-01-02"),
-		"RedirectURL":          fmt.Sprintf("%s/projects/security-gate/%d", appURL, id),
+		"RedirectURL":          fmt.Sprintf("%s/projects/security-gate/%d/overview", appURL, id),
 	}
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
