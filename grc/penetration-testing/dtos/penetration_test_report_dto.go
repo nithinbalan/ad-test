@@ -352,6 +352,8 @@ type PenetrationTestReportPDFDetailDTO struct {
 	EndDate                *time.Time                                 `json:"end_date"`
 	CreatedUserFirstNameEn string                                     `json:"created_user_first_name_en"`
 	CreatedUserLastNameEn  string                                     `json:"created_user_last_name_en"`
+	CreatedUserFirstNameAr string                                     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameAr  string                                     `json:"created_user_last_name_ar"`
 	Sections               []*PenetrationTestReportSectionDTO         `json:"sections"`
 	PenetrationTests       []*PenetrationTestReportPenetrationTestDTO `json:"penetration_tests"`
 }

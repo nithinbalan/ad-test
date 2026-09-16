@@ -352,7 +352,12 @@ func (ptrc *PenetrationTestReportController) GetPenetrationTestReportExportZip(c
 		return
 	}
 
-	zipFilePath, err := ptrc.service.GetPenetrationTestReportExportZip(uint(penetrationTestReportID), currentUserID)
+	language := c.Query("language")
+	if language == "" {
+		language = "en"
+	}
+
+	zipFilePath, err := ptrc.service.GetPenetrationTestReportExportZip(uint(penetrationTestReportID), currentUserID, language)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -368,7 +373,11 @@ func (ptrc *PenetrationTestReportController) GetPenetrationTestReportExportZip(c
 	}
 
 	c.Header("Content-Type", "application/zip")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=penetration_test_report_%d.zip", penetrationTestReportID))
+	fileName := fmt.Sprintf("penetration_test_report_%d.zip", penetrationTestReportID)
+	if language == "ar" {
+		fileName = fmt.Sprintf("penetration_test_report_%d_ar.zip", penetrationTestReportID)
+	}
+	c.Header("Content-Disposition", "attachment; filename="+fileName)
 	c.File(zipFilePath)
 
 	defer os.Remove(zipFilePath)

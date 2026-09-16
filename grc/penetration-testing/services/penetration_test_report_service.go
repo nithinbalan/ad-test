@@ -23,7 +23,7 @@ import (
 type PenetrationTestReportServiceInterface interface {
 	GetFullReportDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestReportPDFDetailDTO, error)
 	ExportPenetrationTestReport(id uint, currentUserID uint) (string, error)
-	GetPenetrationTestReportExportZip(penetrationTestReportID uint, currentUserID uint) (string, error)
+	GetPenetrationTestReportExportZip(penetrationTestReportID uint, currentUserID uint, language string) (string, error)
 	GetAll(params *penetrationTestDTOs.PenetrationTestReportListQueryParamsDTO) (*penetrationTestDTOs.PenetrationTestReportListResponseDTO, error)
 	Create(currentUserID uint, dto penetrationTestDTOs.PenetrationTestReportRequestDTO) (uint, error)
 	GetPenetrationTestReportDetails(id uint) (*penetrationTestDTOs.PenetrationTestReportDetailsDTO, error)
@@ -891,7 +891,7 @@ func (ptrs *PenetrationTestReportService) ExportPenetrationTestReport(id uint, c
 	return pdfFileName, nil
 }
 
-func (ptrs *PenetrationTestReportService) GetPenetrationTestReportExportZip(penetrationTestReportID uint, currentUserID uint) (string, error) {
+func (ptrs *PenetrationTestReportService) GetPenetrationTestReportExportZip(penetrationTestReportID uint, currentUserID uint, language string) (string, error) {
 	report, err := ptrs.GetPenetrationTestReportDetails(penetrationTestReportID)
 	if err != nil {
 		return "", err
@@ -909,24 +909,41 @@ func (ptrs *PenetrationTestReportService) GetPenetrationTestReportExportZip(pene
 	if report.CreatedByUser != nil {
 		reportDetail.CreatedUserFirstNameEn = report.CreatedByUser.FirstNameEn
 		reportDetail.CreatedUserLastNameEn = report.CreatedByUser.LastNameEn
+		reportDetail.CreatedUserFirstNameAr = report.CreatedByUser.FirstNameAr
+		reportDetail.CreatedUserLastNameAr = report.CreatedByUser.LastNameAr
 	}
-	htmlContent, err := utility.GeneratePDFContent(reportDetail, []string{"penetration-testing/templates/pdf/penetration_test_report_body.html"}, "", "")
+	bodyTemplates := []string{"penetration-testing/templates/pdf/penetration_test_report_body.html"}
+	headerTemplates := []string{"penetration-testing/templates/pdf/penetration_test_report_header.html"}
+	footerTemplates := []string{"penetration-testing/templates/pdf/penetration_test_report_footer.html"}
+	coverTemplates := []string{"penetration-testing/templates/pdf/penetration_test_report_cover.html"}
+	if language == "ar" {
+		bodyTemplates = []string{"penetration-testing/templates/pdf/arabic/penetration_test_report_body_ar.html"}
+		headerTemplates = []string{"penetration-testing/templates/pdf/arabic/penetration_test_report_header_ar.html"}
+		footerTemplates = []string{"penetration-testing/templates/pdf/arabic/penetration_test_report_footer_ar.html"}
+		coverTemplates = []string{"penetration-testing/templates/pdf/arabic/penetration_test_report_cover_ar.html"}
+		reportDetail.ReportedAt = report.CreatedAt.Format("2006-01-02")
+		reportDetail.GeneratedAt = time.Now().Format("2006-01-02 15:04")
+	}
+	htmlContent, err := utility.GeneratePDFContent(reportDetail, bodyTemplates, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate body content: %w", err)
 	}
-	headerContent, err := utility.GeneratePDFContent(reportDetail, []string{"penetration-testing/templates/pdf/penetration_test_report_header.html"}, "", "")
+	headerContent, err := utility.GeneratePDFContent(reportDetail, headerTemplates, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate header content: %w", err)
 	}
-	footerContent, err := utility.GeneratePDFContent(reportDetail, []string{"penetration-testing/templates/pdf/penetration_test_report_footer.html"}, "", "")
+	footerContent, err := utility.GeneratePDFContent(reportDetail, footerTemplates, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate footer content: %w", err)
 	}
-	coverContent, err := utility.GeneratePDFContent(reportDetail, []string{"penetration-testing/templates/pdf/penetration_test_report_cover.html"}, "", "")
+	coverContent, err := utility.GeneratePDFContent(reportDetail, coverTemplates, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate cover content: %w", err)
 	}
 	pdfFileName := fmt.Sprintf("PenetrationTestReport_%d.pdf", penetrationTestReportID)
+	if language == "ar" {
+		pdfFileName = fmt.Sprintf("PenetrationTestReport_%d_ar.pdf", penetrationTestReportID)
+	}
 	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)
 	}
@@ -951,6 +968,9 @@ func (ptrs *PenetrationTestReportService) GetPenetrationTestReportExportZip(pene
 	}
 	zipDir := filepath.Join("storage", "zip")
 	zipFilePath := filepath.Join(zipDir, fmt.Sprintf("penetration_test_report_%d.zip", penetrationTestReportID))
+	if language == "ar" {
+		zipFilePath = filepath.Join(zipDir, fmt.Sprintf("penetration_test_report_%d_ar.zip", penetrationTestReportID))
+	}
 	if err := os.MkdirAll(zipDir, os.ModePerm); err != nil {
 		return "", fmt.Errorf("failed to create directory %s: %w", zipDir, err)
 	}

@@ -142,6 +142,7 @@
           {{range $.Data.Sections}}
             {{if or (eq .Type "executive-summary") (eq .Type "scope") (eq .Type "objectives")}}
               {{if .DescriptionEn}}
+                {{if stripHTML .DescriptionEn}}
                 <h4 style="margin: 0 0 8px 0; font-size: 18px; color: #050505; font-weight: 500;">
                   {{if eq .Type "executive-summary"}}
                     1.
@@ -155,6 +156,7 @@
                 <div style="margin: 0 0 15px 0; font-size: 14px; color: #000; line-height: 1.5em; font-weight: 300;">
                   {{safeHTML .DescriptionEn}}
                 </div>
+                {{end}}
               {{end}}
             {{end}}
           {{end}}
@@ -515,25 +517,25 @@
                 </table>
                 {{range .Findings}}
                   {{if or .Description .Recommendation}}
-                    <div class="keep-together">
-                      <h6 style="margin: 10px 0; font-size: 14px; font-weight: 400;">
+                    <div class="keep-together" style="margin: 0 0 24px; padding: 16px 18px; border: 1px solid #eaedf2; border-radius: 4px;">
+                      <h6 style="margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid #eaedf2; font-size: 16px; line-height: 1.5; font-weight: 600; color: #1a1a1a;">
                         {{.ReferenceNumber}}
                         —
                         {{.Title}}
                       </h6>
                       {{with .Description}}
-                        <p style="font-size: 13px; margin: 0 0 2px;">
+                        <p style="font-size: 13px; font-weight: 600; color: #525967; margin: 0 0 6px;">
                           Description:
                         </p>
-                        <div style="font-size: 14px; margin-bottom: 15px;">
+                        <div style="font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
                           {{safeHTML .}}
                         </div>
                       {{end}}
                       {{with .Recommendation}}
-                        <p style="font-size: 13px; margin: 0 0 2px;">
+                        <p style="font-size: 13px; font-weight: 600; color: #525967; margin: 0 0 6px;">
                           Recommendation:
                         </p>
-                        <div style="font-size: 14px; margin-bottom: 15px;">
+                        <div style="font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
                           {{safeHTML .}}
                         </div>
                       {{end}}
