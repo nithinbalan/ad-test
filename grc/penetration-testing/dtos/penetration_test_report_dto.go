@@ -6,14 +6,14 @@ import (
 )
 
 type PenetrationTestReportRequestDTO struct {
-	Years                            []int   `json:"years" binding:"omitempty,dive,min=1,max=9999"`
-	PenetrationTestExecutorIDs       []uint  `json:"penetration_test_executor_ids" binding:"omitempty,dive,min=1"`
-	PenetrationTestTypeIDs           []uint  `json:"penetration_test_type_ids" binding:"omitempty,dive,min=1"`
-	PenetrationTestClassificationIDs []uint  `json:"penetration_test_classification_ids" binding:"omitempty,dive,min=1"`
-	PenetrationTestPlanIDs           []uint  `json:"penetration_test_plan_ids" binding:"omitempty,dive,min=1"`
-	CSResponsibleEmployeeIDs         []uint  `json:"cs_responsible_employee_ids" binding:"omitempty,dive,min=1"`
-	ResponsibleUnitIDs               []uint  `json:"responsible_unit_ids" binding:"omitempty,dive,min=1"`
-	PenetrationTestStatusIDs         []uint  `json:"penetration_test_status_ids" binding:"omitempty,dive,min=1"`
+	Years                            []int   `json:"years" binding:"dive,min=1,max=9999"`
+	PenetrationTestExecutorIDs       []uint  `json:"penetration_test_executor_ids" binding:"dive,min=1"`
+	PenetrationTestTypeIDs           []uint  `json:"penetration_test_type_ids" binding:"dive,min=1"`
+	PenetrationTestClassificationIDs []uint  `json:"penetration_test_classification_ids" binding:"dive,min=1"`
+	PenetrationTestPlanIDs           []uint  `json:"penetration_test_plan_ids" binding:"dive,min=1"`
+	CSResponsibleEmployeeIDs         []uint  `json:"cs_responsible_employee_ids" binding:"dive,min=1"`
+	ResponsibleUnitIDs               []uint  `json:"responsible_unit_ids" binding:"dive,min=1"`
+	PenetrationTestStatusIDs         []uint  `json:"penetration_test_status_ids" binding:"dive,min=1"`
 	Type                             string  `json:"type" binding:"required,oneof=individual date-range year filtered"`
 	PenetrationTestIDs               *[]uint `json:"penetration_test_ids"`
 	Title                            string  `json:"title" binding:"required"`
