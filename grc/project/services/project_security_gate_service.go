@@ -252,6 +252,8 @@ func (psgs *ProjectSecurityGateService) Create(currentUserID uint, form *dtos.Pr
 		StageID:           form.StageID,
 		TemplateVersionID: latestPublishedVersion.ID,
 		BusinessOwnerID:   form.BusinessOwnerID,
+		DivisionID:        &form.DivisionID,
+		DepartmentID:      &form.DepartmentID,
 		ReadinessStatusID: draftReadinessStatus.ID,
 		Notes:             form.Notes,
 		CreatedBYID:       currentUserID,
@@ -538,11 +540,21 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 		return err
 	}
 
+	var oldDivisionID, oldDepartmentID uint
+	if existing.DivisionID != nil {
+		oldDivisionID = *existing.DivisionID
+	}
+	if existing.DepartmentID != nil {
+		oldDepartmentID = *existing.DepartmentID
+	}
+
 	oldData := map[string]interface{}{
 		"project_title_en":  existing.ProjectTitleEn,
 		"project_title_ar":  existing.ProjectTitleAr,
 		"stage_id":          existing.StageID,
 		"business_owner_id": existing.BusinessOwnerID,
+		"division_id":       oldDivisionID,
+		"department_id":     oldDepartmentID,
 		"notes":             existing.Notes,
 	}
 
@@ -551,6 +563,8 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 	existing.ProjectTitleAr = form.ProjectTitleAr
 	existing.StageID = form.StageID
 	existing.BusinessOwnerID = form.BusinessOwnerID
+	existing.DivisionID = &form.DivisionID
+	existing.DepartmentID = &form.DepartmentID
 	existing.Notes = form.Notes
 	existing.UpdatedBYID = &currentUserID
 	existing.UpdatedAt = &now
@@ -573,6 +587,8 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 			"project_title_ar":  form.ProjectTitleAr,
 			"stage_id":          form.StageID,
 			"business_owner_id": form.BusinessOwnerID,
+			"division_id":       form.DivisionID,
+			"department_id":     form.DepartmentID,
 			"notes":             form.Notes,
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)

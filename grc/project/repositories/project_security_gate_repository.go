@@ -234,6 +234,8 @@ func (repo *ProjectSecurityGateRepository) GetFullDetailsByID(id uint) (*models.
 		Preload("Stage").
 		Preload("TemplateVersion").
 		Preload("BusinessOwner").
+		Preload("Division").
+		Preload("Department").
 		Preload("ReadinessStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
