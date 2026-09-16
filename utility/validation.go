@@ -679,6 +679,13 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "penetration_test_report_empty_result":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "penetration_test_report_empty_result",
+			})
+			errors = append(errors, errorMessage)
+
 		case "empty_result":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{

@@ -342,25 +342,20 @@ func (ptls *PenetrationTestService) ExportPenetrationTest(data []*penetrationTes
 	var headers []string
 	if userSetting.Language == "ar" {
 		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"System / Application",
-			"Type",
-			"Status",
-			"Classification",
-			"Plan",
-			"Executor",
-			"Responsible Employee",
-			"Responsible Unit",
-			"Created By",
-			"Year",
-			"Quarter",
-			"Critical Findings",
-			"High Findings",
-			"Medium Findings",
-			"Low Findings",
-			"Total Findings",
-			"Created At",
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"النظام / التطبيق",
+			"النوع",
+			"الحالة",
+			"التصنيف",
+			"الخطة",
+			"الجهة المنفذة",
+			"الموظف المسؤول",
+			"الوحدة المسؤولة",
+			"أنشئ بواسطة",
+			"السنة",
+			"الربع السنوي",
+			"تاريخ الإنشاء",
 		}
 	} else {
 		headers = []string{
@@ -377,11 +372,6 @@ func (ptls *PenetrationTestService) ExportPenetrationTest(data []*penetrationTes
 			"Created By",
 			"Year",
 			"Quarter",
-			"Critical Findings",
-			"High Findings",
-			"Medium Findings",
-			"Low Findings",
-			"Total Findings",
 			"Created At",
 		}
 	}
@@ -402,11 +392,6 @@ func (ptls *PenetrationTestService) ExportPenetrationTest(data []*penetrationTes
 				entry.CreatedUserFirstNameAr + " " + entry.CreatedUserLastNameAr,
 				entry.Year,
 				entry.Period,
-				entry.CriticalCount,
-				entry.HighCount,
-				entry.MediumCount,
-				entry.LowCount,
-				entry.TotalCount,
 				entry.CreatedAt,
 			}
 		} else {
@@ -424,11 +409,6 @@ func (ptls *PenetrationTestService) ExportPenetrationTest(data []*penetrationTes
 				entry.CreatedUserFirstNameEn + " " + entry.CreatedUserLastNameEn,
 				entry.Year,
 				entry.Period,
-				entry.CriticalCount,
-				entry.HighCount,
-				entry.MediumCount,
-				entry.LowCount,
-				entry.TotalCount,
 				entry.CreatedAt,
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	logServices "jethur/grc/logs/services"
@@ -347,20 +348,20 @@ func (ptfs *PenetrationTestFindingService) ExportPenetrationTestFinding(data []*
 	var headers []string
 	if userSetting.Language == "ar" {
 		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Finding",
-			"Pentest Reference",
-			"System / Application",
-			"Description",
-			"Recommendation",
-			"Severity",
-			"Responsible User",
-			"Responsible Unit",
-			"Target Date",
-			"Status",
-			"Completion (%)",
-			"Created At",
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"الملاحظة",
+			"مرجع اختبار الاختراق",
+			"النظام / التطبيق",
+			"الوصف",
+			"التوصية",
+			"درجة الخطورة",
+			"المستخدم المسؤول",
+			"الوحدة المسؤولة",
+			"التاريخ المستهدف",
+			"الحالة",
+			"نسبة الإنجاز (%)",
+			"تاريخ الإنشاء",
 		}
 	} else {
 		headers = []string{
@@ -385,15 +386,20 @@ func (ptfs *PenetrationTestFindingService) ExportPenetrationTestFinding(data []*
 		var responsibleUser, responsibleUnit, severity, status string
 
 		if userSetting.Language == "ar" {
-			responsibleUser = finding.OwnerFirstNameAr
+			responsibleUser = strings.TrimSpace(finding.OwnerFirstNameAr + " " + finding.OwnerLastNameAr)
 			responsibleUnit = utility.GetStringValue(finding.ResponsibleUnitTitleAr)
 			severity = finding.SeverityLevelTitleAr
 			status = finding.ActionPlanStatusTitleAr
 		} else {
-			responsibleUser = finding.OwnerFirstNameEn
+			responsibleUser = strings.TrimSpace(finding.OwnerFirstNameEn + " " + finding.OwnerLastNameEn)
 			responsibleUnit = utility.GetStringValue(finding.ResponsibleUnitTitleEn)
 			severity = finding.SeverityLevelTitleEn
 			status = finding.ActionPlanStatusTitleEn
+		}
+
+		var percentage uint
+		if finding.Percentage != nil {
+			percentage = *finding.Percentage
 		}
 
 		rows[i] = []interface{}{
@@ -402,14 +408,14 @@ func (ptfs *PenetrationTestFindingService) ExportPenetrationTestFinding(data []*
 			finding.Title,
 			finding.PenetrationTestReferenceNumber,
 			finding.SystemApplicationName,
-			utility.GetStringValue(finding.Description),
-			utility.GetStringValue(finding.Recommendation),
+			utility.StripHTMLTags(utility.GetStringValue(finding.Description)),
+			utility.StripHTMLTags(utility.GetStringValue(finding.Recommendation)),
 			severity,
 			responsibleUser,
 			responsibleUnit,
 			utility.GetStringValue(finding.TargetRemediationDate),
 			status,
-			utility.GetUintValue(finding.Percentage),
+			percentage,
 			finding.CreatedAt,
 		}
 	}

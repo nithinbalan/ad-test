@@ -316,6 +316,10 @@
   "translation": "A new {{.Field}} can only be created if none exists or the latest has failed."
 },
 {
+  "id": "penetration_test_report_empty_result",
+  "translation": "No penetration tests found for the selected filters."
+},
+{
   "id": "empty_result",
   "translation": "Incidents not found for this criteria."
 },

@@ -275,7 +275,7 @@ func (ptrs *PenetrationTestReportService) Create(currentUserID uint, dto penetra
 	}
 	if len(penetrationTests) == 0 {
 		tx.Rollback()
-		return 0, utility.NewValidationError(errors.New("no penetration tests found for the specified criteria"), "empty_result", "filters")
+		return 0, utility.NewValidationError(errors.New("no penetration tests found for the specified criteria"), "penetration_test_report_empty_result", "filters")
 	}
 
 	report := &models.PenetrationTestReport{
