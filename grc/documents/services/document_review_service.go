@@ -664,7 +664,7 @@ func (drs *DocumentReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowL
 			emailTo := []string{responsibleUser.Email}
 			subject := fmt.Sprintf("Document/%s: Review Assigned", document.TitleEn)
 			appURL := utility.GetAppURL()
-			urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+			urlParam = fmt.Sprintf("%s/document/register/%d/overview", appURL, id)
 			if document.IsInternal {
 				urlParam = fmt.Sprintf("%s/policies/policy-register/%d/edit", appURL, id)
 			}

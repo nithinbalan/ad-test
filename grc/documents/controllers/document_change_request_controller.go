@@ -447,6 +447,9 @@ func (dcrc *DocumentChangeRequestController) RevertDocumentCheckout(c *gin.Conte
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
 		default:
 			utility.SendInternalErrResp(dcrc.db, c, e.Error())
 			return

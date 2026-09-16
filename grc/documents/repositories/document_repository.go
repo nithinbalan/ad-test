@@ -59,6 +59,7 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 
 	selectClause := `
 	documents.*,
+	CONVERT(VARCHAR, documents.next_review_date, 23) AS next_review_date,
 	document_categories.title_en AS document_category_title_en,
 	document_categories.title_ar AS document_category_title_ar,
 	document_types.title_en AS document_type_title_en,

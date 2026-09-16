@@ -13,8 +13,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	reportsRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
-	db := app.DB
-
 	complianceReportController := app.ReportsModule.ComplianceReportController
 	organizationReportController := app.ReportsModule.OrganizationReportController
 	riskReportController := app.ReportsModule.RiskReportController
@@ -271,16 +269,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Documents
 	reportsRoutes.GET("/reports/documents", documentReportController.GetAllDocuments)
 	reportsRoutes.GET("/reports/documents/export", documentReportController.GetDocumentExport)
-	reportsRoutes.GET("/reports/document-by-category", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByCategory)
-	reportsRoutes.GET("/reports/document-by-type", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByType)
-	reportsRoutes.GET("/reports/document-by-status", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByStatus)
-	reportsRoutes.GET("/reports/document-by-responsible-unit", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByResponsibleUnit)
-	reportsRoutes.GET("/reports/document-by-responsible-user", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByResponsibleUser)
-	reportsRoutes.GET("/reports/document-by-access", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByAccess)
-	reportsRoutes.GET("/reports/document-by-policy-and-procedure", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByPolicyAndProcedure)
-	reportsRoutes.GET("/reports/document-by-published-and-archived", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByPublishedAndArchived)
-	reportsRoutes.GET("/reports/document-by-published-year", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentPublishedByYear)
-	reportsRoutes.GET("/reports/document-by-published-month", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentPublishedByMonth)
+	reportsRoutes.GET("/reports/document-by-category", documentReportController.GetDocumentByCategory)
+	reportsRoutes.GET("/reports/document-by-type", documentReportController.GetDocumentByType)
+	reportsRoutes.GET("/reports/document-by-status", documentReportController.GetDocumentByStatus)
+	reportsRoutes.GET("/reports/document-by-responsible-unit", documentReportController.GetDocumentByResponsibleUnit)
+	reportsRoutes.GET("/reports/document-by-responsible-user", documentReportController.GetDocumentByResponsibleUser)
+	reportsRoutes.GET("/reports/document-by-access", documentReportController.GetDocumentByAccess)
+	reportsRoutes.GET("/reports/document-by-policy-and-procedure", documentReportController.GetDocumentByPolicyAndProcedure)
+	reportsRoutes.GET("/reports/document-by-published-and-archived", documentReportController.GetDocumentByPublishedAndArchived)
+	reportsRoutes.GET("/reports/document-by-published-year", documentReportController.GetDocumentPublishedByYear)
+	reportsRoutes.GET("/reports/document-by-published-month", documentReportController.GetDocumentPublishedByMonth)
 
 	reportsRoutes.GET("/reports/document-change-requests", documentReportController.GetAllDocumentChangeRequests)
 	reportsRoutes.GET("/reports/document-change-requests/export", documentReportController.GetDocumentChangeRequestExport)

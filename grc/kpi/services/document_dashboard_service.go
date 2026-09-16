@@ -8,8 +8,8 @@ import (
 type DocumentDashboardServiceInterface interface {
 	GetDocumentSummary(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentDashboardSummaryDTO, error)
 	GetDocumentStatusByType(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentStatusByTypeDTO, error)
-	GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentConfidentialityClassificationDTO, error)
-	GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentResponsibleUnitDTO, error)
+	GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentConfidentialityClassificationResponseDTO, error)
+	GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentResponsibleUnitResponseDTO, error)
 	GetDocumentReviewCountTrend(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentReviewCountTrendDTO, error)
 }
 
@@ -29,11 +29,11 @@ func (service *DocumentDashboardService) GetDocumentStatusByType(params *kpiDTOs
 	return service.repo.GetDocumentStatusByType(params)
 }
 
-func (service *DocumentDashboardService) GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentConfidentialityClassificationDTO, error) {
+func (service *DocumentDashboardService) GetDocumentsByConfidentialityClassification(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentConfidentialityClassificationResponseDTO, error) {
 	return service.repo.GetDocumentsByConfidentialityClassification(params)
 }
 
-func (service *DocumentDashboardService) GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) ([]kpiDTOs.DocumentResponsibleUnitDTO, error) {
+func (service *DocumentDashboardService) GetDocumentsByResponsibleUnit(params *kpiDTOs.DocumentDashboardQueryParamsDTO) (*kpiDTOs.DocumentResponsibleUnitResponseDTO, error) {
 	return service.repo.GetDocumentsByResponsibleUnit(params)
 }
 

@@ -192,9 +192,9 @@
     "translation": "Document must be published to continue."
   },
   {
-  "id": "field_max_length",
-  "translation": "The {{.Field}} field cannot exceed maximum characters supported." 
- }
+    "id": "field_max_length",
+    "translation": "{{if .Max}}The {{.Field}} field cannot exceed {{.Max}} characters.{{else}}The {{.Field}} field cannot exceed maximum characters supported.{{end}}" 
+  }
 ,
 {
   "id": "invalid_total_weightage",

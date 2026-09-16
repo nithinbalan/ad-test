@@ -137,6 +137,12 @@ func (dcrs *DocumentChangeRequestService) GetFullDetailsByID(id uint, tx ...util
 	}
 	detailsDTO.CreatedAt = changeRequest.CreatedAt
 	detailsDTO.UpdatedAt = changeRequest.UpdatedAt
+
+	if changeRequest.Document != nil && changeRequest.Document.NextReviewDate != nil {
+		nextReviewDate := changeRequest.Document.NextReviewDate.Format("2006-01-02")
+		detailsDTO.Document.NextReviewDate = &nextReviewDate
+	}
+
 	return &detailsDTO, nil
 }
 
@@ -944,7 +950,7 @@ func (dcrs *DocumentChangeRequestService) CheckoutDocument(id uint, currentUserI
 
 	if documentChangeRequest.CreatedByUser.ID != int(currentUserID) && documentChangeRequest.Document.ResponsibleUser.ID != int(currentUserID) {
 		tx.Rollback()
-		return "", utility.NewForbiddenError("Access denied: user is neither creator nor responsible user.")
+		return "", utility.NewForbiddenError("Access denied: Only the creator or responsible user can check out this document.")
 	}
 
 	currentDateStr := time.Now().Format("2006-01-02")
@@ -1023,7 +1029,7 @@ func (dcrs *DocumentChangeRequestService) CheckinDocument(id uint, currentUserID
 
 	if documentChangeRequest.CreatedByUser.ID != int(currentUserID) && documentChangeRequest.Document.ResponsibleUser.ID != int(currentUserID) {
 		tx.Rollback()
-		return fmt.Errorf("access denied: user is neither creator nor responsible user")
+		return utility.NewForbiddenError("Access denied: Only the creator or responsible user can check in this document.")
 	}
 
 	dataToEncrypt := []byte(documentCheckinFormDTO.Document.FileName)
@@ -1299,7 +1305,7 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 	// Prepare notification
 	go func() {
 		urlParam = fmt.Sprintf(`{"id":%d}`, id)
-		entity := "document-change_request"
+		entity := "document-change-request"
 		action := "review-user-assign"
 
 		for _, participant := range docCRWorkflowLevel.DocumentChangeRequestWorkflowParticipants {
@@ -1348,7 +1354,7 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 				"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":      assignedBy.LastNameEn,
 				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%s/document/change-request/%d", appURL, id),
+				"RedirectURL":               fmt.Sprintf("%s/document/change-request/%d/overview", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1766,7 +1772,7 @@ func (dcrs *DocumentChangeRequestService) notifyUsersOnPublish(documentChangeReq
 		action := "published"
 		appURL := utility.GetAppURL()
 		subject := fmt.Sprintf("Document Change Request/%s: Published Notification", documentChangeRequest.Document.TitleEn)
-		redirectURL := fmt.Sprintf("%s/document/register/%d", appURL, documentCRID)
+		redirectURL := fmt.Sprintf("%s/document/change-request/%d/overview", appURL, documentCRID)
 
 		publishedUser, _ := dcrs.userSvc.GetByID(publishedBy)
 

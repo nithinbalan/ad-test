@@ -354,6 +354,9 @@ func (dc *DocumentController) CheckinDocument(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
 		default:
 			utility.SendInternalErrResp(dc.db, c, e.Error())
 			return
@@ -382,6 +385,9 @@ func (dc *DocumentController) RevertDocumentCheckout(c *gin.Context) {
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
 			return
 		default:
 			utility.SendInternalErrResp(dc.db, c, e.Error())
