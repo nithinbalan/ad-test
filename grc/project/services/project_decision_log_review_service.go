@@ -942,7 +942,7 @@ func (pdlrs *ProjectDecisionLogReviewService) sendApprovalNotification(projectID
 			EmailData:            emailData,
 		}
 
-		err = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_decision_log")
+		err = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 		if err != nil {
 			utility.LogError("Failed to send approval notification email", map[string]interface{}{"error": err.Error()})
 		}
@@ -1006,7 +1006,7 @@ func (pdlrs *ProjectDecisionLogReviewService) notifyNextLevelUsers(projectID uin
 				EmailData:            emailData,
 			}
 
-			_ = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_decision_log")
+			_ = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 		}
 	}()
 }
@@ -1068,7 +1068,7 @@ func (pdlrs *ProjectDecisionLogReviewService) sendResubmitNotification(projectID
 				EmailData:            emailData,
 			}
 
-			_ = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_decision_log")
+			_ = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 		}
 	}()
 }
@@ -1123,7 +1123,7 @@ func (pdlrs *ProjectDecisionLogReviewService) sendRevertNotification(projectID u
 			EmailData:            emailData,
 		}
 
-		_ = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_decision_log")
+		_ = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 	}()
 }
 
@@ -1177,6 +1177,6 @@ func (pdlrs *ProjectDecisionLogReviewService) sendRejectNotification(projectID u
 			EmailData:            emailData,
 		}
 
-		_ = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_decision_log")
+		_ = pdlrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 	}()
 }

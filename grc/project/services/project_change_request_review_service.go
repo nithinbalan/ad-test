@@ -961,7 +961,7 @@ func (pcrrs *ProjectChangeRequestReviewService) sendApprovalNotification(project
 			EmailData:            emailData,
 		}
 
-		err = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_change_request")
+		err = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 		if err != nil {
 			utility.LogError("Failed to send approval notification email", map[string]interface{}{"error": err.Error()})
 		}
@@ -1025,7 +1025,7 @@ func (pcrrs *ProjectChangeRequestReviewService) notifyNextLevelUsers(projectID u
 				EmailData:            emailData,
 			}
 
-			_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_change_request")
+			_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 		}
 	}()
 }
@@ -1087,7 +1087,7 @@ func (pcrrs *ProjectChangeRequestReviewService) sendResubmitNotification(project
 				EmailData:            emailData,
 			}
 
-			_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_change_request")
+			_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 		}
 	}()
 }
@@ -1142,7 +1142,7 @@ func (pcrrs *ProjectChangeRequestReviewService) sendRevertNotification(projectID
 			EmailData:            emailData,
 		}
 
-		_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_change_request")
+		_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 	}()
 }
 
@@ -1196,7 +1196,7 @@ func (pcrrs *ProjectChangeRequestReviewService) sendRejectNotification(projectID
 			EmailData:            emailData,
 		}
 
-		_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_change_request")
+		_ = pcrrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 	}()
 }
 
