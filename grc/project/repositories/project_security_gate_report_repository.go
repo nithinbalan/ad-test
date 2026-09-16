@@ -64,8 +64,6 @@ func (repo *ProjectSecurityGateReportRepository) GetAllChecklists(securityGateID
 		Preload("ApprovedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		Preload("Documents").
-		Preload("Documents.CreatedByUser").
 		Preload("Controls").
 		Preload("Controls.Control").
 		Preload("Risks").
@@ -109,7 +107,6 @@ func (repo *ProjectSecurityGateReportRepository) GetAllExceptionChecklists() ([]
 	result := repo.db.
 		Select("project_security_gate_checklists.*").
 		Preload("Requirement").
-		Preload("ResponseStatus").
 		Preload("WorkflowStatus").
 		Preload("SubmittedByUser").
 		Preload("ApprovedByUser").
