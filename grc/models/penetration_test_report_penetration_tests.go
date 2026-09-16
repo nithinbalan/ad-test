@@ -42,7 +42,7 @@ type PenetrationTestReportPenetrationTest struct {
 	ClosureRemarks                       *string    `json:"closure_remarks" gorm:"type:nvarchar(max)"`
 	ClosureOwnerNameEn                   *string    `json:"closure_owner_name_en" gorm:"type:nvarchar(255)"`
 	ClosureOwnerNameAr                   *string    `json:"closure_owner_name_ar" gorm:"type:nvarchar(255)"`
-	CreatedAt                            *time.Time `json:"created_at" gorm:"type:datetime"`
+	CreatedAt                            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                            *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships

@@ -414,7 +414,7 @@ func (ptrs *PenetrationTestReportService) Create(currentUserID uint, dto penetra
 				Token:        document.Token,
 				OriginalName: document.OriginalName,
 				Type:         document.Type,
-				CreatedBYID:  &currentUserID,
+				CreatedBYID:  currentUserID,
 			})
 
 		}
@@ -502,7 +502,7 @@ func (ptrs *PenetrationTestReportService) Create(currentUserID uint, dto penetra
 						Token:                                  document.Token,
 						OriginalName:                           document.OriginalName,
 						Type:                                   document.Type,
-						CreatedBYID:                            &currentUserID,
+						CreatedBYID:                            currentUserID,
 					})
 
 				}
@@ -656,18 +656,18 @@ func (ptrs *PenetrationTestReportService) GetPenetrationTestReportDetails(id uin
 		penetrationTest.ManagementNotifyDate = report.PenetrationTests[i].ManagementNotifyDate
 		penetrationTest.ManagementResponseDate = report.PenetrationTests[i].ManagementResponseDate
 		penetrationTest.ClosureDate = report.PenetrationTests[i].ClosureDate
-		penetrationTest.CreatedAt = report.PenetrationTests[i].CreatedAt
+		penetrationTest.CreatedAt = &report.PenetrationTests[i].CreatedAt
 		penetrationTest.UpdatedAt = report.PenetrationTests[i].UpdatedAt
 
 		for j, finding := range penetrationTest.Findings {
 			finding.TargetRemediationDate = report.PenetrationTests[i].Findings[j].TargetRemediationDate
-			finding.CreatedAt = report.PenetrationTests[i].Findings[j].CreatedAt
+			finding.CreatedAt = &report.PenetrationTests[i].Findings[j].CreatedAt
 			finding.UpdatedAt = report.PenetrationTests[i].Findings[j].UpdatedAt
 		}
 		for j, retest := range penetrationTest.Retests {
 			retest.StartDate = report.PenetrationTests[i].Retests[j].StartDate
 			retest.EndDate = report.PenetrationTests[i].Retests[j].EndDate
-			retest.CreatedAt = report.PenetrationTests[i].Retests[j].CreatedAt
+			retest.CreatedAt = &report.PenetrationTests[i].Retests[j].CreatedAt
 			retest.UpdatedAt = report.PenetrationTests[i].Retests[j].UpdatedAt
 
 			for k, finding := range retest.RetestFindings {
@@ -793,7 +793,7 @@ func (ptrs *PenetrationTestReportService) GetFullReportDetailsByID(id uint) (*pe
 	penetrationTest.ManagementNotifyDate = penetrationTests[0].ManagementNotifyDate
 	penetrationTest.ManagementResponseDate = penetrationTests[0].ManagementResponseDate
 	penetrationTest.ClosureDate = penetrationTests[0].ClosureDate
-	penetrationTest.CreatedAt = penetrationTests[0].CreatedAt
+	penetrationTest.CreatedAt = &penetrationTests[0].CreatedAt
 	penetrationTest.UpdatedAt = penetrationTests[0].UpdatedAt
 	findings, err := ptrs.repo.GetFindingsByPenetrationTestID(id, nil)
 	if err != nil {
@@ -811,13 +811,13 @@ func (ptrs *PenetrationTestReportService) GetFullReportDetailsByID(id uint) (*pe
 	}
 	for i, finding := range penetrationTest.Findings {
 		finding.TargetRemediationDate = findings[i].TargetRemediationDate
-		finding.CreatedAt = findings[i].CreatedAt
+		finding.CreatedAt = &findings[i].CreatedAt
 		finding.UpdatedAt = findings[i].UpdatedAt
 	}
 	for i, retest := range penetrationTest.Retests {
 		retest.StartDate = retests[i].StartDate
 		retest.EndDate = retests[i].EndDate
-		retest.CreatedAt = retests[i].CreatedAt
+		retest.CreatedAt = &retests[i].CreatedAt
 		retest.UpdatedAt = retests[i].UpdatedAt
 
 		findings, err := ptrs.repo.GetRetestFindingsByRetestID(retest.ID, nil)

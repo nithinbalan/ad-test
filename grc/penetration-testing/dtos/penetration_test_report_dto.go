@@ -303,7 +303,7 @@ type PenetrationTestReportPenetrationTestSourceDTO struct {
 	ClosureRemarks                       *string    `json:"closure_remarks"`
 	ClosureOwnerNameEn                   *string    `json:"closure_owner_name_en"`
 	ClosureOwnerNameAr                   *string    `json:"closure_owner_name_ar"`
-	CreatedAt                            *time.Time `json:"created_at"`
+	CreatedAt                            time.Time  `json:"created_at"`
 	UpdatedAt                            *time.Time `json:"updated_at"`
 }
 
@@ -318,7 +318,7 @@ type PenetrationTestReportRetestSourceDTO struct {
 	StatusTitleAr   *string    `json:"status_title_ar"`
 	StatusColorCode *string    `json:"status_color_code"`
 	Notes           *string    `json:"notes"`
-	CreatedAt       *time.Time `json:"created_at"`
+	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       *time.Time `json:"updated_at"`
 }
 
@@ -338,7 +338,7 @@ type PenetrationTestReportFindingSourceDTO struct {
 	ActionPlanStatusColorCode *string    `json:"action_plan_status_color_code"`
 	Percentage                *int       `json:"percentage"`
 	TargetRemediationDate     *time.Time `json:"target_remediation_date"`
-	CreatedAt                 *time.Time `json:"created_at"`
+	CreatedAt                 time.Time  `json:"created_at"`
 	UpdatedAt                 *time.Time `json:"updated_at"`
 }
 

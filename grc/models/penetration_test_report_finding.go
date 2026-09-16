@@ -21,7 +21,7 @@ type PenetrationTestReportFinding struct {
 	ActionPlanStatusColorCode              *string    `json:"action_plan_status_color_code" gorm:"type:nvarchar(255)"`
 	Percentage                             *int       `json:"percentage"`
 	TargetRemediationDate                  *time.Time `json:"target_remediation_date" gorm:"type:date"`
-	CreatedAt                              *time.Time `json:"created_at" gorm:"type:datetime"`
+	CreatedAt                              time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                              *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships

@@ -14,7 +14,7 @@ type PenetrationTestReportDocument struct {
 	Token                                       *string    `json:"token" gorm:"type:varchar(255)"`
 	OriginalName                                *string    `json:"original_name" gorm:"type:nvarchar(255)"`
 	Type                                        *string    `json:"type" gorm:"type:varchar(255)"`
-	CreatedBYID                                 *uint      `json:"created_by_id" gorm:"type:int"`
+	CreatedBYID                                 uint       `json:"created_by_id" gorm:"type:int;not null"`
 	UpdatedBYID                                 *uint      `json:"updated_by_id" gorm:"type:int"`
 	CreatedAt                                   time.Time  `json:"created_at" gorm:"type:datetime;not null;default:getdate()"`
 	UpdatedAt                                   *time.Time `json:"updated_at" gorm:"type:datetime"`

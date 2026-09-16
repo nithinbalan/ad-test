@@ -16,7 +16,7 @@ type PenetrationTestReportRetest struct {
 	StatusTitleAr                          *string    `json:"status_title_ar" gorm:"type:nvarchar(255)"`
 	StatusColorCode                        *string    `json:"status_color_code" gorm:"type:nvarchar(255)"`
 	Notes                                  *string    `json:"notes" gorm:"type:nvarchar(max)"`
-	CreatedAt                              *time.Time `json:"created_at" gorm:"type:datetime"`
+	CreatedAt                              time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                              *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
