@@ -471,3 +471,75 @@ func (ptrc *PenetrationTestReportController) GetPenetrationTestByPeriod(c *gin.C
 
 	c.JSON(http.StatusOK, results)
 }
+
+func (ptrc *PenetrationTestReportController) GetPenetrationTestFindingByStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := ptrc.service.GetPenetrationTestFindingByStatus(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (ptrc *PenetrationTestReportController) GetPenetrationTestFindingByResponsibleUnit(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := ptrc.service.GetPenetrationTestFindingByResponsibleUnit(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (ptrc *PenetrationTestReportController) GetPenetrationTestFindingByResponsibleUser(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := ptrc.service.GetPenetrationTestFindingByResponsibleUser(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (ptrc *PenetrationTestReportController) GetPenetrationTestFindingBySeverityLevel(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := ptrc.service.GetPenetrationTestFindingBySeverityLevel(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}

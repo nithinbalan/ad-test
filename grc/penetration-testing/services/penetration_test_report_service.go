@@ -218,23 +218,32 @@ func (ptrs *PenetrationTestReportService) Create(currentUserID uint, dto penetra
 	}
 
 	queryParams := &penetrationTestDTOs.PenetrationTestReportQueryParamsDTO{
-		Year:                            dto.Year,
-		PenetrationTestExecutorID:       dto.PenetrationTestExecutorID,
-		PenetrationTestTypeID:           dto.PenetrationTestTypeID,
-		PenetrationTestClassificationID: dto.PenetrationTestClassificationID,
-		PenetrationTestPlanID:           dto.PenetrationTestPlanID,
-		CSResponsibleEmployeeID:         dto.CSResponsibleEmployeeID,
-		ResponsibleUnitID:               dto.ResponsibleUnitID,
-		PenetrationTestStatusID:         dto.PenetrationTestStatusID,
+		Years:                            dto.Years,
+		PenetrationTestExecutorIDs:       dto.PenetrationTestExecutorIDs,
+		PenetrationTestTypeIDs:           dto.PenetrationTestTypeIDs,
+		PenetrationTestClassificationIDs: dto.PenetrationTestClassificationIDs,
+		PenetrationTestPlanIDs:           dto.PenetrationTestPlanIDs,
+		CSResponsibleEmployeeIDs:         dto.CSResponsibleEmployeeIDs,
+		ResponsibleUnitIDs:               dto.ResponsibleUnitIDs,
+		PenetrationTestStatusIDs:         dto.PenetrationTestStatusIDs,
 	}
 	switch dto.Type {
 	case "year":
-		if dto.Year == nil {
+		if len(dto.Years) == 0 {
 			tx.Rollback()
-			return 0, utility.NewValidationError(errors.New("year is required for year reports"), "required", "year")
+			return 0, utility.NewValidationError(errors.New("years are required for year reports"), "required", "years")
 		}
-		start := time.Date(*dto.Year, time.January, 1, 0, 0, 0, 0, time.UTC)
-		end := time.Date(*dto.Year, time.December, 31, 0, 0, 0, 0, time.UTC)
+		firstYear, lastYear := dto.Years[0], dto.Years[0]
+		for _, year := range dto.Years {
+			if year < firstYear {
+				firstYear = year
+			}
+			if year > lastYear {
+				lastYear = year
+			}
+		}
+		start := time.Date(firstYear, time.January, 1, 0, 0, 0, 0, time.UTC)
+		end := time.Date(lastYear, time.December, 31, 0, 0, 0, 0, time.UTC)
 		dates.StartDate = &start
 		dates.EndDate = &end
 	case "date-range":
@@ -266,7 +275,7 @@ func (ptrs *PenetrationTestReportService) Create(currentUserID uint, dto penetra
 	}
 	if len(penetrationTests) == 0 {
 		tx.Rollback()
-		return 0, utility.NewValidationError(errors.New("no penetration tests found for the specified criteria"), "empty_result", "filters")
+		return 0, utility.NewValidationError(errors.New("no penetration tests found for the specified criteria"), "penetration_test_report_empty_result", "filters")
 	}
 
 	report := &models.PenetrationTestReport{
