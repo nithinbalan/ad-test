@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'Cairo', sans-serif; direction: rtl;">
+  <div class="footer" style="border-top: 1px solid #DEDEDE; margin-left: 32px; margin-right: 32px;">
+    <div style="padding-left: 32px; padding-top: 24px; overflow: hidden; font-size: 13px;">
+        <div style="float: right;">{{.ApiPath}}</div>
+        <div style="float: left;">صفحة <span class="page"></span> من <span class="topage"></span></div>
+    </div>
+  </div>
+    <script>
+        var vars = {};
+        var query_strings = document.location.search.substring(1).split('&');
+        for (var i in query_strings) {
+            if (query_strings.hasOwnProperty(i)) {
+                var pair = query_strings[i].split('=', 2);
+                vars[pair[0]] = decodeURIComponent(pair[1]);
+            }
+        }
+        document.querySelector('.page').textContent = vars.page || '';
+        document.querySelector('.topage').textContent = vars.topage || '';
+    </script>
+</body>
+</html>

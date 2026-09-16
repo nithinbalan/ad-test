@@ -1,0 +1,109 @@
+<head>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap" rel="stylesheet">
+</head>
+<style>
+   body {
+      font-family: 'Lexend Deca', sans-serif;
+      box-sizing: border-box;
+      color: #000;
+      height: 100%;
+      line-height: 1.4;
+      margin: 0;
+      width: 100% !important;
+      word-break: break-word;
+   }
+   .page {
+      width: 100%;
+   }
+   .cover {
+      min-height: 1250px;
+      background: url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat;
+      background-size: 100% 100%;
+      padding: 0px 32px;
+      position: relative;
+   }
+   .cover-logo {
+      box-sizing: border-box;
+      padding: 5px 0;
+   }
+   .cover-title {
+      font-size: 40px;
+      color: #fff;
+      position: absolute;
+      bottom: 500px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      margin: 0 auto;
+   }
+   .meta {
+      margin-left: 40px;
+      margin-top: 24px;
+   }
+   .meta-row {
+      margin-top: 10px;
+   }
+   .meta-cell {
+      display: inline-block;
+      vertical-align: top;
+      width: 22%;
+   }
+   .meta-label {
+      margin: 0 0 2px 0;
+      color: #000;
+      font-size: 13px;
+      line-height: 1.5em;
+      text-align: left;
+      font-weight: 300;
+   }
+   .meta-value {
+      margin: 0 0 13px 0;
+      color: #000000;
+      font-size: 14px;
+      line-height: 1.5em;
+      text-align: left;
+      font-weight: 400;
+   }
+</style>
+<body>
+   <div class="page">
+      <div class="cover">
+         <div>
+            <img class="cover-logo" src="{{.ApiPath}}/report-template-settings/image-preview?type=logo">
+         </div>
+
+         <h1 class="cover-title">ADF - Project Security Gate <br /> Exceptions &amp; Approvals Report</h1>
+      </div>
+
+      <div class="meta">
+         <div class="meta-row">
+            <div class="meta-cell">
+               <p class="meta-label"><span>Total Exceptions:</span></p>
+               <p class="meta-value">{{ .Data.TotalCount }}</p>
+            </div>
+            <div class="meta-cell">
+               <p class="meta-label"><span>Approved:</span></p>
+               <p class="meta-value">{{ .Data.ApprovedCount }}</p>
+            </div>
+            <div class="meta-cell">
+               <p class="meta-label"><span>Pending Approval:</span></p>
+               <p class="meta-value">{{ .Data.PendingCount }}</p>
+            </div>
+            <div class="meta-cell">
+               <p class="meta-label"><span>Critical:</span></p>
+               <p class="meta-value">{{ .Data.CriticalCount }}</p>
+            </div>
+         </div>
+         <div class="meta-row">
+            <div class="meta-cell">
+               <p class="meta-label"><span>Exported At:</span></p>
+               <p class="meta-value">{{ .Data.GeneratedAt }}</p>
+            </div>
+         </div>
+      </div>
+   </div>
+</body>

@@ -478,6 +478,63 @@ func AddFileToZip(zipWriter *zip.Writer, filename string) error {
 	return err
 }
 
+// ZipEntry is a file on disk and its path inside the archive.
+type ZipEntry struct {
+	SourcePath string
+	ZipPath    string
+}
+
+// CreateZipFileWithFolders zips each entry at its own ZipPath, keeping folders.
+func CreateZipFileWithFolders(zipPath string, entries []ZipEntry) error {
+	newZipFile, err := os.Create(zipPath)
+	if err != nil {
+		return err
+	}
+	defer newZipFile.Close()
+
+	zipWriter := zip.NewWriter(newZipFile)
+	for _, entry := range entries {
+		if err := AddFileToZipAtPath(zipWriter, entry.SourcePath, entry.ZipPath); err != nil {
+			zipWriter.Close()
+			return err
+		}
+	}
+
+	// Not deferred: Close writes the central directory and can fail
+	return zipWriter.Close()
+}
+
+// AddFileToZipAtPath is AddFileToZip storing the file under zipName.
+func AddFileToZipAtPath(zipWriter *zip.Writer, filename string, zipName string) error {
+	fileToZip, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer fileToZip.Close()
+
+	info, err := fileToZip.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+
+	// Zip entry names always use forward slashes
+	header.Name = filepath.ToSlash(zipName)
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(writer, fileToZip)
+	return err
+}
+
 func GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent string) error {
 	wkhtmltopdfPath := os.Getenv("WKHTMLTOPDF_PATH")
 	if wkhtmltopdfPath == "" {
