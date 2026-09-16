@@ -358,29 +358,29 @@ func (repo *PenetrationTestReportRepository) GetReportPenetrationTests(params *p
 	if params.StartDate != nil && params.EndDate != nil {
 		query = query.Where("pt.created_at BETWEEN ? AND ?", *params.StartDate, *params.EndDate)
 	}
-	if params.Year != nil {
-		query = query.Where("pt.year = ?", *params.Year)
+	if len(params.Years) > 0 {
+		query = query.Where("pt.year IN ?", params.Years)
 	}
-	if params.PenetrationTestExecutorID != nil {
-		query = query.Where("pt.penetration_test_executor_id = ?", *params.PenetrationTestExecutorID)
+	if len(params.PenetrationTestExecutorIDs) > 0 {
+		query = query.Where("pt.penetration_test_executor_id IN ?", params.PenetrationTestExecutorIDs)
 	}
-	if params.PenetrationTestTypeID != nil {
-		query = query.Where("pt.penetration_test_type_id = ?", *params.PenetrationTestTypeID)
+	if len(params.PenetrationTestTypeIDs) > 0 {
+		query = query.Where("pt.penetration_test_type_id IN ?", params.PenetrationTestTypeIDs)
 	}
-	if params.PenetrationTestClassificationID != nil {
-		query = query.Where("pt.penetration_test_classification_id = ?", *params.PenetrationTestClassificationID)
+	if len(params.PenetrationTestClassificationIDs) > 0 {
+		query = query.Where("pt.penetration_test_classification_id IN ?", params.PenetrationTestClassificationIDs)
 	}
-	if params.PenetrationTestPlanID != nil {
-		query = query.Where("pt.penetration_test_plan_id = ?", *params.PenetrationTestPlanID)
+	if len(params.PenetrationTestPlanIDs) > 0 {
+		query = query.Where("pt.penetration_test_plan_id IN ?", params.PenetrationTestPlanIDs)
 	}
-	if params.CSResponsibleEmployeeID != nil {
-		query = query.Where("pt.cs_responsible_employee_id = ?", *params.CSResponsibleEmployeeID)
+	if len(params.CSResponsibleEmployeeIDs) > 0 {
+		query = query.Where("pt.cs_responsible_employee_id IN ?", params.CSResponsibleEmployeeIDs)
 	}
-	if params.ResponsibleUnitID != nil {
-		query = query.Where("employee.organization_unit_1_id = ?", *params.ResponsibleUnitID)
+	if len(params.ResponsibleUnitIDs) > 0 {
+		query = query.Where("employee.organization_unit_1_id IN ?", params.ResponsibleUnitIDs)
 	}
-	if params.PenetrationTestStatusID != nil {
-		query = query.Where("pt.penetration_test_status_id = ?", *params.PenetrationTestStatusID)
+	if len(params.PenetrationTestStatusIDs) > 0 {
+		query = query.Where("pt.penetration_test_status_id IN ?", params.PenetrationTestStatusIDs)
 	}
 	if err := query.Order("pt.created_at DESC").Find(&items).Error; err != nil {
 		return nil, err
