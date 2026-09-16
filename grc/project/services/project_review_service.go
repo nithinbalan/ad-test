@@ -934,7 +934,7 @@ func (prs *ProjectReviewService) sendApprovalNotification(projectID uint, curren
 			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
 			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
 			"ApprovedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%s/projects/%d", appURL, projectID),
+			"RedirectURL":           fmt.Sprintf("%s/projects/project-register/%d/overview", appURL, projectID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -944,7 +944,7 @@ func (prs *ProjectReviewService) sendApprovalNotification(projectID uint, curren
 			EmailData:            emailData,
 		}
 
-		err = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project")
+		err = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 		if err != nil {
 			utility.LogError("Failed to send approval notification email", map[string]interface{}{"error": err.Error()})
 		}
@@ -998,7 +998,7 @@ func (prs *ProjectReviewService) notifyNextLevelUsers(projectID uint, nextWorkfl
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/projects/%d", appURL, projectID),
+				"RedirectURL":           fmt.Sprintf("%s/projects/project-register/%d/overview", appURL, projectID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1008,7 +1008,7 @@ func (prs *ProjectReviewService) notifyNextLevelUsers(projectID uint, nextWorkfl
 				EmailData:            emailData,
 			}
 
-			_ = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project")
+			_ = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 		}
 	}()
 }
@@ -1060,7 +1060,7 @@ func (prs *ProjectReviewService) sendResubmitNotification(projectID uint, workfl
 				"ResubmittedByFirstNameEn": resubmittedBy.FirstNameEn,
 				"ResubmittedByLastNameEn":  resubmittedBy.LastNameEn,
 				"ResubmittedAt":            time.Now().Format("2006-01-02"),
-				"RedirectURL":              fmt.Sprintf("%s/projects/%d", appURL, projectID),
+				"RedirectURL":              fmt.Sprintf("%s/projects/project-register/%d/overview", appURL, projectID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1070,7 +1070,7 @@ func (prs *ProjectReviewService) sendResubmitNotification(projectID uint, workfl
 				EmailData:            emailData,
 			}
 
-			_ = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project")
+			_ = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 		}
 	}()
 }
@@ -1115,7 +1115,7 @@ func (prs *ProjectReviewService) sendRevertNotification(projectID uint, currentU
 			"RevertedByFirstNameEn": revertedByUser.FirstNameEn,
 			"RevertedByLastNameEn":  revertedByUser.LastNameEn,
 			"RevertedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%s/projects/%d", appURL, projectID),
+			"RedirectURL":           fmt.Sprintf("%s/projects/project-register/%d/overview", appURL, projectID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1125,7 +1125,7 @@ func (prs *ProjectReviewService) sendRevertNotification(projectID uint, currentU
 			EmailData:            emailData,
 		}
 
-		_ = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project")
+		_ = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 	}()
 }
 
@@ -1169,7 +1169,7 @@ func (prs *ProjectReviewService) sendRejectNotification(projectID uint, currentU
 			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
 			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
 			"RejectedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%s/projects/%d", appURL, projectID),
+			"RedirectURL":           fmt.Sprintf("%s/projects/project-register/%d/overview", appURL, projectID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1179,6 +1179,6 @@ func (prs *ProjectReviewService) sendRejectNotification(projectID uint, currentU
 			EmailData:            emailData,
 		}
 
-		_ = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project")
+		_ = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_management")
 	}()
 }
