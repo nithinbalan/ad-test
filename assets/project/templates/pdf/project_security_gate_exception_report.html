@@ -199,6 +199,7 @@
       <!-- 1. Summary -->
       <div class="keep-together" style="padding-top: 10px;">
          <h3 class="section-title">1. Summary</h3>
+         <div style="margin-left: 16px;">
          <div style="margin-top: 10px;">
             <div class="summary-card">
                <p class="summary-value">{{ .Data.TotalCount }}</p>
@@ -217,11 +218,13 @@
                <p class="summary-label">Critical</p>
             </div>
          </div>
+         </div>
       </div>
 
       <!-- 2. Exceptions Overview -->
       <div style="margin-top: 20px;">
          <h3 class="section-title">2. Exceptions Overview</h3>
+         <div style="margin-left: 16px;">
          {{if .Data.SecurityGates}}
          <table>
             <thead>
@@ -260,11 +263,13 @@
          {{else}}
          <p class="empty-note">No exceptions raised.</p>
          {{end}}
+         </div>
       </div>
 
       <!-- 3. Exceptions & Approvals -->
       <div style="margin-top: 20px;">
          <h3 class="section-title">3. Exceptions & Approvals</h3>
+         <div style="margin-left: 16px;">
          {{if .Data.SecurityGates}}
             {{range $gateIndex, $gate := .Data.SecurityGates}}
             {{range $excIndex, $exception := $gate.Exceptions}}
@@ -374,6 +379,7 @@
          {{else}}
          <p class="empty-note">No exceptions raised.</p>
          {{end}}
+         </div>
       </div>
 
    </div>

@@ -213,8 +213,9 @@
       <h2 class="section-title">{{ add $gateIndex 1 }}. {{ $gate.ProjectTitleAr }}</h2>
 
       <!-- 1. Security Gate Overview -->
-      <div class="keep-together" style="padding-top: 10px; margin-right: 16px;">
+      <div class="keep-together" style="padding-top: 10px; margin-right: 10px;">
          <h3 class="section-title">{{ add $gateIndex 1 }}.1 نظرة عامة على بوابة الأمان</h3>
+         <div style="margin-right: 16px;">
 
          <div style="margin-top: 10px;">
             <div style="width: 48%; display: inline-block; vertical-align: top;">
@@ -294,11 +295,13 @@
             <div class="field-value">{{ $gate.Notes | safeHTML }}</div>
          </div>
          {{end}}
+         </div>
       </div>
 
       <!-- 2. Readiness Summary -->
-      <div class="keep-together" style="margin-top: 20px; margin-right: 16px;">
+      <div class="keep-together" style="margin-top: 20px; margin-right: 10px;">
          <h3 class="section-title">{{ add $gateIndex 1 }}.2 ملخص الجاهزية</h3>
+         <div style="margin-right: 16px;">
          {{if $gate.Summary}}
          <div style="margin-top: 10px;">
             <div class="summary-card">
@@ -325,11 +328,13 @@
          {{else}}
          <p class="empty-note">لا يوجد ملخص لقائمة التحقق.</p>
          {{end}}
+         </div>
       </div>
 
       <!-- 3. Checklists -->
-      <div style="margin-top: 20px; margin-right: 16px;">
+      <div style="margin-top: 20px; margin-right: 10px;">
          <h3 class="section-title">{{ add $gateIndex 1 }}.3 قوائم التحقق</h3>
+         <div style="margin-right: 16px;">
          {{if $gate.Checklists}}
          <table>
             <thead>
@@ -366,11 +371,13 @@
          {{else}}
          <p class="empty-note">لا توجد قوائم تحقق مسجلة.</p>
          {{end}}
+         </div>
       </div>
 
       <!-- 4. Exceptions & Approvals -->
-      <div style="margin-top: 20px; margin-right: 16px;">
+      <div style="margin-top: 20px; margin-right: 10px;">
          <h3 class="section-title">{{ add $gateIndex 1 }}.4 الاستثناءات والموافقات</h3>
+         <div style="margin-right: 16px;">
          {{if $gate.Exceptions}}
             {{range $index, $exception := $gate.Exceptions}}
             <div class="keep-together" style="margin-top: 14px;">
@@ -463,11 +470,13 @@
          {{else}}
          <p class="empty-note">لا توجد استثناءات.</p>
          {{end}}
+         </div>
       </div>
 
       <!-- 5. Associated Controls -->
-      <div style="margin-top: 20px; margin-right: 16px;">
+      <div style="margin-top: 20px; margin-right: 10px;">
          <h3 class="section-title">{{ add $gateIndex 1 }}.5 الضوابط المرتبطة</h3>
+         <div style="margin-right: 16px;">
          {{if $gate.Controls}}
          <table>
             <thead>
@@ -494,11 +503,13 @@
          {{else}}
          <p class="empty-note">لا توجد ضوابط مرتبطة.</p>
          {{end}}
+         </div>
       </div>
 
       <!-- 6. Identified Risks -->
-      <div style="margin-top: 20px; margin-right: 16px;">
+      <div style="margin-top: 20px; margin-right: 10px;">
          <h3 class="section-title">{{ add $gateIndex 1 }}.6 المخاطر المحددة</h3>
+         <div style="margin-right: 16px;">
          {{if $gate.Risks}}
          <table>
             <thead>
@@ -529,6 +540,7 @@
          {{else}}
          <p class="empty-note">لا توجد مخاطر محددة.</p>
          {{end}}
+         </div>
       </div>
    </div>
    {{end}}

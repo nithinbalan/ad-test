@@ -125,7 +125,7 @@
       text-align: center;
       line-height: 22px;
       font-size: 11px;
-      font-weight: 500.
+      font-weight: 500;
    }
    .timeline-connector {
       width: 1px;
@@ -149,35 +149,35 @@
       color: #4b5563;
       font-size: 11px;
       line-height: 1.4;
-      font-weight: 400.
+      font-weight: 400;
    }
    .timeline-value {
       margin: 0;
       color: #111827;
       font-size: 12px;
       line-height: 1.4;
-      font-weight: 400.
+      font-weight: 400;
    }
    .timeline-status {
       padding: 3px 8px;
       border-radius: 5px;
       font-size: 10px;
-      border: 1px solid transparent.
-      display: inline-block.
+      border: 1px solid transparent;
+      display: inline-block;
    }
    .timeline-avatar {
-      background: #0d5f4e.
-      color: #ffffff.
-      border-radius: 50%.
-      width: 22px.
-      height: 22px.
-      display: inline-block.
-      text-align: center.
-      line-height: 22px.
-      font-size: 10px.
-      font-weight: 600.
-      margin-left: 6px.
-      vertical-align: middle.
+      background: #0d5f4e;
+      color: #ffffff;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: inline-block;
+      text-align: center;
+      line-height: 22px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 6px;
+      vertical-align: middle;
    }
 </style>
 
@@ -199,6 +199,7 @@
       <!-- 1. Summary -->
       <div class="keep-together" style="padding-top: 10px;">
          <h3 class="section-title">1. الملخص</h3>
+         <div style="margin-right: 16px;">
          <div style="margin-top: 10px;">
             <div class="summary-card">
                <p class="summary-value">{{ .Data.TotalCount }}</p>
@@ -217,11 +218,13 @@
                <p class="summary-label">حرجة</p>
             </div>
          </div>
+         </div>
       </div>
 
       <!-- 2. Exceptions Overview -->
       <div style="margin-top: 20px;">
          <h3 class="section-title">2. نظرة عامة على الاستثناءات</h3>
+         <div style="margin-right: 16px;">
          {{if .Data.SecurityGates}}
          <table>
             <thead>
@@ -251,7 +254,7 @@
                      </span>
                      {{else}}-{{end}}
                   </td>
-                  <td>{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameAr }} {{ $exception.ApprovedBy.LastNameAr }}{{else}}-{{end}}</td>
+                  <td>{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameAR }} {{ $exception.ApprovedBy.LastNameAR }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
                {{end}}
@@ -260,11 +263,13 @@
          {{else}}
          <p class="empty-note">لا توجد استثناءات.</p>
          {{end}}
+         </div>
       </div>
 
       <!-- 3. Exceptions & Approvals -->
       <div style="margin-top: 20px;">
          <h3 class="section-title">3. الاستثناءات والموافقات</h3>
+         <div style="margin-right: 16px;">
          {{if .Data.SecurityGates}}
             {{range $gateIndex, $gate := .Data.SecurityGates}}
             {{range $excIndex, $exception := $gate.Exceptions}}
@@ -282,7 +287,7 @@
                   </div>
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
                      <p class="field-label">مالك الأعمال:</p>
-                     <p class="field-value">{{if $gate.BusinessOwner}}{{ $gate.BusinessOwner.FirstNameAr }} {{ $gate.BusinessOwner.LastNameAr }}{{else}}-{{end}}</p>
+                     <p class="field-value">{{if $gate.BusinessOwner}}{{ $gate.BusinessOwner.FirstNameAR }} {{ $gate.BusinessOwner.LastNameAR }}{{else}}-{{end}}</p>
                   </div>
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
                      <p class="field-label">حرج:</p>
@@ -303,11 +308,11 @@
                   </div>
                   <div style="width: 36%; display: inline-block; vertical-align: top;">
                      <p class="field-label">تم الإرسال بواسطة:</p>
-                     <p class="field-value">{{if $exception.SubmittedBy}}{{ $exception.SubmittedBy.FirstNameAr }} {{ $exception.SubmittedBy.LastNameAr }}{{else}}-{{end}} {{if $exception.SubmittedAt}}({{ $exception.SubmittedAt.Format "01/02/2006" }}){{end}}</p>
+                     <p class="field-value">{{if $exception.SubmittedBy}}{{ $exception.SubmittedBy.FirstNameAR }} {{ $exception.SubmittedBy.LastNameAR }}{{else}}-{{end}} {{if $exception.SubmittedAt}}({{ $exception.SubmittedAt.Format "01/02/2006" }}){{end}}</p>
                   </div>
                   <div style="width: 36%; display: inline-block; vertical-align: top;">
                      <p class="field-label">تمت الموافقة بواسطة:</p>
-                     <p class="field-value">{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameAr }} {{ $exception.ApprovedBy.LastNameAr }}{{else}}-{{end}} {{if $exception.ApprovedAt}}({{ $exception.ApprovedAt.Format "01/02/2006" }}){{end}}</p>
+                     <p class="field-value">{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameAR }} {{ $exception.ApprovedBy.LastNameAR }}{{else}}-{{end}} {{if $exception.ApprovedAt}}({{ $exception.ApprovedAt.Format "01/02/2006" }}){{end}}</p>
                   </div>
                </div>
 
@@ -374,6 +379,7 @@
          {{else}}
          <p class="empty-note">لا توجد استثناءات.</p>
          {{end}}
+         </div>
       </div>
 
    </div>
