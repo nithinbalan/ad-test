@@ -73,6 +73,7 @@ type DocumentByMonthDTO struct {
 
 type DocumentChangeRequestByTypeDTO struct {
 	DocumentChangeRequestTypeID      uint   `json:"id"`
+	DocumentChangeRequestStatusID    uint   `json:"document_change_request_status_id,omitempty"`
 	DocumentChangeRequestTypeTitleEn string `json:"title_en"`
 	DocumentChangeRequestTypeTitleAr string `json:"title_ar"`
 	DocumentChangeRequestType        string `json:"type"`

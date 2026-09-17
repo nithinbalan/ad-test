@@ -464,7 +464,20 @@ func (repo *DocumentReportRepository) GetDocumentsUpdatedByChangeType(params *re
 	`)
 
 	err := query.Scan(&results).Error
-	return results, err
+	if err != nil {
+		return nil, err
+	}
+
+	var publishedStatus struct {
+		ID uint `gorm:"column:id"`
+	}
+	repo.db.Table("document_change_request_statuses").Where("type = ?", "published").Select("id").First(&publishedStatus)
+
+	for _, item := range results {
+		item.DocumentChangeRequestStatusID = publishedStatus.ID
+	}
+
+	return results, nil
 }
 
 type quarterItem struct {
