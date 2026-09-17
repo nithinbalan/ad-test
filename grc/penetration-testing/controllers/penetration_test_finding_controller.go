@@ -43,6 +43,8 @@ func (ptfc *PenetrationTestFindingController) GetAllPenetrationTestFindings(c *g
 		"reference_number":        "penetration_test_findings.reference_number",
 		"title":                   "penetration_test_findings.title",
 		"severity":                "severity_levels.weight",
+		"owner_en":                "owner_user.first_name_en",
+		"owner_ar":                "owner_user.first_name_ar",
 		"status_en":               "action_plan_statuses.title_en",
 		"status_ar":               "action_plan_statuses.title_ar",
 		"percentage":              "penetration_test_findings.percentage",
