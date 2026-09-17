@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +22,7 @@ import (
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
 
+	"github.com/Knetic/govaluate"
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
@@ -959,6 +959,7 @@ func (krs *KPIRegisterService) GenerateKPIRegisterTemplate() (*os.File, error) {
 
 	templateHeaders := []string{
 		"Title",
+		"Type",
 		"Description",
 		"Domain",
 		"Responsible User",
@@ -976,6 +977,12 @@ func (krs *KPIRegisterService) GenerateKPIRegisterTemplate() (*os.File, error) {
 	templateData := [][]interface{}{}
 
 	// Dropdown Sheets
+
+	typeSheet := [][]interface{}{
+		{"Type"},
+		{"KPI"},
+		{"KRI"},
+	}
 
 	categorySheet := [][]interface{}{{"Domain"}}
 	for _, c := range kpiCategories {
@@ -1007,7 +1014,15 @@ func (krs *KPIRegisterService) GenerateKPIRegisterTemplate() (*os.File, error) {
 
 	achievementTypeSheet := [][]interface{}{{"Achievement Type"}}
 	for _, a := range kpiAchievementLogics {
-		achievementTypeSheet = append(achievementTypeSheet, []interface{}{a.TitleEn})
+		if a.Type == "higher" || a.Type == "lower" {
+			achievementTypeSheet = append(achievementTypeSheet, []interface{}{a.TitleEn})
+		}
+	}
+	if len(achievementTypeSheet) == 1 {
+		achievementTypeSheet = append(achievementTypeSheet,
+			[]interface{}{"Higher is Better"},
+			[]interface{}{"Lower is Better"},
+		)
 	}
 
 	// ------------------------------------------------
@@ -1015,6 +1030,7 @@ func (krs *KPIRegisterService) GenerateKPIRegisterTemplate() (*os.File, error) {
 	// ------------------------------------------------
 
 	dropDownConfig := map[string]bool{
+		"Type":             true,
 		"Domain":           true,
 		"Responsible User": true,
 		"Review Frequency": true,
@@ -1033,6 +1049,7 @@ func (krs *KPIRegisterService) GenerateKPIRegisterTemplate() (*os.File, error) {
 				[][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)},
 				templateData...,
 			),
+			"Type":             typeSheet,
 			"Domain":           categorySheet,
 			"Responsible User": userSheet,
 			"Review Frequency": reviewFrequencySheet,
@@ -1061,7 +1078,41 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 		return nil, fmt.Errorf("Template sheet is empty")
 	}
 
-	headers := []string{
+	headersWithType := []string{
+		"Title",
+		"Type",
+		"Description",
+		"Domain",
+		"Responsible User",
+		"Review Frequency",
+		"Calculation Type",
+		"Formula",
+		"Unit",
+		"Data Input A",
+		"Data Input B",
+		"Target Value",
+		"Achievement Type",
+		"Remarks",
+	}
+
+	snakeHeadersWithType := []string{
+		"title",
+		"type",
+		"description",
+		"kpi_category",
+		"responsible_user",
+		"review_frequency",
+		"calculation_type",
+		"formula",
+		"unit",
+		"a",
+		"b",
+		"target_value",
+		"kpi_achievement_type",
+		"remarks",
+	}
+
+	headersWithoutType := []string{
 		"Title",
 		"Description",
 		"Domain",
@@ -1077,7 +1128,7 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 		"Remarks",
 	}
 
-	snakeHeaders := []string{
+	snakeHeadersWithoutType := []string{
 		"title",
 		"description",
 		"kpi_category",
@@ -1098,7 +1149,40 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 		excelHeaders[i] = strings.TrimSpace(h)
 	}
 
-	if !utility.ValidateHeaders(headers, excelHeaders) {
+	var activeSnakeHeaders []string
+
+	if len(excelHeaders) == len(headersWithType) {
+		headersValid := utility.ValidateHeaders(headersWithType, excelHeaders)
+		if !headersValid {
+			temp := make([]string, len(headersWithType))
+			copy(temp, headersWithType)
+			if strings.EqualFold(excelHeaders[1], "Indicator Type") || strings.EqualFold(excelHeaders[1], "Type") {
+				temp[1] = excelHeaders[1]
+			}
+			if strings.EqualFold(excelHeaders[12], "Type") || strings.EqualFold(excelHeaders[12], "Achievement Type") {
+				temp[12] = excelHeaders[12]
+			}
+			headersValid = utility.ValidateHeaders(temp, excelHeaders)
+		}
+		if headersValid {
+			activeSnakeHeaders = snakeHeadersWithType
+		}
+	} else if len(excelHeaders) == len(headersWithoutType) {
+		headersValid := utility.ValidateHeaders(headersWithoutType, excelHeaders)
+		if !headersValid {
+			temp := make([]string, len(headersWithoutType))
+			copy(temp, headersWithoutType)
+			if strings.EqualFold(excelHeaders[11], "Type") || strings.EqualFold(excelHeaders[11], "Achievement Type") {
+				temp[11] = excelHeaders[11]
+			}
+			headersValid = utility.ValidateHeaders(temp, excelHeaders)
+		}
+		if headersValid {
+			activeSnakeHeaders = snakeHeadersWithoutType
+		}
+	}
+
+	if activeSnakeHeaders == nil {
 		return nil, utility.NewValidationError(
 			fmt.Errorf("invalid headers"),
 			"invalid_header",
@@ -1117,7 +1201,7 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 		record := make(map[string]interface{})
 
 		// map base fields
-		for i, key := range snakeHeaders {
+		for i, key := range activeSnakeHeaders {
 			if i < len(row) {
 				record[key] = row[i]
 			} else {
@@ -1195,9 +1279,15 @@ func (krs *KPIRegisterService) validateKPIRegisters(input []map[string]interface
 		userMap[normalize(u.FirstNameEN+" "+u.LastNameEN)] = uint(u.ID)
 	}
 
+	validAchievementLogicIDs := map[uint]*models.KPIAchievementLogic{}
 	achievementLogicTypeMap := map[string]uint{}
 	for _, a := range kpiAchievementLogics {
-		achievementLogicTypeMap[normalize(a.TitleEn)] = uint(a.ID)
+		if a.Type == "higher" || a.Type == "lower" {
+			validAchievementLogicIDs[a.ID] = a
+			achievementLogicTypeMap[normalize(a.TitleEn)] = uint(a.ID)
+			achievementLogicTypeMap[normalize(a.TitleAr)] = uint(a.ID)
+			achievementLogicTypeMap[normalize(a.Type)] = uint(a.ID)
+		}
 	}
 
 	allowedVars := map[string]bool{
@@ -1226,6 +1316,55 @@ func (krs *KPIRegisterService) validateKPIRegisters(input []map[string]interface
 			rowErrors["title"] = "Title is required"
 		} else {
 			out["title"] = title
+		}
+
+		// ---------- Type (KPI / KRI) ----------
+		isKRI := false
+		if rawIsKRI, ok := record["is_kri"]; ok && rawIsKRI != nil {
+			switch v := rawIsKRI.(type) {
+			case bool:
+				isKRI = v
+			case string:
+				s := strings.ToLower(strings.TrimSpace(v))
+				if s == "true" || s == "1" || s == "kri" {
+					isKRI = true
+				}
+			case int:
+				if v == 1 {
+					isKRI = true
+				}
+			case float64:
+				if v == 1 {
+					isKRI = true
+				}
+			}
+		}
+
+		if rawType, ok := record["type"]; ok && rawType != nil {
+			s := strings.ToUpper(strings.TrimSpace(fmt.Sprint(rawType)))
+			if s == "KRI" {
+				isKRI = true
+			} else if s == "KPI" {
+				isKRI = false
+			} else if s != "" && s != "<NIL>" && s != "MANUAL" && s != "AUTOMATED" && s != "HIGHER" && s != "LOWER" && s != "HIGHER IS BETTER" && s != "LOWER IS BETTER" {
+				rowErrors["type"] = "Type must be KPI or KRI"
+			}
+		} else if rawIndType, ok := record["indicator_type"]; ok && rawIndType != nil {
+			s := strings.ToUpper(strings.TrimSpace(fmt.Sprint(rawIndType)))
+			if s == "KRI" {
+				isKRI = true
+			} else if s == "KPI" {
+				isKRI = false
+			}
+		}
+
+		out["is_kri"] = isKRI
+		if isKRI {
+			out["type"] = "KRI"
+			out["indicator_type"] = "KRI"
+		} else {
+			out["type"] = "KPI"
+			out["indicator_type"] = "KPI"
 		}
 
 		// ---------- KPI Category ----------
@@ -1275,17 +1414,81 @@ func (krs *KPIRegisterService) validateKPIRegisters(input []map[string]interface
 			out["unit_id"] = id
 		}
 
-		if key := normalize(fmt.Sprint(record["kpi_achievement_type"])); key == "" {
-			rowErrors["kpi_achievement_type"] = "Achievement Type is required"
-		} else if id, ok := achievementLogicTypeMap[key]; !ok {
-			rowErrors["kpi_achievement_type"] = "Invalid Achievement Type"
+		// ---------- Achievement Type ----------
+		var achKey string
+		for _, k := range []string{"kpi_achievement_type", "achievement_type"} {
+			if rawAch, ok := record[k]; ok && rawAch != nil {
+				s := strings.TrimSpace(fmt.Sprint(rawAch))
+				if s != "" && s != "<nil>" {
+					achKey = normalize(s)
+					break
+				}
+			}
+		}
+		if achKey == "" {
+			if rawType, ok := record["type"]; ok && rawType != nil {
+				s := normalize(fmt.Sprint(rawType))
+				if s == "higher" || s == "lower" || s == "higher is better" || s == "lower is better" {
+					achKey = s
+				}
+			}
+		}
+
+		if achKey != "" {
+			if id, ok := achievementLogicTypeMap[achKey]; !ok {
+				rowErrors["kpi_achievement_type"] = "Invalid Achievement Type"
+			} else {
+				out["kpi_achievement_logic_id"] = id
+				if a, ok := validAchievementLogicIDs[id]; ok {
+					out["kpi_achievement_type"] = a.TitleEn
+					out["achievement_type"] = a.TitleEn
+					out["kpi_achievement_logic_type"] = a.Type
+				}
+			}
+		} else if rawID, ok := record["kpi_achievement_logic_id"]; ok && rawID != nil {
+			var logicID uint
+			switch v := rawID.(type) {
+			case float64:
+				logicID = uint(v)
+			case int:
+				logicID = uint(v)
+			case uint:
+				logicID = v
+			case string:
+				if parsed, err := strconv.ParseUint(strings.TrimSpace(v), 10, 32); err == nil {
+					logicID = uint(parsed)
+				}
+			}
+
+			if logicID > 0 {
+				if a, ok := validAchievementLogicIDs[logicID]; !ok {
+					rowErrors["kpi_achievement_type"] = "Invalid Achievement Type"
+				} else {
+					out["kpi_achievement_logic_id"] = a.ID
+					out["kpi_achievement_type"] = a.TitleEn
+					out["achievement_type"] = a.TitleEn
+					out["kpi_achievement_logic_type"] = a.Type
+				}
+			} else {
+				rowErrors["kpi_achievement_type"] = "Achievement Type is required"
+			}
 		} else {
-			out["kpi_achievement_logic_id"] = id
+			rowErrors["kpi_achievement_type"] = "Achievement Type is required"
 		}
 
 		// ---------- Target Value ----------
-		if v := strings.TrimSpace(fmt.Sprint(record["target_value"])); v != "" {
-			if f, err := strconv.ParseFloat(v, 64); err != nil {
+		var targetValStr string
+		if rawTarget, ok := record["target_value"]; ok && rawTarget != nil {
+			s := strings.TrimSpace(fmt.Sprint(rawTarget))
+			if s != "" && s != "<nil>" {
+				targetValStr = s
+			}
+		}
+
+		if targetValStr == "" {
+			rowErrors["target_value"] = "Target Value is required"
+		} else {
+			if f, err := strconv.ParseFloat(targetValStr, 64); err != nil {
 				rowErrors["target_value"] = "Target Value must be a number"
 			} else {
 				out["target_value"] = f
@@ -1296,40 +1499,56 @@ func (krs *KPIRegisterService) validateKPIRegisters(input []map[string]interface
 		var dataInputs []*kpiDTOs.InputDataFormDTO
 
 		if !isDirect {
-			formula := strings.ToUpper(strings.TrimSpace(fmt.Sprint(record["formula"])))
-			if formula != "" {
+			rawFormula := strings.TrimSpace(fmt.Sprint(record["formula"]))
+			if rawFormula == "" || rawFormula == "<nil>" {
+				rowErrors["formula"] = "Formula is required"
+			} else {
+				formula := strings.ToUpper(rawFormula)
 				out["formula"] = formula
-			}
 
-			valueMap := map[string]bool{}
+				expr, err := govaluate.NewEvaluableExpression(formula)
+				if err != nil {
+					rowErrors["formula"] = "Invalid formula expression"
+				} else {
+					vars := expr.Vars()
+					if len(vars) == 0 {
+						rowErrors["formula"] = "Formula must contain at least one variable (A or B)"
+					} else {
+						valueMap := map[string]string{}
 
-			for _, v := range []string{"a", "b"} {
-				val := strings.TrimSpace(fmt.Sprint(record[v]))
-				if val != "" {
-					varName := strings.ToUpper(v)
-					valueMap[varName] = true
+						for _, v := range []string{"a", "b"} {
+							val := strings.TrimSpace(fmt.Sprint(record[v]))
+							if val != "" && val != "<nil>" {
+								varName := strings.ToUpper(v)
+								valueMap[varName] = val
 
-					dataInputs = append(dataInputs, &kpiDTOs.InputDataFormDTO{
-						Variable: varName,
-						Input:    val,
-					})
-				}
-			}
+								dataInputs = append(dataInputs, &kpiDTOs.InputDataFormDTO{
+									Variable: varName,
+									Input:    val,
+								})
+							}
+						}
 
-			if formula != "" {
-				re := regexp.MustCompile(`[A-B]`)
-				vars := re.FindAllString(formula, -1)
-
-				for _, v := range vars {
-					if !allowedVars[v] {
-						rowErrors["formula"] = "Formula can use only A, B"
-					} else if !valueMap[v] {
-						rowErrors["formula"] = fmt.Sprintf("Value for %s is required", v)
+						for _, v := range vars {
+							vUpper := strings.ToUpper(v)
+							if !allowedVars[vUpper] {
+								rowErrors["formula"] = "Formula can use only A, B"
+							} else if val, exists := valueMap[vUpper]; !exists || val == "" {
+								if vUpper == "A" {
+									rowErrors["a"] = "Data Input A is required"
+								} else if vUpper == "B" {
+									rowErrors["b"] = "Data Input B is required"
+								} else {
+									rowErrors["formula"] = fmt.Sprintf("Data Input %s is required", vUpper)
+								}
+							}
+						}
 					}
 				}
 			}
 		} else {
 			delete(out, "formula")
+			dataInputs = nil
 		}
 
 		out["data_inputs"] = dataInputs
@@ -1395,6 +1614,18 @@ func (krs *KPIRegisterService) ImportKPIRegisters(input []map[string]interface{}
 
 	uintPtr := func(u uint) *uint {
 		return &u
+	}
+
+	kpiAchievementLogics, _ := krs.kpiAchievementLogicSvc.GetAll("", "", "", "active")
+	validAchievementLogicIDs := map[uint]*models.KPIAchievementLogic{}
+	achievementLogicTypeMap := map[string]uint{}
+	for _, a := range kpiAchievementLogics {
+		if a.Type == "higher" || a.Type == "lower" {
+			validAchievementLogicIDs[a.ID] = a
+			achievementLogicTypeMap[normalize(a.TitleEn)] = uint(a.ID)
+			achievementLogicTypeMap[normalize(a.TitleAr)] = uint(a.ID)
+			achievementLogicTypeMap[normalize(a.Type)] = uint(a.ID)
+		}
 	}
 
 	for _, record := range input {
@@ -1468,20 +1699,27 @@ func (krs *KPIRegisterService) ImportKPIRegisters(input []map[string]interface{}
 		var formula *string
 		if !isDirect {
 			if v, ok := record["formula"].(string); ok {
-				if upper := strings.ToUpper(strings.TrimSpace(v)); upper != "" {
+				if upper := strings.ToUpper(strings.TrimSpace(v)); upper != "" && upper != "<NIL>" {
 					formula = &upper
 				}
+			}
+			if formula == nil {
+				return nil, fmt.Errorf("formula is required for formula based calculation in record: %+v", record)
 			}
 		}
 
 		var targetValue *float64
-		if v, ok := record["target_value"]; ok {
+		if v, ok := record["target_value"]; ok && v != nil {
 			switch tv := v.(type) {
 			case float64:
 				targetValue = &tv
+			case int:
+				f := float64(tv)
+				targetValue = &f
 			case string:
-				if strings.TrimSpace(tv) != "" {
-					f, err := strconv.ParseFloat(tv, 64)
+				s := strings.TrimSpace(tv)
+				if s != "" && s != "<nil>" {
+					f, err := strconv.ParseFloat(s, 64)
 					if err != nil {
 						return nil, fmt.Errorf("invalid target_value in record: %+v", record)
 					}
@@ -1490,16 +1728,43 @@ func (krs *KPIRegisterService) ImportKPIRegisters(input []map[string]interface{}
 			}
 		}
 
+		if targetValue == nil {
+			return nil, fmt.Errorf("target_value is required in record: %+v", record)
+		}
+
 		var kpiAchievementLogicID uint
-		switch v := record["kpi_achievement_logic_id"].(type) {
-		case uint:
-			kpiAchievementLogicID = v
-		case int:
-			kpiAchievementLogicID = uint(v)
-		case float64:
-			kpiAchievementLogicID = uint(v)
-		default:
-			return nil, fmt.Errorf("invalid kpiAchievementLogicID in record: %+v", record)
+		if v, ok := record["kpi_achievement_logic_id"]; ok && v != nil {
+			switch val := v.(type) {
+			case uint:
+				kpiAchievementLogicID = val
+			case int:
+				kpiAchievementLogicID = uint(val)
+			case float64:
+				kpiAchievementLogicID = uint(val)
+			case string:
+				if parsed, err := strconv.ParseUint(strings.TrimSpace(val), 10, 32); err == nil {
+					kpiAchievementLogicID = uint(parsed)
+				}
+			}
+		}
+
+		if kpiAchievementLogicID == 0 {
+			for _, k := range []string{"kpi_achievement_type", "achievement_type", "type"} {
+				if achTypeStr, ok := record[k].(string); ok {
+					if id, ok := achievementLogicTypeMap[normalize(achTypeStr)]; ok {
+						kpiAchievementLogicID = id
+						break
+					}
+				}
+			}
+		}
+
+		if kpiAchievementLogicID == 0 {
+			return nil, fmt.Errorf("kpi_achievement_logic_id is required in record: %+v", record)
+		}
+
+		if _, ok := validAchievementLogicIDs[kpiAchievementLogicID]; !ok {
+			return nil, fmt.Errorf("invalid kpi_achievement_logic_id in record: %+v", record)
 		}
 
 		// ---------- Start Date (optional) ----------
@@ -1513,35 +1778,95 @@ func (krs *KPIRegisterService) ImportKPIRegisters(input []map[string]interface{}
 		// ---------- Data Inputs (formula type only) ----------
 		var dataInputs []*kpiDTOs.InputDataFormDTO
 
-		if !isDirect && record["data_inputs"] != nil {
-			rawInputs, ok := record["data_inputs"].([]interface{})
-			if !ok {
-				return nil, fmt.Errorf("invalid data_inputs in record: %+v", record)
+		if !isDirect {
+			if record["data_inputs"] != nil {
+				if rawInputs, ok := record["data_inputs"].([]interface{}); ok {
+					for _, item := range rawInputs {
+						if m, ok := item.(map[string]interface{}); ok {
+							variable := strings.ToUpper(strings.TrimSpace(fmt.Sprint(m["variable"])))
+							inputVal := strings.TrimSpace(fmt.Sprint(m["input"]))
+							if variable != "" && inputVal != "" && inputVal != "<nil>" {
+								dataInputs = append(dataInputs, &kpiDTOs.InputDataFormDTO{
+									Variable: variable,
+									Input:    inputVal,
+								})
+							}
+						}
+					}
+				}
 			}
 
-			for _, item := range rawInputs {
-				m, ok := item.(map[string]interface{})
-				if !ok {
-					return nil, fmt.Errorf("invalid data_inputs item: %+v", item)
+			if len(dataInputs) == 0 {
+				for _, v := range []string{"a", "b"} {
+					val := strings.TrimSpace(fmt.Sprint(record[v]))
+					if val != "" && val != "<nil>" {
+						dataInputs = append(dataInputs, &kpiDTOs.InputDataFormDTO{
+							Variable: strings.ToUpper(v),
+							Input:    val,
+						})
+					}
 				}
+			}
 
-				variable := strings.ToUpper(strings.TrimSpace(fmt.Sprint(m["variable"])))
-				inputVal := strings.TrimSpace(fmt.Sprint(m["input"]))
-
-				if variable == "" {
-					return nil, fmt.Errorf("data_inputs.variable is required")
+			if formula != nil {
+				expr, err := govaluate.NewEvaluableExpression(*formula)
+				if err == nil {
+					inputVarMap := map[string]bool{}
+					for _, inp := range dataInputs {
+						inputVarMap[inp.Variable] = true
+					}
+					for _, v := range expr.Vars() {
+						vUpper := strings.ToUpper(v)
+						if !inputVarMap[vUpper] {
+							return nil, fmt.Errorf("data input for variable %s is required in record: %+v", vUpper, record)
+						}
+					}
 				}
+			}
+		}
 
-				dataInputs = append(dataInputs, &kpiDTOs.InputDataFormDTO{
-					Variable: variable,
-					Input:    inputVal,
-				})
+		// ---------- Type (KPI / KRI) ----------
+		isKRI := false
+		if rawIsKRI, ok := record["is_kri"]; ok && rawIsKRI != nil {
+			switch v := rawIsKRI.(type) {
+			case bool:
+				isKRI = v
+			case string:
+				s := strings.ToLower(strings.TrimSpace(v))
+				if s == "true" || s == "1" || s == "kri" {
+					isKRI = true
+				}
+			case int:
+				if v == 1 {
+					isKRI = true
+				}
+			case float64:
+				if v == 1 {
+					isKRI = true
+				}
+			}
+		}
+
+		if rawType, ok := record["type"]; ok && rawType != nil {
+			s := strings.ToUpper(strings.TrimSpace(fmt.Sprint(rawType)))
+			if s == "KRI" {
+				isKRI = true
+			} else if s == "KPI" {
+				isKRI = false
+			}
+		} else if rawIndType, ok := record["indicator_type"]; ok && rawIndType != nil {
+			s := strings.ToUpper(strings.TrimSpace(fmt.Sprint(rawIndType)))
+			if s == "KRI" {
+				isKRI = true
+			} else if s == "KPI" {
+				isKRI = false
 			}
 		}
 
 		// ---------- Build DTO ----------
 		dto := &kpiDTOs.KPIRegisterFormDTO{
 			Title:                 strings.TrimSpace(fmt.Sprint(record["title"])),
+			IsKRI:                 isKRI,
 			Description:           strPtr(fmt.Sprint(record["description"])),
 			KPICategoryID:         kpiCategoryID,
 			ResponsibleUserID:     uintPtr(responsibleUserID),
@@ -1585,11 +1910,13 @@ func (krs *KPIRegisterService) ExportKPIRegister(data []*kpiDTOs.KPIRegisterList
 			"SL No.",
 			"رقم المرجع",
 			"العنوان",
+			"النوع",
 			"النطاق",
 			"المسؤول",
 			"الحالة",
 			"تكرار المراجعة",
 			"نوع الحساب",
+			"نوع الإنجاز",
 			"القيمة المستهدفة",
 			"الوحدة",
 			"تاريخ البداية",
@@ -1602,11 +1929,13 @@ func (krs *KPIRegisterService) ExportKPIRegister(data []*kpiDTOs.KPIRegisterList
 			"SL No.",
 			"Reference Number",
 			"Title",
+			"Type",
 			"Domain",
 			"Responsible User",
 			"Status",
 			"Review Frequency",
 			"Calculation Type",
+			"Achievement Type",
 			"Target Value",
 			"Unit",
 			"Start Date",
@@ -1625,6 +1954,8 @@ func (krs *KPIRegisterService) ExportKPIRegister(data []*kpiDTOs.KPIRegisterList
 			status          string
 			reviewFrequency string
 			calculationType string
+			achievementType string
+			typeStr         string
 			unit            string
 			responsibleUser string
 			createdBy       string
@@ -1635,6 +1966,15 @@ func (krs *KPIRegisterService) ExportKPIRegister(data []*kpiDTOs.KPIRegisterList
 			status = item.KPIStatusTitleAr
 			reviewFrequency = utility.GetStringValue(item.ReviewFrequencyTitleAr)
 			calculationType = utility.GetStringValue(item.CalculationTypeTitleAr)
+			achievementType = item.KPIAchievementLogicTitleAr
+			if achievementType == "" {
+				achievementType = item.KPIAchievementLogicTitleEn
+			}
+			if item.IsKRI {
+				typeStr = "مؤشر المخاطر الرئيسي (KRI)"
+			} else {
+				typeStr = "مؤشر الأداء الرئيسي (KPI)"
+			}
 			unit = utility.GetStringValue(item.UnitTitleAr)
 
 			responsibleUser =
@@ -1650,6 +1990,12 @@ func (krs *KPIRegisterService) ExportKPIRegister(data []*kpiDTOs.KPIRegisterList
 			status = item.KPIStatusTitleEn
 			reviewFrequency = utility.GetStringValue(item.ReviewFrequencyTitleEn)
 			calculationType = utility.GetStringValue(item.CalculationTypeTitleEn)
+			achievementType = item.KPIAchievementLogicTitleEn
+			if item.IsKRI {
+				typeStr = "KRI"
+			} else {
+				typeStr = "KPI"
+			}
 			unit = utility.GetStringValue(item.UnitTitleEn)
 
 			responsibleUser =
@@ -1665,11 +2011,13 @@ func (krs *KPIRegisterService) ExportKPIRegister(data []*kpiDTOs.KPIRegisterList
 			i + 1,
 			utility.GetStringValue(item.ReferenceNumber),
 			item.Title,
+			typeStr,
 			category,
 			responsibleUser,
 			status,
 			reviewFrequency,
 			calculationType,
+			achievementType,
 			floatPointerToString(item.TargetValue),
 			unit,
 			utility.GetStringValue(item.StartDate),
