@@ -143,7 +143,7 @@ func (krc *KPIRegisterController) GetAllKPIRegister(c *gin.Context) {
 		defer excelFile.Close()
 
 		c.Header("Content-Description", "File Transfer")
-		c.Header("Content-Disposition", `attachment; filename="KPI register.xlsx"`)
+		c.Header("Content-Disposition", `attachment; filename="KPI Register.xlsx"`)
 		c.Header("Content-Type", "application/octet-stream")
 		c.File(excelFile.Name())
 
@@ -338,7 +338,7 @@ func (krc *KPIRegisterController) GenerateKPIRegisterTemplate(c *gin.Context) {
 
 	c.Header(
 		"Content-Disposition",
-		"attachment; filename=KPIRegisterTemplate.xlsx",
+		`attachment; filename="KPI Register Template.xlsx"`,
 	)
 	c.Header(
 		"Content-Type",

@@ -133,7 +133,7 @@ func (kvuc *KPIValueUpdateController) GetAllKPIValueUpdates(c *gin.Context) {
 		defer excelFile.Close()
 
 		c.Header("Content-Description", "File Transfer")
-		c.Header("Content-Disposition", `attachment; filename="KPI value updates.xlsx"`)
+		c.Header("Content-Disposition", `attachment; filename="KPI Value Updates.xlsx"`)
 		c.Header("Content-Type", "application/octet-stream")
 		c.File(excelFile.Name())
 
