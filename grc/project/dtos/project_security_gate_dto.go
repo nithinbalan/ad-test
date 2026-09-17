@@ -25,6 +25,12 @@ type ProjectSecurityGateListDTO struct {
 	BusinessOwnerColor            string     `json:"business_owner_color"`
 	BusinessOwnerEmail            string     `json:"business_owner_email"`
 	BusinessOwnerProfileImagePath string     `json:"business_owner_profile_image_path"`
+	DivisionID                    *uint      `json:"division_id"`
+	DivisionTitleEn               *string    `json:"division_title_en"`
+	DivisionTitleAr               *string    `json:"division_title_ar"`
+	DepartmentID                  *uint      `json:"department_id"`
+	DepartmentTitleEn             *string    `json:"department_title_en"`
+	DepartmentTitleAr             *string    `json:"department_title_ar"`
 	ReadinessStatusID             uint       `json:"readiness_status_id"`
 	ReadinessStatusTitleEn        string     `json:"readiness_status_title_en"`
 	ReadinessStatusTitleAr        string     `json:"readiness_status_title_ar"`

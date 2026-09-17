@@ -89,6 +89,8 @@ func (psgs *ProjectSecurityGateService) ExportProjectSecurityGates(data []*dtos.
 		"Project Title",
 		"Checklist Count",
 		"Stage",
+		"Division",
+		"Department",
 		"Business Owner",
 		"Readiness Status",
 		"Notes",
@@ -111,10 +113,20 @@ func (psgs *ProjectSecurityGateService) ExportProjectSecurityGates(data []*dtos.
 			updatedAt = item.UpdatedAt.Format("2006-01-02")
 		}
 
+		division := ""
+		department := ""
+
 		if userSetting.Language == "ar" {
 			updatedBy := ""
 			if item.UpdatedUserFirstNameAr != nil && item.UpdatedUserLastNameAr != nil {
 				updatedBy = strings.TrimSpace(*item.UpdatedUserFirstNameAr + " " + *item.UpdatedUserLastNameAr)
+			}
+
+			if item.DivisionTitleAr != nil {
+				division = *item.DivisionTitleAr
+			}
+			if item.DepartmentTitleAr != nil {
+				department = *item.DepartmentTitleAr
 			}
 
 			rows = append(rows, []interface{}{
@@ -122,6 +134,8 @@ func (psgs *ProjectSecurityGateService) ExportProjectSecurityGates(data []*dtos.
 				item.ProjectTitleAr,
 				item.ChecklistCount,
 				item.StageTitleAr,
+				division,
+				department,
 				strings.TrimSpace(item.BusinessOwnerFirstNameAr + " " + item.BusinessOwnerLastNameAr),
 				item.ReadinessStatusTitleAr,
 				notes,
@@ -136,11 +150,20 @@ func (psgs *ProjectSecurityGateService) ExportProjectSecurityGates(data []*dtos.
 				updatedBy = strings.TrimSpace(*item.UpdatedUserFirstNameEn + " " + *item.UpdatedUserLastNameEn)
 			}
 
+			if item.DivisionTitleEn != nil {
+				division = *item.DivisionTitleEn
+			}
+			if item.DepartmentTitleEn != nil {
+				department = *item.DepartmentTitleEn
+			}
+
 			rows = append(rows, []interface{}{
 				i + 1,
 				item.ProjectTitleEn,
 				item.ChecklistCount,
 				item.StageTitleEn,
+				division,
+				department,
 				strings.TrimSpace(item.BusinessOwnerFirstNameEn + " " + item.BusinessOwnerLastNameEn),
 				item.ReadinessStatusTitleEn,
 				notes,

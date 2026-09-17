@@ -14,6 +14,8 @@ type ProjectSecurityGateChecklistListDTO struct {
 	TitleEn                             string     `json:"title_en"`
 	TitleAr                             string     `json:"title_ar"`
 	IsCritical                          bool       `json:"is_critical"`
+	IsException                         bool       `json:"is_exception"`
+	IsExceptionApproved                 bool       `json:"is_exception_approved"`
 	ResponseStatusID                    *uint      `json:"response_status_id"`
 	ResponseStatusTitleEn               *string    `json:"response_status_title_en"`
 	ResponseStatusTitleAr               *string    `json:"response_status_title_ar"`
