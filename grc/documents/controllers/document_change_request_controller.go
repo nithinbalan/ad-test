@@ -91,6 +91,15 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 		return
 	}
 
+	dateFrom := c.Query("date_from")
+	if dateFrom == "" {
+		dateFrom = c.Query("from_date")
+	}
+	dateTo := c.Query("date_to")
+	if dateTo == "" {
+		dateTo = c.Query("to_date")
+	}
+
 	params := documentDTOs.DocumentChangeRequestQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      dbField,
@@ -101,6 +110,8 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	documentChangeRequests, err := dcrc.service.GetAll(&params)
