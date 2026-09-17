@@ -341,6 +341,23 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Project Security Gate Checklist Exception Workflow
 	projectRoutes.GET("/project-security-gates/:id/checklists/:checklistId/exception/workflow-list", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistExceptionWorkflowController.GetProjectSecurityGateChecklistExceptionWorkflowList)
 
-	// Project Security Gate exception report
-	projectRoutes.GET("/project-security-gates/exceptions/export-pdf", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.ExportProjectSecurityGateExceptionReportToPDF)
+	// Project Security Gate exception reports
+	projectRoutes.GET("/project-security-gate-exception-reports", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetAllProjectSecurityGateExceptionReports)
+	projectRoutes.GET("/project-security-gate-exception-reports/:reportId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetProjectSecurityGateExceptionReportDetails)
+	projectRoutes.POST("/project-security-gate-exception-reports", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.CreateProjectSecurityGateExceptionReport)
+	projectRoutes.GET("/project-security-gate-exception-reports/:reportId/export-pdf", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.ExportProjectSecurityGateExceptionReportToPDF)
+	projectRoutes.DELETE("/project-security-gate-exception-reports/:reportId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.DeleteProjectSecurityGateExceptionReport)
+	projectRoutes.GET("/project-security-gate-exception-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetProjectSecurityGateExceptionReportSection)
+	projectRoutes.PUT("/project-security-gate-exception-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.UpdateProjectSecurityGateExceptionReportSection)
+	projectRoutes.DELETE("/project-security-gate-exception-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.DeleteProjectSecurityGateExceptionReportSection)
+
+	// Project Security Gate checklist reports
+	projectRoutes.GET("/project-security-gate-reports", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetAllProjectSecurityGateReports)
+	projectRoutes.GET("/project-security-gate-reports/:reportId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetProjectSecurityGateReportDetails)
+	projectRoutes.POST("/project-security-gate-reports", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.CreateProjectSecurityGateReport)
+	projectRoutes.GET("/project-security-gate-reports/:reportId/export-pdf", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.ExportProjectSecurityGateReportToPDF)
+	projectRoutes.DELETE("/project-security-gate-reports/:reportId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.DeleteProjectSecurityGateReport)
+	projectRoutes.GET("/project-security-gate-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetProjectSecurityGateReportSection)
+	projectRoutes.PUT("/project-security-gate-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.UpdateProjectSecurityGateReportSection)
+	projectRoutes.DELETE("/project-security-gate-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.DeleteProjectSecurityGateReportSection)
 }
