@@ -150,7 +150,13 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "overdue":
-			query = query.Where("target_date < ?", time.Now())
+			query = query.Where("target_date < ? AND action_plan_statuses.is_closed = ?", time.Now(), false)
+		case "critical":
+			query = query.Where("severity_levels.type = ?", "high")
+		case "open":
+			query = query.Where("action_plan_statuses.is_closed = ?", false)
+		case "closed":
+			query = query.Where("action_plan_statuses.is_closed = ?", true)
 		case "completed":
 			query = query.Where("action_plan_statuses.type = ?", "completed")
 		case "in_progress":

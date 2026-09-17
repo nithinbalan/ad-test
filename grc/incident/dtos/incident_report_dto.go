@@ -281,6 +281,7 @@ type IncidentReportIncidentDetailDTO struct {
 	SeverityLevelColorCode                   *string                                  `json:"severity_level_color_code" mapstructure:"SeverityLevelColorCode"`
 	IncidentAt                               *time.Time                               `json:"incident_at" mapstructure:"IncidentAt"`
 	ReportedAt                               *time.Time                               `json:"reported_at" mapstructure:"ReportedAt"`
+	CreatedAt                                *time.Time                               `json:"created_at" mapstructure:"CreatedAt"`
 	IncidentLocation                         string                                   `json:"incident_location" mapstructure:"IncidentLocation"`
 	IncidentStatusTitleEn                    *string                                  `json:"incident_status_title_en" mapstructure:"IncidentStatusTitleEn"`
 	IncidentStatusTitleAr                    *string                                  `json:"incident_status_title_ar" mapstructure:"IncidentStatusTitleAr"`

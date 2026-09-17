@@ -70,8 +70,21 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 	templates := template.New("pdf").Funcs(template.FuncMap{
 		"formatDate": func(date string) string { return date },
 		"safeHTML":   func(content string) template.HTML { return template.HTML(content) },
-		"stripHTML":  func(content string) string { return StripHTMLTags(content) },
-		"add":        func(a, b int) int { return a + b },
+		"stripHTML": func(content interface{}) string {
+			switch v := content.(type) {
+			case string:
+				return StripHTMLTags(v)
+			case *string:
+				if v == nil {
+					return ""
+				}
+				return StripHTMLTags(*v)
+			case template.HTML:
+				return StripHTMLTags(string(v))
+			}
+			return ""
+		},
+		"add": func(a, b int) int { return a + b },
 		"boolToYesNo": func(b *bool) string {
 			if b == nil {
 				return ""

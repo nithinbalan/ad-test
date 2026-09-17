@@ -450,7 +450,7 @@ func (repo *IncidentReportRepository) GetOpenIncidentsWithRisk(params *reportDTO
         LEFT JOIN 
             AssociatedRisksCTE ON AssociatedRisksCTE.incident_register_id = incident_register.id
         WHERE 
-            incident_statuses.type = 'open' 
+            incident_statuses.type = 'new' 
             AND COALESCE(AssociatedRisksCTE.associated_risks, '') != ''
         GROUP BY 
             incident_register.id, incident_register.title, AssociatedRisksCTE.associated_risks, 

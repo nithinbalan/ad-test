@@ -389,13 +389,6 @@ func (ies *IncidentEvidenceService) Delete(incidentRegisterID uint, ids []uint, 
 		}
 	}
 
-	if len(evidencesToDelete) > 0 {
-		folderPath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentRegisterID), 10), "evidences")
-		if err := utility.RemoveFolder(folderPath); err != nil {
-			fmt.Printf("⚠️ Failed to remove folder %s: %v\n", folderPath, err)
-		}
-	}
-
 	go func() {
 		_ = ies.activityLogSvc.LogBulkActivities(
 			models.DeleteAction,

@@ -223,16 +223,20 @@ func (repo *IncidentDashboardRepository) GetIncidentTypeSummary(params *incident
 
 func (repo *IncidentDashboardRepository) GetIncidentTrend(params *incidentDTOs.IncidentDashboardQueryParamsDTO) ([]incidentDTOs.IncidentTrendDTO, error) {
 	now := time.Now().UTC()
-	currentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	startOfYear := time.Date(now.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
-	nextMonth := currentMonth.AddDate(0, 1, 0)
+	year := now.Year()
+	if params.Year > 0 {
+		year = params.Year
+	}
+	startOfYear := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
+	nextMonth := startOfYear.AddDate(1, 0, 0)
 
-	openedQuery := repo.db.Table("incident_register").
-		Select("DATEFROMPARTS(YEAR(reported_at), MONTH(reported_at), 1) AS month, COUNT(id) AS count").
-		Where("reported_at >= ? AND reported_at < ?", startOfYear, nextMonth)
-	openedQuery = repo.applyDateFilter(openedQuery, params, "incident_register")
+	openedQuery := repo.db.Table("incident_register ir").
+		Joins("INNER JOIN incident_statuses ist ON ist.id = ir.incident_status_id").
+		Select("DATEFROMPARTS(YEAR(ir.reported_at), MONTH(ir.reported_at), 1) AS month, COUNT(ir.id) AS count").
+		Where("ist.type != ? AND ir.reported_at >= ? AND ir.reported_at < ?", "closed", startOfYear, nextMonth)
+	openedQuery = repo.applyDateFilter(openedQuery, params, "ir")
 	openedCounts := []incidentTrendCount{}
-	if err := openedQuery.Group("YEAR(reported_at), MONTH(reported_at)").
+	if err := openedQuery.Group("YEAR(ir.reported_at), MONTH(ir.reported_at)").
 		Scan(&openedCounts).Error; err != nil {
 		return nil, err
 	}

@@ -7,7 +7,7 @@ import (
 type IncidentClosureLesson struct {
 	ID                uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentClosureID uint       `json:"incident_closure_id" binding:"required" gorm:"not null"`
-	Lessons           string     `json:"lessons" gorm:"type:nvarchar(500);not null"`
+	Lessons           string     `json:"lessons" gorm:"type:nvarchar(max);not null"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime"`
 

@@ -984,7 +984,7 @@
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">
                 {{$comm.CommunicatedTo}}</td>
               <td style="font-size: 14px; border: 1px solid #eaedf2; padding: 10px; text-align: left;">{{if
-                $comm.Summary}}{{$comm.Summary}}{{else}}-{{end}}</td>
+                $comm.Summary}}{{$comm.Summary | stripHTML}}{{else}}-{{end}}</td>
             </tr>
             {{end}}
           </tbody>
