@@ -69,6 +69,7 @@ type PrimaryUnitUserListQueryParamsDTO struct {
 	Keyword  string
 	Page     int
 	PageSize int
+	Filters  map[string][]string
 }
 type PrimaryUnitUserListDTO struct {
 	ID                 uint    `json:"id"`

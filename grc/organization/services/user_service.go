@@ -238,6 +238,32 @@ func (us *UserService) GetAllUsersWithPrimaryUnit(params *userDTOs.PrimaryUnitUs
 		return nil, err
 	}
 
+	// Check if `organization_unit_ids` exists in the filters
+	if params.Filters != nil {
+		orgUnitIDs, ok := params.Filters["organization_unit_id"]
+		if ok && len(orgUnitIDs) > 0 {
+			var primaryOrgUnitField string
+			switch primaryLevel.Level {
+			case 1:
+				primaryOrgUnitField = "organization_unit_1_id"
+			case 2:
+				primaryOrgUnitField = "organization_unit_2_id"
+			case 3:
+				primaryOrgUnitField = "organization_unit_3_id"
+			case 4:
+				primaryOrgUnitField = "organization_unit_4_id"
+			case 5:
+				primaryOrgUnitField = "organization_unit_5_id"
+			default:
+				return nil, fmt.Errorf("unsupported primary level")
+			}
+
+			// Add the resolved column name and value to the filters
+			params.Filters[primaryOrgUnitField] = orgUnitIDs
+			delete(params.Filters, "organization_unit_id") // Clean up the generic filter key
+		}
+	}
+
 	responsibleUsers, err := us.repo.GetUsersWithPrimaryUnit(primaryLevel.ID, params)
 	if err != nil {
 		return nil, err
