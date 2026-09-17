@@ -182,6 +182,18 @@
 </style>
 
 <body style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; height: 100%; line-height: 1.4; width: 100% !important; word-break: break-word; margin: 0;">
+   {{if .Data.Sections}}
+   <div class="page" style="width: 1000px; margin: 0; background: #fff; padding: 0px 32px;">
+      {{range $section := .Data.Sections}}
+      {{if $section.DescriptionEn}}
+      <div class="keep-together" style="padding-top: 10px;">
+         <h3 class="section-title">{{ $section.TitleEn }}</h3>
+         <div class="field-value">{{ $section.DescriptionEn | safeHTML }}</div>
+      </div>
+      {{end}}
+      {{end}}
+   </div>
+   {{end}}
    <div class="page" style="width: 1000px; margin: 0; background: #fff; padding: 0px 32px;">
 
       <!-- 1. Summary -->
@@ -210,7 +222,7 @@
       <!-- 2. Exceptions Overview -->
       <div style="margin-top: 20px;">
          <h3 class="section-title">2. Exceptions Overview</h3>
-         {{if .Data.Exceptions}}
+         {{if .Data.SecurityGates}}
          <table>
             <thead>
                <tr>
@@ -224,22 +236,24 @@
                </tr>
             </thead>
             <tbody>
-               {{range $i, $exception := .Data.Exceptions}}
+               {{range $gateIndex, $gate := .Data.SecurityGates}}
+               {{range $excIndex, $exception := $gate.Exceptions}}
                <tr>
-                  <td>{{ add $i 1 }}</td>
-                  <td>{{ $exception.ProjectTitleEn }}</td>
-                  <td>{{if $exception.StageTitleEn}}{{ $exception.StageTitleEn }}{{else}}-{{end}}</td>
+                  <td>{{ add $excIndex 1 }}</td>
+                  <td>{{ $gate.ProjectTitleEn }}</td>
+                  <td>{{if $gate.Stage.TitleEn}}{{ $gate.Stage.TitleEn }}{{else}}-{{end}}</td>
                   <td>{{if $exception.TitleEn}}{{ $exception.TitleEn }}{{else}}-{{end}}</td>
                   <td>{{if $exception.IsCritical}}Yes{{else}}No{{end}}</td>
                   <td>
-                     {{if $exception.WorkflowStatusTitleEn}}
-                     <span class="badge" style="color: {{$exception.WorkflowStatusTextColor}}; border: 1px solid {{$exception.WorkflowStatusBorderColor}}; background: {{$exception.WorkflowStatusBackgroundColor}};">
-                        {{ $exception.WorkflowStatusTitleEn }}
+                     {{if $exception.WorkflowStatus}}
+                     <span class="badge" style="color: {{$exception.WorkflowStatus.TextColor}}; border: 1px solid {{$exception.WorkflowStatus.BorderColor}}; background: {{$exception.WorkflowStatus.BackgroundColor}};">
+                        {{ $exception.WorkflowStatus.TitleEn }}
                      </span>
                      {{else}}-{{end}}
                   </td>
-                  <td>{{if $exception.ApprovedByEn}}{{ $exception.ApprovedByEn }}{{else}}-{{end}}</td>
+                  <td>{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameEN }} {{ $exception.ApprovedBy.LastNameEN }}{{else}}-{{end}}</td>
                </tr>
+               {{end}}
                {{end}}
             </tbody>
          </table>
@@ -250,24 +264,25 @@
 
       <!-- 3. Exceptions & Approvals -->
       <div style="margin-top: 20px;">
-         <h3 class="section-title">3. Exceptions &amp; Approvals</h3>
-         {{if .Data.Exceptions}}
-            {{range $index, $exception := .Data.Exceptions}}
+         <h3 class="section-title">3. Exceptions & Approvals</h3>
+         {{if .Data.SecurityGates}}
+            {{range $gateIndex, $gate := .Data.SecurityGates}}
+            {{range $excIndex, $exception := $gate.Exceptions}}
             <div class="keep-together" style="margin-top: 14px;">
-               <h4 class="sub-section-title">3.{{ add $index 1 }} {{ $exception.ProjectTitleEn }} &mdash; {{if $exception.TitleEn}}{{ $exception.TitleEn }}{{else}}-{{end}}</h4>
+               <h4 class="sub-section-title">3.{{ add $excIndex 1 }} {{ $gate.ProjectTitleEn }} &mdash; {{if $exception.TitleEn}}{{ $exception.TitleEn }}{{else}}-{{end}}</h4>
 
                <div style="margin-top: 5px;">
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
                      <p class="field-label">Stage:</p>
-                     <p class="field-value">{{if $exception.StageTitleEn}}{{ $exception.StageTitleEn }}{{else}}-{{end}}</p>
+                     <p class="field-value">{{if $gate.Stage.TitleEn}}{{ $gate.Stage.TitleEn }}{{else}}-{{end}}</p>
                   </div>
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
                      <p class="field-label">Readiness Status:</p>
-                     <p class="field-value">{{if $exception.ReadinessStatusTitleEn}}{{ $exception.ReadinessStatusTitleEn }}{{else}}-{{end}}</p>
+                     <p class="field-value">{{if $gate.ReadinessStatus.TitleEn}}{{ $gate.ReadinessStatus.TitleEn }}{{else}}-{{end}}</p>
                   </div>
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
                      <p class="field-label">Business Owner:</p>
-                     <p class="field-value">{{if $exception.BusinessOwnerEn}}{{ $exception.BusinessOwnerEn }}{{else}}-{{end}}</p>
+                     <p class="field-value">{{if $gate.BusinessOwner}}{{ $gate.BusinessOwner.FirstNameEN }} {{ $gate.BusinessOwner.LastNameEN }}{{else}}-{{end}}</p>
                   </div>
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
                      <p class="field-label">Critical:</p>
@@ -279,20 +294,20 @@
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
                      <p class="field-label">Workflow Status:</p>
                      <p class="field-value">
-                        {{if $exception.WorkflowStatusTitleEn}}
-                        <span class="badge" style="color: {{$exception.WorkflowStatusTextColor}}; border: 1px solid {{$exception.WorkflowStatusBorderColor}}; background: {{$exception.WorkflowStatusBackgroundColor}};">
-                           {{ $exception.WorkflowStatusTitleEn }}
+                        {{if $exception.WorkflowStatus}}
+                        <span class="badge" style="color: {{$exception.WorkflowStatus.TextColor}}; border: 1px solid {{$exception.WorkflowStatus.BorderColor}}; background: {{$exception.WorkflowStatus.BackgroundColor}};">
+                           {{ $exception.WorkflowStatus.TitleEn }}
                         </span>
                         {{else}}-{{end}}
                      </p>
                   </div>
                   <div style="width: 36%; display: inline-block; vertical-align: top;">
                      <p class="field-label">Submitted By:</p>
-                     <p class="field-value">{{if $exception.SubmittedByEn}}{{ $exception.SubmittedByEn }}{{else}}-{{end}} {{if $exception.SubmittedAtFormatted}}({{ $exception.SubmittedAtFormatted }}){{end}}</p>
+                     <p class="field-value">{{if $exception.SubmittedBy}}{{ $exception.SubmittedBy.FirstNameEN }} {{ $exception.SubmittedBy.LastNameEN }}{{else}}-{{end}} {{if $exception.SubmittedAt}}({{ $exception.SubmittedAt.Format "01/02/2006" }}){{end}}</p>
                   </div>
                   <div style="width: 36%; display: inline-block; vertical-align: top;">
                      <p class="field-label">Approved By:</p>
-                     <p class="field-value">{{if $exception.ApprovedByEn}}{{ $exception.ApprovedByEn }}{{else}}-{{end}} {{if $exception.ApprovedAtFormatted}}({{ $exception.ApprovedAtFormatted }}){{end}}</p>
+                     <p class="field-value">{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameEN }} {{ $exception.ApprovedBy.LastNameEN }}{{else}}-{{end}} {{if $exception.ApprovedAt}}({{ $exception.ApprovedAt.Format "01/02/2006" }}){{end}}</p>
                   </div>
                </div>
 
@@ -311,7 +326,7 @@
                      <tr>
                         <!-- Step Number Node Column -->
                         <td class="timeline-node">
-                           <span class="timeline-step">{{$review.StepNumber}}</span>
+                           <span class="timeline-step">{{ add $reviewIndex 1 }}</span>
                            {{if not $isLast}}
                            <div class="timeline-connector"></div>
                            {{end}}
@@ -354,6 +369,7 @@
                <p class="empty-note">No review history recorded.</p>
                {{end}}
             </div>
+            {{end}}
             {{end}}
          {{else}}
          <p class="empty-note">No exceptions raised.</p>

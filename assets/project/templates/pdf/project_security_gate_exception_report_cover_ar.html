@@ -5,105 +5,76 @@
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
 </head>
-<style>
-   body {
-      font-family: 'Cairo', sans-serif;
-      box-sizing: border-box;
-      color: #000;
-      height: 100%;
-      line-height: 1.4;
-      margin: 0;
-      width: 100% !important;
-      word-break: break-word;
-      direction: rtl;
-      text-align: right;
-   }
-   .page {
-      width: 100%;
-   }
-   .cover {
-      min-height: 1250px;
-      background: url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat;
-      background-size: 100% 100%;
-      padding: 0px 32px;
-      position: relative;
-   }
-   .cover-logo {
-      box-sizing: border-box;
-      padding: 5px 0;
-   }
-   .cover-title {
-      font-size: 40px;
-      color: #fff;
-      position: absolute;
-      bottom: 500px;
-      left: 0;
-      right: 0;
-      text-align: center;
-      margin: 0 auto;
-   }
-   .meta {
-      margin-right: 40px;
-      margin-top: 24px;
-   }
-   .meta-row {
-      margin-top: 10px;
-   }
-   .meta-cell {
-      display: inline-block;
-      vertical-align: top;
-      width: 22%;
-   }
-   .meta-label {
-      margin: 0 0 2px 0;
-      color: #000;
-      font-size: 13px;
-      line-height: 1.5em;
-      text-align: right;
-      font-weight: 300;
-   }
-   .meta-value {
-      margin: 0 0 13px 0;
-      color: #000000;
-      font-size: 14px;
-      line-height: 1.5em;
-      text-align: right;
-      font-weight: 400;
-   }
-</style>
-<body>
-   <div class="page">
-      <div class="cover">
+<body
+   style="font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000; height: 100%; line-height: 1.4; margin: 0; width: 100% !important; word-break: break-word; direction: rtl; text-align: right;">
+   <div class="page" style="width: 100%;">
+      <div
+         style="min-height: 1250px; background: url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat; background-size: 100% 100%; padding: 0px 32px; position: relative;">
          <div>
-            <img class="cover-logo" src="{{.ApiPath}}/report-template-settings/image-preview?type=logo">
+            <img src="{{.ApiPath}}/report-template-settings/image-preview?type=logo"
+               style="font-family: 'Cairo', sans-serif; box-sizing: border-box; padding: 5px 0;">
          </div>
 
-         <h1 class="cover-title">ADF - تقرير استثناءات وموافقات <br /> بوابة أمان المشروع</h1>
+         <h1 style="font-size: 40px; color: #fff; position: absolute; bottom: 500px; left: 0; right: 0; text-align: center; margin: 0 auto;">
+            ADF - تقرير استثناءات وموافقات <br /> بوابة أمان المشروع</h1>
       </div>
 
-      <div class="meta">
-         <div class="meta-row">
-            <div class="meta-cell">
-               <p class="meta-label"><span>إجمالي الاستثناءات:</span></p>
-               <p class="meta-value">{{ .Data.TotalCount }}</p>
-            </div>
-            <div class="meta-cell">
-               <p class="meta-label"><span>تمت الموافقة:</span></p>
-               <p class="meta-value">{{ .Data.ApprovedCount }}</p>
-            </div>
-            <div class="meta-cell">
-               <p class="meta-label"><span>بانتظار الموافقة:</span></p>
-               <p class="meta-value">{{ .Data.PendingCount }}</p>
-            </div>
-            <div class="meta-cell">
-               <p class="meta-label"><span>حرجة:</span></p>
-               <p class="meta-value">{{ .Data.CriticalCount }}</p>
+      <div style="margin-right: 40px; margin-top: 24px;">
+         <div style="margin-top: 0px;">
+            <div style="width: 90%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: right; margin-bottom: 2px; font-weight: 300;">
+                  <span>عنوان التقرير:</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: right; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                  {{if .Data.Title}}{{ .Data.Title }}{{else}}-{{end}}
+               </p>
             </div>
          </div>
-         <div class="meta-row">
-            <div class="meta-cell">
-               <p class="meta-label"><span>تاريخ التصدير:</span></p>
-               <p class="meta-value">{{ .Data.GeneratedAt }}</p>
+         <div style="margin-top: 10px;">
+            <div style="width: 23%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: right; margin-bottom: 2px; font-weight: 300;">
+                  <span>المشاريع:</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: right; margin-bottom: 13px; margin-top: 0px;">
+                  {{if .Data.Projects}}{{ len .Data.Projects }}{{else}}0{{end}}
+               </p>
+            </div>
+
+            <div style="width: 23%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: right; margin-bottom: 2px; font-weight: 300;">
+                  <span>تم إنشاؤه بواسطة:</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: right; margin-bottom: 13px; margin-top: 0px;">
+                  {{if .Data.GeneratedByAr}}{{ .Data.GeneratedByAr }}{{else}}-{{end}}
+               </p>
+            </div>
+
+            <div style="width: 23%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: right; margin-bottom: 2px; font-weight: 300;">
+                  <span>تاريخ الإنشاء:</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: right; margin-bottom: 13px; margin-top: 0px;">
+                  {{ .Data.GeneratedAt }}
+               </p>
+            </div>
+
+            <div style="width: 23%; display: inline-block; vertical-align: top;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: right; margin-bottom: 2px; font-weight: 300;">
+                  <span>تاريخ التصدير:</span>
+               </p>
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: right; margin-bottom: 13px; margin-top: 0px;">
+                  {{ .Data.ExportedAt }}
+               </p>
             </div>
          </div>
       </div>
