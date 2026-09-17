@@ -271,7 +271,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 				"ResolvedByFirstNameEn":   resolvedBy.FirstNameEn,
 				"ResolvedByLastNameEn":    resolvedBy.LastNameEn,
 				"ResolvedOn":              time.Now().Format("2006-01-02"),
-				"RedirectURL":             fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, IncidentID, id),
+				"RedirectURL":             fmt.Sprintf("%s/incident/action-plan?action_plan_id=%d", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

@@ -5,7 +5,7 @@ import "time"
 type IncidentInvestigationFinding struct {
 	ID                      uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentInvestigationID uint       `json:"incident_investigation_id" binding:"required" gorm:"not null"`
-	Title                   string     `json:"title" binding:"required" gorm:"type:nvarchar(500);not null"`
+	Title                   string     `json:"title" binding:"required" gorm:"type:nvarchar(max);not null"`
 	CreatedByID             uint       `json:"created_by_id" binding:"required"`
 	UpdatedByID             *uint      `json:"updated_by_id"`
 	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null"`

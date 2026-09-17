@@ -204,7 +204,7 @@
                      Quick Action: </p>
                   <p
                      style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                     {{.Data.QuickAction}} </p>
+                     {{.Data.QuickAction | stripHTML}} </p>
                </div>
                {{end}}
                {{if .Data.IsAcknowledge}}
@@ -2157,7 +2157,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                           {{$item.Summary}}
+                           {{$item.Summary | stripHTML}}
                         </td>
 
 

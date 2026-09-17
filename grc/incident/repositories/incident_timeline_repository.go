@@ -119,9 +119,12 @@ func (repo *IncidentTimelineRepository) GetByID(incidentID uint, timelineTypeID 
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	result := db.Where("incident_register_id = ? AND incident_timeline_type_id = ?", incidentID, timelineTypeID).First(&incidentTimeline)
+	result := db.Where("incident_register_id = ? AND incident_timeline_type_id = ?", incidentID, timelineTypeID).Limit(1).Find(&incidentTimeline)
 	if result.Error != nil {
 		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
 	}
 
 	return &incidentTimeline, nil
@@ -151,7 +154,7 @@ func (repo *IncidentTimelineRepository) GetByStatusType(status string, tx ...uti
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
-	} 
+	}
 	result := db.Where("type = ?", status).First(&timelineStatus)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
