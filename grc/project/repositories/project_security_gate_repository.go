@@ -62,6 +62,12 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 			business_owner.color AS business_owner_color,
 			business_owner.email AS business_owner_email,
 			business_owner.profile_image_path AS business_owner_profile_image_path,
+			division.id AS division_id,
+			division.title_en AS division_title_en,
+			division.title_ar AS division_title_ar,
+			department.id AS department_id,
+			department.title_en AS department_title_en,
+			department.title_ar AS department_title_ar,
 			created_user.id AS created_by_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -87,6 +93,8 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 			LEFT JOIN project_security_gate_stages AS stages ON stages.id = project_security_gates.stage_id
 			LEFT JOIN project_security_gate_readiness_statuses AS readiness_status ON readiness_status.id = project_security_gates.readiness_status_id
 			LEFT JOIN users AS business_owner ON business_owner.id = project_security_gates.business_owner_id
+			LEFT JOIN organization_units AS division ON division.id = project_security_gates.division_id
+			LEFT JOIN organization_units AS department ON department.id = project_security_gates.department_id
 			LEFT JOIN users AS created_user ON created_user.id = project_security_gates.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = project_security_gates.updated_by_id
 		`)
