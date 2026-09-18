@@ -122,7 +122,18 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			query = query.Where("change_request_types.type = ?", "major")
 		case "minor-update":
 			query = query.Where("change_request_types.type = ?", "minor")
+		case "archive":
+			query = query.Where("change_request_types.type = ?", "archive")
 		}
+	}
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("document_change_requests.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	} else if params.DateFrom != "" {
+		query = query.Where("document_change_requests.created_at >= ?", params.DateFrom+" 00:00:00")
+	} else if params.DateTo != "" {
+		query = query.Where("document_change_requests.created_at <= ?", params.DateTo+" 23:59:59")
 	}
 
 	if params.Keyword != "" {

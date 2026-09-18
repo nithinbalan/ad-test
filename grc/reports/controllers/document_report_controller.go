@@ -353,13 +353,15 @@ func (drc *DocumentReportController) GetAllDocumentChangeRequests(c *gin.Context
 	}
 
 	validSortFields := map[string]string{
+		"document_change_request_type_ar": "change_request_types.title_ar",
+		"document_change_request_type_en": "change_request_types.title_en",
 		"document_change_reuqest_type_ar": "change_request_types.title_ar",
 		"document_change_reuqest_type_en": "change_request_types.title_en",
 		"reason_for_change":               "document_change_requests.reason_for_change",
-		"reference_number":                "document_change_requests.reason_for_change",
-		"status_en":                       "change_request_statuses.title_ar",
-		"status_ar":                       "change_request_statuses.title_en",
-		"document_ar":                     "documents.title_en",
+		"reference_number":                "document_change_requests.reference_number",
+		"status_en":                       "change_request_statuses.title_en",
+		"status_ar":                       "change_request_statuses.title_ar",
+		"document_ar":                     "documents.title_ar",
 		"document_en":                     "documents.title_en",
 	}
 
@@ -384,6 +386,15 @@ func (drc *DocumentReportController) GetAllDocumentChangeRequests(c *gin.Context
 		return
 	}
 
+	dateFrom := c.Query("date_from")
+	if dateFrom == "" {
+		dateFrom = c.Query("from_date")
+	}
+	dateTo := c.Query("date_to")
+	if dateTo == "" {
+		dateTo = c.Query("to_date")
+	}
+
 	params := documentDTOs.DocumentChangeRequestQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      dbField,
@@ -394,6 +405,8 @@ func (drc *DocumentReportController) GetAllDocumentChangeRequests(c *gin.Context
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	documentChangeRequests, err := drc.documentChangeRequestSvc.GetAll(&params)

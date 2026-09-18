@@ -73,6 +73,7 @@ type DocumentByMonthDTO struct {
 
 type DocumentChangeRequestByTypeDTO struct {
 	DocumentChangeRequestTypeID      uint   `json:"id"`
+	DocumentChangeRequestStatusID    uint   `json:"document_change_request_status_id,omitempty"`
 	DocumentChangeRequestTypeTitleEn string `json:"title_en"`
 	DocumentChangeRequestTypeTitleAr string `json:"title_ar"`
 	DocumentChangeRequestType        string `json:"type"`
@@ -89,9 +90,13 @@ type DocumentChangeRequestByStatusDTO struct {
 }
 
 type DocumentsArchivedByQuarterDTO struct {
-	Year    int    `json:"year"`
-	Quarter int    `json:"quarter"`
-	TitleEN string `json:"title_en"`
-	TitleAR string `json:"title_ar"`
-	Count   int64  `json:"count"`
+	Year                          int    `json:"year"`
+	Quarter                       int    `json:"quarter"`
+	TitleEN                       string `json:"title_en"`
+	TitleAR                       string `json:"title_ar"`
+	Count                         int64  `json:"count"`
+	DateFrom                      string `json:"date_from"`
+	DateTo                        string `json:"date_to"`
+	DocumentChangeRequestTypeID   uint   `json:"document_change_request_type_id"`
+	DocumentChangeRequestStatusID uint   `json:"document_change_request_status_id"`
 }

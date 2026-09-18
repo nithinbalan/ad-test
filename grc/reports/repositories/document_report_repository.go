@@ -3,6 +3,7 @@ package repositories
 import (
 	"fmt"
 	reportDTOs "jethur/grc/reports/dtos"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -383,7 +384,7 @@ func (repo *DocumentReportRepository) GetDocumentChangeRequestsByType(params *re
 			dcrt.id as document_change_request_type_id,
 			dcrt.title_en as document_change_request_type_title_en,
 			dcrt.title_ar as document_change_request_type_title_ar,
-			dcrt.type as document_change_request_type_type,
+			dcrt.type as document_change_request_type,
 			dcrt.status as document_change_request_type_status,
 			COUNT(dcr.id) as count
 		FROM document_change_request_types dcrt
@@ -436,7 +437,7 @@ func (repo *DocumentReportRepository) GetDocumentsUpdatedByChangeType(params *re
 
 	dateCondition := ""
 	if params.DateFrom != "" && params.DateTo != "" {
-		dateCondition = fmt.Sprintf("AND dcr.created_at BETWEEN '%s 00:00:00' AND '%s 23:59:59'", params.DateFrom, params.DateTo)
+		dateCondition = fmt.Sprintf("AND dcr.published_at BETWEEN '%s 00:00:00' AND '%s 23:59:59'", params.DateFrom, params.DateTo)
 	}
 
 	query := repo.db.Raw(`
@@ -444,16 +445,16 @@ func (repo *DocumentReportRepository) GetDocumentsUpdatedByChangeType(params *re
 			dcrt.id as document_change_request_type_id,
 			dcrt.title_en as document_change_request_type_title_en,
 			dcrt.title_ar as document_change_request_type_title_ar,
-			dcrt.type as document_change_request_type_type,
+			dcrt.type as document_change_request_type,
 			COUNT(dcr.id) as count
 		FROM document_change_request_types dcrt
 		LEFT JOIN (
 			SELECT 
-				document_change_requests.id,
-				document_change_requests.document_change_request_type_id
-			FROM document_change_requests 
+				dcr.id,
+				dcr.document_change_request_type_id
+			FROM document_change_requests dcr
 			JOIN document_change_request_statuses dcrs 
-				ON dcrs.id = document_change_requests.document_change_request_status_id
+				ON dcrs.id = dcr.document_change_request_status_id
 			WHERE dcrs.type = 'published' ` + dateCondition + `
 		) dcr ON dcr.document_change_request_type_id = dcrt.id
 		WHERE dcrt.type IN ('major', 'minor', 'archive')
@@ -463,53 +464,183 @@ func (repo *DocumentReportRepository) GetDocumentsUpdatedByChangeType(params *re
 	`)
 
 	err := query.Scan(&results).Error
-	return results, err
+	if err != nil {
+		return nil, err
+	}
+
+	var publishedStatus struct {
+		ID uint `gorm:"column:id"`
+	}
+	repo.db.Table("document_change_request_statuses").Where("type = ?", "published").Select("id").First(&publishedStatus)
+
+	for _, item := range results {
+		item.DocumentChangeRequestStatusID = publishedStatus.ID
+	}
+
+	return results, nil
+}
+
+type quarterItem struct {
+	Year     int
+	Quarter  int
+	TitleEn  string
+	TitleAr  string
+	DateFrom string
+	DateTo   string
+}
+
+func getQuarterDateRange(year, quarter int) (string, string) {
+	switch quarter {
+	case 1:
+		return fmt.Sprintf("%04d-01-01", year), fmt.Sprintf("%04d-03-31", year)
+	case 2:
+		return fmt.Sprintf("%04d-04-01", year), fmt.Sprintf("%04d-06-30", year)
+	case 3:
+		return fmt.Sprintf("%04d-07-01", year), fmt.Sprintf("%04d-09-30", year)
+	case 4:
+		return fmt.Sprintf("%04d-10-01", year), fmt.Sprintf("%04d-12-31", year)
+	default:
+		return "", ""
+	}
+}
+
+func generateQuartersList(dateFrom, dateTo string) []quarterItem {
+	var quarters []quarterItem
+
+	if dateFrom != "" && dateTo != "" {
+		fromTime, err1 := time.Parse("2006-01-02", dateFrom)
+		toTime, err2 := time.Parse("2006-01-02", dateTo)
+
+		if err1 == nil && err2 == nil && (fromTime.Before(toTime) || fromTime.Equal(toTime)) {
+			startYear := fromTime.Year()
+			startQuarter := (int(fromTime.Month())-1)/3 + 1
+			endYear := toTime.Year()
+			endQuarter := (int(toTime.Month())-1)/3 + 1
+
+			// Generate descending from end to start
+			y := endYear
+			q := endQuarter
+			for {
+				qFrom, qTo := getQuarterDateRange(y, q)
+				quarters = append(quarters, quarterItem{
+					Year:     y,
+					Quarter:  q,
+					TitleEn:  fmt.Sprintf("Q%d %d", q, y),
+					TitleAr:  fmt.Sprintf("الربع %d %d", q, y),
+					DateFrom: qFrom,
+					DateTo:   qTo,
+				})
+
+				if y == startYear && q == startQuarter {
+					break
+				}
+
+				q--
+				if q < 1 {
+					q = 4
+					y--
+				}
+			}
+			return quarters
+		}
+	}
+
+	// Default: Last 4 quarters from current date, descending
+	now := time.Now()
+	y := now.Year()
+	q := (int(now.Month())-1)/3 + 1
+	for i := 0; i < 4; i++ {
+		qFrom, qTo := getQuarterDateRange(y, q)
+		quarters = append(quarters, quarterItem{
+			Year:     y,
+			Quarter:  q,
+			TitleEn:  fmt.Sprintf("Q%d %d", q, y),
+			TitleAr:  fmt.Sprintf("الربع %d %d", q, y),
+			DateFrom: qFrom,
+			DateTo:   qTo,
+		})
+
+		q--
+		if q < 1 {
+			q = 4
+			y--
+		}
+	}
+
+	return quarters
 }
 
 func (repo *DocumentReportRepository) GetDocumentsArchivedByQuarter(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.DocumentsArchivedByQuarterDTO, error) {
 	results := []*reportDTOs.DocumentsArchivedByQuarterDTO{}
 
+	quarters := generateQuartersList(params.DateFrom, params.DateTo)
+	if len(quarters) == 0 {
+		return results, nil
+	}
+
+	dateCondition := ""
+	if params.DateFrom != "" && params.DateTo != "" {
+		dateCondition = fmt.Sprintf("AND dcr.published_at BETWEEN '%s 00:00:00' AND '%s 23:59:59'", params.DateFrom, params.DateTo)
+	} else {
+		earliest := quarters[len(quarters)-1].DateFrom
+		latest := quarters[0].DateTo
+		dateCondition = fmt.Sprintf("AND dcr.published_at BETWEEN '%s 00:00:00' AND '%s 23:59:59'", earliest, latest)
+	}
+
+	var rawResults []struct {
+		Year    int   `gorm:"column:year"`
+		Quarter int   `gorm:"column:quarter"`
+		Count   int64 `gorm:"column:count"`
+	}
+
 	query := repo.db.Raw(`
-		WITH quarters AS (
-			SELECT 
-				YEAR(DATEADD(QUARTER, -3, GETDATE())) as year,
-				DATEPART(QUARTER, DATEADD(QUARTER, -3, GETDATE())) as quarter
-			UNION ALL
-			SELECT 
-				YEAR(DATEADD(QUARTER, -2, GETDATE())) as year,
-				DATEPART(QUARTER, DATEADD(QUARTER, -2, GETDATE())) as quarter
-			UNION ALL
-			SELECT 
-				YEAR(DATEADD(QUARTER, -1, GETDATE())) as year,
-				DATEPART(QUARTER, DATEADD(QUARTER, -1, GETDATE())) as quarter
-			UNION ALL
-			SELECT 
-				YEAR(GETDATE()) as year,
-				DATEPART(QUARTER, GETDATE()) as quarter
-		)
 		SELECT 
-			q.year,
-			q.quarter,
-			CONCAT('Q', q.quarter, ' ', q.year) as title_en,
-			CONCAT('الربع ', q.quarter, ' ', q.year) as title_ar,
-			COALESCE(COUNT(dcr.id), 0) as count
-		FROM quarters q
-		LEFT JOIN (
-			SELECT 
-				dcr.id,
-				YEAR(dcr.published_at) as pub_year,
-				DATEPART(QUARTER, dcr.published_at) as pub_quarter
-			FROM document_change_requests dcr
-			JOIN document_change_request_types dcrt ON dcrt.id = dcr.document_change_request_type_id
-			JOIN document_change_request_statuses dcrs ON dcrs.id = dcr.document_change_request_status_id
-			WHERE dcrt.type = 'archive'
-			AND dcrs.type = 'published'
-			AND dcr.published_at IS NOT NULL
-		) dcr ON dcr.pub_year = q.year AND dcr.pub_quarter = q.quarter
-		GROUP BY q.year, q.quarter
-		ORDER BY q.year DESC, q.quarter DESC
+			YEAR(dcr.published_at) as year,
+			DATEPART(QUARTER, dcr.published_at) as quarter,
+			COUNT(dcr.id) as count
+		FROM document_change_requests dcr
+		JOIN document_change_request_types dcrt ON dcrt.id = dcr.document_change_request_type_id
+		JOIN document_change_request_statuses dcrs ON dcrs.id = dcr.document_change_request_status_id
+		WHERE dcrt.type = 'archive'
+		AND dcrs.type = 'published'
+		AND dcr.published_at IS NOT NULL ` + dateCondition + `
+		GROUP BY YEAR(dcr.published_at), DATEPART(QUARTER, dcr.published_at)
 	`)
 
-	err := query.Scan(&results).Error
-	return results, err
+	if err := query.Scan(&rawResults).Error; err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[string]int64)
+	for _, record := range rawResults {
+		key := fmt.Sprintf("%d-%d", record.Year, record.Quarter)
+		countMap[key] = record.Count
+	}
+
+	var archiveType struct {
+		ID uint `gorm:"column:id"`
+	}
+	repo.db.Table("document_change_request_types").Where("type = ?", "archive").Select("id").First(&archiveType)
+
+	var publishedStatus struct {
+		ID uint `gorm:"column:id"`
+	}
+	repo.db.Table("document_change_request_statuses").Where("type = ?", "published").Select("id").First(&publishedStatus)
+
+	for _, q := range quarters {
+		key := fmt.Sprintf("%d-%d", q.Year, q.Quarter)
+		results = append(results, &reportDTOs.DocumentsArchivedByQuarterDTO{
+			Year:                          q.Year,
+			Quarter:                       q.Quarter,
+			TitleEN:                       q.TitleEn,
+			TitleAR:                       q.TitleAr,
+			Count:                         countMap[key],
+			DateFrom:                      q.DateFrom,
+			DateTo:                        q.DateTo,
+			DocumentChangeRequestTypeID:   archiveType.ID,
+			DocumentChangeRequestStatusID: publishedStatus.ID,
+		})
+	}
+
+	return results, nil
 }
