@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"jethur/grc/models"
 	"jethur/utility"
 	"strings"
 	"time"
@@ -25,16 +26,55 @@ func GetLicenseToken(db *gorm.DB) (string, error) {
 	return *licenseKey, nil
 }
 
+// isSuperAdminRequest returns true if the request carries a valid JWT for a super admin user.
+// Used by LicenseMiddleware so super admins can access the app even when the license is expired.
+func isSuperAdminRequest(c *gin.Context, db *gorm.DB) bool {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return false
+	}
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	if tokenString == authHeader {
+		return false
+	}
+	claims, err := utility.VerifyToken(tokenString)
+	if err != nil {
+		return false
+	}
+
+	var userRoles []models.UserRole
+	if err := db.Where("user_id = ?", claims.UserID).Find(&userRoles).Error; err != nil {
+		return false
+	}
+	for _, ur := range userRoles {
+		var role models.Role
+		if err := db.Where("id = ?", ur.RoleID).First(&role).Error; err != nil {
+			continue
+		}
+		if role.IsSuperAdmin {
+			return true
+		}
+	}
+	return false
+}
+
 // LicenseMiddleware checks if the license key is expired or mismatched
 func LicenseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Define routes to bypass
+		// Define routes to bypass (unauthenticated routes that must work even with an expired license)
 		bypassRoutes := map[string]bool{
 			"/update-license-key": true,
 			"/license-key":        true,
+			"/auth/login":         true,
 		}
 
 		if _, exists := bypassRoutes[c.FullPath()]; exists {
+			c.Next()
+			return
+		}
+
+		// Super admins bypass the license check so they can renew an expired license
+		if isSuperAdminRequest(c, db) {
 			c.Next()
 			return
 		}

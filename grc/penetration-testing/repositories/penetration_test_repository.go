@@ -19,7 +19,7 @@ type PenetrationTestRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.PenetrationTest, error)
 	Create(penetrationTest *models.PenetrationTest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(penetrationTest *models.PenetrationTest, tx ...utility.DatabaseTransaction) error
-	UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error
+	UpdateStatus(id uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	DeletePenetrationTestDetails(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
@@ -56,6 +56,15 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 	query := repo.db.Table("penetration_tests").
 		Select(`
 			penetration_tests.id,
+			penetration_tests.created_by_id,
+			CONVERT(varchar(19), penetration_tests.created_at, 120) AS created_at,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			responsible_unit.id AS responsible_unit_id,
+			responsible_unit.title_en AS responsible_unit_title_en,
+			responsible_unit.title_ar AS responsible_unit_title_ar,
 			penetration_tests.reference_number,
 			penetration_tests.system_application_name,
 			penetration_tests.penetration_test_type_id,
@@ -66,7 +75,11 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 			penetration_test_plans.title_ar AS penetration_test_plan_title_ar,
 			penetration_tests.year,
 			penetration_tests.period,
-			penetration_tests.status,
+			penetration_tests.penetration_test_status_id,
+			penetration_test_statuses.title_en AS status_title_en,
+			penetration_test_statuses.title_ar AS status_title_ar,
+			penetration_test_statuses.color_code AS status_color_code,
+			penetration_test_statuses.type AS status_type,
 			penetration_tests.penetration_test_classification_id,
 			penetration_test_classifications.title_en AS penetration_test_classification_title_en,
 			penetration_test_classifications.title_ar AS penetration_test_classification_title_ar,
@@ -135,7 +148,10 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 		Joins("LEFT JOIN penetration_test_classifications ON penetration_test_classifications.id = penetration_tests.penetration_test_classification_id").
 		Joins("LEFT JOIN penetration_test_plans ON penetration_test_plans.id = penetration_tests.penetration_test_plan_id").
 		Joins("LEFT JOIN penetration_test_executors ON penetration_test_executors.id = penetration_tests.penetration_test_executor_id").
-		Joins("LEFT JOIN users AS cs_responsible_employee ON cs_responsible_employee.id = penetration_tests.cs_responsible_employee_id")
+		Joins("LEFT JOIN users AS cs_responsible_employee ON cs_responsible_employee.id = penetration_tests.cs_responsible_employee_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = penetration_tests.created_by_id").
+		Joins("LEFT JOIN organization_units AS responsible_unit ON responsible_unit.id = cs_responsible_employee.organization_unit_1_id").
+		Joins("LEFT JOIN penetration_test_statuses ON penetration_test_statuses.id = penetration_tests.penetration_test_status_id")
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where("reference_number LIKE ? OR system_application_name LIKE ? OR scope LIKE ?", keyword, keyword, keyword)
@@ -143,8 +159,16 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where("penetration_tests."+columnName+" IN (?)", values)
+			if columnName == "responsible_unit_id" {
+				query = query.Where("cs_responsible_employee.organization_unit_1_id IN (?)", values)
+			} else {
+				query = query.Where("penetration_tests."+columnName+" IN (?)", values)
+			}
 		}
+	}
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("penetration_tests.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	for _, filter := range params.QuickFilter {
@@ -174,8 +198,17 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
-	if err := query.Offset((params.Page - 1) * params.PageSize).Limit(params.PageSize).Find(&penetrationTests).Error; err != nil {
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+	if err := query.Find(&penetrationTests).Error; err != nil {
 		return nil, err
+	}
+
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 	}
 
 	return &penetrationTestDTOs.PenetrationTestListResponseDTO{
@@ -183,7 +216,7 @@ func (repo *PenetrationTestRepository) GetAll(params *penetrationTestDTOs.Penetr
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
-			TotalPages:  int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize)),
+			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
 	}, nil
@@ -201,6 +234,7 @@ func (repo *PenetrationTestRepository) GetByID(id uint, tx ...utility.DatabaseTr
 		Preload("PenetrationTestClassification").
 		Preload("PenetrationTestExecutor").
 		Preload("CSResponsibleEmployee").
+		Preload("PenetrationTestStatus").
 		Preload("EnvironmentPreparation.EnvironmentReadiness").
 		Preload("Execution.ExecutionStatus").
 		Preload("Execution.SecurityResult").
@@ -236,12 +270,12 @@ func (repo *PenetrationTestRepository) Update(penetrationTest *models.Penetratio
 	return db.Model(&models.PenetrationTest{}).Where("id = ?", penetrationTest.ID).Updates(penetrationTest).Error
 }
 
-func (repo *PenetrationTestRepository) UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error {
+func (repo *PenetrationTestRepository) UpdateStatus(id uint, statusID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Model(&models.PenetrationTest{}).Where("id = ?", id).Update("status", status).Error
+	return db.Model(&models.PenetrationTest{}).Where("id = ?", id).Update("penetration_test_status_id", statusID).Error
 }
 
 func (repo *PenetrationTestRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {

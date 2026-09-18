@@ -67,6 +67,7 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 		"responsible_unit_ids",
 		"responsible_user_ids",
 		"incident_register_ids",
+		"project_excluded",
 	}
 
 	validSortFields := map[string]string{
@@ -215,9 +216,8 @@ func (iapc *IncidentActionPlanController) GetUsedActionPlanMasterIDs(c *gin.Cont
 		}
 	}
 
-	c.JSON(http.StatusOK,ids)
+	c.JSON(http.StatusOK, ids)
 }
-
 
 func (iapc *IncidentActionPlanController) CreateIncidentActionPlan(c *gin.Context) {
 	var IncidentActionPlanFormDTO incidentDTOs.IncidentActionPlanFormDTO

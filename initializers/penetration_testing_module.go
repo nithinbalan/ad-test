@@ -8,6 +8,9 @@ import (
 )
 
 type PenetrationTestingModule struct {
+	PenetrationTestSvc                              services.PenetrationTestServiceInterface
+	PenetrationTestFindingSvc                       services.PenetrationTestFindingServiceInterface
+	PenetrationTestReportController                 *controllers.PenetrationTestReportController
 	PenetrationTestController                       *controllers.PenetrationTestController
 	PenetrationTestEnvironmentPreparationController *controllers.PenetrationTestEnvironmentPreparationController
 	PenetrationTestExecutionController              *controllers.PenetrationTestExecutionController
@@ -22,6 +25,9 @@ type PenetrationTestingModule struct {
 	PenetrationTestClassificationController         *controllers.PenetrationTestClassificationController
 	PenetrationTestExecutionStatusController        *controllers.PenetrationTestExecutionStatusController
 	PenetrationTestSecurityResultController         *controllers.PenetrationTestSecurityResultController
+	PenetrationTestRetestResultController           *controllers.PenetrationTestRetestResultController
+	PenetrationTestStatusController                 *controllers.PenetrationTestStatusController
+	PenetrationTestRetestStatusController           *controllers.PenetrationTestRetestStatusController
 	PenetrationTestSupportingDocumentController     *controllers.PenetrationTestSupportingDocumentController
 	PenetrationTestClosureController                *controllers.PenetrationTestClosureController
 }
@@ -29,6 +35,7 @@ type PenetrationTestingModule struct {
 func NewPenetrationTestingModule(
 	db *gorm.DB,
 	sharedModule *SharedModule,
+	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
 ) *PenetrationTestingModule {
@@ -39,6 +46,9 @@ func NewPenetrationTestingModule(
 	classificationService := services.NewPenetrationTestClassificationService(repositories.NewPenetrationTestClassificationRepository(db))
 	executionStatusService := services.NewPenetrationTestExecutionStatusService(repositories.NewPenetrationTestExecutionStatusRepository(db))
 	securityResultService := services.NewPenetrationTestSecurityResultService(repositories.NewPenetrationTestSecurityResultRepository(db))
+	retestResultService := services.NewPenetrationTestRetestResultService(repositories.NewPenetrationTestRetestResultRepository(db))
+	statusService := services.NewPenetrationTestStatusService(repositories.NewPenetrationTestStatusRepository(db))
+	retestStatusService := services.NewPenetrationTestRetestStatusService(repositories.NewPenetrationTestRetestStatusRepository(db))
 	penetrationTestService := services.NewPenetrationTestService(
 		repositories.NewPenetrationTestRepository(db),
 		sharedModule.ActivityLogService,
@@ -47,6 +57,8 @@ func NewPenetrationTestingModule(
 		classificationService,
 		executorService,
 		organizationModule.UserSvc,
+		statusService,
+		organizationModule.UserSettingSvc,
 	)
 	environmentPreparationService := services.NewPenetrationTestEnvironmentPreparationService(
 		repositories.NewPenetrationTestEnvironmentPreparationRepository(db),
@@ -73,6 +85,7 @@ func NewPenetrationTestingModule(
 		masterModule.SeverityLevelSvc,
 		masterModule.ActionPlanStatusSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 	)
 	penetrationTestFindingStatusUpdateService := services.NewPenetrationTestFindingStatusUpdateService(
 		repositories.NewPenetrationTestFindingStatusUpdateRepository(db),
@@ -88,6 +101,8 @@ func NewPenetrationTestingModule(
 		executorService,
 		masterModule.ActionPlanStatusSvc,
 		repositories.NewPenetrationTestFindingStatusUpdateRepository(db),
+		retestResultService,
+		retestStatusService,
 	)
 	supportingDocumentService := services.NewPenetrationTestSupportingDocumentService(
 		repositories.NewPenetrationTestSupportingDocumentRepository(db),
@@ -101,7 +116,14 @@ func NewPenetrationTestingModule(
 		penetrationTestService,
 		organizationModule.UserSvc,
 	)
+	penetrationTestReportRepo := repositories.NewPenetrationTestReportRepository(db)
+	penetrationTestReportSvc := services.NewPenetrationTestReportService(penetrationTestReportRepo, settingsModule.ReportTemplateSettingSvc, sharedModule.ActivityLogService)
+	penetrationTestReportController := controllers.NewPenetrationTestReportController(penetrationTestReportSvc)
+
 	return &PenetrationTestingModule{
+		PenetrationTestSvc:                              penetrationTestService,
+		PenetrationTestFindingSvc:                       penetrationTestFindingService,
+		PenetrationTestReportController:                 penetrationTestReportController,
 		PenetrationTestController:                       controllers.NewPenetrationTestController(penetrationTestService),
 		PenetrationTestEnvironmentPreparationController: controllers.NewPenetrationTestEnvironmentPreparationController(environmentPreparationService),
 		PenetrationTestExecutionController:              controllers.NewPenetrationTestExecutionController(executionService),
@@ -116,6 +138,9 @@ func NewPenetrationTestingModule(
 		PenetrationTestClassificationController:         controllers.NewPenetrationTestClassificationController(classificationService),
 		PenetrationTestExecutionStatusController:        controllers.NewPenetrationTestExecutionStatusController(executionStatusService),
 		PenetrationTestSecurityResultController:         controllers.NewPenetrationTestSecurityResultController(securityResultService),
+		PenetrationTestRetestResultController:           controllers.NewPenetrationTestRetestResultController(retestResultService),
+		PenetrationTestStatusController:                 controllers.NewPenetrationTestStatusController(statusService),
+		PenetrationTestRetestStatusController:           controllers.NewPenetrationTestRetestStatusController(retestStatusService),
 		PenetrationTestSupportingDocumentController:     controllers.NewPenetrationTestSupportingDocumentController(supportingDocumentService, db),
 		PenetrationTestClosureController:                controllers.NewPenetrationTestClosureController(closureService),
 	}

@@ -15,7 +15,7 @@ type AssetRiskRegisterFormDTO struct {
 	RegistrationDate     string `json:"registration_date" binding:"required,datetime=2006-01-02"`
 	Title                string `json:"title" binding:"required,max=255"`
 	Justification        string `json:"justification"  binding:"required"`
-	SectionID            uint   `json:"section_id" binding:"required"`
+	ResponsibleUnitID    uint   `json:"responsible_unit_id" binding:"required"`
 	DivisionID           uint   `json:"division_id" binding:"required"`
 	ResponsibleUserID    uint   `json:"responsible_user_id" binding:"required"`
 	IsStrategic          *bool  `json:"is_strategic" binding:"required"`
@@ -62,8 +62,8 @@ type AssetRiskRegisterListDTO struct {
 	RiskCategoryTitleAr         string  `json:"risk_category_title_ar"`
 	DivisionTitleEn             string  `json:"division_title_en"`
 	DivisionTitleAr             string  `json:"division_title_ar"`
-	SectionTitleEn              string  `json:"section_title_en"`
-	SectionTitleAr              string  `json:"section_title_ar"`
+	ResponsibleUnitTitleEn      string  `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr      string  `json:"responsible_unit_title_ar"`
 	CurrentLikelihoodTitleEn    string  `json:"current_likelihood_title_en"`
 	CurrentLikelihoodTitleAr    string  `json:"current_likelihood_title_ar"`
 	CurrentImpactTitleEn        string  `json:"current_impact_title_en"`
@@ -122,7 +122,7 @@ type AssetRiskRegisterDetailDTO struct {
 	UpdatedAt            *time.Time `json:"updated_at"`
 
 	RiskStatus              RiskStatusDTO                    `json:"risk_status"`
-	Section                 settingsDTOs.OrganizationUnitDTO `json:"section"`
+	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	Division                settingsDTOs.OrganizationUnitDTO `json:"division"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	RiskCategory            RiskCategoryDTO                  `json:"risk_category"`

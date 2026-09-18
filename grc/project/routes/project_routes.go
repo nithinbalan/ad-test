@@ -26,6 +26,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectAssociatedItemController := app.ProjectModule.ProjectAssociatedItemController
 	projectClassificationController := app.ProjectModule.ProjectClassificationController
 	projectPhaseController := app.ProjectModule.ProjectPhaseController
+	projectWorkflowController := app.ProjectModule.ProjectWorkflowController
+	projectReviewController := app.ProjectModule.ProjectReviewController
+	projectReviewCommentController := app.ProjectModule.ProjectReviewCommentController
 	projectChangeRequestController := app.ProjectModule.ProjectChangeRequestController
 	projectChangeRequestWorkflowController := app.ProjectModule.ProjectChangeRequestWorkflowController
 	projectChangeRequestReviewController := app.ProjectModule.ProjectChangeRequestReviewController
@@ -49,6 +52,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectSecurityGateChecklistCommentController := app.ProjectModule.ProjectSecurityGateChecklistCommentController
 	projectSecurityGateChecklistExceptionWorkflowController := app.ProjectModule.ProjectSecurityGateChecklistExceptionWorkflowController
 	projectSecurityGateChecklistExceptionReviewController := app.ProjectModule.ProjectSecurityGateChecklistExceptionReviewController
+	projectSecurityGateChecklistRiskController := app.ProjectModule.ProjectSecurityGateChecklistRiskController
+	projectSecurityGateReportController := app.ProjectModule.ProjectSecurityGateReportController
 
 	// Source-module controllers
 	controlController := app.OrganizationModule.ControlController
@@ -75,6 +80,34 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.PUT("/projects/:projectId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.UpdateProject)
 	projectRoutes.POST("/projects/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.DeleteProjects)
 	projectRoutes.PUT("/projects/:projectId/status-update", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectController.UpdateProjectStatus)
+
+	// Project Reports
+	projectRoutes.GET("/projects-reports", projectReportController.GetAllProjectReports)
+	projectRoutes.GET("/projects-reports/:projectReportId", projectReportController.GetProjectReportDetails)
+	projectRoutes.POST("/projects-reports", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReportController.CreateProjectReport)
+	projectRoutes.DELETE("/projects-reports/:projectReportId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReportController.DeleteProjectReports)
+	projectRoutes.GET("/projects-reports/:projectReportId/sections/:sectionId", projectReportController.GetProjectReportSection)
+	projectRoutes.PUT("/projects-reports/:projectReportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReportController.UpdateProjectReportSection)
+	projectRoutes.DELETE("/projects-reports/:projectReportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReportController.DeleteProjectReportSection)
+	projectRoutes.GET("/projects-reports/:projectReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectReportController.GetProjectReportExportZip)
+
+	// Project Review & Workflow
+	projectRoutes.POST("/projects/:projectId/submit", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewController.SubmitProject)
+	projectRoutes.POST("/projects/:projectId/resubmit", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewController.ResubmitProject)
+	projectRoutes.POST("/projects/:projectId/approve", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewController.ApproveProject)
+	projectRoutes.POST("/projects/:projectId/revert", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewController.RevertProject)
+	projectRoutes.POST("/projects/:projectId/reject", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewController.RejectProject)
+	projectRoutes.GET("/projects/:projectId/workflow-list", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectWorkflowController.GetWorkflowList)
+
+	// Project Review Comments
+	unauthenticatedRoutes.GET("/projects/:projectId/review-comments/:commentId/document-download", projectReviewCommentController.DownloadDocument)
+	unauthenticatedRoutes.GET("/projects/:projectId/review-comments/:commentId/document-preview", projectReviewCommentController.GetDocumentPreview)
+	projectRoutes.GET("/projects/:projectId/review-comments", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectReviewCommentController.GetAllComments)
+	projectRoutes.GET("/projects/:projectId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectReviewCommentController.GetCommentDetails)
+	projectRoutes.POST("/projects/:projectId/review-comments", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewCommentController.CreateComment)
+	projectRoutes.PUT("/projects/:projectId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewCommentController.UpdateComment)
+	projectRoutes.POST("/projects/:projectId/review-comments/delete", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewCommentController.DeleteComments)
+	projectRoutes.PUT("/projects/:projectId/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "project_register", "modify"), projectReviewCommentController.ResolveComment)
 
 	// Project Milestones
 	projectRoutes.GET("/project-milestones", projectMilestoneController.GetAllProjectMilestones)
@@ -273,6 +306,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/project-security-gates", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateController.CreateProjectSecurityGate)
 	projectRoutes.PUT("/project-security-gates/:id", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateController.UpdateProjectSecurityGate)
 	projectRoutes.POST("/project-security-gates/delete", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateController.DeleteProjectSecurityGates)
+	projectRoutes.PUT("/project-security-gates/:id/go-live", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateController.GoLiveProjectSecurityGate)
+
+	projectRoutes.GET("/project-security-gates/export", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateController.GetProjectSecurityGatesExport)
+	projectRoutes.GET("/project-security-gates/:id/export-pdf", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateReportController.GetProjectSecurityGateReportExportZip)
 
 	// Project Security Gate Checklist
 	projectRoutes.GET("/project-security-gates/:id/checklists", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistController.GetAllProjectSecurityGateChecklists)
@@ -289,19 +326,38 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.PUT("/project-security-gates/:id/checklists/:checklistId/controls", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistController.UpdateProjectSecurityGateChecklistControls)
 
 	// Project Security Gate Checklist Comments
-	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/comments", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistCommentController.CreateProjectSecurityGateChecklistComment)
+	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/comments", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistExceptionReviewController.CreateProjectSecurityGateChecklistComment)
 	projectRoutes.PUT("/project-security-gates/:id/checklists/:checklistId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistCommentController.UpdateProjectSecurityGateChecklistComment)
 	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/comments/delete", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistCommentController.DeleteProjectSecurityGateChecklistComments)
 
 	unauthenticatedRoutes.GET("/project-security-gates/:id/checklists/:checklistId/comments/:commentId/documents/document-download", projectSecurityGateChecklistCommentController.DownloadProjectSecurityGateChecklistCommentDocument)
 	unauthenticatedRoutes.GET("/project-security-gates/:id/checklists/:checklistId/comments/:commentId/documents/document-preview", projectSecurityGateChecklistCommentController.GetProjectSecurityGateChecklistCommentDocumentPreview)
 
+	// Project Security Gate Checklist Risk
+	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/risks", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistRiskController.CreateProjectSecurityGateChecklistRisk)
+	projectRoutes.PUT("/project-security-gates/:id/checklists/:checklistId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistRiskController.UpdateProjectSecurityGateChecklistRisk)
+	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/risks/:riskId/finalize", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistRiskController.FinalizeProjectSecurityGateChecklistRisk)
+
 	// Project Security Gate Checklist Exception Workflow
 	projectRoutes.GET("/project-security-gates/:id/checklists/:checklistId/exception/workflow-list", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistExceptionWorkflowController.GetProjectSecurityGateChecklistExceptionWorkflowList)
-	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/exception/submit", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistExceptionReviewController.SubmitProjectSecurityGateChecklistException)
-	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/exception/approve", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistExceptionReviewController.ApproveProjectSecurityGateChecklistException)
-	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/exception/revert", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistExceptionReviewController.RevertProjectSecurityGateChecklistException)
 
-	unauthenticatedRoutes.GET("/project-security-gates/:id/checklists/:checklistId/exception/histories/:historyId/documents/document-download", projectSecurityGateChecklistExceptionWorkflowController.DownloadProjectSecurityGateChecklistExceptionDocument)
-	unauthenticatedRoutes.GET("/project-security-gates/:id/checklists/:checklistId/exception/histories/:historyId/documents/document-preview", projectSecurityGateChecklistExceptionWorkflowController.GetProjectSecurityGateChecklistExceptionDocumentPreview)
+	// Project Security Gate exception reports
+	projectRoutes.GET("/project-security-gate-exception-reports", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetAllProjectSecurityGateExceptionReports)
+	projectRoutes.GET("/project-security-gate-exception-reports/:reportId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetProjectSecurityGateExceptionReportDetails)
+	projectRoutes.POST("/project-security-gate-exception-reports", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.CreateProjectSecurityGateExceptionReport)
+	projectRoutes.GET("/project-security-gate-exception-reports/:reportId/export-pdf", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.ExportProjectSecurityGateExceptionReportToPDF)
+	projectRoutes.DELETE("/project-security-gate-exception-reports/:reportId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.DeleteProjectSecurityGateExceptionReport)
+	projectRoutes.GET("/project-security-gate-exception-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetProjectSecurityGateExceptionReportSection)
+	projectRoutes.PUT("/project-security-gate-exception-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.UpdateProjectSecurityGateExceptionReportSection)
+	projectRoutes.DELETE("/project-security-gate-exception-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.DeleteProjectSecurityGateExceptionReportSection)
+
+	// Project Security Gate checklist reports
+	projectRoutes.GET("/project-security-gate-reports", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetAllProjectSecurityGateReports)
+	projectRoutes.GET("/project-security-gate-reports/:reportId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetProjectSecurityGateReportDetails)
+	projectRoutes.POST("/project-security-gate-reports", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.CreateProjectSecurityGateReport)
+	projectRoutes.GET("/project-security-gate-reports/:reportId/export-pdf", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.ExportProjectSecurityGateReportToPDF)
+	projectRoutes.DELETE("/project-security-gate-reports/:reportId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.DeleteProjectSecurityGateReport)
+	projectRoutes.GET("/project-security-gate-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "view"), projectSecurityGateReportController.GetProjectSecurityGateReportSection)
+	projectRoutes.PUT("/project-security-gate-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.UpdateProjectSecurityGateReportSection)
+	projectRoutes.DELETE("/project-security-gate-reports/:reportId/sections/:sectionId", middlewares.RolePermissionMiddleware(db, "project_report", "modify"), projectSecurityGateReportController.DeleteProjectSecurityGateReportSection)
 }

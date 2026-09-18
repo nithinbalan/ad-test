@@ -585,7 +585,7 @@ func (dcrrs *DocumentChangeRequestReviewService) sendApprovalNotification(id uin
 		appURL := utility.GetAppURL()
 		emailTo := []string{documentChangeRequest.Document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document Change Request/%s: Approval Notification", documentChangeRequest.Document.TitleEn)
-		urlParam = fmt.Sprintf("%s/document/change-request/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/change-request/%d/overview", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           documentChangeRequest.Document.ResponsibleUser.FirstNameEN,
@@ -664,7 +664,7 @@ func (dcrrs *DocumentChangeRequestReviewService) notifyNextLevelUsers(id uint, n
 				"AssignedByFirstNameEn":     documentChangeRequest.Document.ResponsibleUser.FirstNameEN,
 				"AssignedByLastNameEn":      documentChangeRequest.Document.ResponsibleUser.LastNameEN,
 				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%s/document/change-request/%d", appURL, id),
+				"RedirectURL":               fmt.Sprintf("%s/document/change-request/%d/overview", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -770,7 +770,7 @@ func (dcrrs *DocumentChangeRequestReviewService) sendRejectedNotification(id uin
 		appURL := utility.GetAppURL()
 		emailTo := []string{documentChangeRequest.Document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document Change Request/%s: Rejected Notification", documentChangeRequest.Document.TitleEn)
-		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/change-request/%d/overview", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":               documentChangeRequest.Document.ResponsibleUser.FirstNameEN,
@@ -780,7 +780,7 @@ func (dcrrs *DocumentChangeRequestReviewService) sendRejectedNotification(id uin
 			"DocumentChangeRequestType": documentChangeRequest.DocumentChangeRequestType.TitleEn,
 			"RejectedByFirstNameEn":     rejectedByUser.FirstNameEn,
 			"RejectedByLastNameEn":      rejectedByUser.LastNameEn,
-			"ApprovedAt":                time.Now().Format("2006-01-02"),
+			"RejectedAt":                time.Now().Format("2006-01-02"),
 			"RedirectURL":               urlParam,
 		}
 
@@ -839,7 +839,7 @@ func (dcrrs *DocumentChangeRequestReviewService) sendRevertedNotification(id uin
 		appURL := utility.GetAppURL()
 		emailTo := []string{documentChangeRequest.Document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document Change Request/%s: Reverted Notification", documentChangeRequest.Document.TitleEn)
-		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/change-request/%d/overview", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":               documentChangeRequest.Document.ResponsibleUser.FirstNameEN,
@@ -907,8 +907,8 @@ func (dcrrs *DocumentChangeRequestReviewService) sendCommentNotification(id uint
 		// Prepare email details
 		appURL := utility.GetAppURL()
 		emailTo := []string{documentChangeRequest.Document.ResponsibleUser.Email}
-		subject := fmt.Sprintf("Document/%s: New Comment Notification", documentChangeRequest.Document.TitleEn)
-		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+		subject := fmt.Sprintf("Document Change Request/%s: New Comment Notification", documentChangeRequest.Document.TitleEn)
+		urlParam = fmt.Sprintf("%s/document/change-request/%d/overview", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":               documentChangeRequest.Document.ResponsibleUser.FirstNameEN,

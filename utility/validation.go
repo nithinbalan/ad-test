@@ -679,6 +679,13 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "penetration_test_report_empty_result":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "penetration_test_report_empty_result",
+			})
+			errors = append(errors, errorMessage)
+
 		case "empty_result":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
@@ -749,6 +756,13 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "retest_end_before_start":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "retest_end_before_start",
+			})
+			errors = append(errors, errorMessage)
+
 		case "test_end_before_start":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
@@ -773,6 +787,20 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "risk_requires_implementation_gap":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "risk_requires_implementation_gap",
+			})
+			errors = append(errors, errorMessage)
+
+		case "risk_already_finalized":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "risk_already_finalized",
+			})
+			errors = append(errors, errorMessage)
+
 		case "checklist_not_marked_as_exception":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
@@ -787,6 +815,62 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 				TemplateData: map[string]interface{}{
 					"Field": translatedFieldName,
 				},
+			})
+			errors = append(errors, errorMessage)
+
+		case "security_gate_checklist_not_answered":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "security_gate_checklist_not_answered",
+			})
+			errors = append(errors, errorMessage)
+
+		case "security_gate_checklist_not_implemented":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "security_gate_checklist_not_implemented",
+			})
+			errors = append(errors, errorMessage)
+
+		case "security_gate_exception_not_approved":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "security_gate_exception_not_approved",
+			})
+			errors = append(errors, errorMessage)
+
+		case "security_gate_already_go_live":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "security_gate_already_go_live",
+			})
+			errors = append(errors, errorMessage)
+
+		case "penetration_test_closed":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "penetration_test_closed",
+			})
+			errors = append(errors, errorMessage)
+
+		case "environment_ready_before_notify":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "environment_ready_before_notify",
+			})
+			errors = append(errors, errorMessage)
+
+		case "management_response_before_notify":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "management_response_before_notify",
+			})
+			errors = append(errors, errorMessage)
+
+		case "findings_not_closed":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "findings_not_closed",
 			})
 			errors = append(errors, errorMessage)
 
@@ -823,6 +907,14 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 					MessageID: "field_confirm_password",
 					TemplateData: map[string]interface{}{
 						"Field": translatedFieldName,
+					},
+				})
+			case "max":
+				errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+					MessageID: "field_max_length",
+					TemplateData: map[string]interface{}{
+						"Field": translatedFieldName,
+						"Max":   fe.Param(),
 					},
 				})
 			default:

@@ -91,6 +91,15 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 		return
 	}
 
+	dateFrom := c.Query("date_from")
+	if dateFrom == "" {
+		dateFrom = c.Query("from_date")
+	}
+	dateTo := c.Query("date_to")
+	if dateTo == "" {
+		dateTo = c.Query("to_date")
+	}
+
 	params := documentDTOs.DocumentChangeRequestQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      dbField,
@@ -101,6 +110,8 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	documentChangeRequests, err := dcrc.service.GetAll(&params)
@@ -446,6 +457,9 @@ func (dcrc *DocumentChangeRequestController) RevertDocumentCheckout(c *gin.Conte
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
 			return
 		default:
 			utility.SendInternalErrResp(dcrc.db, c, e.Error())

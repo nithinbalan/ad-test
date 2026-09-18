@@ -91,8 +91,8 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			updated_by_user.last_name_en AS updated_by_user_last_name_en,
 			updated_by_user.last_name_ar AS updated_by_user_last_name_ar,
 			updated_by_user.email AS updated_by_user_email,
-			updated_by_user.initial AS created_by_user_initial,
-	        updated_by_user.color AS created_by_user_color,
+			updated_by_user.initial AS updated_by_user_initial,
+	        updated_by_user.color AS updated_by_user_color,
 			updated_by_user.profile_image_path AS updated_by_user_profile_image_path,
 			document_change_requests.created_at,
 			document_change_requests.updated_at
@@ -122,12 +122,25 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			query = query.Where("change_request_types.type = ?", "major")
 		case "minor-update":
 			query = query.Where("change_request_types.type = ?", "minor")
+		case "archive":
+			query = query.Where("change_request_types.type = ?", "archive")
 		}
+	}
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("document_change_requests.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	} else if params.DateFrom != "" {
+		query = query.Where("document_change_requests.created_at >= ?", params.DateFrom+" 00:00:00")
+	} else if params.DateTo != "" {
+		query = query.Where("document_change_requests.created_at <= ?", params.DateTo+" 23:59:59")
 	}
 
 	if params.Keyword != "" {
 		query = query.Where(`
         (
+			document_change_requests.reference_number LIKE ? OR
+			documents.reference_number LIKE ? OR
 			documents.title_en LIKE ? OR
 			documents.title_ar LIKE ? OR
             document_change_requests.reason_for_change LIKE ? OR
@@ -141,16 +154,19 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 			created_by_user.last_name_en LIKE ? OR
 			created_by_user.last_name_ar LIKE ? OR
 			created_by_user.email LIKE ? OR
+			created_by_user.initial LIKE ? OR
 			updated_by_user.first_name_en LIKE ? OR
 			updated_by_user.first_name_ar LIKE ? OR
 			updated_by_user.last_name_en LIKE ? OR
 			updated_by_user.last_name_ar LIKE ? OR
-			updated_by_user.email LIKE ?
+			updated_by_user.email LIKE ? OR
+			updated_by_user.initial LIKE ?
         )`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order

@@ -25,6 +25,12 @@ type ProjectSecurityGateListDTO struct {
 	BusinessOwnerColor            string     `json:"business_owner_color"`
 	BusinessOwnerEmail            string     `json:"business_owner_email"`
 	BusinessOwnerProfileImagePath string     `json:"business_owner_profile_image_path"`
+	DivisionID                    *uint      `json:"division_id"`
+	DivisionTitleEn               *string    `json:"division_title_en"`
+	DivisionTitleAr               *string    `json:"division_title_ar"`
+	DepartmentID                  *uint      `json:"department_id"`
+	DepartmentTitleEn             *string    `json:"department_title_en"`
+	DepartmentTitleAr             *string    `json:"department_title_ar"`
 	ReadinessStatusID             uint       `json:"readiness_status_id"`
 	ReadinessStatusTitleEn        string     `json:"readiness_status_title_en"`
 	ReadinessStatusTitleAr        string     `json:"readiness_status_title_ar"`
@@ -61,6 +67,8 @@ type ProjectSecurityGateDetailDTO struct {
 	Stage           *ProjectSecurityGateStageDTO            `json:"stage"`
 	TemplateVersion *ProjectSecurityGateTemplateVersionDTO  `json:"template_version"`
 	BusinessOwner   *organizationDTOs.UserMinimalDTO        `json:"business_owner"`
+	Division        *organizationDTOs.OrganizationUnitDTO   `json:"division"`
+	Department      *organizationDTOs.OrganizationUnitDTO   `json:"department"`
 	ReadinessStatus *ProjectSecurityGateReadinessStatusDTO  `json:"readiness_status"`
 	Notes           *string                                 `json:"notes"`
 	CreatedByUser   *organizationDTOs.UserMinimalDTO        `json:"created_by"`
@@ -77,11 +85,14 @@ type ProjectSecurityGateTemplateVersionDTO struct {
 }
 
 type ProjectSecurityGateListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
+	Sort        string
+	SortBy      string
+	Keyword     string
+	QuickFilter []string
+	Filters     map[string][]string
+	Page        int
+	PageSize    int
+	Export      bool
 }
 
 type ProjectSecurityGateListResponseDTO struct {
@@ -100,6 +111,8 @@ type ProjectSecurityGateFormDTO struct {
 	ProjectTitleAr    string  `json:"project_title_ar" binding:"required,max=100"`
 	StageID           uint    `json:"stage_id" binding:"required"`
 	BusinessOwnerID   uint    `json:"business_owner_id" binding:"required"`
+	DivisionID        uint    `json:"division_id" binding:"required"`
+	DepartmentID      uint    `json:"department_id" binding:"required"`
 	ClassificationIDs []uint  `json:"classification_ids" binding:"required,min=1"`
 	Notes             *string `json:"notes"`
 }

@@ -277,6 +277,13 @@ func (repo *UserRepository) GetUsersWithPrimaryUnit(primaryLevelID uint, params 
 			primaryLevelID,
 		)
 
+	// Apply dynamic organization unit filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where("users."+columnName+" IN (?)", values)
+		}
+	}
+
 	// Keyword search
 	if params.Keyword != "" {
 		like := "%" + params.Keyword + "%"

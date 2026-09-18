@@ -130,6 +130,16 @@ func (repo *ProjectActionPlanRepository) GetAll(projectID uint, params *projectD
 		}
 	}
 
+	if params.TargetDateFrom != "" {
+		query = query.Where("project_action_plans.target_date >= ?", params.TargetDateFrom)
+	}
+	if params.TargetDateTo != "" {
+		query = query.Where("project_action_plans.target_date <= ?", params.TargetDateTo)
+	}
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("project_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -166,15 +176,19 @@ func (repo *ProjectActionPlanRepository) GetAll(projectID uint, params *projectD
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Execute the query
-	err := query.Find(&projectActionPlans).Error
-	if err != nil {
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&projectActionPlans).Error; err != nil {
 		return nil, err
 	}
 
-	offset := (params.Page - 1) * params.PageSize
-	if err := query.Offset(offset).Limit(params.PageSize).Find(&projectActionPlans).Error; err != nil {
-		return nil, err
+	if params.Export {
+		return &projectDTOs.ProjectActionPlanListResponseDTO{
+			Items: projectActionPlans,
+		}, nil
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))

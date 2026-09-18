@@ -33,6 +33,7 @@ type ProjectSecurityGateChecklist struct {
 	Documents       []ProjectSecurityGateChecklistResponseDocument   `json:"documents" gorm:"foreignKey:ChecklistID"`
 	Comments        []ProjectSecurityGateChecklistComment            `json:"comments" gorm:"foreignKey:ChecklistID"`
 	Controls        []ProjectSecurityGateChecklistControl            `json:"controls" gorm:"foreignKey:ChecklistID"`
+	Risks           []ProjectSecurityGateChecklistRisk               `json:"risks" gorm:"foreignKey:ChecklistID"`
 
 	ExceptionWorkflows []*ProjectSecurityGateChecklistExceptionWorkflow `json:"exception_workflows" gorm:"foreignKey:ChecklistID"`
 }

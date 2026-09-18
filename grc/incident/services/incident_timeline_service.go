@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/incident/repositories"
 	"jethur/grc/models"
@@ -48,10 +47,10 @@ func (its *IncidentTimelineService) GetAllTypes() ([]models.IncidentTimelineType
 func (its *IncidentTimelineService) GetByID(incidentID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.IncidentTimeline, error) {
 	incidentTimeline, err := its.repo.GetByID(incidentID, timelineTypeID, tx...)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, incidentID)
-		}
 		return nil, err
+	}
+	if incidentTimeline == nil {
+		return nil, utility.NewResourceNotFoundError(gorm.ErrRecordNotFound, incidentID)
 	}
 	return incidentTimeline, nil
 }
@@ -96,18 +95,20 @@ func (its *IncidentTimelineService) Create(timelineFormDTOs []*incidentDTOs.Inci
 }
 
 func (its *IncidentTimelineService) Update(incidentID uint, incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, timelineTypeID uint, tx ...utility.DatabaseTransaction) error {
-	existingTimeline, err := its.GetByID(incidentID, timelineTypeID, tx...)
+	existingTimeline, err := its.repo.GetByID(incidentID, timelineTypeID, tx...)
 	if err != nil {
 		return err
+	}
+	if existingTimeline == nil {
+		existingTimeline = &models.IncidentTimeline{
+			IncidentRegisterID:     incidentID,
+			IncidentTimelineTypeID: timelineTypeID,
+		}
 	}
 	existingTimeline.PerformedByID = incidentTimelineFormDTO.PerformedByID
 	existingTimeline.PerformedAt = incidentTimelineFormDTO.PerformedAt
 	existingTimeline.TimelineStatusID = incidentTimelineFormDTO.TimelineStatusID
-	err = its.repo.Update(existingTimeline, tx...)
-	if err != nil {
-		return err
-	}
-	return nil
+	return its.repo.Update(existingTimeline, tx...)
 }
 
 func (its *IncidentTimelineService) Delete(incidentID uint, tx ...utility.DatabaseTransaction) error {
@@ -122,4 +123,3 @@ func (its *IncidentTimelineService) Delete(incidentID uint, tx ...utility.Databa
 
 	return nil
 }
-

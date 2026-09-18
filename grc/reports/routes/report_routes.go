@@ -13,8 +13,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	reportsRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
-	db := app.DB
-
 	complianceReportController := app.ReportsModule.ComplianceReportController
 	organizationReportController := app.ReportsModule.OrganizationReportController
 	riskReportController := app.ReportsModule.RiskReportController
@@ -29,6 +27,28 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	grcReportWorkflowController := app.ReportsModule.GRCReportWorkflowController
 	grcReportWorkflowReviewCommentController := app.ReportsModule.GRCReportWorkflowReviewCommentController
 	tprmReportController := app.ReportsModule.TPRMReportController
+	projectReportController := app.ReportsModule.ProjectReportController
+	projectSecurityGateReportController := app.ReportsModule.ProjectSecurityGateReportController
+
+	penetrationTestReportController := app.ReportsModule.PenetrationTestReportController
+	reportsRoutes.GET("/reports/penetration-tests", penetrationTestReportController.GetAllPenetrationTests)
+	reportsRoutes.GET("/reports/penetration-tests/export", penetrationTestReportController.GetPenetrationTestExport)
+	reportsRoutes.GET("/reports/penetration-test-findings", penetrationTestReportController.GetAllPenetrationTestFindings)
+	reportsRoutes.GET("/reports/penetration-test-findings/export", penetrationTestReportController.GetPenetrationTestFindingExport)
+	reportsRoutes.GET("/reports/penetration-test-finding-by-responsible-unit", penetrationTestReportController.GetPenetrationTestFindingByResponsibleUnit)
+	reportsRoutes.GET("/reports/penetration-test-finding-by-responsible-user", penetrationTestReportController.GetPenetrationTestFindingByResponsibleUser)
+	reportsRoutes.GET("/reports/penetration-test-finding-by-status", penetrationTestReportController.GetPenetrationTestFindingByStatus)
+	reportsRoutes.GET("/reports/penetration-test-finding-by-severity-level", penetrationTestReportController.GetPenetrationTestFindingBySeverityLevel)
+	reportsRoutes.GET("/reports/penetration-test-by-type", penetrationTestReportController.GetPenetrationTestByType)
+	reportsRoutes.GET("/reports/penetration-test-by-status", penetrationTestReportController.GetPenetrationTestByStatus)
+	reportsRoutes.GET("/reports/penetration-test-by-classification", penetrationTestReportController.GetPenetrationTestByClassification)
+	reportsRoutes.GET("/reports/penetration-test-by-plan", penetrationTestReportController.GetPenetrationTestByPlan)
+	reportsRoutes.GET("/reports/penetration-test-by-executor", penetrationTestReportController.GetPenetrationTestByExecutor)
+	reportsRoutes.GET("/reports/penetration-test-by-responsible-user", penetrationTestReportController.GetPenetrationTestByResponsibleUser)
+	reportsRoutes.GET("/reports/penetration-test-by-created-user", penetrationTestReportController.GetPenetrationTestByCreatedUser)
+	reportsRoutes.GET("/reports/penetration-test-by-responsible-unit", penetrationTestReportController.GetPenetrationTestByResponsibleUnit)
+	reportsRoutes.GET("/reports/penetration-test-by-year", penetrationTestReportController.GetPenetrationTestByYear)
+	reportsRoutes.GET("/reports/penetration-test-by-period", penetrationTestReportController.GetPenetrationTestByPeriod)
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -172,6 +192,31 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-user", incidentReportController.GetIncidentActionPlanByResponsibleUser)
 	reportsRoutes.GET("/reports/incident-action-plan-by-responsible-unit", incidentReportController.GetIncidentActionPlanByResponsibleUnit)
 
+	//Projects
+	reportsRoutes.GET("/reports/projects", projectReportController.GetAllProjects)
+	reportsRoutes.GET("/reports/projects/export", projectReportController.GetProjectExport)
+	reportsRoutes.GET("/reports/project-by-type", projectReportController.GetProjectByType)
+	reportsRoutes.GET("/reports/project-by-status", projectReportController.GetProjectByStatus)
+	reportsRoutes.GET("/reports/project-by-phase", projectReportController.GetProjectByPhase)
+	reportsRoutes.GET("/reports/project-by-classification", projectReportController.GetProjectByClassification)
+	reportsRoutes.GET("/reports/project-by-responsible-unit", projectReportController.GetProjectByResponsibleUnit)
+	reportsRoutes.GET("/reports/project-by-responsible-user", projectReportController.GetProjectByResponsibleUser)
+	reportsRoutes.GET("/reports/project-by-year", projectReportController.GetProjectByYear)
+
+	//Project Action Plans
+	reportsRoutes.GET("/reports/project-action-plans", projectReportController.GetAllProjectActionPlans)
+	reportsRoutes.GET("/reports/project-action-plans/export", projectReportController.GetProjectActionPlanExport)
+	reportsRoutes.GET("/reports/project-action-plan-by-status", projectReportController.GetProjectActionPlanByStatus)
+	reportsRoutes.GET("/reports/project-action-plan-by-responsible-user", projectReportController.GetProjectActionPlanByResponsibleUser)
+	reportsRoutes.GET("/reports/project-action-plan-by-responsible-unit", projectReportController.GetProjectActionPlanByResponsibleUnit)
+
+	//Project Security Gates
+	reportsRoutes.GET("/reports/project-security-gates", projectSecurityGateReportController.GetAllProjectSecurityGates)
+	reportsRoutes.GET("/reports/project-security-gates/export", projectSecurityGateReportController.GetProjectSecurityGateExport)
+	reportsRoutes.GET("/reports/project-security-gate-by-stage", projectSecurityGateReportController.GetProjectSecurityGateByStage)
+	reportsRoutes.GET("/reports/project-security-gate-by-readiness-status", projectSecurityGateReportController.GetProjectSecurityGateByReadinessStatus)
+	reportsRoutes.GET("/reports/project-security-gate-by-classification", projectSecurityGateReportController.GetProjectSecurityGateByClassification)
+
 	reportsRoutes.GET("/reports/audit-insight-audits", auditInsightReportController.GetAllAuditInsightsAudits)
 	reportsRoutes.GET("/reports/audit-insight-audits/export", auditInsightReportController.GetAllAuditInsightsAuditsExport)
 	reportsRoutes.GET("/reports/audit-insight-audit-by-status", auditInsightReportController.GetAuditByStatus)
@@ -236,16 +281,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Documents
 	reportsRoutes.GET("/reports/documents", documentReportController.GetAllDocuments)
 	reportsRoutes.GET("/reports/documents/export", documentReportController.GetDocumentExport)
-	reportsRoutes.GET("/reports/document-by-category", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByCategory)
-	reportsRoutes.GET("/reports/document-by-type", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByType)
-	reportsRoutes.GET("/reports/document-by-status", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByStatus)
-	reportsRoutes.GET("/reports/document-by-responsible-unit", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByResponsibleUnit)
-	reportsRoutes.GET("/reports/document-by-responsible-user", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByResponsibleUser)
-	reportsRoutes.GET("/reports/document-by-access", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByAccess)
-	reportsRoutes.GET("/reports/document-by-policy-and-procedure", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByPolicyAndProcedure)
-	reportsRoutes.GET("/reports/document-by-published-and-archived", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentByPublishedAndArchived)
-	reportsRoutes.GET("/reports/document-by-published-year", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentPublishedByYear)
-	reportsRoutes.GET("/reports/document-by-published-month", middlewares.DocumentAccessCheckingMiddleware(db), documentReportController.GetDocumentPublishedByMonth)
+	reportsRoutes.GET("/reports/document-by-category", documentReportController.GetDocumentByCategory)
+	reportsRoutes.GET("/reports/document-by-type", documentReportController.GetDocumentByType)
+	reportsRoutes.GET("/reports/document-by-status", documentReportController.GetDocumentByStatus)
+	reportsRoutes.GET("/reports/document-by-responsible-unit", documentReportController.GetDocumentByResponsibleUnit)
+	reportsRoutes.GET("/reports/document-by-responsible-user", documentReportController.GetDocumentByResponsibleUser)
+	reportsRoutes.GET("/reports/document-by-access", documentReportController.GetDocumentByAccess)
+	reportsRoutes.GET("/reports/document-by-policy-and-procedure", documentReportController.GetDocumentByPolicyAndProcedure)
+	reportsRoutes.GET("/reports/document-by-published-and-archived", documentReportController.GetDocumentByPublishedAndArchived)
+	reportsRoutes.GET("/reports/document-by-published-year", documentReportController.GetDocumentPublishedByYear)
+	reportsRoutes.GET("/reports/document-by-published-month", documentReportController.GetDocumentPublishedByMonth)
 
 	reportsRoutes.GET("/reports/document-change-requests", documentReportController.GetAllDocumentChangeRequests)
 	reportsRoutes.GET("/reports/document-change-requests/export", documentReportController.GetDocumentChangeRequestExport)

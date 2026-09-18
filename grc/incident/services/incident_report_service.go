@@ -10,6 +10,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	organizationServices "jethur/grc/organization/services"
 	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
 	"os"
@@ -23,7 +24,7 @@ import (
 
 type IncidentReportServiceInterface interface {
 	ExportIncidentReport(id uint, currentUserID uint) (string, error)
-	GetFullReportDetailsByID(id uint) (*incidentDTOs.IncidentReportDetailDTO, error)
+	GetFullReportDetailsByID(id uint, formatter *utility.DateTimeFormatter) (*incidentDTOs.IncidentReportDetailDTO, error)
 	GetAll(params *incidentDTOs.IncidentReportListQueryParamsDTO) (*incidentDTOs.IncidentReportListResponseDTO, error)
 	Create(currentUserID uint, dto incidentDTOs.IncidentReportRequestDTO) (uint, error)
 	GetIncidentReportDetails(id uint) (*incidentDTOs.IncidentReportDetailsDTO, error)
@@ -41,6 +42,8 @@ type IncidentReportService struct {
 	incidentRootCauseAnalysisSvc IncidentRootCauseAnalysisServiceInterface
 	incidentActionPlanSvc        IncidentActionPlanServiceInterface
 	activityLogSvc               logServices.ActivityLogServiceInterface
+	userSettingSvc               organizationServices.UserSettingServiceInterface
+	systemPreferenceSvc          settingSvc.SystemPreferenceServiceInterface
 }
 
 func NewIncidentReportService(
@@ -49,6 +52,8 @@ func NewIncidentReportService(
 	incidentRootCauseAnalysisSvc IncidentRootCauseAnalysisServiceInterface,
 	incidentActionPlanSvc IncidentActionPlanServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	systemPreferenceSvc settingSvc.SystemPreferenceServiceInterface,
 ) IncidentReportServiceInterface {
 	return &IncidentReportService{
 		repo:                         repo,
@@ -56,6 +61,8 @@ func NewIncidentReportService(
 		incidentRootCauseAnalysisSvc: incidentRootCauseAnalysisSvc,
 		incidentActionPlanSvc:        incidentActionPlanSvc,
 		activityLogSvc:               activityLogSvc,
+		userSettingSvc:               userSettingSvc,
+		systemPreferenceSvc:          systemPreferenceSvc,
 	}
 }
 
@@ -63,7 +70,7 @@ func (irs *IncidentReportService) GetAll(params *incidentDTOs.IncidentReportList
 	return irs.repo.GetAll(params)
 }
 
-func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTOs.IncidentReportDetailDTO, error) {
+func (irs IncidentReportService) GetFullReportDetailsByID(id uint, formatter *utility.DateTimeFormatter) (*incidentDTOs.IncidentReportDetailDTO, error) {
 	// Initialize your DTO
 	var incidentDTO incidentDTOs.IncidentReportDetailDTO
 	incident, err := irs.repo.GetFullReportDetailsByID(id)
@@ -147,17 +154,17 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 	incidentDTO.ComplianceRequirements = complianceRequirements
 
 	if incident.IncidentClosure != nil && incident.IncidentClosure.CompletionDate != nil {
-		dateStr := incident.IncidentClosure.CompletionDate.Format("2006-01-02")
+		dateStr := formatter.FormatDate(incident.IncidentClosure.CompletionDate)
 		incidentDTO.IncidentClosure.CompletionDateString = &dateStr
 	}
 
 	if incident.Investigation != nil && incident.Investigation.InitiatedAt != nil {
-		dateStr := incident.Investigation.InitiatedAt.Format("2006-01-02")
+		dateStr := formatter.FormatDate(incident.Investigation.InitiatedAt)
 		incidentDTO.Investigation.InitiatedAtString = &dateStr
 	}
 
-	incidentDTO.IncidentAtFormatted = incident.IncidentAt.Format("01 02, 2006, 03:04 PM")
-	incidentDTO.ReportedAtFormatted = incident.ReportedAt.Format("01 02, 2006, 03:04 PM")
+	incidentDTO.IncidentAtFormatted = formatter.FormatDateTime(incident.IncidentAt)
+	incidentDTO.ReportedAtFormatted = formatter.FormatDateTime(incident.ReportedAt)
 
 	incidentDTO.Timelines = []*incidentDTOs.IncidentTimelineListDTO{}
 	for _, t := range incident.Timelines {
@@ -189,12 +196,27 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 }
 
 func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uint) (string, error) {
-	incidentDTO, err := irs.GetFullReportDetailsByID(id)
+
+	// Validate that template images are configured
+	if _, err := irs.settigSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := irs.settigSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover_image_missing")
+	}
+
+	formatter, err := irs.getDateTimeFormatter(currentUserID)
 	if err != nil {
 		return "", err
 	}
 
-	incidentDTO.GeneratedAt = time.Now().Format("2006-01-02 03:04 PM")
+	incidentDTO, err := irs.GetFullReportDetailsByID(id, formatter)
+	if err != nil {
+		return "", err
+	}
+
+	now := time.Now()
+	incidentDTO.GeneratedAt = formatter.FormatDateTime(&now)
 
 	// Main content template
 	templatePaths := []string{"incident/templates/pdf/incident_report.html"}
@@ -229,6 +251,25 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 	}
 
 	return pdfFileName, nil
+}
+
+func (irs *IncidentReportService) getDateTimeFormatter(currentUserID uint) (*utility.DateTimeFormatter, error) {
+	userSetting, err := irs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	systemPreference, err := irs.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	var tzName string
+	if userSetting != nil && userSetting.Timezone != nil {
+		tzName = *userSetting.Timezone
+	}
+
+	return utility.NewDateTimeFormatter(tzName, systemPreference.DateFormat, systemPreference.TimeFormat), nil
 }
 
 func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.IncidentReportRequestDTO) (uint, error) {
@@ -1029,6 +1070,7 @@ func (irs *IncidentReportService) GetIncidentReportDetails(id uint) (*incidentDT
 			}
 		}
 	}
+	response.CreatedAt = report.CreatedAt
 
 	return &response, nil
 }
@@ -1238,6 +1280,19 @@ func (irs *IncidentReportService) DeleteIncidentReportSection(incidentReportID u
 }
 
 func (irs *IncidentReportService) GetIncidentReportExportZip(incidentReportID uint, currentUserID uint) (string, error) {
+	// Validate that template images are configured
+	if _, err := irs.settigSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := irs.settigSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover_image_missing")
+	}
+
+	formatter, err := irs.getDateTimeFormatter(currentUserID)
+	if err != nil {
+		return "", err
+	}
+
 	incidentReport, err := irs.GetIncidentReportDetails(incidentReportID)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch incident report details: %w", err)
@@ -1246,27 +1301,12 @@ func (irs *IncidentReportService) GetIncidentReportExportZip(incidentReportID ui
 	var incidents []*incidentDTOs.IncidentReportIncidentPDFDTO
 
 	for _, incident := range incidentReport.Incidents {
-		var incidentAtFormatted, reportedAtFormatted string
-		if incident.IncidentAt != nil {
-			incidentAtFormatted = incident.IncidentAt.Format("Jan _2, 2006, 03:04 PM")
-		}
-		if incident.ReportedAt != nil {
-			reportedAtFormatted = incident.ReportedAt.Format("Jan _2, 2006, 03:04 PM")
-		}
-
-		var acknowledgedAtString, closedDateString, closureSubmittedAtString, closureApprovedAtString string
-		if incident.AcknowledgedAt != nil {
-			acknowledgedAtString = incident.AcknowledgedAt.Format("Jan _2, 2006, 03:04 PM")
-		}
-		if incident.ClosedDate != nil {
-			closedDateString = incident.ClosedDate.Format("Jan _2, 2006, 03:04 PM")
-		}
-		if incident.ClosureSubmittedAt != nil {
-			closureSubmittedAtString = incident.ClosureSubmittedAt.Format("Jan _2, 2006, 03:04 PM")
-		}
-		if incident.ClosureApprovedAt != nil {
-			closureApprovedAtString = incident.ClosureApprovedAt.Format("Jan _2, 2006, 03:04 PM")
-		}
+		incidentAtFormatted := formatter.FormatDateTime(incident.IncidentAt)
+		reportedAtFormatted := formatter.FormatDateTime(incident.ReportedAt)
+		acknowledgedAtString := formatter.FormatDateTime(incident.AcknowledgedAt)
+		closedDateString := formatter.FormatDateTime(incident.ClosedDate)
+		closureSubmittedAtString := formatter.FormatDateTime(incident.ClosureSubmittedAt)
+		closureApprovedAtString := formatter.FormatDateTime(incident.ClosureApprovedAt)
 
 		incidentItem := &incidentDTOs.IncidentReportIncidentPDFDTO{
 			ID:                                       incident.ID,
@@ -1373,17 +1413,13 @@ func (irs *IncidentReportService) GetIncidentReportExportZip(incidentReportID ui
 		}
 	}
 
-	var startDateStr, endDateStr string
-	if incidentReport.StartDate != nil {
-		startDateStr = incidentReport.StartDate.Format("Jan _2, 2006, 03:04 PM")
-	}
-	if incidentReport.EndDate != nil {
-		endDateStr = incidentReport.EndDate.Format("Jan _2, 2006")
-	}
+	startDateStr := formatter.FormatDateTime(incidentReport.StartDate)
+	endDateStr := formatter.FormatDate(incidentReport.EndDate)
 
-	parsedCreatedAt := incidentReport.CreatedAt.Format("2006-01-02")
-	reportedAt := incidentReport.CreatedAt.Format("02,Jan 2006")
-	generatedAt := time.Now().Format("Jan _2, 2006, 03:04 PM")
+	parsedCreatedAt := formatter.FormatDate(&incidentReport.CreatedAt)
+	reportedAt := formatter.FormatDateTime(&incidentReport.CreatedAt)
+	now := time.Now()
+	generatedAt := formatter.FormatDateTime(&now)
 
 	var createdUserFirstNameEn, createdUserFirstNameAr, createdUserLastNameEn, createdUserLastNameAr string
 	if incidentReport.CreatedByUser != nil {

@@ -19,6 +19,7 @@ type PenetrationTestRetestRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.PenetrationTestRetest, error)
 	Create(penetrationTestRetest *models.PenetrationTestRetest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(penetrationTestRetest *models.PenetrationTestRetest, tx ...utility.DatabaseTransaction) error
+	UpdateStatus(id uint, statusID uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateRetestFinding(penetrationTestRetestFinding *models.PenetrationTestRetestFinding, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateRetestFinding(penetrationTestRetestFinding *models.PenetrationTestRetestFinding, tx ...utility.DatabaseTransaction) error
@@ -29,7 +30,7 @@ type PenetrationTestRetestRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.PenetrationTestRetestFindingDocument, error)
 	DeleteDocuments(docIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteRetestFindingDocumentsByRetestID(penetrationTestRetestID uint, tx ...utility.DatabaseTransaction) error
-	GetEligibleOpenFindings(penetrationTestRetestID uint, penetrationTestID uint, closedStatusID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error)
+	GetEligibleOpenFindings(penetrationTestID uint, closedStatusID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error)
 	GenerateReferenceNumber(penetrationTestID uint, tx ...utility.DatabaseTransaction) (string, error)
 }
 
@@ -61,15 +62,20 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 			penetration_test_retests.penetration_test_executor_id,
 			penetration_test_executors.title_en AS executor_title_en,
 			penetration_test_executors.title_ar AS executor_title_ar,
-			penetration_test_retests.status,
+			penetration_test_retests.penetration_test_retest_status_id,
+			penetration_test_retest_statuses.title_en AS status_title_en,
+			penetration_test_retest_statuses.title_ar AS status_title_ar,
+			penetration_test_retest_statuses.color_code AS status_color_code,
+			penetration_test_retest_statuses.type AS status_type,
 			penetration_test_retests.notes,
 			(
 				SELECT COUNT(*)
 				FROM penetration_test_retest_findings
 				INNER JOIN penetration_test_findings ON penetration_test_findings.id = penetration_test_retest_findings.penetration_test_finding_id
 				INNER JOIN severity_levels ON severity_levels.id = penetration_test_findings.severity_level_id
+				LEFT JOIN penetration_test_retest_results ON penetration_test_retest_results.id = penetration_test_retest_findings.retest_result_id
 				WHERE penetration_test_retest_findings.penetration_test_retest_id = penetration_test_retests.id
-				AND (penetration_test_retest_findings.result IS NULL OR penetration_test_retest_findings.result <> 'pass')
+				AND (penetration_test_retest_results.type IS NULL OR penetration_test_retest_results.type <> 'pass')
 				AND severity_levels.type = 'critical'
 			) AS remaining_critical,
 			(
@@ -77,8 +83,9 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 				FROM penetration_test_retest_findings
 				INNER JOIN penetration_test_findings ON penetration_test_findings.id = penetration_test_retest_findings.penetration_test_finding_id
 				INNER JOIN severity_levels ON severity_levels.id = penetration_test_findings.severity_level_id
+				LEFT JOIN penetration_test_retest_results ON penetration_test_retest_results.id = penetration_test_retest_findings.retest_result_id
 				WHERE penetration_test_retest_findings.penetration_test_retest_id = penetration_test_retests.id
-				AND (penetration_test_retest_findings.result IS NULL OR penetration_test_retest_findings.result <> 'pass')
+				AND (penetration_test_retest_results.type IS NULL OR penetration_test_retest_results.type <> 'pass')
 				AND severity_levels.type = 'high'
 			) AS remaining_high,
 			(
@@ -86,8 +93,9 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 				FROM penetration_test_retest_findings
 				INNER JOIN penetration_test_findings ON penetration_test_findings.id = penetration_test_retest_findings.penetration_test_finding_id
 				INNER JOIN severity_levels ON severity_levels.id = penetration_test_findings.severity_level_id
+				LEFT JOIN penetration_test_retest_results ON penetration_test_retest_results.id = penetration_test_retest_findings.retest_result_id
 				WHERE penetration_test_retest_findings.penetration_test_retest_id = penetration_test_retests.id
-				AND (penetration_test_retest_findings.result IS NULL OR penetration_test_retest_findings.result <> 'pass')
+				AND (penetration_test_retest_results.type IS NULL OR penetration_test_retest_results.type <> 'pass')
 				AND severity_levels.type = 'medium'
 			) AS remaining_medium,
 			(
@@ -95,15 +103,17 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 				FROM penetration_test_retest_findings
 				INNER JOIN penetration_test_findings ON penetration_test_findings.id = penetration_test_retest_findings.penetration_test_finding_id
 				INNER JOIN severity_levels ON severity_levels.id = penetration_test_findings.severity_level_id
+				LEFT JOIN penetration_test_retest_results ON penetration_test_retest_results.id = penetration_test_retest_findings.retest_result_id
 				WHERE penetration_test_retest_findings.penetration_test_retest_id = penetration_test_retests.id
-				AND (penetration_test_retest_findings.result IS NULL OR penetration_test_retest_findings.result <> 'pass')
+				AND (penetration_test_retest_results.type IS NULL OR penetration_test_retest_results.type <> 'pass')
 				AND severity_levels.type = 'low'
 			) AS remaining_low,
 			(
 				SELECT COUNT(*)
 				FROM penetration_test_retest_findings
+				LEFT JOIN penetration_test_retest_results ON penetration_test_retest_results.id = penetration_test_retest_findings.retest_result_id
 				WHERE penetration_test_retest_findings.penetration_test_retest_id = penetration_test_retests.id
-				AND (penetration_test_retest_findings.result IS NULL OR penetration_test_retest_findings.result <> 'pass')
+				AND (penetration_test_retest_results.type IS NULL OR penetration_test_retest_results.type <> 'pass')
 			) AS remaining_total,
 			CONVERT(varchar(30), penetration_test_retests.created_at, 126) AS created_at,
 			CONVERT(varchar(30), penetration_test_retests.updated_at, 126) AS updated_at,
@@ -118,6 +128,7 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 			created_user.profile_image_path AS created_user_profile_image_path
 		`).
 		Joins("LEFT JOIN penetration_test_executors ON penetration_test_executors.id = penetration_test_retests.penetration_test_executor_id").
+		Joins("LEFT JOIN penetration_test_retest_statuses ON penetration_test_retest_statuses.id = penetration_test_retests.penetration_test_retest_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = penetration_test_retests.created_by_id")
 
 	if params.PenetrationTestID > 0 {
@@ -133,7 +144,7 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 			keyword, keyword, keyword, keyword)
 	}
 	if params.Status != "" {
-		query = query.Where("penetration_test_retests.status = ?", params.Status)
+		query = query.Where("penetration_test_retest_statuses.type = ?", params.Status)
 	}
 
 	for columnName, values := range params.Filters {
@@ -141,16 +152,21 @@ func (repo *PenetrationTestRetestRepository) GetAll(params *penetrationTestDTOs.
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
-	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("penetration_test_retests.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	if params.DateFrom != "" {
+		query = query.Where("penetration_test_retests.created_at >= ?", params.DateFrom+" 00:00:00")
+	}
+	if params.DateTo != "" {
+		query = query.Where("penetration_test_retests.created_at <= ?", params.DateTo+" 23:59:59")
 	}
 
 	for _, filter := range params.QuickFilter {
 		switch filter {
+		case "draft":
+			query = query.Where("penetration_test_retest_statuses.type = ?", "draft")
 		case "in_progress":
-			query = query.Where("penetration_test_retests.status = ?", "in-progress")
+			query = query.Where("penetration_test_retest_statuses.type = ?", "in-progress")
 		case "completed":
-			query = query.Where("penetration_test_retests.status = ?", "completed")
+			query = query.Where("penetration_test_retest_statuses.type = ?", "completed")
 		}
 	}
 
@@ -197,10 +213,14 @@ func (repo *PenetrationTestRetestRepository) GetByID(id uint, tx ...utility.Data
 	result := db.
 		Preload("PenetrationTest").
 		Preload("PenetrationTestExecutor").
+		Preload("PenetrationTestRetestStatus").
 		Preload("RetestFindings").
 		Preload("RetestFindings.Documents").
 		Preload("RetestFindings.PenetrationTestFinding").
 		Preload("RetestFindings.PenetrationTestFinding.SeverityLevel").
+		Preload("RetestFindings.CommentByUser").
+		Preload("RetestFindings.ResultByUser").
+		Preload("RetestFindings.RetestResult").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&penetrationTestRetest, id)
@@ -215,7 +235,10 @@ func (repo *PenetrationTestRetestRepository) GetByID(id uint, tx ...utility.Data
 
 func (repo *PenetrationTestRetestRepository) GetActiveByPenetrationTestID(penetrationTestID uint) (*models.PenetrationTestRetest, error) {
 	var penetrationTestRetest *models.PenetrationTestRetest
-	result := repo.db.Where("penetration_test_id = ? AND status = ?", penetrationTestID, "in-progress").First(&penetrationTestRetest)
+	result := repo.db.
+		Joins("LEFT JOIN penetration_test_retest_statuses ON penetration_test_retest_statuses.id = penetration_test_retests.penetration_test_retest_status_id").
+		Where("penetration_test_retests.penetration_test_id = ? AND penetration_test_retest_statuses.type IN ?", penetrationTestID, []string{"draft", "in-progress"}).
+		First(&penetrationTestRetest)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -242,6 +265,14 @@ func (repo *PenetrationTestRetestRepository) Update(penetrationTestRetest *model
 		db = tx[0].DB()
 	}
 	return db.Model(&models.PenetrationTestRetest{}).Where("id = ?", penetrationTestRetest.ID).Updates(penetrationTestRetest).Error
+}
+
+func (repo *PenetrationTestRetestRepository) UpdateStatus(id uint, statusID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.PenetrationTestRetest{}).Where("id = ?", id).Update("penetration_test_retest_status_id", statusID).Error
 }
 
 func (repo *PenetrationTestRetestRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
@@ -338,7 +369,7 @@ func (repo *PenetrationTestRetestRepository) DeleteRetestFindingDocumentsByRetes
 	return db.Where("penetration_test_retest_finding_id IN (?)", db.Model(&models.PenetrationTestRetestFinding{}).Select("id").Where("penetration_test_retest_id = ?", penetrationTestRetestID)).Delete(&models.PenetrationTestRetestFindingDocument{}).Error
 }
 
-func (repo *PenetrationTestRetestRepository) GetEligibleOpenFindings(penetrationTestRetestID uint, penetrationTestID uint, closedStatusID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error) {
+func (repo *PenetrationTestRetestRepository) GetEligibleOpenFindings(penetrationTestID uint, closedStatusID uint) ([]*penetrationTestDTOs.PenetrationTestFindingListDTO, error) {
 	var penetrationTestFindings []*penetrationTestDTOs.PenetrationTestFindingListDTO
 
 	query := repo.db.Table("penetration_test_findings").
@@ -376,8 +407,7 @@ func (repo *PenetrationTestRetestRepository) GetEligibleOpenFindings(penetration
 		Joins("LEFT JOIN action_plan_statuses ON action_plan_statuses.id = penetration_test_findings.action_plan_status_id").
 		Joins("LEFT JOIN users AS owner_user ON owner_user.id = penetration_test_findings.owner_id").
 		Where("penetration_test_findings.penetration_test_id = ?", penetrationTestID).
-		Where("penetration_test_findings.action_plan_status_id <> ?", closedStatusID).
-		Where("penetration_test_findings.id NOT IN (?)", repo.db.Model(&models.PenetrationTestRetestFinding{}).Select("penetration_test_finding_id").Where("penetration_test_retest_id = ?", penetrationTestRetestID))
+		Where("penetration_test_findings.action_plan_status_id <> ?", closedStatusID)
 
 	if err := query.Order("penetration_test_findings.created_at desc").Find(&penetrationTestFindings).Error; err != nil {
 		return nil, err

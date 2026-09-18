@@ -203,6 +203,19 @@ func (uc *UserController) GetAllUsersWithPrimaryUnit(c *gin.Context) {
 		"name_ar":        "CONCAT(users.first_name_ar, ' ', users.last_name_ar)",
 	}
 
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"organization_unit_ids", // to get users based on primary organization level
+		"organization_unit_id",
+		"organization_unit_1_ids",
+		"organization_unit_2_ids",
+		"organization_unit_3_ids",
+		"organization_unit_4_ids",
+		"organization_unit_5_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, "Invalid page parameter")
@@ -228,6 +241,7 @@ func (uc *UserController) GetAllUsersWithPrimaryUnit(c *gin.Context) {
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Filters:  filters,
 	}
 
 	users, err := uc.service.GetAllUsersWithPrimaryUnit(&queryParams)
@@ -695,7 +709,7 @@ func (uc *UserController) ListUsersInGroups(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
-	users, nextToken, err := uc.service.ListUsersInGroups(req.GroupDNs,req.NextToken,req.PageSize,req.Search)
+	users, nextToken, err := uc.service.ListUsersInGroups(req.GroupDNs, req.NextToken, req.PageSize, req.Search)
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, err.Error())
 		return

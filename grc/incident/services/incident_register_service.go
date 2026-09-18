@@ -1030,7 +1030,7 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 		}
 
 		// Delete the incident
-		if err := irs.repo.Delete(id, tx); err != nil {
+		if err := irs.repo.ForceDelete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		} else {
@@ -1472,11 +1472,24 @@ func (irs *IncidentRegisterService) GetDocumentPath(id uint, token string) (stri
 }
 
 func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.IncidentRegisterListDTO, currentUserID uint) (*os.File, error) {
-	// Fetch user setting for language preference
-	userSetting, err := is.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	// Fetch user setting (language + resolved timezone name)
+	userSetting, err := is.userSettingSvc.GetUserSetting(currentUserID)
 	if err != nil {
 		return nil, err
 	}
+
+	// Fetch system preference for configured date/time format
+	systemPreference, err := is.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	var tzName string
+	if userSetting != nil && userSetting.Timezone != nil {
+		tzName = *userSetting.Timezone
+	}
+	formatter := utility.NewDateTimeFormatter(tzName, systemPreference.DateFormat, systemPreference.TimeFormat)
+
 	var headers []string
 	// Define headers based on the user's language setting
 	if userSetting.Language == "ar" {
@@ -1529,21 +1542,24 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 	// Convert the incident register data to [][]interface{} based on language setting
 	rows := make([][]interface{}, len(data))
 	for i, incident := range data {
+		incidentAtStr := formatter.FormatDateTime(&incident.IncidentAt)
+		reportedAtStr := formatter.FormatDateTime(incident.ReportedAt)
+
 		if userSetting.Language == "ar" {
 			// Populate row data in Arabic
 			rows[i] = []interface{}{
 				i + 1,
 				incident.ReferenceNumber,
 				incident.Title,
-				incident.IncidentAt,
+				incidentAtStr,
 				incident.IncidentCategoryTitleAr,
 				incident.SeverityLevelTitleAr,
 				utility.GetStringValue(incident.Location),
 				incident.ReportedUserFirstNameAr + " " + incident.ReportedUserLastNameAr,
 				incident.ResponsibleUserFirstNameAr + " " + incident.ResponsibleUserLastNameAr,
-				incident.ReportedAt,
+				reportedAtStr,
 				incident.IncidentStatusTitleAr,
-				utility.GetStringValue(incident.QuickAction),
+				utility.StripAllHTMLTags(utility.GetStringValue(incident.QuickAction)),
 				utility.GetStringValue(incident.InvestigationInitiatedAt),
 				utility.GetStringValue(incident.InvestigationDescription),
 				incident.BusinessOwnerFirstNameAr + " " + incident.BusinessOwnerLastNameAr,
@@ -1559,15 +1575,15 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 				i + 1,
 				incident.ReferenceNumber,
 				incident.Title,
-				incident.IncidentAt,
+				incidentAtStr,
 				incident.IncidentCategoryTitleEn,
 				incident.SeverityLevelTitleEn,
 				utility.GetStringValue(incident.Location),
 				incident.ReportedUserFirstNameEn + " " + incident.ReportedUserLastNameEn,
 				incident.ResponsibleUserFirstNameEn + " " + incident.ResponsibleUserLastNameEn,
-				incident.ReportedAt,
+				reportedAtStr,
 				incident.IncidentStatusTitleEn,
-				utility.GetStringValue(incident.QuickAction),
+				utility.StripAllHTMLTags(utility.GetStringValue(incident.QuickAction)),
 				utility.GetStringValue(incident.InvestigationInitiatedAt),
 				utility.GetStringValue(incident.InvestigationDescription),
 				incident.BusinessOwnerFirstNameEn + " " + incident.BusinessOwnerLastNameEn,

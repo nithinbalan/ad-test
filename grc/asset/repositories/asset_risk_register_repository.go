@@ -94,8 +94,8 @@ func (repo *AssetRiskRegisterRepository) GetAll(params *assetRiskDTOs.AssetRiskR
 			division.title_en AS division_title_en,
 			division.title_ar AS division_title_ar,
 
-			section.title_en AS section_title_en,
-			section.title_ar AS section_title_ar,
+			responsible_unit.title_en AS responsible_unit_title_en,
+			responsible_unit.title_ar AS responsible_unit_title_ar,
 
 			current_likelihood.title_en AS current_likelihood_title_en,
 			current_likelihood.title_ar AS current_likelihood_title_ar,
@@ -137,7 +137,7 @@ func (repo *AssetRiskRegisterRepository) GetAll(params *assetRiskDTOs.AssetRiskR
 		`).
 		Joins("LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id").
 		Joins("LEFT JOIN organization_units AS division ON division.id = risk_register.division_id").
-		Joins("LEFT JOIN organization_units AS section ON section.id = risk_register.section_id").
+		Joins("LEFT JOIN organization_units AS responsible_unit ON responsible_unit.id = risk_register.responsible_unit_id").
 		Joins("LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id").
 		Joins("LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id").
@@ -160,8 +160,8 @@ func (repo *AssetRiskRegisterRepository) GetAll(params *assetRiskDTOs.AssetRiskR
 			risk_categories.title_ar LIKE ? OR
 			division.title_en LIKE ? OR
 			division.title_ar LIKE ? OR
-			section.title_en LIKE ? OR
-			section.title_ar LIKE ?)`,
+			responsible_unit.title_en LIKE ? OR
+			responsible_unit.title_ar LIKE ?)`,
 
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
@@ -251,7 +251,7 @@ func (repo *AssetRiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("Controls.Control").
 		Preload("RiskCategory").
 		Preload("RiskStatus").
-		Preload("Section").
+		Preload("ResponsibleUnit").
 		Preload("Division").
 		Preload("ResponsibleUser").
 		Preload("CurrentLikelihood").

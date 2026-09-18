@@ -257,6 +257,11 @@ func (pdls *ProjectDecisionLogService) Update(projectID uint, id uint, currentUs
 	var docsToDelete []*uint
 	var documentsToDelete []*models.ProjectDecisionLogDocument
 
+	existingDocMap := make(map[uint]*models.ProjectDecisionLogDocument)
+	for _, d := range decisionLog.Documents {
+		existingDocMap[d.ID] = d
+	}
+
 	for _, doc := range form.Documents {
 		if (doc.IsNewFile != nil && *doc.IsNewFile) || (doc.ID == nil && doc.FileName != "") {
 			dataToEncrypt := []byte(doc.FileName)
@@ -280,14 +285,18 @@ func (pdls *ProjectDecisionLogService) Update(projectID uint, id uint, currentUs
 			newDocsToCreate = append(newDocsToCreate, newDoc)
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			if doc.ID != nil {
-				existingDocument, err := pdls.repo.GetDocumentByID(*doc.ID)
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
+				existingDocument, exists := existingDocMap[*doc.ID]
+				if !exists {
+					var getErr error
+					existingDocument, getErr = pdls.repo.GetDocumentByID(*doc.ID, tx)
+					if getErr != nil {
+						if errors.Is(getErr, gorm.ErrRecordNotFound) {
+							tx.Rollback()
+							return utility.NewResourceNotFoundError(getErr, *doc.ID)
+						}
 						tx.Rollback()
-						return utility.NewResourceNotFoundError(err, *doc.ID)
+						return getErr
 					}
-					tx.Rollback()
-					return err
 				}
 				if existingDocument.ProjectDecisionLogID != id {
 					tx.Rollback()

@@ -1,0 +1,387 @@
+<html lang="ar" dir="rtl" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
+</head>
+<style>
+   .keep-together {
+      page-break-inside: avoid;
+   }
+   table {
+      border-collapse: collapse;
+      width: 100%;
+   }
+   th {
+      background-color: #F4F6F8;
+      color: #333;
+      font-weight: 500;
+      font-size: 12px;
+      text-align: right;
+      padding: 8px 10px;
+      border: 1px solid #E0E0E0;
+   }
+   td {
+      font-size: 12px;
+      color: #222;
+      padding: 8px 10px;
+      border: 1px solid #E0E0E0;
+      vertical-align: top;
+      text-align: right;
+   }
+   .section-title {
+      margin: 20px 0 12px 0;
+      font-size: 16px;
+      color: #050505;
+      font-weight: 600;
+      border-bottom: 2px solid #EAEAEA;
+      padding-bottom: 6px;
+   }
+   .sub-section-title {
+      margin: 14px 0 8px 0;
+      font-size: 14px;
+      color: #1a1a1a;
+      font-weight: 500;
+   }
+   .field-label {
+      margin: 0 0 2px 0;
+      font-size: 11px;
+      color: #666;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+   }
+   .field-value {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      color: #000;
+      font-weight: 400;
+      line-height: 1.4;
+   }
+   .badge {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      display: inline-block;
+   }
+   .empty-note {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 15px;
+   }
+   .summary-card {
+      display: inline-block;
+      vertical-align: top;
+      width: 24%;
+      border: 1px solid #E0E0E0;
+      border-radius: 4px;
+      padding: 10px 12px;
+      box-sizing: border-box;
+      margin-left: 4px;
+   }
+   .summary-value {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #050505;
+   }
+   .summary-label {
+      margin: 2px 0 0 0;
+      font-size: 11px;
+      color: #666;
+      letter-spacing: 0.5px;
+   }
+   /* Scoped to .timeline-table to beat the global td styles */
+   .timeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 0;
+   }
+   .timeline-table td {
+      border: none;
+      padding: 0;
+      font-size: 12px;
+      color: #111827;
+      vertical-align: top;
+      text-align: right;
+   }
+   .timeline-table td.timeline-node {
+      width: 28px;
+      padding-left: 12px;
+      text-align: center;
+   }
+   .timeline-table td.timeline-card-cell {
+      padding-bottom: 14px;
+   }
+   .timeline-step {
+      background: #b6630a;
+      color: #ffffff;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-block;
+      text-align: center;
+      line-height: 22px;
+      font-size: 11px;
+      font-weight: 500;
+   }
+   .timeline-connector {
+      width: 1px;
+      border-left: 1.5px dotted #b6630a;
+      height: 100%;
+      margin: 4px auto 0 auto;
+      min-height: 52px;
+   }
+   .timeline-card {
+      border: 1px solid #eaedf2;
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 14px 20px;
+   }
+   .timeline-card-table {
+      width: 100%;
+      border-collapse: collapse;
+   }
+   .timeline-label {
+      margin: 0 0 6px 0;
+      color: #4b5563;
+      font-size: 11px;
+      line-height: 1.4;
+      font-weight: 400;
+   }
+   .timeline-value {
+      margin: 0;
+      color: #111827;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 400;
+   }
+   .timeline-status {
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 10px;
+      border: 1px solid transparent;
+      display: inline-block;
+   }
+   .timeline-avatar {
+      background: #0d5f4e;
+      color: #ffffff;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: inline-block;
+      text-align: center;
+      line-height: 22px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 6px;
+      vertical-align: middle;
+   }
+</style>
+
+<body style="font-family: 'Cairo', sans-serif; box-sizing: border-box; color: #000; height: 100%; line-height: 1.4; width: 100% !important; word-break: break-word; margin: 0; direction: rtl; text-align: right;">
+   {{if .Data.Sections}}
+   <div class="page" style="width: 1000px; margin: 0; background: #fff; padding: 0px 32px;">
+      {{range $section := .Data.Sections}}
+      {{if or $section.DescriptionAr $section.DescriptionEn}}
+      <div class="keep-together" style="padding-top: 10px;">
+         <h3 class="section-title">{{if $section.TitleAr}}{{ $section.TitleAr }}{{else}}{{ $section.TitleEn }}{{end}}</h3>
+         <div class="field-value">{{if $section.DescriptionAr}}{{ $section.DescriptionAr | safeHTML }}{{else}}{{ $section.DescriptionEn | safeHTML }}{{end}}</div>
+      </div>
+      {{end}}
+      {{end}}
+   </div>
+   {{end}}
+   <div class="page" style="width: 1000px; margin: 0; background: #fff; padding: 0px 32px;">
+
+      <!-- 1. Summary -->
+      <div class="keep-together" style="padding-top: 10px;">
+         <h3 class="section-title">1. الملخص</h3>
+         <div style="margin-right: 16px;">
+         <div style="margin-top: 10px;">
+            <div class="summary-card">
+               <p class="summary-value">{{ .Data.TotalCount }}</p>
+               <p class="summary-label">إجمالي الاستثناءات</p>
+            </div>
+            <div class="summary-card">
+               <p class="summary-value">{{ .Data.ApprovedCount }}</p>
+               <p class="summary-label">تمت الموافقة</p>
+            </div>
+            <div class="summary-card">
+               <p class="summary-value">{{ .Data.PendingCount }}</p>
+               <p class="summary-label">بانتظار الموافقة</p>
+            </div>
+            <div class="summary-card">
+               <p class="summary-value">{{ .Data.CriticalCount }}</p>
+               <p class="summary-label">حرجة</p>
+            </div>
+         </div>
+         </div>
+      </div>
+
+      <!-- 2. Exceptions Overview -->
+      <div style="margin-top: 20px;">
+         <h3 class="section-title">2. نظرة عامة على الاستثناءات</h3>
+         <div style="margin-right: 16px;">
+         {{if .Data.SecurityGates}}
+         <table>
+            <thead>
+               <tr>
+                  <th style="width: 6%;">#</th>
+                  <th style="width: 22%;">المشروع</th>
+                  <th style="width: 12%;">المرحلة</th>
+                  <th style="width: 26%;">قائمة التحقق</th>
+                  <th style="width: 8%;">حرج</th>
+                  <th style="width: 13%;">حالة سير العمل</th>
+                  <th style="width: 13%;">تمت الموافقة بواسطة</th>
+               </tr>
+            </thead>
+            <tbody>
+               {{range $gateIndex, $gate := .Data.SecurityGates}}
+               {{range $excIndex, $exception := $gate.Exceptions}}
+               <tr>
+                  <td>{{ add $excIndex 1 }}</td>
+                  <td>{{if $gate.ProjectTitleAr}}{{ $gate.ProjectTitleAr }}{{else}}{{ $gate.ProjectTitleEn }}{{end}}</td>
+                  <td>{{if $gate.Stage.TitleAr}}{{ $gate.Stage.TitleAr }}{{else}}-{{end}}</td>
+                  <td>{{if $exception.TitleAr}}{{ $exception.TitleAr }}{{else}}-{{end}}</td>
+                  <td>{{if $exception.IsCritical}}نعم{{else}}لا{{end}}</td>
+                  <td>
+                     {{if $exception.WorkflowStatus}}
+                     <span class="badge" style="color: {{$exception.WorkflowStatus.TextColor}}; border: 1px solid {{$exception.WorkflowStatus.BorderColor}}; background: {{$exception.WorkflowStatus.BackgroundColor}};">
+                        {{ $exception.WorkflowStatus.TitleAr }}
+                     </span>
+                     {{else}}-{{end}}
+                  </td>
+                  <td>{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameAR }} {{ $exception.ApprovedBy.LastNameAR }}{{else}}-{{end}}</td>
+               </tr>
+               {{end}}
+               {{end}}
+            </tbody>
+         </table>
+         {{else}}
+         <p class="empty-note">لا توجد استثناءات.</p>
+         {{end}}
+         </div>
+      </div>
+
+      <!-- 3. Exceptions & Approvals -->
+      <div style="margin-top: 20px;">
+         <h3 class="section-title">3. الاستثناءات والموافقات</h3>
+         <div style="margin-right: 16px;">
+         {{if .Data.SecurityGates}}
+            {{range $gateIndex, $gate := .Data.SecurityGates}}
+            {{range $excIndex, $exception := $gate.Exceptions}}
+            <div class="keep-together" style="margin-top: 14px;">
+               <h4 class="sub-section-title">3.{{ add $excIndex 1 }} {{if $gate.ProjectTitleAr}}{{ $gate.ProjectTitleAr }}{{else}}{{ $gate.ProjectTitleEn }}{{end}} &mdash; {{if $exception.TitleAr}}{{ $exception.TitleAr }}{{else}}-{{end}}</h4>
+
+               <div style="margin-top: 5px;">
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">المرحلة:</p>
+                     <p class="field-value">{{if $gate.Stage.TitleAr}}{{ $gate.Stage.TitleAr }}{{else}}-{{end}}</p>
+                  </div>
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">حالة الجاهزية:</p>
+                     <p class="field-value">{{if $gate.ReadinessStatus.TitleAr}}{{ $gate.ReadinessStatus.TitleAr }}{{else}}-{{end}}</p>
+                  </div>
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">مالك الأعمال:</p>
+                     <p class="field-value">{{if $gate.BusinessOwner}}{{ $gate.BusinessOwner.FirstNameAR }} {{ $gate.BusinessOwner.LastNameAR }}{{else}}-{{end}}</p>
+                  </div>
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">حرج:</p>
+                     <p class="field-value">{{if $exception.IsCritical}}نعم{{else}}لا{{end}}</p>
+                  </div>
+               </div>
+
+               <div style="margin-top: 5px;">
+                  <div style="width: 24%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">حالة سير العمل:</p>
+                     <p class="field-value">
+                        {{if $exception.WorkflowStatus}}
+                        <span class="badge" style="color: {{$exception.WorkflowStatus.TextColor}}; border: 1px solid {{$exception.WorkflowStatus.BorderColor}}; background: {{$exception.WorkflowStatus.BackgroundColor}};">
+                           {{ $exception.WorkflowStatus.TitleAr }}
+                        </span>
+                        {{else}}-{{end}}
+                     </p>
+                  </div>
+                  <div style="width: 36%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">تم الإرسال بواسطة:</p>
+                     <p class="field-value">{{if $exception.SubmittedBy}}{{ $exception.SubmittedBy.FirstNameAR }} {{ $exception.SubmittedBy.LastNameAR }}{{else}}-{{end}} {{if $exception.SubmittedAt}}({{ $exception.SubmittedAt.Format "01/02/2006" }}){{end}}</p>
+                  </div>
+                  <div style="width: 36%; display: inline-block; vertical-align: top;">
+                     <p class="field-label">تمت الموافقة بواسطة:</p>
+                     <p class="field-value">{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameAR }} {{ $exception.ApprovedBy.LastNameAR }}{{else}}-{{end}} {{if $exception.ApprovedAt}}({{ $exception.ApprovedAt.Format "01/02/2006" }}){{end}}</p>
+                  </div>
+               </div>
+
+               <div style="margin-top: 5px;">
+                  <p class="field-label">المبرر:</p>
+                  <div class="field-value">{{if $exception.Justification}}{{ $exception.Justification | safeHTML }}{{else}}-{{end}}</div>
+               </div>
+
+               {{if $exception.Reviews}}
+               <div class="sub-section-title">سجل المراجعة</div>
+               <div style="margin-top: 10px;">
+                  {{$totalReviews := len $exception.Reviews}}
+                  {{range $reviewIndex, $review := $exception.Reviews}}
+                  {{$isLast := eq (add $reviewIndex 1) $totalReviews}}
+                  <table class="timeline-table">
+                     <tr>
+                        <!-- Step Number Node Column -->
+                        <td class="timeline-node">
+                           <span class="timeline-step">{{ add $reviewIndex 1 }}</span>
+                           {{if not $isLast}}
+                           <div class="timeline-connector"></div>
+                           {{end}}
+                        </td>
+                        <!-- Review Card Column -->
+                        <td class="timeline-card-cell">
+                           <div class="timeline-card">
+                              <table class="timeline-card-table">
+                                 <tr>
+                                    <td style="width: 22%; vertical-align: top; padding: 0;">
+                                       <p class="timeline-label">الحالة</p>
+                                       <span class="timeline-status" style="color: {{$review.StatusTextColor}}; border-color: {{$review.StatusBorderColor}}; background: {{$review.StatusBackgroundColor}};">{{if $review.StatusTitleAr}}{{$review.StatusTitleAr}}{{else}}-{{end}}</span>
+                                    </td>
+                                    <td style="width: 12%; vertical-align: top; padding: 0;">
+                                       <p class="timeline-label">المستوى</p>
+                                       <p class="timeline-value">{{$review.Level}}</p>
+                                    </td>
+                                    <td style="width: 28%; vertical-align: top; padding: 0;">
+                                       <p class="timeline-label">{{$review.ActionDateLabelAr}}</p>
+                                       <p class="timeline-value">{{if $review.CreatedAtString}}{{$review.CreatedAtString}}{{else}}-{{end}}</p>
+                                    </td>
+                                    <td style="width: 38%; vertical-align: top; padding: 0;">
+                                       <p class="timeline-label">{{$review.ActionByLabelAr}}</p>
+                                       <div class="timeline-value">
+                                          {{if $review.UserInitialAr}}
+                                          <span class="timeline-avatar">{{$review.UserInitialAr}}</span>
+                                          {{end}}
+                                          <span style="vertical-align: middle;">{{if $review.UserFullNameAr}}{{$review.UserFullNameAr}}{{else}}-{{end}}</span>
+                                       </div>
+                                    </td>
+                                 </tr>
+                              </table>
+                           </div>
+                        </td>
+                     </tr>
+                  </table>
+                  {{end}}
+               </div>
+               {{else}}
+               <p class="empty-note">لا يوجد سجل مراجعة.</p>
+               {{end}}
+            </div>
+            {{end}}
+            {{end}}
+         {{else}}
+         <p class="empty-note">لا توجد استثناءات.</p>
+         {{end}}
+         </div>
+      </div>
+
+   </div>
+</body>
+</html>

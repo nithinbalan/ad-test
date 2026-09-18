@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	logServices "jethur/grc/logs/services"
@@ -17,6 +18,7 @@ import (
 )
 
 type PenetrationTestServiceInterface interface {
+	ExportPenetrationTest(data []*penetrationTestDTOs.PenetrationTestListDTO, currentUserID uint) (*os.File, error)
 	GetAll(params *penetrationTestDTOs.PenetrationTestListQueryParamsDTO) (*penetrationTestDTOs.PenetrationTestListResponseDTO, error)
 	GetByID(id uint) (*models.PenetrationTest, error)
 	GetFullDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestDetailDTO, error)
@@ -28,13 +30,15 @@ type PenetrationTestServiceInterface interface {
 }
 
 type PenetrationTestService struct {
-	repo               repositories.PenetrationTestRepositoryInterface
-	activityLogSvc     logServices.ActivityLogServiceInterface
-	typeSvc            PenetrationTestTypeServiceInterface
-	planSvc            PenetrationTestPlanServiceInterface
-	classificationSvc  PenetrationTestClassificationServiceInterface
-	executorSvc        PenetrationTestExecutorServiceInterface
-	userSvc            organizationServices.UserServiceInterface
+	userSettingSvc    organizationServices.UserSettingServiceInterface
+	repo              repositories.PenetrationTestRepositoryInterface
+	activityLogSvc    logServices.ActivityLogServiceInterface
+	typeSvc           PenetrationTestTypeServiceInterface
+	planSvc           PenetrationTestPlanServiceInterface
+	classificationSvc PenetrationTestClassificationServiceInterface
+	executorSvc       PenetrationTestExecutorServiceInterface
+	userSvc           organizationServices.UserServiceInterface
+	statusSvc         PenetrationTestStatusServiceInterface
 }
 
 func NewPenetrationTestService(
@@ -45,15 +49,19 @@ func NewPenetrationTestService(
 	classificationSvc PenetrationTestClassificationServiceInterface,
 	executorSvc PenetrationTestExecutorServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	statusSvc PenetrationTestStatusServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) PenetrationTestServiceInterface {
 	return &PenetrationTestService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		typeSvc:            typeSvc,
-		planSvc:            planSvc,
-		classificationSvc:  classificationSvc,
-		executorSvc:        executorSvc,
-		userSvc:            userSvc,
+		userSettingSvc:    userSettingSvc,
+		repo:              repo,
+		activityLogSvc:    activityLogSvc,
+		typeSvc:           typeSvc,
+		planSvc:           planSvc,
+		classificationSvc: classificationSvc,
+		executorSvc:       executorSvc,
+		userSvc:           userSvc,
+		statusSvc:         statusSvc,
 	}
 }
 
@@ -84,6 +92,15 @@ func (ptls *PenetrationTestService) GetFullDetailsByID(id uint) (*penetrationTes
 	}
 	detail.CreatedAt = value.CreatedAt
 	detail.UpdatedAt = value.UpdatedAt
+	if value.PenetrationTestStatus != nil {
+		detail.PenetrationTestStatus = &penetrationTestDTOs.PenetrationTestStatusDTO{
+			ID:        value.PenetrationTestStatus.ID,
+			TitleEn:   value.PenetrationTestStatus.TitleEn,
+			TitleAr:   value.PenetrationTestStatus.TitleAr,
+			ColorCode: value.PenetrationTestStatus.ColorCode,
+			Type:      value.PenetrationTestStatus.Type,
+		}
+	}
 	if value.EnvironmentPreparation != nil {
 		detail.EnvironmentNotifyDate = &value.EnvironmentPreparation.EnvironmentNotifyDate
 		detail.ExpectedReadyDate = &value.EnvironmentPreparation.ExpectedReadyDate
@@ -149,6 +166,11 @@ func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrat
 		tx.Rollback()
 		return 0, err
 	}
+	draftStatus, err := ptls.statusSvc.GetByType("draft")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	value := &models.PenetrationTest{
 		SystemApplicationName:           formDTO.SystemApplicationName,
 		PenetrationTestTypeID:           formDTO.PenetrationTestTypeID,
@@ -159,6 +181,7 @@ func (ptls *PenetrationTestService) Create(currentUserID uint, formDTO *penetrat
 		PenetrationTestExecutorID:       formDTO.PenetrationTestExecutorID,
 		CSResponsibleEmployeeID:         formDTO.CSResponsibleEmployeeID,
 		Scope:                           formDTO.Scope,
+		PenetrationTestStatusID:         draftStatus.ID,
 	}
 	value.CreatedBYID = currentUserID
 	referenceNumber, err := ptls.repo.GenerateReferenceNumber(tx)
@@ -245,7 +268,11 @@ func (ptls *PenetrationTestService) Update(id uint, currentUserID uint, form *pe
 }
 
 func (ptls *PenetrationTestService) UpdateStatus(id uint, status string, tx ...utility.DatabaseTransaction) error {
-	return ptls.repo.UpdateStatus(id, status, tx...)
+	statusMaster, err := ptls.statusSvc.GetByType(status)
+	if err != nil {
+		return err
+	}
+	return ptls.repo.UpdateStatus(id, statusMaster.ID, tx...)
 }
 
 func (ptls *PenetrationTestService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
@@ -296,11 +323,95 @@ func (ptls *PenetrationTestService) validatePenetrationTestFormDTO(formDTO *pene
 	if _, err := ptls.classificationSvc.GetByID(formDTO.PenetrationTestClassificationID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("penetration test classification does not exist"), "not_exist", "penetration test classification")
 	}
-	if _, err := ptls.executorSvc.GetByID(formDTO.PenetrationTestExecutorID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("penetration test executor does not exist"), "not_exist", "penetration test executor")
+	if formDTO.PenetrationTestExecutorID != nil {
+		if _, err := ptls.executorSvc.GetByID(*formDTO.PenetrationTestExecutorID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("penetration test executor does not exist"), "not_exist", "penetration test executor")
+		}
 	}
 	if _, err := ptls.userSvc.GetByID(formDTO.CSResponsibleEmployeeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("CS responsible employee does not exist"), "not_exist", "CS responsible employee")
 	}
 	return nil
+}
+
+func (ptls *PenetrationTestService) ExportPenetrationTest(data []*penetrationTestDTOs.PenetrationTestListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := ptls.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"النظام / التطبيق",
+			"النوع",
+			"الحالة",
+			"التصنيف",
+			"الخطة",
+			"الجهة المنفذة",
+			"الموظف المسؤول",
+			"الوحدة المسؤولة",
+			"أنشئ بواسطة",
+			"السنة",
+			"الربع السنوي",
+			"تاريخ الإنشاء",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"System / Application",
+			"Type",
+			"Status",
+			"Classification",
+			"Plan",
+			"Executor",
+			"Responsible Employee",
+			"Responsible Unit",
+			"Created By",
+			"Year",
+			"Quarter",
+			"Created At",
+		}
+	}
+	rows := make([][]interface{}, len(data))
+	for i, entry := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				entry.ReferenceNumber,
+				entry.SystemApplicationName,
+				entry.PenetrationTestTypeTitleAr,
+				entry.StatusTitleAr,
+				entry.PenetrationTestClassificationTitleAr,
+				entry.PenetrationTestPlanTitleAr,
+				entry.PenetrationTestExecutorTitleAr,
+				entry.CSResponsibleEmployeeFirstNameAr + " " + entry.CSResponsibleEmployeeLastNameAr,
+				utility.GetStringValue(entry.ResponsibleUnitTitleAr),
+				entry.CreatedUserFirstNameAr + " " + entry.CreatedUserLastNameAr,
+				entry.Year,
+				entry.Period,
+				entry.CreatedAt,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				entry.ReferenceNumber,
+				entry.SystemApplicationName,
+				entry.PenetrationTestTypeTitleEn,
+				entry.StatusTitleEn,
+				entry.PenetrationTestClassificationTitleEn,
+				entry.PenetrationTestPlanTitleEn,
+				entry.PenetrationTestExecutorTitleEn,
+				entry.CSResponsibleEmployeeFirstNameEn + " " + entry.CSResponsibleEmployeeLastNameEn,
+				utility.GetStringValue(entry.ResponsibleUnitTitleEn),
+				entry.CreatedUserFirstNameEn + " " + entry.CreatedUserLastNameEn,
+				entry.Year,
+				entry.Period,
+				entry.CreatedAt,
+			}
+		}
+	}
+	return utility.GenerateExcelFile(headers, rows)
 }

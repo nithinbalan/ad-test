@@ -9,6 +9,8 @@ type ProjectSecurityGate struct {
 	StageID           uint       `json:"stage_id" binding:"required" gorm:"not null"`
 	TemplateVersionID uint       `json:"template_version_id" gorm:"not null"`
 	BusinessOwnerID   uint       `json:"business_owner_id" binding:"required" gorm:"not null"`
+	DivisionID        *uint      `json:"division_id" gorm:"default:null"`
+	DepartmentID      *uint      `json:"department_id" gorm:"default:null"`
 	ReadinessStatusID uint       `json:"readiness_status_id" gorm:"not null"`
 	Notes             *string    `json:"notes" gorm:"type:nvarchar(max);default:null"`
 	CreatedBYID       uint       `json:"created_by_id" gorm:"not null"`
@@ -20,6 +22,8 @@ type ProjectSecurityGate struct {
 	Stage           *ProjectSecurityGateStage                    `json:"stage" gorm:"foreignKey:StageID"`
 	TemplateVersion *ProjectSecurityGateChecklistTemplateVersion `json:"template_version" gorm:"foreignKey:TemplateVersionID"`
 	BusinessOwner   *User                                        `json:"business_owner" gorm:"foreignKey:BusinessOwnerID"`
+	Division        *OrganizationUnit                            `json:"division" gorm:"foreignKey:DivisionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Department      *OrganizationUnit                            `json:"department" gorm:"foreignKey:DepartmentID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ReadinessStatus *ProjectSecurityGateReadinessStatus          `json:"readiness_status" gorm:"foreignKey:ReadinessStatusID"`
 	CreatedByUser   *User                                        `json:"created_by_user" gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser   *User                                        `json:"updated_by_user" gorm:"foreignKey:UpdatedBYID"`

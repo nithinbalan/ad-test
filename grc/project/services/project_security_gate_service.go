@@ -1,10 +1,15 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 	"time"
 
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -18,12 +23,14 @@ import (
 type ProjectSecurityGateServiceInterface interface {
 	SetChecklistService(svc ProjectSecurityGateChecklistServiceInterface)
 	GetAll(params *dtos.ProjectSecurityGateListQueryParamsDTO) (*dtos.ProjectSecurityGateListResponseDTO, error)
+	ExportProjectSecurityGates(data []*dtos.ProjectSecurityGateListDTO, currentUserID uint) (*os.File, error)
 	GetSummary() (*dtos.ProjectSecurityGateSummaryDTO, error)
 	GetByID(id uint) (*models.ProjectSecurityGate, error)
 	GetFullDetailsByID(id uint) (*dtos.ProjectSecurityGateDetailDTO, error)
 	Create(currentUserID uint, form *dtos.ProjectSecurityGateFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *dtos.ProjectSecurityGateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GoLive(id uint, currentUserID uint) error
 }
 
 type ProjectSecurityGateService struct {
@@ -34,7 +41,9 @@ type ProjectSecurityGateService struct {
 	checklistTemplateSvc ProjectSecurityGateChecklistTemplateServiceInterface
 	readinessStatusSvc   ProjectSecurityGateReadinessStatusServiceInterface
 	userSvc              organizationServices.UserServiceInterface
+	userSettingSvc       organizationServices.UserSettingServiceInterface
 	activityLog          logServices.ActivityLogServiceInterface
+	notificationSvc      commonServices.NotificationServiceInterface
 }
 
 func NewProjectSecurityGateService(
@@ -44,7 +53,9 @@ func NewProjectSecurityGateService(
 	checklistTemplateSvc ProjectSecurityGateChecklistTemplateServiceInterface,
 	readinessStatusSvc ProjectSecurityGateReadinessStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 	activityLog logServices.ActivityLogServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ProjectSecurityGateServiceInterface {
 	return &ProjectSecurityGateService{
 		repo:                 repo,
@@ -53,7 +64,9 @@ func NewProjectSecurityGateService(
 		checklistTemplateSvc: checklistTemplateSvc,
 		readinessStatusSvc:   readinessStatusSvc,
 		userSvc:              userSvc,
+		userSettingSvc:       userSettingSvc,
 		activityLog:          activityLog,
+		notificationSvc:      notificationSvc,
 	}
 }
 
@@ -63,6 +76,111 @@ func (psgs *ProjectSecurityGateService) SetChecklistService(svc ProjectSecurityG
 
 func (psgs *ProjectSecurityGateService) GetAll(params *dtos.ProjectSecurityGateListQueryParamsDTO) (*dtos.ProjectSecurityGateListResponseDTO, error) {
 	return psgs.repo.GetAll(params)
+}
+
+func (psgs *ProjectSecurityGateService) ExportProjectSecurityGates(data []*dtos.ProjectSecurityGateListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := psgs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	headers := []string{
+		"SL No.",
+		"Project Title",
+		"Checklist Count",
+		"Stage",
+		"Division",
+		"Department",
+		"Business Owner",
+		"Readiness Status",
+		"Notes",
+		"Created By",
+		"Created At",
+		"Updated By",
+		"Updated At",
+	}
+
+	rows := make([][]interface{}, 0, len(data))
+	for i, item := range data {
+		notes := ""
+		if item.Notes != nil {
+			notes = *item.Notes
+		}
+
+		createdAt := item.CreatedAt.Format("2006-01-02")
+		updatedAt := ""
+		if item.UpdatedAt != nil {
+			updatedAt = item.UpdatedAt.Format("2006-01-02")
+		}
+
+		division := ""
+		department := ""
+
+		if userSetting.Language == "ar" {
+			updatedBy := ""
+			if item.UpdatedUserFirstNameAr != nil && item.UpdatedUserLastNameAr != nil {
+				updatedBy = strings.TrimSpace(*item.UpdatedUserFirstNameAr + " " + *item.UpdatedUserLastNameAr)
+			}
+
+			if item.DivisionTitleAr != nil {
+				division = *item.DivisionTitleAr
+			}
+			if item.DepartmentTitleAr != nil {
+				department = *item.DepartmentTitleAr
+			}
+
+			rows = append(rows, []interface{}{
+				i + 1,
+				item.ProjectTitleAr,
+				item.ChecklistCount,
+				item.StageTitleAr,
+				division,
+				department,
+				strings.TrimSpace(item.BusinessOwnerFirstNameAr + " " + item.BusinessOwnerLastNameAr),
+				item.ReadinessStatusTitleAr,
+				notes,
+				strings.TrimSpace(item.CreatedUserFirstNameAr + " " + item.CreatedUserLastNameAr),
+				createdAt,
+				updatedBy,
+				updatedAt,
+			})
+		} else {
+			updatedBy := ""
+			if item.UpdatedUserFirstNameEn != nil && item.UpdatedUserLastNameEn != nil {
+				updatedBy = strings.TrimSpace(*item.UpdatedUserFirstNameEn + " " + *item.UpdatedUserLastNameEn)
+			}
+
+			if item.DivisionTitleEn != nil {
+				division = *item.DivisionTitleEn
+			}
+			if item.DepartmentTitleEn != nil {
+				department = *item.DepartmentTitleEn
+			}
+
+			rows = append(rows, []interface{}{
+				i + 1,
+				item.ProjectTitleEn,
+				item.ChecklistCount,
+				item.StageTitleEn,
+				division,
+				department,
+				strings.TrimSpace(item.BusinessOwnerFirstNameEn + " " + item.BusinessOwnerLastNameEn),
+				item.ReadinessStatusTitleEn,
+				notes,
+				strings.TrimSpace(item.CreatedUserFirstNameEn + " " + item.CreatedUserLastNameEn),
+				createdAt,
+				updatedBy,
+				updatedAt,
+			})
+		}
+	}
+
+	file, err := utility.GenerateExcelFile(headers, rows)
+	if err != nil {
+		return nil, errors.New("failed to generate export file: " + err.Error())
+	}
+
+	return file, nil
 }
 
 func (psgs *ProjectSecurityGateService) GetSummary() (*dtos.ProjectSecurityGateSummaryDTO, error) {
@@ -118,7 +236,8 @@ func (psgs *ProjectSecurityGateService) Create(currentUserID uint, form *dtos.Pr
 		}
 	}()
 
-	if _, err = psgs.stageSvc.GetByID(form.StageID, tx); err != nil {
+	stage, err := psgs.stageSvc.GetByID(form.StageID, tx)
+	if err != nil {
 		return 0, err
 	}
 	if _, err = psgs.userSvc.GetByIDWithTx(form.BusinessOwnerID, tx); err != nil {
@@ -156,6 +275,8 @@ func (psgs *ProjectSecurityGateService) Create(currentUserID uint, form *dtos.Pr
 		StageID:           form.StageID,
 		TemplateVersionID: latestPublishedVersion.ID,
 		BusinessOwnerID:   form.BusinessOwnerID,
+		DivisionID:        &form.DivisionID,
+		DepartmentID:      &form.DepartmentID,
 		ReadinessStatusID: draftReadinessStatus.ID,
 		Notes:             form.Notes,
 		CreatedBYID:       currentUserID,
@@ -200,9 +321,208 @@ func (psgs *ProjectSecurityGateService) Create(currentUserID uint, form *dtos.Pr
 		if activityErr != nil {
 			log.Printf("Failed to log activity: %v", activityErr)
 		}
+
+		psgs.notifyBusinessOwner(id, projectSecurityGate, stage, currentUserID)
 	}()
 
 	return id, err
+}
+
+func (psgs *ProjectSecurityGateService) notifyBusinessOwner(id uint, securityGate *models.ProjectSecurityGate, stage *models.ProjectSecurityGateStage, currentUserID uint) {
+	businessOwner, err := psgs.userSvc.GetByID(securityGate.BusinessOwnerID)
+	if err != nil {
+		utility.LogError("Failed to fetch business owner for security gate notification", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	createdBy, err := psgs.userSvc.GetByID(currentUserID)
+	if err != nil {
+		utility.LogError("Failed to fetch creator for security gate notification", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	entity := "project-security-gate"
+	action := "business-owner-assign"
+	appURL := utility.GetAppURL()
+
+	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+		UserIDs:              []uint{securityGate.BusinessOwnerID},
+		ModuleIdentifier:     "project",
+		NotificationType:     string(commonDTOs.AssignmentType),
+		HeadingEn:            "Project Security Gate Assigned",
+		HeadingAr:            "تم تعيين بوابة أمان المشروع",
+		TitleEn:              securityGate.ProjectTitleEn,
+		TitleAr:              securityGate.ProjectTitleAr,
+		Entity:               &entity,
+		Action:               &action,
+		URLParam:             urlParam,
+		IsSystemNotification: false,
+		CreatedByID:          &currentUserID,
+	}
+
+	emailData := map[string]interface{}{
+		"FirstNameEn":          businessOwner.FirstNameEn,
+		"LastNameEn":           businessOwner.LastNameEn,
+		"ProjectTitleEn":       securityGate.ProjectTitleEn,
+		"ProjectTitleAr":       securityGate.ProjectTitleAr,
+		"Stage":                stage.TitleEn,
+		"CreatedByFirstNameEn": createdBy.FirstNameEn,
+		"CreatedByLastNameEn":  createdBy.LastNameEn,
+		"AssignedOn":           time.Now().Format("2006-01-02"),
+		"RedirectURL":          fmt.Sprintf("%s/projects/security-gate/%d/overview", appURL, id),
+	}
+
+	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		EmailTo:              []string{businessOwner.Email},
+		Subject:              fmt.Sprintf("Project Security Gate: %s - Business Owner Assigned", securityGate.ProjectTitleEn),
+		TemplateRelativePath: "project/templates/email/project_security_gate_create_business_owner_mail.html",
+		EmailData:            emailData,
+	}
+
+	if err := psgs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "project_security_gate"); err != nil {
+		utility.LogError("Failed to send security gate assignment notification", map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+}
+
+func (psgs *ProjectSecurityGateService) GoLive(id uint, currentUserID uint) (err error) {
+	tx := psgs.repo.BeginTransaction()
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+	}()
+
+	securityGate, err := psgs.repo.GetByID(id, tx)
+	if err != nil {
+		return err
+	}
+
+	goLiveStatus, err := psgs.readinessStatusSvc.GetByType("go_live", tx)
+	if err != nil {
+		return err
+	}
+
+	if securityGate.ReadinessStatusID == goLiveStatus.ID {
+		err = utility.NewValidationError(
+			fmt.Errorf("security gate is already go live"),
+			"security_gate_already_go_live",
+			"readiness_status",
+		)
+		return err
+	}
+
+	checklists, err := psgs.checklistSvc.GetAllBySecurityGateID(id, tx)
+	if err != nil {
+		return err
+	}
+
+	var hasUnanswered, hasPendingException, hasIncompleteStatus bool
+
+	for _, checklist := range checklists {
+		if checklist.ResponseStatusID == nil && !checklist.IsException {
+			hasUnanswered = true
+			continue
+		}
+
+		if checklist.IsException {
+			if checklist.ApprovedBYID == nil {
+				hasPendingException = true
+			}
+			continue
+		}
+
+		if checklist.Requirement == nil || !checklist.Requirement.IsCritical {
+			continue
+		}
+
+		if checklist.ResponseStatus == nil ||
+			(checklist.ResponseStatus.Type != "implemented" && checklist.ResponseStatus.Type != "not_applicable") {
+			hasIncompleteStatus = true
+		}
+	}
+
+	if len(checklists) == 0 || hasUnanswered {
+		err = utility.NewValidationError(
+			fmt.Errorf("all checklist items must be answered before go live"),
+			"security_gate_checklist_not_answered",
+			"checklist",
+		)
+		return err
+	}
+
+	if hasIncompleteStatus {
+		err = utility.NewValidationError(
+			fmt.Errorf("all checklist items must be implemented or not applicable before go live"),
+			"security_gate_checklist_not_implemented",
+			"checklist",
+		)
+		return err
+	}
+
+	if hasPendingException {
+		err = utility.NewValidationError(
+			fmt.Errorf("all checklist exceptions must be approved before go live"),
+			"security_gate_exception_not_approved",
+			"checklist exception",
+		)
+		return err
+	}
+
+	previousSecurityGate := *securityGate
+
+	now := time.Now()
+	securityGate.ReadinessStatusID = goLiveStatus.ID
+	securityGate.UpdatedBYID = &currentUserID
+	securityGate.UpdatedAt = &now
+
+	if err = psgs.repo.Update(securityGate, tx); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	go func() {
+		fieldsToCompare := []string{"ReadinessStatusID"}
+		changes, err := utility.CompareFields(&previousSecurityGate, securityGate, fieldsToCompare)
+		if err != nil {
+			log.Println("error :", err.Error())
+		}
+
+		changedDataJSON, err := utility.ChangesToJSON(changes)
+		if err != nil {
+			log.Println("error :", err.Error())
+		}
+
+		err = psgs.activityLog.LogActivity(
+			models.UpdateAction,
+			models.ProjectSecurityGate{}.TableName(),
+			id,
+			changedDataJSON,
+			currentUserID,
+			"project", "project_security_gate", "project_security_gate_go_live", nil,
+		)
+		if err != nil {
+			log.Printf("Failed to log update activity: %v", err)
+		}
+	}()
+
+	return err
 }
 
 func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form *dtos.ProjectSecurityGateFormDTO) (err error) {
@@ -243,11 +563,21 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 		return err
 	}
 
+	var oldDivisionID, oldDepartmentID uint
+	if existing.DivisionID != nil {
+		oldDivisionID = *existing.DivisionID
+	}
+	if existing.DepartmentID != nil {
+		oldDepartmentID = *existing.DepartmentID
+	}
+
 	oldData := map[string]interface{}{
 		"project_title_en":  existing.ProjectTitleEn,
 		"project_title_ar":  existing.ProjectTitleAr,
 		"stage_id":          existing.StageID,
 		"business_owner_id": existing.BusinessOwnerID,
+		"division_id":       oldDivisionID,
+		"department_id":     oldDepartmentID,
 		"notes":             existing.Notes,
 	}
 
@@ -256,6 +586,8 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 	existing.ProjectTitleAr = form.ProjectTitleAr
 	existing.StageID = form.StageID
 	existing.BusinessOwnerID = form.BusinessOwnerID
+	existing.DivisionID = &form.DivisionID
+	existing.DepartmentID = &form.DepartmentID
 	existing.Notes = form.Notes
 	existing.UpdatedBYID = &currentUserID
 	existing.UpdatedAt = &now
@@ -278,6 +610,8 @@ func (psgs *ProjectSecurityGateService) Update(id uint, currentUserID uint, form
 			"project_title_ar":  form.ProjectTitleAr,
 			"stage_id":          form.StageID,
 			"business_owner_id": form.BusinessOwnerID,
+			"division_id":       form.DivisionID,
+			"department_id":     form.DepartmentID,
 			"notes":             form.Notes,
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)

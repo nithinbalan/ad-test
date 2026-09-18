@@ -194,7 +194,7 @@
 },
 {
   "id": "field_max_length",
-  "translation": "لا يمكن أن يتجاوز حقل {{.Field}} الحد الأقصى لعدد الأحرف المسموح به."
+  "translation": "{{if .Max}}لا يمكن أن يتجاوز حقل {{.Field}} {{.Max}} حرفًا.{{else}}لا يمكن أن يتجاوز حقل {{.Field}} الحد الأقصى لعدد الأحرف المسموح به.{{end}}"
 }
 ,
 {
@@ -310,6 +310,10 @@
   "translation": "لا يمكن إنشاء {{.Field}} جديد إلا إذا لم يكن هناك {{.Field}} حالي أو كانت نتيجة الأحدث 'راسب'."
 },
 {
+  "id": "penetration_test_report_empty_result",
+  "translation": "لم يتم العثور على اختبارات اختراق تطابق عوامل التصفية المحددة."
+},
+{
   "id": "empty_result",
   "translation": "لم يتم العثور على الحوادث لهذا المعايير."
 },
@@ -338,6 +342,10 @@
   "translation": "يوجد بالفعل {{.Field}} نشط."
 },
 {
+  "id": "retest_end_before_start",
+  "translation": "لا يمكن أن يكون تاريخ انتهاء إعادة الاختبار قبل تاريخ البدء."
+},
+{
   "id": "test_end_before_start",
   "translation": "يجب أن يكون تاريخ انتهاء الاختبار في تاريخ بدء الاختبار أو بعده."
 },
@@ -350,17 +358,51 @@
   "translation": "لا يمكن تغيير المرحلة بعد إنشاء بوابة الأمان."
 },
 {
+  "id": "risk_requires_implementation_gap",
+  "translation": "لا يمكن رفع خطر إلا على عنصر قائمة تحقق حالته «تم التنفيذ جزئياً» أو «لم يتم التنفيذ»."
+},
+{
+  "id": "risk_already_finalized",
+  "translation": "تم اعتماد هذا الخطر ولم يعد من الممكن تعديله."
+},
+{
   "id": "checklist_not_marked_as_exception",
   "translation": "لا يمكن إرسال قائمة التحقق للمراجعة إلا إذا تم تحديدها كاستثناء."
 },
 {
   "id": "workflow_already_approved",
   "translation": "لقد قمت بالموافقة على {{.Field}} في هذا المستوى بالفعل."
+},
+{
+  "id": "security_gate_checklist_not_answered",
+  "translation": "يجب الإجابة على جميع عناصر قائمة التحقق قبل الإطلاق."
+},
+{
+  "id": "security_gate_checklist_not_implemented",
+  "translation": "يجب أن يكون كل عنصر حرج في قائمة التحقق «تم التنفيذ» أو «لا ينطبق» قبل الإطلاق."
+},
+{
+  "id": "security_gate_exception_not_approved",
+  "translation": "يجب الموافقة على جميع استثناءات قائمة التحقق قبل الإطلاق."
+},
+{
+  "id": "security_gate_already_go_live",
+  "translation": "تم إطلاق بوابة الأمان هذه بالفعل."
+},
+{
+  "id": "findings_not_closed",
+  "translation": "يجب إغلاق جميع النتائج قبل إغلاق اختبار الاختراق."
+},
+{
+  "id": "penetration_test_closed",
+  "translation": "لا يمكن إضافة نتائج أو إعادة فتحها أثناء إغلاق اختبار الاختراق."
+},
+{
+  "id": "environment_ready_before_notify",
+  "translation": "لا يمكن أن يكون تاريخ الجاهزية المتوقع قبل تاريخ إشعار البيئة."
+},
+{
+  "id": "management_response_before_notify",
+  "translation": "لا يمكن أن يكون تاريخ رد الإدارة قبل تاريخ إشعار الإدارة."
 }
-
-
-
-
-
-
 ]

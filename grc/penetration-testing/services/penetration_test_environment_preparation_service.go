@@ -98,6 +98,13 @@ func (ptps *PenetrationTestEnvironmentPreparationService) Create(penetrationTest
 		return 0, err
 	}
 
+	if exists, err := ptps.repo.ExistsByPenetrationTestID(penetrationTestID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	} else if exists {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("environment preparation already exists"), "unique", "environment_preparation")
+	}
 	if _, err := ptps.readinessSvc.GetByID(form.EnvironmentReadinessID); err != nil {
 		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid environment readiness"), "invalid", "environment_readiness_id")
@@ -113,6 +120,11 @@ func (ptps *PenetrationTestEnvironmentPreparationService) Create(penetrationTest
 	if err != nil {
 		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("invalid expected ready date"), "invalid_date", "expected_ready_date")
+	}
+
+	if expectedReadyDate.Before(environmentNotifyDate) {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("expected ready date cannot be before notification"), "environment_ready_before_notify", "expected_ready_date")
 	}
 
 	environmentPreparation := &models.PenetrationTestEnvironmentPreparation{
@@ -193,6 +205,11 @@ func (ptps *PenetrationTestEnvironmentPreparationService) Update(penetrationTest
 	if err != nil {
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("invalid expected ready date"), "invalid_date", "expected_ready_date")
+	}
+
+	if expectedReadyDate.Before(environmentNotifyDate) {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("expected ready date cannot be before notification"), "environment_ready_before_notify", "expected_ready_date")
 	}
 
 	existingEnvironmentPreparation.EnvironmentNotifyDate = environmentNotifyDate

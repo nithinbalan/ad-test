@@ -91,6 +91,9 @@ func (pc *ProjectController) GetAllProjects(c *gin.Context) {
 		"budget":                    "projects.budget",
 		"number_of_resources":       "projects.number_of_resources",
 		"completion_percentage":     "projects.completion_percentage",
+		"workflow_status_en":        "workflow_statuses.title_en",
+		"workflow_status_ar":        "workflow_statuses.title_ar",
+		"workflow_status":           "workflow_statuses.title_en",
 	}
 
 	sortField, valid := validSortFields[sortBy]

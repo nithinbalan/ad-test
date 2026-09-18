@@ -27,6 +27,7 @@ type ProjectSecurityGateChecklistServiceInterface interface {
 	GetChecklistSummary(securityGateID uint) (*dtos.ProjectSecurityGateChecklistSummaryDTO, error)
 	GetFullDetailsByID(securityGateID uint, checklistID uint) (*dtos.ProjectSecurityGateChecklistDetailDTO, error)
 	GetByID(securityGateID uint, checklistID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklist, error)
+	GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error)
 	CreateChecklists(checklists []*models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error
 	DeleteChecklistsBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) error
 	CreateChecklistResponse(securityGateID uint, checklistID uint, currentUserID uint, form *dtos.ProjectSecurityGateChecklistResponseFormDTO) (uint, error)
@@ -92,12 +93,19 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 		return nil, err
 	}
 
+	detail.IsAnswered = checklist.ResponseStatusID != nil || checklist.IsException
 	detail.CreatedAt = checklist.CreatedAt
 	detail.UpdatedAt = checklist.UpdatedAt
 
 	for i := range detail.Comments {
-		if i < len(checklist.Comments) {
-			detail.Comments[i].CreatedAt = checklist.Comments[i].CreatedAt
+		if i >= len(checklist.Comments) {
+			break
+		}
+
+		detail.Comments[i].CreatedAt = checklist.Comments[i].CreatedAt
+
+		if detail.Comments[i].WorkflowHistory != nil && checklist.Comments[i].WorkflowHistory != nil {
+			detail.Comments[i].WorkflowHistory.CreatedAt = checklist.Comments[i].WorkflowHistory.CreatedAt
 		}
 	}
 
@@ -114,7 +122,30 @@ func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGat
 		detail.Controls = append(detail.Controls, &controlDTO)
 	}
 
+	detail.Risks = make([]*dtos.ProjectSecurityGateChecklistRiskDTO, 0, len(checklist.Risks))
+	for _, mapping := range checklist.Risks {
+		if mapping.RiskRegister == nil {
+			continue
+		}
+
+		var riskDTO dtos.ProjectSecurityGateChecklistRiskDTO
+		if err := mapstructure.Decode(mapping.RiskRegister, &riskDTO); err != nil {
+			return nil, err
+		}
+
+		if mapping.RiskRegister.RegistrationDate != nil {
+			riskDTO.RegistrationDateStr = mapping.RiskRegister.RegistrationDate.Format("2006-01-02")
+		}
+		riskDTO.CreatedAt = mapping.CreatedAt
+
+		detail.Risks = append(detail.Risks, &riskDTO)
+	}
+
 	return &detail, nil
+}
+
+func (psgcs *ProjectSecurityGateChecklistService) GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error) {
+	return psgcs.repo.GetAllBySecurityGateID(securityGateID, tx...)
 }
 
 func (psgcs *ProjectSecurityGateChecklistService) CreateChecklists(checklists []*models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error {
@@ -197,7 +228,7 @@ func (psgcs *ProjectSecurityGateChecklistService) CreateChecklistResponse(securi
 		return 0, err
 	}
 
-	if checklist.CreatedBYID != nil {
+	if checklist.ResponseStatusID != nil || checklist.IsException {
 		err = utility.NewValidationError(
 			fmt.Errorf("a response already exists for this checklist item"),
 			"unique",
@@ -321,7 +352,7 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 		return err
 	}
 
-	if checklist.CreatedBYID == nil {
+	if checklist.ResponseStatusID == nil && !checklist.IsException {
 		err = &utility.ResourceNotFoundError{}
 		return err
 	}
@@ -339,6 +370,18 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 		responseStatusID = form.ResponseStatusID
 	}
 
+	var oldResponseStatusID, newResponseStatusID interface{}
+	if checklist.ResponseStatusID != nil {
+		oldResponseStatusID = *checklist.ResponseStatusID
+	}
+
+	oldData := map[string]interface{}{
+		"response_status_id":      oldResponseStatusID,
+		"is_exception":            checklist.IsException,
+		"exception_justification": checklist.ExceptionJustification,
+		"comment":                 checklist.Comment,
+	}
+
 	checklist.ResponseStatusID = responseStatusID
 	checklist.IsException = form.IsException
 	checklist.ExceptionJustification = exceptionJustification
@@ -346,6 +389,18 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 	checklist.UpdatedBYID = &currentUserID
 	now := time.Now()
 	checklist.UpdatedAt = &now
+
+	if checklist.ResponseStatusID != nil {
+		newResponseStatusID = *checklist.ResponseStatusID
+	}
+
+	newData := map[string]interface{}{
+		"response_status_id":      newResponseStatusID,
+		"is_exception":            checklist.IsException,
+		"exception_justification": checklist.ExceptionJustification,
+		"comment":                 checklist.Comment,
+	}
+	changes := utility.CompareFieldChanges(oldData, newData)
 
 	if err = psgcs.repo.UpdateResponse(checklist, tx); err != nil {
 		return err
@@ -434,11 +489,15 @@ func (psgcs *ProjectSecurityGateChecklistService) UpdateChecklistResponse(securi
 	}
 
 	go func() {
+		if len(changes) == 0 {
+			return
+		}
+
 		activityErr := psgcs.activityLog.LogActivity(
 			models.UpdateAction,
 			models.ProjectSecurityGateChecklist{}.TableName(),
 			checklist.ID,
-			checklist,
+			changes,
 			currentUserID,
 			"project", "project_security_gate", "project_security_gate_checklist_response_update", nil,
 		)

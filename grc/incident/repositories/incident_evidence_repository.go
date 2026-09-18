@@ -160,6 +160,9 @@ func (repo *IncidentEvidenceRepository) DeleteIncidentEvidences(evidenceIds []*u
 		db = tx[0].DB()
 	}
 
+	if err := db.Where("incident_evidence_id IN (?)", evidenceIds).Delete(&models.IncidentEvidenceDownloadHistory{}).Error; err != nil {
+		return err
+	}
 	if err := db.Where("id IN (?)", evidenceIds).Delete(&models.IncidentEvidence{}).Error; err != nil {
 		return err
 	}
@@ -185,6 +188,9 @@ func (repo *IncidentEvidenceRepository) Delete(id uint, tx ...utility.DatabaseTr
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return utility.NewResourceNotFoundError(err, id)
 		}
+		return err
+	}
+	if err := db.Where("incident_evidence_id = ?", id).Delete(&models.IncidentEvidenceDownloadHistory{}).Error; err != nil {
 		return err
 	}
 	return db.Delete(&models.IncidentEvidence{}, id).Error

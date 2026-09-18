@@ -14,6 +14,8 @@ type ProjectSecurityGateChecklistListDTO struct {
 	TitleEn                             string     `json:"title_en"`
 	TitleAr                             string     `json:"title_ar"`
 	IsCritical                          bool       `json:"is_critical"`
+	IsException                         bool       `json:"is_exception"`
+	IsExceptionApproved                 bool       `json:"is_exception_approved"`
 	ResponseStatusID                    *uint      `json:"response_status_id"`
 	ResponseStatusTitleEn               *string    `json:"response_status_title_en"`
 	ResponseStatusTitleAr               *string    `json:"response_status_title_ar"`
@@ -45,11 +47,12 @@ type ProjectSecurityGateChecklistListDTO struct {
 }
 
 type ProjectSecurityGateChecklistListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
+	Sort        string
+	SortBy      string
+	Keyword     string
+	QuickFilter []string
+	Page        int
+	PageSize    int
 }
 
 type ProjectSecurityGateChecklistListResponseDTO struct {
@@ -61,6 +64,7 @@ type ProjectSecurityGateChecklistDetailDTO struct {
 	ID                     uint                                                `json:"id"`
 	SecurityGateID         uint                                                `json:"security_gate_id"`
 	Requirement            *ProjectSecurityGateChecklistTemplateRequirementDTO `json:"requirement"`
+	IsAnswered             bool                                                `json:"is_answered"`
 	ResponseStatus         *ProjectSecurityGateChecklistResponseStatusDTO      `json:"response_status"`
 	Comment                *string                                             `json:"comment"`
 	IsException            bool                                                `json:"is_exception"`
@@ -72,6 +76,7 @@ type ProjectSecurityGateChecklistDetailDTO struct {
 	Documents              []*ProjectSecurityGateChecklistResponseDocumentDTO  `json:"documents"`
 	Comments               []*ProjectSecurityGateChecklistCommentDTO           `json:"comments"`
 	Controls               []*organizationDTOs.ControlMinimalListDTO           `json:"controls"`
+	Risks                  []*ProjectSecurityGateChecklistRiskDTO              `json:"risks"`
 }
 
 type ProjectSecurityGateChecklistResponseDocumentDTO struct {

@@ -332,6 +332,11 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 	var docsToDelete []*uint
 	var documentsToDelete []*models.ProjectChangeRequestDocument
 
+	existingDocMap := make(map[uint]*models.ProjectChangeRequestDocument)
+	for _, d := range changeRequest.Documents {
+		existingDocMap[d.ID] = d
+	}
+
 	for _, doc := range form.Documents {
 		if (doc.IsNewFile != nil && *doc.IsNewFile) || (doc.ID == nil && doc.FileName != "") {
 			dataToEncrypt := []byte(doc.FileName)
@@ -355,14 +360,18 @@ func (pcrs *ProjectChangeRequestService) Update(projectID uint, id uint, current
 			newDocsToCreate = append(newDocsToCreate, document)
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			if doc.ID != nil {
-				existingDocument, err := pcrs.repo.GetDocumentByID(*doc.ID)
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
+				existingDocument, exists := existingDocMap[*doc.ID]
+				if !exists {
+					var getErr error
+					existingDocument, getErr = pcrs.repo.GetDocumentByID(*doc.ID, tx)
+					if getErr != nil {
+						if errors.Is(getErr, gorm.ErrRecordNotFound) {
+							tx.Rollback()
+							return utility.NewResourceNotFoundError(getErr, *doc.ID)
+						}
 						tx.Rollback()
-						return utility.NewResourceNotFoundError(err, *doc.ID)
+						return getErr
 					}
-					tx.Rollback()
-					return err
 				}
 				if existingDocument.ProjectChangeRequestID != id {
 					tx.Rollback()

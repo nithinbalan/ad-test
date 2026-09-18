@@ -3,6 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	logServices "jethur/grc/logs/services"
@@ -18,6 +22,7 @@ import (
 )
 
 type PenetrationTestFindingServiceInterface interface {
+	ExportPenetrationTestFinding(data []*penetrationTestDTOs.PenetrationTestFindingListDTO, currentUserID uint) (*os.File, error)
 	GetAll(params *penetrationTestDTOs.PenetrationTestFindingListQueryParamsDTO) (*penetrationTestDTOs.PenetrationTestFindingListResponseDTO, error)
 	GetByID(id uint) (*models.PenetrationTestFinding, error)
 	GetFullDetailsByID(id uint) (*penetrationTestDTOs.PenetrationTestFindingDetailDTO, error)
@@ -28,6 +33,7 @@ type PenetrationTestFindingServiceInterface interface {
 }
 
 type PenetrationTestFindingService struct {
+	userSettingSvc      organizationServices.UserSettingServiceInterface
 	repo                repositories.PenetrationTestFindingRepositoryInterface
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	penetrationTestSvc  PenetrationTestServiceInterface
@@ -43,8 +49,10 @@ func NewPenetrationTestFindingService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) PenetrationTestFindingServiceInterface {
 	return &PenetrationTestFindingService{
+		userSettingSvc:      userSettingSvc,
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		penetrationTestSvc:  penetrationTestSvc,
@@ -90,8 +98,16 @@ func (ptfs *PenetrationTestFindingService) Create(currentUserID uint, formDTO *p
 		tx.Rollback()
 		return 0, err
 	}
+	penetrationTest, err := ptfs.penetrationTestSvc.GetByID(formDTO.PenetrationTestID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if penetrationTest.PenetrationTestStatus != nil && penetrationTest.PenetrationTestStatus.Type == "closed" {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("cannot add findings to a closed penetration test"), "penetration_test_closed", "penetration test")
+	}
 	var targetRemediationDate *time.Time
-	var err error
 	if formDTO.TargetRemediationDate != nil && *formDTO.TargetRemediationDate != "" {
 		targetRemediationDate, err = utility.ParseDate(*formDTO.TargetRemediationDate)
 		if err != nil {
@@ -165,6 +181,18 @@ func (ptfs *PenetrationTestFindingService) Update(id uint, currentUserID uint, f
 	if err := ptfs.validatePenetrationTestFindingFormDTO(form); err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	if existing.PenetrationTestID != form.PenetrationTestID {
+		penetrationTest, err := ptfs.penetrationTestSvc.GetByID(form.PenetrationTestID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if penetrationTest.PenetrationTestStatus != nil && penetrationTest.PenetrationTestStatus.Type == "closed" {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("cannot add findings to a closed penetration test"), "penetration_test_closed", "penetration test")
+		}
 	}
 
 	var targetRemediationDate *time.Time
@@ -243,6 +271,11 @@ func (ptfs *PenetrationTestFindingService) Delete(ids []uint, currentUserID uint
 			continue
 		}
 
+		folderPath := filepath.Join("penetration-testing", "penetration-test-findings", strconv.FormatUint(uint64(id), 10), "status-updates")
+		if err := utility.RemoveFolder(folderPath); err != nil {
+			utility.LogError("Failed to remove finding status update storage folder", map[string]interface{}{"findingID": id, "error": err.Error()})
+		}
+
 		successfulIDs = append(successfulIDs, id)
 		deleted = append(deleted, map[string]interface{}{
 			"id":    id,
@@ -273,6 +306,19 @@ func (ptfs *PenetrationTestFindingService) StatusUpdate(id uint, currentUserID u
 	if err != nil {
 		return err
 	}
+	penetrationTest, err := ptfs.penetrationTestSvc.GetByID(finding.PenetrationTestID)
+	if err != nil {
+		return err
+	}
+	if penetrationTest.PenetrationTestStatus != nil && penetrationTest.PenetrationTestStatus.Type == "closed" {
+		status, err := ptfs.actionPlanStatusSvc.GetByID(statusID)
+		if err != nil {
+			return err
+		}
+		if status.Type != "close" {
+			return utility.NewValidationError(fmt.Errorf("cannot reopen findings of a closed penetration test"), "penetration_test_closed", "penetration test")
+		}
+	}
 	finding.ActionPlanStatusID = statusID
 	finding.Percentage = percentage
 	finding.UpdatedBYID = &currentUserID
@@ -292,4 +338,86 @@ func (ptfs *PenetrationTestFindingService) validatePenetrationTestFindingFormDTO
 		return utility.NewValidationError(fmt.Errorf("owner does not exist"), "not_exist", "owner")
 	}
 	return nil
+}
+
+func (ptfs *PenetrationTestFindingService) ExportPenetrationTestFinding(data []*penetrationTestDTOs.PenetrationTestFindingListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := ptfs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"الملاحظة",
+			"مرجع اختبار الاختراق",
+			"النظام / التطبيق",
+			"الوصف",
+			"التوصية",
+			"درجة الخطورة",
+			"المستخدم المسؤول",
+			"الوحدة المسؤولة",
+			"التاريخ المستهدف",
+			"الحالة",
+			"نسبة الإنجاز (%)",
+			"تاريخ الإنشاء",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Finding",
+			"Pentest Reference",
+			"System / Application",
+			"Description",
+			"Recommendation",
+			"Severity",
+			"Responsible User",
+			"Responsible Unit",
+			"Target Date",
+			"Status",
+			"Completion (%)",
+			"Created At",
+		}
+	}
+	rows := make([][]interface{}, len(data))
+	for i, finding := range data {
+		var responsibleUser, responsibleUnit, severity, status string
+
+		if userSetting.Language == "ar" {
+			responsibleUser = strings.TrimSpace(finding.OwnerFirstNameAr + " " + finding.OwnerLastNameAr)
+			responsibleUnit = utility.GetStringValue(finding.ResponsibleUnitTitleAr)
+			severity = finding.SeverityLevelTitleAr
+			status = finding.ActionPlanStatusTitleAr
+		} else {
+			responsibleUser = strings.TrimSpace(finding.OwnerFirstNameEn + " " + finding.OwnerLastNameEn)
+			responsibleUnit = utility.GetStringValue(finding.ResponsibleUnitTitleEn)
+			severity = finding.SeverityLevelTitleEn
+			status = finding.ActionPlanStatusTitleEn
+		}
+
+		var percentage uint
+		if finding.Percentage != nil {
+			percentage = *finding.Percentage
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			finding.ReferenceNumber,
+			finding.Title,
+			finding.PenetrationTestReferenceNumber,
+			finding.SystemApplicationName,
+			utility.StripHTMLTags(utility.GetStringValue(finding.Description)),
+			utility.StripHTMLTags(utility.GetStringValue(finding.Recommendation)),
+			severity,
+			responsibleUser,
+			responsibleUnit,
+			utility.GetStringValue(finding.TargetRemediationDate),
+			status,
+			percentage,
+			finding.CreatedAt,
+		}
+	}
+	return utility.GenerateExcelFile(headers, rows)
 }

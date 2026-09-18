@@ -184,7 +184,7 @@ func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskD
 		RegistrationDate:         &dates.RegistrationDate,
 		RiskCode:                 &dto.RiskCode,
 		DivisionID:               dto.DivisionID,
-		SectionID:                &dto.SectionID,
+		ResponsibleUnitID:        &dto.ResponsibleUnitID,
 		ResponsibleUserID:        &dto.ResponsibleUserID,
 		IsStrategic:              *dto.IsStrategic,
 		IsOperational:            *dto.IsOperational,
@@ -380,7 +380,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 	existingRiskRegister.RegistrationDate = &dates.RegistrationDate
 	existingRiskRegister.RiskCode = &dto.RiskCode
 	existingRiskRegister.DivisionID = dto.DivisionID
-	existingRiskRegister.SectionID = &dto.SectionID
+	existingRiskRegister.ResponsibleUnitID = &dto.ResponsibleUnitID
 	existingRiskRegister.ResponsibleUserID = &dto.ResponsibleUserID
 	existingRiskRegister.IsStrategic = *dto.IsStrategic
 	existingRiskRegister.IsOperational = *dto.IsOperational
@@ -480,7 +480,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			"justification":     oldRiskRegister.Justification,
 			"expected_cause":    oldRiskRegister.ExpectedCause,
 			"division":          oldRiskRegister.Division.TitleEn,
-			"section":           oldRiskRegister.Section.TitleEn,
+			"responsible_unit":  oldRiskRegister.ResponsibleUnit.TitleEn,
 			"risk_category":     oldRiskRegister.RiskCategory.TitleEn,
 			"responsible_user": fmt.Sprintf("%s %s",
 				oldRiskRegister.ResponsibleUser.FirstNameEN,
@@ -516,7 +516,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			"justification":     newRisk.Justification,
 			"expected_cause":    newRisk.ExpectedCause,
 			"division":          newRisk.Division.TitleEn,
-			"section":           newRisk.Section.TitleEn,
+			"responsible_unit":  newRisk.ResponsibleUnit.TitleEn,
 			"risk_category":     newRisk.RiskCategory.TitleEn,
 			"responsible_user": fmt.Sprintf("%s %s",
 				newRisk.ResponsibleUser.FirstNameEN,
@@ -906,7 +906,7 @@ func (arrs *AssetRiskRegisterService) ExportRiskRegister(data []*assetRiskDTOs.A
 				risk.RiskCode,
 				risk.RiskCategoryTitleAr,
 				risk.DivisionTitleAr,
-				risk.SectionTitleAr,
+				risk.ResponsibleUnitTitleAr,
 				assetRiskLevel(risk.IsStrategic, risk.IsOperational, userSetting.Language),
 				assetRiskSource(risk.IsInternal, risk.IsExternal, userSetting.Language),
 				risk.ConfidentialityScore,
@@ -934,7 +934,7 @@ func (arrs *AssetRiskRegisterService) ExportRiskRegister(data []*assetRiskDTOs.A
 				risk.RiskCode,
 				risk.RiskCategoryTitleEn,
 				risk.DivisionTitleEn,
-				risk.SectionTitleEn,
+				risk.ResponsibleUnitTitleEn,
 				assetRiskLevel(risk.IsStrategic, risk.IsOperational, userSetting.Language),
 				assetRiskSource(risk.IsInternal, risk.IsExternal, userSetting.Language),
 				risk.ConfidentialityScore,
@@ -1050,8 +1050,8 @@ func (arrs *AssetRiskRegisterService) validateAssetRiskRegisterFormDTO(dto *asse
 		return utility.NewValidationError(fmt.Errorf("division does not exist"), "not_exist", "division")
 	}
 
-	if _, err := arrs.organizationSvc.GetByID(dto.SectionID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("section does not exist"), "not_exist", "section")
+	if _, err := arrs.organizationSvc.GetByID(dto.ResponsibleUnitID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("responsible unit does not exist"), "not_exist", "responsible unit")
 	}
 
 	if _, err := arrs.userSvc.GetByID(dto.ResponsibleUserID); err != nil {

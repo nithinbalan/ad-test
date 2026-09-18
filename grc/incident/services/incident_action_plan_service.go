@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -25,6 +26,7 @@ import (
 type IncidentActionPlanServiceInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
 	GetByID(incidentID uint, id uint) (*models.IncidentActionPlan, error)
+	GetActionPlanByID(id uint) (*models.IncidentActionPlan, error)
 	GetFullDetailsByID(incidentID uint, id uint) (*incidentDTOs.IncidentActionPlanDetailDTO, error)
 	GetUsedActionPlanMasterIDs(incidentID uint) ([]uint, error)
 	Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error)
@@ -97,6 +99,17 @@ func (iaps IncidentActionPlanService) GetByID(incidentID uint, id uint) (*models
 		return nil, err
 	}
 
+	incidentActionPlan, err := iaps.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return incidentActionPlan, nil
+}
+
+func (iaps IncidentActionPlanService) GetActionPlanByID(id uint) (*models.IncidentActionPlan, error) {
 	incidentActionPlan, err := iaps.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -687,17 +700,6 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 			IncidentTitle:   incidentActionPlan.IncidentRegister.Title,
 		})
 
-		existingTask, err := iaps.taskSvc.GetByFieldID("incident_action_plan_id", id)
-		if err != nil {
-			failedIds = append(failedIds, id)
-			continue
-		}
-
-		taskID, err := iaps.taskSvc.Delete(existingTask.ID, currentUserID)
-		if err != nil {
-			failedIds = append(failedIds, taskID)
-		}
-
 		if len(incidentActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range incidentActionPlan.ActionPlanStatusUpdates {
@@ -736,7 +738,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 				return failedIds, err
 			}
 		}
-		err = iaps.repo.Delete(id, tx)
+		err = iaps.repo.ForceDelete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -914,6 +916,7 @@ func (iaps *IncidentActionPlanService) ExportIncidentActionPlan(data []*incident
 			"Description",
 			"Severity",
 			"Responsible User",
+			"Review User",
 			"Target Date",
 			"Status",
 		}
@@ -925,6 +928,7 @@ func (iaps *IncidentActionPlanService) ExportIncidentActionPlan(data []*incident
 			"Description",
 			"Severity",
 			"Responsible User",
+			"Review User",
 			"Target Date",
 			"Status",
 		}
@@ -932,14 +936,16 @@ func (iaps *IncidentActionPlanService) ExportIncidentActionPlan(data []*incident
 	// Prepare the data rows
 	rows := make([][]interface{}, len(data))
 	for i, actionPlan := range data {
-		var responsibleUser, severity, status string
+		var responsibleUser, reviewUser, severity, status string
 
 		if userSetting.Language == "ar" {
-			responsibleUser = actionPlan.ResponsibleUserFirstNameAr
+			responsibleUser = strings.TrimSpace(actionPlan.ResponsibleUserFirstNameAr + " " + actionPlan.ResponsibleUserLastNameAr)
+			reviewUser = strings.TrimSpace(utility.GetStringValue(actionPlan.ReviewUserFirstNameAr) + " " + utility.GetStringValue(actionPlan.ReviewUserLastNameAr))
 			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleAr)
 			status = actionPlan.ActionPlanStatusTitleAr
 		} else {
-			responsibleUser = actionPlan.ResponsibleUserFirstNameEn
+			responsibleUser = strings.TrimSpace(actionPlan.ResponsibleUserFirstNameEn + " " + actionPlan.ResponsibleUserLastNameEn)
+			reviewUser = strings.TrimSpace(actionPlan.ReviewUserFirstNameEn + " " + utility.GetStringValue(actionPlan.ReviewUserLastNameEn))
 			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleEn)
 			status = actionPlan.ActionPlanStatusTitleEn
 		}
@@ -951,6 +957,7 @@ func (iaps *IncidentActionPlanService) ExportIncidentActionPlan(data []*incident
 			utility.GetStringValue(actionPlan.Description),
 			severity,
 			responsibleUser,
+			reviewUser,
 			utility.GetStringValue(actionPlan.TargetDate),
 			status,
 		}

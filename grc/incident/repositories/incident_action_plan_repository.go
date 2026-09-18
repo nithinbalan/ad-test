@@ -118,6 +118,14 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
+			if columnName == "project_excluded" {
+				subQuery := repo.db.Table("projects").
+					Select("incident_action_plan_id").
+					Where("incident_action_plan_id IS NOT NULL")
+
+				query = query.Where("incident_action_plans.id NOT IN (?)", subQuery)
+				continue
+			}
 			// Check if the column name has a mapping, otherwise use the column name as is
 			if mappedField, exists := fieldMappings[columnName]; exists {
 				query = query.Where(mappedField+" IN (?)", values)
@@ -142,7 +150,13 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "overdue":
-			query = query.Where("target_date < ?", time.Now())
+			query = query.Where("target_date < ? AND action_plan_statuses.is_closed = ?", time.Now(), false)
+		case "critical":
+			query = query.Where("severity_levels.type = ?", "high")
+		case "open":
+			query = query.Where("action_plan_statuses.is_closed = ?", false)
+		case "closed":
+			query = query.Where("action_plan_statuses.is_closed = ?", true)
 		case "completed":
 			query = query.Where("action_plan_statuses.type = ?", "completed")
 		case "in_progress":

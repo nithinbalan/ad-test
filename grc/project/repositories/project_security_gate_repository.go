@@ -62,6 +62,12 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 			business_owner.color AS business_owner_color,
 			business_owner.email AS business_owner_email,
 			business_owner.profile_image_path AS business_owner_profile_image_path,
+			division.id AS division_id,
+			division.title_en AS division_title_en,
+			division.title_ar AS division_title_ar,
+			department.id AS department_id,
+			department.title_en AS department_title_en,
+			department.title_ar AS department_title_ar,
 			created_user.id AS created_by_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -87,6 +93,8 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 			LEFT JOIN project_security_gate_stages AS stages ON stages.id = project_security_gates.stage_id
 			LEFT JOIN project_security_gate_readiness_statuses AS readiness_status ON readiness_status.id = project_security_gates.readiness_status_id
 			LEFT JOIN users AS business_owner ON business_owner.id = project_security_gates.business_owner_id
+			LEFT JOIN organization_units AS division ON division.id = project_security_gates.division_id
+			LEFT JOIN organization_units AS department ON department.id = project_security_gates.department_id
 			LEFT JOIN users AS created_user ON created_user.id = project_security_gates.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = project_security_gates.updated_by_id
 		`)
@@ -99,6 +107,45 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 			business_owner.first_name_en LIKE ? OR
 			business_owner.last_name_en LIKE ?)`,
 			keyword, keyword, keyword, keyword)
+	}
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			if columnName == "classification_id" {
+				query = query.Where("project_security_gates.id IN (SELECT security_gate_id FROM project_security_gate_classification_mappings WHERE classification_id IN (?))", values)
+			} else {
+				query = query.Where("project_security_gates."+columnName+" IN (?)", values)
+			}
+		}
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "exception_pending":
+			query = query.Where(`
+				EXISTS (
+					SELECT 1 FROM project_security_gate_checklists AS exception_checklist
+					WHERE exception_checklist.security_gate_id = project_security_gates.id
+						AND exception_checklist.is_exception = 1
+						AND exception_checklist.approved_by_id IS NULL
+				)`)
+		case "outstanding":
+			query = query.Where(`
+				EXISTS (
+					SELECT 1 FROM project_security_gate_checklists AS pending_checklist
+					WHERE pending_checklist.security_gate_id = project_security_gates.id
+						AND pending_checklist.response_status_id IS NULL
+						AND pending_checklist.is_exception = 0
+				)`)
+		case "risk_raised":
+			query = query.Where(`
+				EXISTS (
+					SELECT 1 FROM project_security_gate_checklist_risks AS checklist_risk
+					JOIN project_security_gate_checklists AS risk_checklist
+						ON risk_checklist.id = checklist_risk.checklist_id
+					WHERE risk_checklist.security_gate_id = project_security_gates.id
+				)`)
+		}
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -115,12 +162,20 @@ func (repo *ProjectSecurityGateRepository) GetAll(params *projectDTOs.ProjectSec
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-	if err := query.Offset(offset).Limit(params.PageSize).Find(&projectSecurityGates).Error; err != nil {
+	// An export takes every matching row, not just the current page
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&projectSecurityGates).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 
 	return &projectDTOs.ProjectSecurityGateListResponseDTO{
 		Items: projectSecurityGates,
@@ -187,6 +242,8 @@ func (repo *ProjectSecurityGateRepository) GetFullDetailsByID(id uint) (*models.
 		Preload("Stage").
 		Preload("TemplateVersion").
 		Preload("BusinessOwner").
+		Preload("Division").
+		Preload("Department").
 		Preload("ReadinessStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

@@ -9,6 +9,7 @@ import (
 )
 
 type ReportsModule struct {
+	PenetrationTestReportController           *controllers.PenetrationTestReportController
 	ComplianceReportController               *controllers.ComplianceReportController
 	OrganizationReportController             *controllers.OrganizationReportController
 	RiskReportController                     *controllers.RiskReportController
@@ -23,6 +24,8 @@ type ReportsModule struct {
 	GRCReportWorkflowController              *controllers.GRCReportWorkflowController
 	GRCReportWorkflowReviewCommentController *controllers.GRCReportWorkflowReviewCommentController
 	TPRMReportController                     *controllers.TPRMReportController
+	ProjectReportController                  *controllers.ProjectReportController
+	ProjectSecurityGateReportController      *controllers.ProjectSecurityGateReportController
 }
 
 func NewReportsModule(db *gorm.DB,
@@ -39,6 +42,8 @@ func NewReportsModule(db *gorm.DB,
 	kpiModule *KPIModule,
 	commonModule *CommonModule,
 	tprmModule *TprmModule,
+	projectModule *ProjectModule,
+	penetrationTestingModule *PenetrationTestingModule,
 ) *ReportsModule {
 
 	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
@@ -132,7 +137,19 @@ func NewReportsModule(db *gorm.DB,
 	tprmReportSvc := services.NewTPRMReportService(tprmReportRepo)
 	tprmReportController := controllers.NewTPRMReportController(tprmReportSvc, tprmModule.ThirdPartyRegisterSvc, tprmModule.ThirdPartyAssessmentSvc)
 
+	projectReportRepo := repositories.NewProjectReportRepository(db)
+	projectReportSvc := services.NewProjectReportService(projectReportRepo)
+	projectReportController := controllers.NewProjectReportController(projectReportSvc, projectModule.projectSvc, projectModule.projectActionPlanSvc)
+
+	projectSecurityGateReportRepo := repositories.NewProjectSecurityGateReportRepository(db)
+	projectSecurityGateReportSvc := services.NewProjectSecurityGateReportService(projectSecurityGateReportRepo)
+	projectSecurityGateReportController := controllers.NewProjectSecurityGateReportController(projectSecurityGateReportSvc, projectModule.projectSecurityGateSvc)
+
+	penetrationTestReportRepo := repositories.NewPenetrationTestReportRepository(db)
+	penetrationTestReportSvc := services.NewPenetrationTestReportService(penetrationTestReportRepo)
+	penetrationTestReportController := controllers.NewPenetrationTestReportController(penetrationTestReportSvc, penetrationTestingModule.PenetrationTestSvc, penetrationTestingModule.PenetrationTestFindingSvc)
 	return &ReportsModule{
+		PenetrationTestReportController:           penetrationTestReportController,
 		ComplianceReportController:               complianceReportController,
 		OrganizationReportController:             organizationReportController,
 		RiskReportController:                     riskReportController,
@@ -147,5 +164,7 @@ func NewReportsModule(db *gorm.DB,
 		GRCReportWorkflowController:              grcReportWorkflowController,
 		GRCReportWorkflowReviewCommentController: grcReportWorkflowReviewCommentController,
 		TPRMReportController:                     tprmReportController,
+		ProjectReportController:                  projectReportController,
+		ProjectSecurityGateReportController:      projectSecurityGateReportController,
 	}
 }

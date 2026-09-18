@@ -3,6 +3,7 @@ package utility
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -63,6 +64,82 @@ func FormatDate(date *time.Time) string {
 		return date.Format("2006-01-02") // Formats the date as YYYY-MM-DD
 	}
 	return ""
+}
+
+// DateTimeFormatter combines a user's timezone with the configured system date/time format.
+type DateTimeFormatter struct {
+	Timezone   *time.Location
+	DateFormat string
+	TimeFormat string
+}
+
+// NewDateTimeFormatter creates a formatter from the user's timezone name and the system date/time format.
+func NewDateTimeFormatter(tzName, dateFormat, timeFormat string) *DateTimeFormatter {
+	f := &DateTimeFormatter{
+		DateFormat: dateFormat,
+		TimeFormat: timeFormat,
+	}
+	if tzName != "" {
+		if loc, err := time.LoadLocation(tzName); err == nil {
+			f.Timezone = loc
+		}
+	}
+	return f
+}
+
+// dayjsToGoLayout converts a subset of dayjs-style date format tokens to Go's reference layout.
+func dayjsToGoLayout(format string) string {
+	if format == "" {
+		return "2006-01-02"
+	}
+	r := strings.NewReplacer(
+		"YYYY", "2006",
+		"YY", "06",
+		"MMMM", "January",
+		"MMM", "Jan",
+		"MM", "01",
+		"M", "1",
+		"DD", "02",
+		"D", "2",
+		"dddd", "Monday",
+		"ddd", "Mon",
+	)
+	return r.Replace(format)
+}
+
+func (f *DateTimeFormatter) dateLayout() string {
+	return dayjsToGoLayout(f.DateFormat)
+}
+
+func (f *DateTimeFormatter) timeLayout() string {
+	if f.TimeFormat == "24" {
+		return "15:04"
+	}
+	return "3:04 PM"
+}
+
+func (f *DateTimeFormatter) dateTimeLayout() string {
+	return f.dateLayout() + " " + f.timeLayout()
+}
+
+// FormatDate formats the value using only the date part, without timezone conversion.
+func (f *DateTimeFormatter) FormatDate(t *time.Time) string {
+	if t == nil || t.IsZero() {
+		return ""
+	}
+	return t.Format(f.dateLayout())
+}
+
+// FormatDateTime converts the value to the user's timezone and then formats it with date and time.
+func (f *DateTimeFormatter) FormatDateTime(t *time.Time) string {
+	if t == nil || t.IsZero() {
+		return ""
+	}
+	value := *t
+	if f.Timezone != nil {
+		value = value.In(f.Timezone)
+	}
+	return value.Format(f.dateTimeLayout())
 }
 
 func ConvertToUTC(localTime string, timezoneName string) (*time.Time, error) {

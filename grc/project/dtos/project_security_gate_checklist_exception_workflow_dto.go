@@ -3,7 +3,6 @@ package dtos
 import (
 	"time"
 
-	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 )
@@ -13,9 +12,9 @@ type ProjectSecurityGateChecklistExceptionWorkflowListDTO struct {
 	ChecklistID     uint                                                           `json:"checklist_id"`
 	NextReviewLevel *int                                                           `json:"next_review_level"`
 	SubmittedAt     *time.Time                                                     `json:"submitted_at"`
-	SubmittedByUser *organizationDTOs.UserMinimalDTO                               `json:"submitted_by_user"`
+	SubmittedByUser *organizationDTOs.UserMinimalDTO                               `json:"submitted_by"`
 	ApprovedAt      *time.Time                                                     `json:"approved_at"`
-	ApprovedByUser  *organizationDTOs.UserMinimalDTO                               `json:"approved_by_user"`
+	ApprovedByUser  *organizationDTOs.UserMinimalDTO                               `json:"approved_by"`
 	WorkflowStatus  *masterDTOs.WorkflowStatusDTO                                  `json:"workflow_status"`
 	Workflows       []*ProjectSecurityGateChecklistExceptionWorkflowLevelDTO       `json:"workflows"`
 	History         []*ProjectSecurityGateChecklistExceptionWorkflowHistoryItemDTO `json:"history"`
@@ -33,26 +32,10 @@ type ProjectSecurityGateChecklistExceptionWorkflowLevelDTO struct {
 }
 
 type ProjectSecurityGateChecklistExceptionWorkflowHistoryItemDTO struct {
-	ID             uint                                                              `json:"id"`
-	Level          int                                                               `json:"level"`
-	WorkflowStatus masterDTOs.WorkflowStatusDTO                                      `json:"workflow_status"`
-	Comment        *string                                                           `json:"comment"`
-	Documents      []*ProjectSecurityGateChecklistExceptionWorkflowReviewDocumentDTO `json:"documents"`
-	CreatedByUser  *organizationDTOs.UserMinimalDTO                                  `json:"created_by_user"`
-	CreatedAt      time.Time                                                         `json:"created_at"`
-}
-
-type ProjectSecurityGateChecklistExceptionWorkflowReviewDocumentDTO struct {
-	ID           uint   `json:"id"`
-	URL          string `json:"url"`
-	Name         string `json:"name"`
-	Size         int    `json:"size"`
-	Token        string `json:"token"`
-	OriginalName string `json:"original_name"`
-	Type         string `json:"type"`
-}
-
-type ProjectSecurityGateChecklistExceptionReviewFormDTO struct {
-	Comment   *string                       `json:"comment" binding:"omitempty"`
-	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
+	ID             uint                             `json:"id"`
+	Level          int                              `json:"level"`
+	WorkflowStatus masterDTOs.WorkflowStatusDTO     `json:"workflow_status"`
+	Comment        *string                          `json:"comment"`
+	CreatedByUser  *organizationDTOs.UserMinimalDTO `json:"created_by"`
+	CreatedAt      time.Time                        `json:"created_at"`
 }

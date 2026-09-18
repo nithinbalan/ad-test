@@ -217,6 +217,11 @@ func (ds *DocumentService) GetFullDetailsByID(id uint, currentUserID *uint, tx .
 	documentDTO.CreatedAt = document.CreatedAt
 	documentDTO.UpdatedAt = document.UpdatedAt
 
+	if document.NextReviewDate != nil {
+		nextReviewDate := document.NextReviewDate.Format("2006-01-02")
+		documentDTO.NextReviewDate = &nextReviewDate
+	}
+
 	return &documentDTO, nil
 }
 
@@ -478,6 +483,34 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		// Prepare and send DB notification to responsible user
+		entity := "document"
+		action := "responsible-user-assign"
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{documentFormDTO.ResponsibleUserID},
+			ModuleIdentifier:     "document",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Document Register Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية سجل الوثائق",
+			TitleEn:              existingDocument.TitleEn,
+			TitleAr:              existingDocument.TitleAr,
+			ReferenceNumber:      existingDocument.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		err = ds.notificationSvc.SendNotification(dbNotificationDTO, nil, "document")
+		if err != nil {
+			utility.LogError("Failed to send responsible user notification", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 
 		documentVersion, err := ds.repo.GetDocumentVersionByID(existingDocument.LatestDocumentVersion.ID)
@@ -1477,7 +1510,7 @@ func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token s
 
 	if document.CreatedByUser.ID != int(currentUserID) && document.ResponsibleUser.ID != int(currentUserID) {
 		tx.Rollback()
-		return "", utility.NewForbiddenError("Access denied: user is neither creator nor responsible user.")
+		return "", utility.NewForbiddenError("Access denied: Only the creator or responsible user can check out this document.")
 	}
 
 	currentDateStr := time.Now().Format("2006-01-02")
@@ -1552,7 +1585,7 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 
 	if document.CreatedByUser.ID != int(currentUserID) && document.ResponsibleUser.ID != int(currentUserID) {
 		tx.Rollback()
-		return fmt.Errorf("access denied: user is neither creator nor responsible user")
+		return utility.NewForbiddenError("Access denied: Only the creator or responsible user can check in this document.")
 	}
 
 	dataToEncrypt := []byte(documentCheckinFormDTO.Document.FileName)
@@ -1960,7 +1993,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/document/register/%d/overview", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -2381,7 +2414,7 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 		action := "published"
 		appURL := utility.GetAppURL()
 		subject := fmt.Sprintf("Document/%s: Published Notification", document.TitleEn)
-		redirectURL := fmt.Sprintf("%s/document/register/%d", appURL, documentID)
+		redirectURL := fmt.Sprintf("%s/document/register/%d/overview", appURL, documentID)
 
 		publishedUser, _ := ds.userSvc.GetByID(publishedBy)
 
@@ -2549,6 +2582,7 @@ func (ds *DocumentService) UpdateDocumentRecoveryObjective(document *models.Docu
 }
 
 func (ds *DocumentService) calculateNextReviewDate(baseDate time.Time, frequencyType string) time.Time {
+	baseDate = time.Date(baseDate.Year(), baseDate.Month(), baseDate.Day(), 0, 0, 0, 0, baseDate.Location())
 	switch frequencyType {
 	case "daily":
 		return baseDate.AddDate(0, 0, 1)

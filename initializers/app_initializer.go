@@ -62,10 +62,11 @@ func NewApp(db *gorm.DB) *App {
 	kpiModule := NewKPIModule(db, riskModule, organizationModule, documentModule)
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule, commonModule)
 	tprmModule := NewTprmModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule)
-	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, auditInsightsModule, incidentModule, meetingModule, settingsModule, documentModule, sharedModule, kpiModule, commonModule, tprmModule)
+	projectModule := NewProjectModule(db, sharedModule, organizationModule, masterModule, commonModule, taskModule, settingsModule, incidentModule)
+	penetrationTestingModule := NewPenetrationTestingModule(db, sharedModule, settingsModule, masterModule, organizationModule)
+	reportsModule := NewReportsModule(db, complianceModule, organizationModule, riskModule, auditModule, auditInsightsModule, incidentModule, meetingModule, settingsModule, documentModule, sharedModule, kpiModule, commonModule, tprmModule, projectModule, penetrationTestingModule)
 	businessFunctionModule := NewBusinessContinuityModule(db, sharedModule, settingsModule, masterModule, organizationModule, assetModule, documentModule, riskModule, commonModule, taskModule)
 	organizationalContextModule := NewOrganizationalContextModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
-	projectModule := NewProjectModule(db, sharedModule, organizationModule, masterModule, commonModule, taskModule, settingsModule)
 	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule, assetModule, tprmModule, complianceModule, documentModule, projectModule)
 	kpiRegisterModule := NewKPIRegisterModule(db, sharedModule, settingsModule, masterModule, organizationModule, commonModule, riskModule, assetModule, tprmModule, complianceModule, documentModule, strategyModule)
 	jethurAIModule := NewJethurAIModule(db, documentModule, organizationModule, settingsModule, complianceModule)
@@ -74,7 +75,7 @@ func NewApp(db *gorm.DB) *App {
 	violationReportModule := NewViolationReportModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule, assetModule)
 	identityAccessReviewModule := NewIdentityAccessReviewModule(db, sharedModule, organizationModule, settingsModule, masterModule, taskModule, commonModule)
 	securityOperationsModule := NewSecurityOperationsModule(db, sharedModule, settingsModule, organizationModule, commonModule)
-	penetrationTestingModule := NewPenetrationTestingModule(db, sharedModule, masterModule, organizationModule)
+	penetrationTestingModule := NewPenetrationTestingModule(db, sharedModule, settingsModule, masterModule, organizationModule)
 	threatIntelligenceModule := NewThreatIntelligenceModule(db, sharedModule, organizationModule, settingsModule, commonModule)
 
 	return &App{

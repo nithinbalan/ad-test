@@ -1,4 +1,4 @@
-﻿<head>
+<head>
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
    <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,29 +16,19 @@
          </div>
 
          <h1 style="font-size: 40px; color: #fff; position: absolute; bottom: 500px; left: 0; right: 0; text-align: center; margin: 0 auto;">
-            Jethur Project Management <br /> Report</h1>
+            Project Management <br /> Report</h1>
       </div>
 
       <div style="margin-left: 40px; margin-top: 24px;">
          <div style="margin-top: 0px;">
-            <div style="width: 30%; display: inline-block; vertical-align: top;">
+            <div style="width: 90%; display: inline-block; vertical-align: top;">
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-                  <span>Project ID:</span>
+                  <span>Project Title:</span>
                </p>
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                  #{{ .Data.ID }}
-               </p>
-            </div>
-            <div style="width: 60%; display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-                  <span>Project Title</span>
-               </p>
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                  {{ .Data.TitleEn }} {{if .Data.TitleAr}}({{ .Data.TitleAr }}){{end}}
+                  {{ .Data.TitleEn }}
                </p>
             </div>
          </div>
@@ -50,7 +40,7 @@
                </p>
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">
-                  {{ .Data.ResponsibleUser.FirstNameEn }} {{ .Data.ResponsibleUser.LastNameEn }}
+                  {{ .Data.ResponsibleUser.FirstNameEN }} {{ .Data.ResponsibleUser.LastNameEN }}
                </p>
             </div>
 
@@ -68,7 +58,7 @@
             <div style="width: 30%; display: inline-block; vertical-align: top;">
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-                  <span>Exported At</span>
+                  <span>Exported At:</span>
                </p>
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px; line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">

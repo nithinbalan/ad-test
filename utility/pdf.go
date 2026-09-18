@@ -70,8 +70,21 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 	templates := template.New("pdf").Funcs(template.FuncMap{
 		"formatDate": func(date string) string { return date },
 		"safeHTML":   func(content string) template.HTML { return template.HTML(content) },
-		"stripHTML":  func(content string) string { return StripHTMLTags(content) },
-		"add":        func(a, b int) int { return a + b },
+		"stripHTML": func(content interface{}) string {
+			switch v := content.(type) {
+			case string:
+				return StripHTMLTags(v)
+			case *string:
+				if v == nil {
+					return ""
+				}
+				return StripHTMLTags(*v)
+			case template.HTML:
+				return StripHTMLTags(string(v))
+			}
+			return ""
+		},
+		"add": func(a, b int) int { return a + b },
 		"boolToYesNo": func(b *bool) string {
 			if b == nil {
 				return ""
@@ -467,6 +480,63 @@ func AddFileToZip(zipWriter *zip.Writer, filename string) error {
 		return err
 	}
 	header.Name = filepath.Base(filename)
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(writer, fileToZip)
+	return err
+}
+
+// ZipEntry is a file on disk and its path inside the archive.
+type ZipEntry struct {
+	SourcePath string
+	ZipPath    string
+}
+
+// CreateZipFileWithFolders zips each entry at its own ZipPath, keeping folders.
+func CreateZipFileWithFolders(zipPath string, entries []ZipEntry) error {
+	newZipFile, err := os.Create(zipPath)
+	if err != nil {
+		return err
+	}
+	defer newZipFile.Close()
+
+	zipWriter := zip.NewWriter(newZipFile)
+	for _, entry := range entries {
+		if err := AddFileToZipAtPath(zipWriter, entry.SourcePath, entry.ZipPath); err != nil {
+			zipWriter.Close()
+			return err
+		}
+	}
+
+	// Not deferred: Close writes the central directory and can fail
+	return zipWriter.Close()
+}
+
+// AddFileToZipAtPath is AddFileToZip storing the file under zipName.
+func AddFileToZipAtPath(zipWriter *zip.Writer, filename string, zipName string) error {
+	fileToZip, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer fileToZip.Close()
+
+	info, err := fileToZip.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+
+	// Zip entry names always use forward slashes
+	header.Name = filepath.ToSlash(zipName)
 	header.Method = zip.Deflate
 
 	writer, err := zipWriter.CreateHeader(header)

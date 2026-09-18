@@ -11,7 +11,6 @@ type ProjectSecurityGateChecklistExceptionReviewRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	CreateReview(review *models.ProjectSecurityGateChecklistExceptionWorkflowReview, tx ...utility.DatabaseTransaction) error
 	CreateHistory(history *models.ProjectSecurityGateChecklistExceptionWorkflowHistory, tx ...utility.DatabaseTransaction) error
-	CreateReviewDocuments(documents []*models.ProjectSecurityGateChecklistExceptionWorkflowReviewDocument, tx ...utility.DatabaseTransaction) error
 	UpdateChecklist(checklist *models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error
 }
 
@@ -43,15 +42,6 @@ func (repo *ProjectSecurityGateChecklistExceptionReviewRepository) CreateHistory
 	}
 
 	return db.Create(history).Error
-}
-
-func (repo *ProjectSecurityGateChecklistExceptionReviewRepository) CreateReviewDocuments(documents []*models.ProjectSecurityGateChecklistExceptionWorkflowReviewDocument, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	return db.Create(documents).Error
 }
 
 func (repo *ProjectSecurityGateChecklistExceptionReviewRepository) UpdateChecklist(checklist *models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error {

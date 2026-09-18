@@ -43,6 +43,7 @@ func (pcr *ProjectClosureRepository) GetAll(projectID uint) ([]*dtos.ProjectClos
 			project_closures.closure_comments,
 			project_closures.lesson_learned,
 			project_closures.approver_id,
+			project_closures.is_approved,
 			approver_user.first_name_en AS approver_user_first_name_en,
 			approver_user.first_name_ar AS approver_user_first_name_ar,
 			approver_user.last_name_en AS approver_user_last_name_en,

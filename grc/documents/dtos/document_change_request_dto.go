@@ -99,6 +99,8 @@ type DocumentChangeRequestQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
+	DateFrom    string
+	DateTo      string
 }
 
 // List Response DTO
