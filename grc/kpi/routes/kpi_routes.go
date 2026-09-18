@@ -189,6 +189,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Project Security Gate Dashboard
 	kpiRoutes.GET("/kpis/project-security-gate/summary", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetSummary)
 	kpiRoutes.GET("/kpis/project-security-gate/exception-summary", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetExceptionSummary)
+	kpiRoutes.GET("/kpis/project-security-gate/assessment-summary", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetAssessmentSummary)
 	kpiRoutes.GET("/kpis/project-security-gate/by-response-status", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetChecklistsByResponseStatus)
 	kpiRoutes.GET("/kpis/project-security-gate/by-readiness-status", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetByReadinessStatus)
 	kpiRoutes.GET("/kpis/project-security-gate/by-classification", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetByClassification)

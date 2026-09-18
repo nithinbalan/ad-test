@@ -12,6 +12,7 @@ import (
 type ProjectSecurityGateDashboardRepositoryInterface interface {
 	GetSummary(params *dtos.ProjectSecurityGateDashboardQueryParamsDTO) (*dtos.ProjectSecurityGateDashboardSummaryDTO, error)
 	GetExceptionSummary(params *dtos.ProjectSecurityGateDashboardQueryParamsDTO) (*dtos.ProjectSecurityGateExceptionSummaryDTO, error)
+	GetAssessmentSummary(params *dtos.ProjectSecurityGateDashboardQueryParamsDTO) (*dtos.ProjectSecurityGateAssessmentSummaryDTO, error)
 	GetChecklistsByResponseStatus(params *dtos.ProjectSecurityGateDashboardQueryParamsDTO) (*dtos.ProjectSecurityGateChecklistsByResponseStatusDTO, error)
 	GetByReadinessStatus(params *dtos.ProjectSecurityGateDashboardQueryParamsDTO) (*dtos.ProjectSecurityGatesByReadinessStatusDTO, error)
 	GetByClassification(params *dtos.ProjectSecurityGateDashboardQueryParamsDTO) (*dtos.ProjectSecurityGatesByClassificationDTO, error)
@@ -156,6 +157,61 @@ func (repo *ProjectSecurityGateDashboardRepository) GetExceptionSummary(params *
 	summary.ExceptionsApprovedPercentage = repo.percentageOf(row.ExceptionsApproved, row.TotalExceptions)
 	summary.ExceptionsPending = row.ExceptionsPending
 	summary.ExceptionsPendingPercentage = repo.percentageOf(row.ExceptionsPending, row.TotalExceptions)
+
+	return summary, nil
+}
+
+// GetAssessmentSummary derives the assessment progress of every security gate
+// from its checklist completion, since the readiness status itself only tells
+// the draft and go live ones apart.
+func (repo *ProjectSecurityGateDashboardRepository) GetAssessmentSummary(params *dtos.ProjectSecurityGateDashboardQueryParamsDTO) (*dtos.ProjectSecurityGateAssessmentSummaryDTO, error) {
+	summary := &dtos.ProjectSecurityGateAssessmentSummaryDTO{}
+
+	gateStates := repo.db.Table("project_security_gates").
+		Select(`
+			MAX(CASE WHEN readiness_status.type = 'go_live' THEN 1 ELSE 0 END) AS is_go_live,
+			COUNT(checklists.id) AS total_checklists,
+			COALESCE(SUM(CASE
+				WHEN response_status.type IN ('implemented', 'not_applicable')
+					OR (checklists.is_exception = 1 AND checklists.approved_by_id IS NOT NULL)
+				THEN 1 ELSE 0 END), 0) AS completed_checklists
+		`).
+		Joins(`
+			LEFT JOIN project_security_gate_readiness_statuses AS readiness_status
+				ON readiness_status.id = project_security_gates.readiness_status_id
+			LEFT JOIN project_security_gate_checklists AS checklists
+				ON checklists.security_gate_id = project_security_gates.id
+			LEFT JOIN project_security_gate_checklist_response_statuses AS response_status
+				ON response_status.id = checklists.response_status_id
+		`).
+		Group("project_security_gates.id")
+	gateStates = repo.applyDateFilter(gateStates, params, "project_security_gates")
+
+	type assessmentRow struct {
+		AssessmentNotStarted int64 `gorm:"column:assessment_not_started"`
+		UnderAssessment      int64 `gorm:"column:under_assessment"`
+		PendingGoLive        int64 `gorm:"column:pending_go_live"`
+		GoLive               int64 `gorm:"column:go_live"`
+	}
+
+	// A gate without any checklist counts as not started, never as pending go live.
+	query := repo.db.Table("(?) AS gate_states", gateStates).
+		Select(`
+			COALESCE(SUM(CASE WHEN gate_states.is_go_live = 0 AND gate_states.completed_checklists = 0 THEN 1 ELSE 0 END), 0) AS assessment_not_started,
+			COALESCE(SUM(CASE WHEN gate_states.is_go_live = 0 AND gate_states.completed_checklists > 0 AND gate_states.completed_checklists < gate_states.total_checklists THEN 1 ELSE 0 END), 0) AS under_assessment,
+			COALESCE(SUM(CASE WHEN gate_states.is_go_live = 0 AND gate_states.total_checklists > 0 AND gate_states.completed_checklists = gate_states.total_checklists THEN 1 ELSE 0 END), 0) AS pending_go_live,
+			COALESCE(SUM(CASE WHEN gate_states.is_go_live = 1 THEN 1 ELSE 0 END), 0) AS go_live
+		`)
+
+	var row assessmentRow
+	if err := query.Scan(&row).Error; err != nil {
+		return nil, err
+	}
+
+	summary.AssessmentNotStarted = row.AssessmentNotStarted
+	summary.UnderAssessment = row.UnderAssessment
+	summary.PendingGoLive = row.PendingGoLive
+	summary.GoLive = row.GoLive
 
 	return summary, nil
 }

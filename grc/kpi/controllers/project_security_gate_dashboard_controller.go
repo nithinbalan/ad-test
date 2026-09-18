@@ -50,6 +50,16 @@ func (psgdc *ProjectSecurityGateDashboardController) GetExceptionSummary(c *gin.
 	c.JSON(http.StatusOK, result)
 }
 
+func (psgdc *ProjectSecurityGateDashboardController) GetAssessmentSummary(c *gin.Context) {
+	result, err := psgdc.service.GetAssessmentSummary(psgdc.buildParams(c))
+	if err != nil {
+		utility.SendInternalErrResp(psgdc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func (psgdc *ProjectSecurityGateDashboardController) GetChecklistsByResponseStatus(c *gin.Context) {
 	result, err := psgdc.service.GetChecklistsByResponseStatus(psgdc.buildParams(c))
 	if err != nil {

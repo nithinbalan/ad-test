@@ -29,6 +29,13 @@ type ProjectSecurityGateExceptionSummaryDTO struct {
 	ExceptionsPendingPercentage  float64 `json:"exceptions_pending_percentage"`
 }
 
+type ProjectSecurityGateAssessmentSummaryDTO struct {
+	AssessmentNotStarted int64 `json:"assessment_not_started"`
+	UnderAssessment      int64 `json:"under_assessment"`
+	PendingGoLive        int64 `json:"pending_go_live"`
+	GoLive               int64 `json:"go_live"`
+}
+
 type ProjectSecurityGateBreakdownItemDTO struct {
 	ID         uint    `json:"id"`
 	TitleEn    string  `json:"title_en"`
