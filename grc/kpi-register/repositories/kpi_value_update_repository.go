@@ -64,6 +64,15 @@ func (repo *KPIValueUpdateRepository) GetAll(params *kpiDTOs.KPIValueUpdateListQ
 			kpi_register.title AS kpi_register_title,
 			kpi_categories.title_en AS kpi_category_title_en,
 			kpi_categories.title_ar AS kpi_category_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			review_user.id AS review_user_id,
 			review_user.first_name_en AS review_user_first_name_en,
 			review_user.first_name_ar AS review_user_first_name_ar,
@@ -101,13 +110,14 @@ func (repo *KPIValueUpdateRepository) GetAll(params *kpiDTOs.KPIValueUpdateListQ
 			LEFT JOIN kpi_register ON kpi_register.id = kpi_value_updates.kpi_register_id
 			LEFT JOIN kpi_categories ON kpi_categories.id = kpi_register.kpi_category_id
 			LEFT JOIN kpi_review_statuses ON kpi_review_statuses.id = kpi_value_updates.kpi_review_status_id
-			LEFT JOIN users AS review_user ON review_user.id = kpi_value_updates.review_user_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = COALESCE(kpi_value_updates.responsible_user_id, kpi_register.responsible_user_id)
+			LEFT JOIN users AS review_user ON review_user.id = COALESCE(kpi_value_updates.review_user_id, kpi_register.review_user_id)
 			LEFT JOIN users AS created_user ON created_user.id = kpi_value_updates.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kpi_value_updates.updated_by_id
 		`)
 
 	if params.IsPassiveUser {
-		query = query.Where("(kpi_value_updates.review_user_id = ? OR kpi_register.review_user_id = ?)", currentUserID, currentUserID)
+		query = query.Where("(kpi_value_updates.responsible_user_id = ? OR kpi_value_updates.review_user_id = ? OR kpi_register.responsible_user_id = ? OR kpi_register.review_user_id = ?)", currentUserID, currentUserID, currentUserID, currentUserID)
 	}
 
 	// APPLY DYNAMIC FILTERS
@@ -119,9 +129,9 @@ func (repo *KPIValueUpdateRepository) GetAll(params *kpiDTOs.KPIValueUpdateListQ
 			case "kpi_category_id":
 				query = query.Where("kpi_register.kpi_category_id IN (?)", values)
 			case "responsible_user_id":
-				query = query.Where("kpi_register.responsible_user_id IN (?)", values)
+				query = query.Where("COALESCE(kpi_value_updates.responsible_user_id, kpi_register.responsible_user_id) IN (?)", values)
 			case "review_user_id":
-				query = query.Where("kpi_value_updates.review_user_id IN (?)", values)
+				query = query.Where("COALESCE(kpi_value_updates.review_user_id, kpi_register.review_user_id) IN (?)", values)
 			case "kpi_review_status_id":
 				query = query.Where("kpi_value_updates.kpi_review_status_id IN (?)", values)
 			default:
@@ -143,6 +153,11 @@ func (repo *KPIValueUpdateRepository) GetAll(params *kpiDTOs.KPIValueUpdateListQ
 		kpi_review_statuses.title_en LIKE ? OR
 		kpi_review_statuses.title_ar LIKE ? OR
 		kpi_review_statuses.type LIKE ? OR
+		responsible_user.first_name_en LIKE ? OR
+		responsible_user.first_name_ar LIKE ? OR
+		responsible_user.last_name_en LIKE ? OR
+		responsible_user.last_name_ar LIKE ? OR
+		responsible_user.email LIKE ? OR
 		review_user.first_name_en LIKE ? OR
 		review_user.first_name_ar LIKE ? OR
 		review_user.last_name_en LIKE ? OR
@@ -155,6 +170,7 @@ func (repo *KPIValueUpdateRepository) GetAll(params *kpiDTOs.KPIValueUpdateListQ
 		created_user.email LIKE ? )`,
 			keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword,
 		)
@@ -248,6 +264,7 @@ func (repo *KPIValueUpdateRepository) GetFullDetailsByID(id uint, tx ...utility.
 		Preload("Unit").
 		Preload("DataInputs").
 		Preload("KPIReviewStatus").
+		Preload("ResponsibleUser").
 		Preload("ReviewUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

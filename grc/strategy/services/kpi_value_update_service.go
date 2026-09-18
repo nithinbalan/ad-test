@@ -95,7 +95,7 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 
 	kpiValueUpdate := &models.KPIValueUpdate{
 		KPIRegisterID: kpiRegisterID,
-		ReviewUserID:  kpiValueUpdateFormDTO.ReviewUserID,
+		ReviewUserID:  &kpiValueUpdateFormDTO.ReviewUserID,
 		UnitID:        *existingKPIRegister.UnitID,
 		ReviewedDate:  dates.ReviewedDate,
 		Value:         &kpiValueUpdateFormDTO.Value,
@@ -300,7 +300,7 @@ func (kvus *KPIValueUpdateService) Update(kpiRegisterID, updateId uint, currentU
 	existingKPIUpdate.UnitID = *existingKPIRegister.UnitID
 	existingKPIUpdate.Value = &kpiValueUpdateFormDTO.Value
 	existingKPIUpdate.Remarks = kpiValueUpdateFormDTO.Remarks
-	existingKPIUpdate.ReviewUserID = kpiValueUpdateFormDTO.ReviewUserID
+	existingKPIUpdate.ReviewUserID = &kpiValueUpdateFormDTO.ReviewUserID
 
 	err = kvus.repo.Update(existingKPIUpdate, tx)
 	if err != nil {

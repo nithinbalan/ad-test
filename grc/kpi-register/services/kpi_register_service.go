@@ -305,10 +305,11 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *kp
 	}
 	// kpiValueUpdateFormDTO.Value = calculatedValue
 	kpiValueUpdate := &models.KPIValueUpdate{
-		KPIRegisterID: id,
-		ReviewUserID:  *kpiRegisterFormDTO.ResponsibleUserID,
-		UnitID:        *kpiRegisterFormDTO.UnitID,
-		ReviewedDate:  nil,
+		KPIRegisterID:     id,
+		ResponsibleUserID: kpiRegisterFormDTO.ResponsibleUserID,
+		ReviewUserID:      kpiRegisterFormDTO.ReviewUserID,
+		UnitID:            *kpiRegisterFormDTO.UnitID,
+		ReviewedDate:      nil,
 		// Value:         &calculatedValue,
 		// Remarks:       kpiValueUpdateFormDTO.Remarks,
 		IsLatest:          true, // Always set to true (1) when creating
@@ -568,8 +569,12 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 	if latestValueUpdate != nil {
 		valueUpdateChanged := false
 
-		if kpiRegisterFormDTO.ResponsibleUserID != nil && latestValueUpdate.ReviewUserID != *kpiRegisterFormDTO.ResponsibleUserID {
-			latestValueUpdate.ReviewUserID = *kpiRegisterFormDTO.ResponsibleUserID
+		if kpiRegisterFormDTO.ResponsibleUserID != nil && (latestValueUpdate.ResponsibleUserID == nil || *latestValueUpdate.ResponsibleUserID != *kpiRegisterFormDTO.ResponsibleUserID) {
+			latestValueUpdate.ResponsibleUserID = kpiRegisterFormDTO.ResponsibleUserID
+			valueUpdateChanged = true
+		}
+		if kpiRegisterFormDTO.ReviewUserID != nil && (latestValueUpdate.ReviewUserID == nil || *latestValueUpdate.ReviewUserID != *kpiRegisterFormDTO.ReviewUserID) {
+			latestValueUpdate.ReviewUserID = kpiRegisterFormDTO.ReviewUserID
 			valueUpdateChanged = true
 		}
 		if kpiRegisterFormDTO.UnitID != nil && latestValueUpdate.UnitID != *kpiRegisterFormDTO.UnitID {

@@ -104,6 +104,19 @@ func (kvus KPIValueUpdateService) GetFullDetailsByID(id uint) (*kpiDTOs.KPIValue
 		return nil, err
 	}
 
+	if valueUpdate.ResponsibleUser == nil && existingKPIUpdate.KPIRegister != nil && existingKPIUpdate.KPIRegister.ResponsibleUser != nil {
+		var respUser organizationDTOs.UserMinimalDTO
+		if err := mapstructure.Decode(existingKPIUpdate.KPIRegister.ResponsibleUser, &respUser); err == nil {
+			valueUpdate.ResponsibleUser = &respUser
+		}
+	}
+	if valueUpdate.ReviewUser == nil && existingKPIUpdate.KPIRegister != nil && existingKPIUpdate.KPIRegister.ReviewUser != nil {
+		var revUser organizationDTOs.UserMinimalDTO
+		if err := mapstructure.Decode(existingKPIUpdate.KPIRegister.ReviewUser, &revUser); err == nil {
+			valueUpdate.ReviewUser = &revUser
+		}
+	}
+
 	if existingKPIUpdate.ReviewedDate != nil {
 		reviewedDate := existingKPIUpdate.ReviewedDate.Format("2006-01-02")
 		valueUpdate.ReviewedDateString = &reviewedDate
@@ -188,7 +201,16 @@ func (kvus *KPIValueUpdateService) Update(updateId uint, currentUserID uint, kpi
 	existingKPIUpdate.Remarks = kpiValueUpdateFormDTO.Remarks
 	existingKPIUpdate.KPIReviewStatusID = &kpiReviewStatus.ID
 	existingKPIUpdate.CorrectiveAction = kpiValueUpdateFormDTO.CorrectiveAction
-	existingKPIUpdate.ReviewUserID = currentUserID
+	if existingKPIUpdate.ResponsibleUserID == nil {
+		if existingKPIRegister.ResponsibleUserID != nil {
+			existingKPIUpdate.ResponsibleUserID = existingKPIRegister.ResponsibleUserID
+		} else {
+			existingKPIUpdate.ResponsibleUserID = &currentUserID
+		}
+	}
+	if existingKPIUpdate.ReviewUserID == nil && existingKPIRegister.ReviewUserID != nil {
+		existingKPIUpdate.ReviewUserID = existingKPIRegister.ReviewUserID
+	}
 	existingKPIUpdate.UpdatedBYID = &currentUserID
 
 	err = kvus.repo.Update(existingKPIUpdate, tx)

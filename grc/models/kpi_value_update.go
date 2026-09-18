@@ -7,7 +7,8 @@ import (
 type KPIValueUpdate struct {
 	ID                uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	KPIRegisterID     uint       `json:"kpi_register_id" binding:"required" gorm:"not null"`
-	ReviewUserID      uint       `json:"review_user_id"`
+	ResponsibleUserID *uint      `json:"responsible_user_id"`
+	ReviewUserID      *uint      `json:"review_user_id"`
 	ReviewedDate      *time.Time `json:"reviewed_date" binding:"required" gorm:"type:date;not null"`
 	UnitID            uint       `json:"unit_id" binding:"required" gorm:"not null"`
 	Value             *float64   `json:"value" gorm:"type:decimal(18,2);not null"`
@@ -32,6 +33,7 @@ type KPIValueUpdate struct {
 	Documents            []KPIValueUpdateDocument   `gorm:"foreignKey:KPIValueUpdateID"`
 	CreatedByUser        *User                      `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser        *User                      `gorm:"foreignKey:UpdatedBYID"`
+	ResponsibleUser      *User                      `gorm:"foreignKey:ResponsibleUserID"`
 	ReviewUser           *User                      `gorm:"foreignKey:ReviewUserID"`
 	DataInputs           []*KPIValueUpdateDataInput `gorm:"foreignKey:KPIValueUpdateID"`
 	ValueUpdateHistories []*KPIValueUpdateHistory   `gorm:"foreignKey:KPIValueUpdateID"`
