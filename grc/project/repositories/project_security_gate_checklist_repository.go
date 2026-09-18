@@ -278,7 +278,7 @@ func (repo *ProjectSecurityGateChecklistRepository) GetBreakdownByResponseStatus
 		TitleEn:    "Not Started",
 		TitleAr:    "لم يبدأ",
 		Type:       "not_started",
-		ColorCode:  "#007BFF",
+		ColorCode:  "#ADB5BD",
 		Count:      notStartedCount,
 		Percentage: repo.percentageOf(notStartedCount, breakdown.Total),
 	})
