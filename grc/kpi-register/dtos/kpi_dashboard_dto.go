@@ -15,6 +15,7 @@ type KPIDashboardQueryParamsDTO struct {
 	Keyword     string              `json:"keyword"`
 	Page        int                 `json:"page"`
 	PageSize    int                 `json:"page_size"`
+	IsKRI       *bool               `json:"is_kri"`
 }
 
 type KPISummaryDTO struct {

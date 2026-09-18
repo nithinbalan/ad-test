@@ -68,6 +68,10 @@ func (repo *KPIDashboardRepository) GetKPISummary(params *dtos.KPIDashboardQuery
 		query = query.Where("kr.kpi_category_id = ?", params.DomainID)
 	}
 
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
+	}
+
 	if params != nil {
 		for col, vals := range params.Filters {
 			if len(vals) > 0 {
@@ -124,6 +128,10 @@ func (repo *KPIDashboardRepository) GetKPIStatusSummary(params *dtos.KPIDashboar
 			query = query.Where("kr.kpi_category_id = ?", *params.DomainID)
 		}
 
+		if params.IsKRI != nil {
+			query = query.Where("kr.is_kri = ?", *params.IsKRI)
+		}
+
 		for col, vals := range params.Filters {
 			if len(vals) > 0 {
 				query = query.Where("kr."+col+" IN (?)", vals)
@@ -162,6 +170,10 @@ func (repo *KPIDashboardRepository) GetKPIPassFailSummary(params *dtos.KPIDashbo
 
 	if params != nil && params.DomainID != nil {
 		query = query.Where("kr.kpi_category_id = ?", params.DomainID)
+	}
+
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
 	}
 
 	if params != nil {
@@ -245,6 +257,10 @@ func (repo *KPIDashboardRepository) GetTopPerformingKPIs(params *dtos.KPIDashboa
 
 	if params != nil && params.DomainID != nil {
 		query = query.Where("kr.kpi_category_id = ?", *params.DomainID)
+	}
+
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
 	}
 
 	if params != nil {
@@ -345,6 +361,10 @@ func (repo *KPIDashboardRepository) GetBottomPerformingKPIs(params *dtos.KPIDash
 		query = query.Where("kr.kpi_category_id = ?", *params.DomainID)
 	}
 
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
+	}
+
 	if params != nil {
 		for col, vals := range params.Filters {
 			if len(vals) == 0 {
@@ -405,6 +425,10 @@ func (repo *KPIDashboardRepository) GetCategorywiseKPIStats(params *dtos.KPIDash
 
 	if params != nil && params.DomainID != nil {
 		query = query.Where("kr.kpi_category_id = ?", *params.DomainID)
+	}
+
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
 	}
 
 	if params != nil {
@@ -510,6 +534,10 @@ func (repo *KPIDashboardRepository) GetDepartmentwiseKPIStats(params *dtos.KPIDa
 			query = query.Where("kr.kpi_category_id = ?", *params.DomainID)
 		}
 
+		if params.IsKRI != nil {
+			query = query.Where("kr.is_kri = ?", *params.IsKRI)
+		}
+
 		for col, vals := range params.Filters {
 			if len(vals) > 0 {
 				query = query.Where("kr."+col+" IN ?", vals)
@@ -573,6 +601,10 @@ func (repo *KPIDashboardRepository) GetOverdueForAchievementSummary(params *dtos
 		query = query.Where("kr.kpi_category_id = ?", *params.DomainID)
 	}
 
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
+	}
+
 	if params != nil {
 		for col, vals := range params.Filters {
 			if len(vals) > 0 {
@@ -620,6 +652,10 @@ func (repo *KPIDashboardRepository) GetTopOverdueForAchievementKPIs(params *dtos
 		query = query.Where("kr.kpi_category_id = ?", *params.DomainID)
 	}
 
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
+	}
+
 	if params != nil {
 		for col, vals := range params.Filters {
 			if len(vals) > 0 {
@@ -655,6 +691,10 @@ func (repo *KPIDashboardRepository) GetOverdueReviewSummary(params *dtos.KPIDash
 
 	if params != nil && params.DomainID != nil {
 		query = query.Where("kr.kpi_category_id = ?", *params.DomainID)
+	}
+
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
 	}
 
 	if params != nil {
@@ -699,6 +739,10 @@ func (repo *KPIDashboardRepository) GetTopOverdueReviewKPIs(params *dtos.KPIDash
 
 	if params != nil && params.DomainID != nil {
 		query = query.Where("kr.kpi_category_id = ?", *params.DomainID)
+	}
+
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
 	}
 
 	if params != nil {
@@ -752,6 +796,11 @@ func (repo *KPIDashboardRepository) GetKPIStatusOverview(params *dtos.KPIDashboa
 
 	krJoinConditions := "kr.kpi_status_id = ks.id"
 	krJoinArgs := []interface{}{}
+
+	if params != nil && params.IsKRI != nil {
+		krJoinConditions += " AND kr.is_kri = ?"
+		krJoinArgs = append(krJoinArgs, *params.IsKRI)
+	}
 
 	if params != nil && params.Filters != nil {
 		for columnName, values := range params.Filters {
@@ -889,6 +938,10 @@ func (repo *KPIDashboardRepository) GetAchievementSummary(params *dtos.KPIDashbo
 			0) AS overall_achievement
 		`)
 
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
+	}
+
 	if params != nil && params.Filters != nil {
 		for columnName, values := range params.Filters {
 			if len(values) > 0 {
@@ -938,6 +991,10 @@ func (repo *KPIDashboardRepository) GetKPIByReviewStatus(params *dtos.KPIDashboa
 
 	if params != nil && params.DomainID != nil {
 		krSubQuery = krSubQuery.Where("kr.kpi_category_id = ?", *params.DomainID)
+	}
+
+	if params != nil && params.IsKRI != nil {
+		krSubQuery = krSubQuery.Where("kr.is_kri = ?", *params.IsKRI)
 	}
 
 	if params != nil && params.Filters != nil {
@@ -1043,6 +1100,10 @@ func (repo *KPIDashboardRepository) GetKPIAchievementByDomain(params *dtos.KPIDa
 		`).
 		Joins("LEFT JOIN (?) kvu ON kvu.kpi_register_id = kr.id AND kvu.rn = 1", latestValueSubQuery).
 		Joins("LEFT JOIN kpi_achievement_logics kal ON kal.id = kr.kpi_achievement_logic_id")
+
+	if params != nil && params.IsKRI != nil {
+		kpiScoreSubQuery = kpiScoreSubQuery.Where("kr.is_kri = ?", *params.IsKRI)
+	}
 
 	if params != nil && params.Filters != nil {
 		for columnName, values := range params.Filters {
@@ -1167,6 +1228,10 @@ func (repo *KPIDashboardRepository) GetAllKPIs(params *dtos.KPIDashboardQueryPar
 
 	query = query.Where("ks.status = ?", "active")
 	query = query.Where("ks.type <> ?", "new")
+
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
+	}
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -1458,6 +1523,10 @@ func (repo *KPIDashboardRepository) GetTopKPIs(params *dtos.KPIDashboardQueryPar
 		Joins("LEFT JOIN kpi_achievement_logics kal ON kal.id = kr.kpi_achievement_logic_id").
 		Joins("LEFT JOIN lifecycle_statuses ls ON ls.id = kr.status_id")
 
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
+	}
+
 	if params != nil && params.Filters != nil {
 		for col, values := range params.Filters {
 			if len(values) > 0 {
@@ -1620,6 +1689,10 @@ func (repo *KPIDashboardRepository) GetBottomKPIs(params *dtos.KPIDashboardQuery
 		Joins("LEFT JOIN units u ON u.id = kr.unit_id").
 		Joins("LEFT JOIN users ru ON ru.id = kr.responsible_user_id").
 		Joins("LEFT JOIN kpi_achievement_logics kal ON kal.id = kr.kpi_achievement_logic_id")
+
+	if params != nil && params.IsKRI != nil {
+		query = query.Where("kr.is_kri = ?", *params.IsKRI)
+	}
 
 	if params != nil && params.Filters != nil {
 		for col, values := range params.Filters {

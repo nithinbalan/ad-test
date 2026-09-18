@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"jethur/grc/kpi-register/dtos"
 	"jethur/grc/kpi-register/services"
 	"jethur/utility"
@@ -42,6 +43,16 @@ func (kdc *KPIDashboardController) GetKPISummary(c *gin.Context) {
 		domainID = &temp
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"responsible_user_ids",
 		"kpi_status_ids",
@@ -56,6 +67,7 @@ func (kdc *KPIDashboardController) GetKPISummary(c *gin.Context) {
 	queryParams := &dtos.KPIDashboardQueryParamsDTO{
 		DomainID: domainID,
 		Filters:  filters,
+		IsKRI:    isKRI,
 	}
 
 	result, err := kdc.service.GetKPISummary(queryParams)
@@ -93,6 +105,16 @@ func (kdc *KPIDashboardController) GetKPIStatusSummary(c *gin.Context) {
 		domainID = &temp
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"responsible_user_ids",
 		"kpi_status_ids",
@@ -107,6 +129,7 @@ func (kdc *KPIDashboardController) GetKPIStatusSummary(c *gin.Context) {
 	queryParams := &dtos.KPIDashboardQueryParamsDTO{
 		DomainID: domainID,
 		Filters:  filters,
+		IsKRI:    isKRI,
 	}
 
 	result, err := kdc.service.GetKPIStatusSummary(queryParams)
@@ -144,6 +167,16 @@ func (kdc *KPIDashboardController) GetKPIPassFailSummary(c *gin.Context) {
 		domainID = &temp
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"responsible_user_ids",
 		"kpi_status_ids",
@@ -158,6 +191,7 @@ func (kdc *KPIDashboardController) GetKPIPassFailSummary(c *gin.Context) {
 	queryParams := &dtos.KPIDashboardQueryParamsDTO{
 		DomainID: domainID,
 		Filters:  filters,
+		IsKRI:    isKRI,
 	}
 
 	result, err := kdc.service.GetKPIPassFailSummary(queryParams)
@@ -205,6 +239,16 @@ func (kdc *KPIDashboardController) GetTopPerformingKPIs(c *gin.Context) {
 		endDate = &parsed
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"kpi_category_ids",
 		"kpi_status_ids",
@@ -220,6 +264,7 @@ func (kdc *KPIDashboardController) GetTopPerformingKPIs(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		PeriodType:  &periodType,
+		IsKRI:       isKRI,
 	}
 
 	result, err := kdc.service.GetTopPerformingKPIs(queryParams)
@@ -267,6 +312,16 @@ func (kdc *KPIDashboardController) GetBottomPerformingKPIs(c *gin.Context) {
 		endDate = &parsed
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"kpi_category_ids",
 		"kpi_status_ids",
@@ -282,6 +337,7 @@ func (kdc *KPIDashboardController) GetBottomPerformingKPIs(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		PeriodType:  &periodType,
+		IsKRI:       isKRI,
 	}
 
 	result, err := kdc.service.GetBottomPerformingKPIs(queryParams)
@@ -319,6 +375,16 @@ func (kdc *KPIDashboardController) GetCategorywiseKPIStats(c *gin.Context) {
 		domainID = &temp
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"responsible_user_ids",
 		"kpi_status_ids",
@@ -333,6 +399,7 @@ func (kdc *KPIDashboardController) GetCategorywiseKPIStats(c *gin.Context) {
 	queryParams := &dtos.KPIDashboardQueryParamsDTO{
 		DomainID: domainID,
 		Filters:  filters,
+		IsKRI:    isKRI,
 	}
 
 	result, err := kdc.service.GetCategorywiseKPIStats(queryParams)
@@ -370,6 +437,16 @@ func (kdc *KPIDashboardController) GetDepartmentwiseKPIStats(c *gin.Context) {
 		domainID = &temp
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"responsible_user_ids",
 		"kpi_status_ids",
@@ -384,6 +461,7 @@ func (kdc *KPIDashboardController) GetDepartmentwiseKPIStats(c *gin.Context) {
 	queryParams := &dtos.KPIDashboardQueryParamsDTO{
 		DomainID: domainID,
 		Filters:  filters,
+		IsKRI:    isKRI,
 	}
 
 	result, err := kdc.service.GetDepartmentwiseKPIStats(queryParams)
@@ -421,6 +499,16 @@ func (kdc *KPIDashboardController) GetOverdueForAchievementDetails(c *gin.Contex
 		domainID = &temp
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"responsible_user_ids",
 		"kpi_status_ids",
@@ -435,6 +523,7 @@ func (kdc *KPIDashboardController) GetOverdueForAchievementDetails(c *gin.Contex
 	queryParams := &dtos.KPIDashboardQueryParamsDTO{
 		DomainID: domainID,
 		Filters:  filters,
+		IsKRI:    isKRI,
 	}
 
 	result, err := kdc.service.GetOverdueForAchievementDetails(queryParams)
@@ -472,6 +561,16 @@ func (kdc *KPIDashboardController) GetOverdueReviewDetails(c *gin.Context) {
 		domainID = &temp
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"responsible_user_ids",
 		"kpi_status_ids",
@@ -486,6 +585,7 @@ func (kdc *KPIDashboardController) GetOverdueReviewDetails(c *gin.Context) {
 	queryParams := &dtos.KPIDashboardQueryParamsDTO{
 		DomainID: domainID,
 		Filters:  filters,
+		IsKRI:    isKRI,
 	}
 
 	result, err := kdc.service.GetOverdueForReviewDetails(queryParams)
@@ -533,6 +633,16 @@ func (kdc *KPIDashboardController) GetKPIStatusOverview(c *gin.Context) {
 		endDate = &parsed
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"kpi_category_ids",
 		"kpi_status_ids",
@@ -548,6 +658,7 @@ func (kdc *KPIDashboardController) GetKPIStatusOverview(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		PeriodType:  &periodType,
+		IsKRI:       isKRI,
 	}
 
 	result, err := kdc.service.GetKPIStatusOverview(queryParams)
@@ -595,6 +706,16 @@ func (kdc *KPIDashboardController) GetAchievementSummary(c *gin.Context) {
 		endDate = &parsed
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"kpi_category_ids",
 		"kpi_status_ids",
@@ -610,6 +731,7 @@ func (kdc *KPIDashboardController) GetAchievementSummary(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		PeriodType:  &periodType,
+		IsKRI:       isKRI,
 	}
 
 	result, err := kdc.service.GetAchievementSummary(queryParams)
@@ -657,6 +779,16 @@ func (kdc *KPIDashboardController) GetKPIByReviewStatus(c *gin.Context) {
 		endDate = &parsed
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"kpi_category_ids",
 		"kpi_status_ids",
@@ -672,6 +804,7 @@ func (kdc *KPIDashboardController) GetKPIByReviewStatus(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		PeriodType:  &periodType,
+		IsKRI:       isKRI,
 	}
 
 	result, err := kdc.service.GetKPIByReviewStatus(queryParams)
@@ -719,6 +852,16 @@ func (kdc *KPIDashboardController) GetKPIAchievementByDomain(c *gin.Context) {
 		endDate = &parsed
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"kpi_category_ids",
 		"kpi_status_ids",
@@ -734,6 +877,7 @@ func (kdc *KPIDashboardController) GetKPIAchievementByDomain(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		PeriodType:  &periodType,
+		IsKRI:       isKRI,
 	}
 
 	result, err := kdc.service.GetKPIAchievementByDomain(queryParams)
@@ -780,6 +924,16 @@ func (kdc *KPIDashboardController) GetAllKPIs(c *gin.Context) {
 		endDate = &parsed
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"kpi_category_ids",
 		"kpi_status_ids",
@@ -809,6 +963,7 @@ func (kdc *KPIDashboardController) GetAllKPIs(c *gin.Context) {
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		IsKRI:       isKRI,
 	}
 
 	kpis, err := kdc.service.GetAllKPIs(&queryParams)
@@ -847,6 +1002,16 @@ func (kdc *KPIDashboardController) GetTopKPIs(c *gin.Context) {
 		endDate = &parsed
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"kpi_category_ids",
 		"kpi_status_ids",
@@ -862,6 +1027,7 @@ func (kdc *KPIDashboardController) GetTopKPIs(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		PeriodType:  &periodType,
+		IsKRI:       isKRI,
 	}
 
 	result, err := kdc.service.GetTopKPIs(queryParams)
@@ -909,6 +1075,16 @@ func (kdc *KPIDashboardController) GetBottomKPIs(c *gin.Context) {
 		endDate = &parsed
 	}
 
+	var isKRI *bool
+	if isKRIStr := c.Query("is_kri"); isKRIStr != "" {
+		val, err := strconv.ParseBool(isKRIStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_kri parameter"))
+			return
+		}
+		isKRI = &val
+	}
+
 	allowedParams := []string{
 		"kpi_category_ids",
 		"kpi_status_ids",
@@ -924,6 +1100,7 @@ func (kdc *KPIDashboardController) GetBottomKPIs(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		PeriodType:  &periodType,
+		IsKRI:       isKRI,
 	}
 
 	result, err := kdc.service.GetBottomKPIs(queryParams)
