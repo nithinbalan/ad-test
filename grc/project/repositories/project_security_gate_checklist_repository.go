@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"math"
 
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
@@ -15,6 +16,7 @@ type ProjectSecurityGateChecklistRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	CreateChecklists(checklists []*models.ProjectSecurityGateChecklist, tx ...utility.DatabaseTransaction) error
 	GetSummaryBySecurityGateID(securityGateID uint) (*projectDTOs.ProjectSecurityGateChecklistSummaryDTO, error)
+	GetBreakdownByResponseStatusBySecurityGateID(securityGateID uint) (*projectDTOs.ProjectSecurityGateChecklistsByResponseStatusDTO, error)
 	GetAll(securityGateID uint, params *projectDTOs.ProjectSecurityGateChecklistListQueryParamsDTO) (*projectDTOs.ProjectSecurityGateChecklistListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklist, error)
 	GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error)
@@ -203,6 +205,92 @@ func (repo *ProjectSecurityGateChecklistRepository) GetSummaryBySecurityGateID(s
 		Outstanding:          outstanding,
 		CompletionPercentage: completionPercentage,
 	}, nil
+}
+
+func (repo *ProjectSecurityGateChecklistRepository) GetBreakdownByResponseStatusBySecurityGateID(securityGateID uint) (*projectDTOs.ProjectSecurityGateChecklistsByResponseStatusDTO, error) {
+	breakdown := &projectDTOs.ProjectSecurityGateChecklistsByResponseStatusDTO{
+		Statuses: []projectDTOs.ProjectSecurityGateChecklistBreakdownItemDTO{},
+	}
+
+	type breakdownRow struct {
+		ResponseStatusID *uint `gorm:"column:response_status_id"`
+		IsException      bool  `gorm:"column:is_exception"`
+		Cnt              int64 `gorm:"column:cnt"`
+	}
+
+	var rows []breakdownRow
+	err := repo.db.Table("project_security_gate_checklists").
+		Select("response_status_id, is_exception, COUNT(*) AS cnt").
+		Where("security_gate_id = ?", securityGateID).
+		Group("response_status_id, is_exception").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var exceptionCount int64
+	var notStartedCount int64
+	countByStatusID := make(map[uint]int64, len(rows))
+	for _, r := range rows {
+		breakdown.Total += r.Cnt
+
+		switch {
+		case r.IsException:
+			exceptionCount += r.Cnt
+		case r.ResponseStatusID != nil:
+			countByStatusID[*r.ResponseStatusID] += r.Cnt
+		default:
+			notStartedCount += r.Cnt
+		}
+	}
+
+	var statuses []models.ProjectSecurityGateChecklistResponseStatus
+	if err := repo.db.Where("status = ?", "active").Order("id ASC").Find(&statuses).Error; err != nil {
+		return nil, err
+	}
+
+	for _, s := range statuses {
+		count := countByStatusID[s.ID]
+		breakdown.Statuses = append(breakdown.Statuses, projectDTOs.ProjectSecurityGateChecklistBreakdownItemDTO{
+			ID:         s.ID,
+			TitleEn:    s.TitleEn,
+			TitleAr:    s.TitleAr,
+			Type:       s.Type,
+			ColorCode:  s.ColorCode,
+			Count:      count,
+			Percentage: repo.percentageOf(count, breakdown.Total),
+		})
+	}
+
+	// The exception and not started buckets have no master record, so they are
+	// built here.
+	breakdown.Statuses = append(breakdown.Statuses, projectDTOs.ProjectSecurityGateChecklistBreakdownItemDTO{
+		TitleEn:    "Exception",
+		TitleAr:    "استثناء",
+		Type:       "exception",
+		ColorCode:  "#6F42C1",
+		Count:      exceptionCount,
+		Percentage: repo.percentageOf(exceptionCount, breakdown.Total),
+	})
+
+	// Not gray, since the Not Applicable status already uses #6C757D.
+	breakdown.Statuses = append(breakdown.Statuses, projectDTOs.ProjectSecurityGateChecklistBreakdownItemDTO{
+		TitleEn:    "Not Started",
+		TitleAr:    "لم يبدأ",
+		Type:       "not_started",
+		ColorCode:  "#007BFF",
+		Count:      notStartedCount,
+		Percentage: repo.percentageOf(notStartedCount, breakdown.Total),
+	})
+
+	return breakdown, nil
+}
+
+func (repo *ProjectSecurityGateChecklistRepository) percentageOf(count int64, total int64) float64 {
+	if total == 0 {
+		return 0
+	}
+	return math.Round((float64(count)/float64(total))*100*100) / 100
 }
 
 func (repo *ProjectSecurityGateChecklistRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklist, error) {

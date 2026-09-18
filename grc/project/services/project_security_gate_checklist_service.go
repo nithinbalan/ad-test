@@ -25,6 +25,7 @@ type ProjectSecurityGateChecklistServiceInterface interface {
 	SetSecurityGateService(svc ProjectSecurityGateServiceInterface)
 	GetAll(securityGateID uint, params *dtos.ProjectSecurityGateChecklistListQueryParamsDTO) (*dtos.ProjectSecurityGateChecklistListResponseDTO, error)
 	GetChecklistSummary(securityGateID uint) (*dtos.ProjectSecurityGateChecklistSummaryDTO, error)
+	GetChecklistBreakdownByResponseStatus(securityGateID uint) (*dtos.ProjectSecurityGateChecklistsByResponseStatusDTO, error)
 	GetFullDetailsByID(securityGateID uint, checklistID uint) (*dtos.ProjectSecurityGateChecklistDetailDTO, error)
 	GetByID(securityGateID uint, checklistID uint, tx ...utility.DatabaseTransaction) (*models.ProjectSecurityGateChecklist, error)
 	GetAllBySecurityGateID(securityGateID uint, tx ...utility.DatabaseTransaction) ([]*models.ProjectSecurityGateChecklist, error)
@@ -76,6 +77,14 @@ func (psgcs *ProjectSecurityGateChecklistService) GetChecklistSummary(securityGa
 	}
 
 	return psgcs.repo.GetSummaryBySecurityGateID(securityGateID)
+}
+
+func (psgcs *ProjectSecurityGateChecklistService) GetChecklistBreakdownByResponseStatus(securityGateID uint) (*dtos.ProjectSecurityGateChecklistsByResponseStatusDTO, error) {
+	if _, err := psgcs.securityGateSvc.GetByID(securityGateID); err != nil {
+		return nil, err
+	}
+
+	return psgcs.repo.GetBreakdownByResponseStatusBySecurityGateID(securityGateID)
 }
 
 func (psgcs *ProjectSecurityGateChecklistService) GetFullDetailsByID(securityGateID uint, checklistID uint) (*dtos.ProjectSecurityGateChecklistDetailDTO, error) {
