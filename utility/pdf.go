@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/xuri/excelize/v2"
@@ -67,8 +68,27 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 		"ApiPath":           config.GetEnv("API_URL", ""),
 	}
 
+	// Formats a raw date from the DTO with the layout the template asks for
+	formatTemplateDate := func(layout string, value interface{}) string {
+		switch date := value.(type) {
+		case time.Time:
+			if date.IsZero() {
+				return ""
+			}
+			return date.Format(layout)
+		case *time.Time:
+			if date == nil || date.IsZero() {
+				return ""
+			}
+			return date.Format(layout)
+		default:
+			return ""
+		}
+	}
+
 	templates := template.New("pdf").Funcs(template.FuncMap{
 		"formatDate": func(date string) string { return date },
+		"date":       formatTemplateDate,
 		"safeHTML":   func(content string) template.HTML { return template.HTML(content) },
 		"stripHTML":  func(content string) string { return StripHTMLTags(content) },
 		"add":        func(a, b int) int { return a + b },

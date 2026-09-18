@@ -266,7 +266,7 @@
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Created At:</p>
-               <p class="field-value">{{if $gate.CreatedAtFormatted}}{{ $gate.CreatedAtFormatted }}{{else}}-{{end}}</p>
+               <p class="field-value">{{if $gate.CreatedAt}}{{ date "01/02/2006" $gate.CreatedAt }}{{else}}-{{end}}</p>
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Updated By:</p>
@@ -274,7 +274,7 @@
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Updated At:</p>
-               <p class="field-value">{{if $gate.UpdatedAtFormatted}}{{ $gate.UpdatedAtFormatted }}{{else}}-{{end}}</p>
+               <p class="field-value">{{if $gate.UpdatedAt}}{{ date "01/02/2006" $gate.UpdatedAt }}{{else}}-{{end}}</p>
             </div>
          </div>
 
@@ -363,7 +363,7 @@
                   <td>{{if .IsException}}Yes{{else}}No{{end}}</td>
                   <td>{{if .Comment}}{{ .Comment }}{{else}}-{{end}}</td>
                   <td>{{if .RespondedBy}}{{ .RespondedBy.FirstNameEN }} {{ .RespondedBy.LastNameEN }}{{else}}-{{end}}</td>
-                  <td>{{if .RespondedAtFormatted}}{{ .RespondedAtFormatted }}{{else}}-{{end}}</td>
+                  <td>{{if .RespondedAt}}{{ date "01/02/2006" .RespondedAt }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
             </tbody>

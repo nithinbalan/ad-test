@@ -310,11 +310,11 @@
                   </div>
                   <div style="width: 36%; display: inline-block; vertical-align: top;">
                      <p class="field-label">تم الإرسال بواسطة:</p>
-                     <p class="field-value">{{if $exception.SubmittedBy}}{{ $exception.SubmittedBy.FirstNameAR }} {{ $exception.SubmittedBy.LastNameAR }}{{else}}-{{end}} {{if $exception.SubmittedAt}}({{ $exception.SubmittedAt.Format "01/02/2006" }}){{end}}</p>
+                     <p class="field-value">{{if $exception.SubmittedBy}}{{ $exception.SubmittedBy.FirstNameAR }} {{ $exception.SubmittedBy.LastNameAR }}{{else}}-{{end}} {{if $exception.SubmittedAt}}({{ date "01/02/2006" $exception.SubmittedAt }}){{end}}</p>
                   </div>
                   <div style="width: 36%; display: inline-block; vertical-align: top;">
                      <p class="field-label">تمت الموافقة بواسطة:</p>
-                     <p class="field-value">{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameAR }} {{ $exception.ApprovedBy.LastNameAR }}{{else}}-{{end}} {{if $exception.ApprovedAt}}({{ $exception.ApprovedAt.Format "01/02/2006" }}){{end}}</p>
+                     <p class="field-value">{{if $exception.ApprovedBy}}{{ $exception.ApprovedBy.FirstNameAR }} {{ $exception.ApprovedBy.LastNameAR }}{{else}}-{{end}} {{if $exception.ApprovedAt}}({{ date "01/02/2006" $exception.ApprovedAt }}){{end}}</p>
                   </div>
                </div>
 
@@ -353,7 +353,7 @@
                                     </td>
                                     <td style="width: 28%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">{{$review.ActionDateLabelAr}}</p>
-                                       <p class="timeline-value">{{if $review.CreatedAtString}}{{$review.CreatedAtString}}{{else}}-{{end}}</p>
+                                       <p class="timeline-value">{{if $review.CreatedAt}}{{ date "Jan 2, 2006 03:04 PM" $review.CreatedAt }}{{else}}-{{end}}</p>
                                     </td>
                                     <td style="width: 38%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">{{$review.ActionByLabelAr}}</p>

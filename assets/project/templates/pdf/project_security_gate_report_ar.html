@@ -251,7 +251,7 @@
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">تاريخ الإنشاء:</p>
-               <p class="field-value">{{if .Data.CreatedAtFormatted}}{{ .Data.CreatedAtFormatted }}{{else}}-{{end}}</p>
+               <p class="field-value">{{if .Data.CreatedAt}}{{ date "01/02/2006" .Data.CreatedAt }}{{else}}-{{end}}</p>
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">حُدّث بواسطة:</p>
@@ -259,7 +259,7 @@
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">تاريخ التحديث:</p>
-               <p class="field-value">{{if .Data.UpdatedAtFormatted}}{{ .Data.UpdatedAtFormatted }}{{else}}-{{end}}</p>
+               <p class="field-value">{{if .Data.UpdatedAt}}{{ date "01/02/2006" .Data.UpdatedAt }}{{else}}-{{end}}</p>
             </div>
          </div>
 
@@ -344,7 +344,7 @@
                   <td>{{if .IsException}}نعم{{else}}لا{{end}}</td>
                   <td>{{if .Comment}}{{ .Comment }}{{else}}-{{end}}</td>
                   <td>{{if .RespondedBy}}{{if .RespondedBy.FirstNameAR}}{{ .RespondedBy.FirstNameAR }} {{ .RespondedBy.LastNameAR }}{{else}}{{ .RespondedBy.FirstNameEN }} {{ .RespondedBy.LastNameEN }}{{end}}{{else}}-{{end}}</td>
-                  <td>{{if .RespondedAtFormatted}}{{ .RespondedAtFormatted }}{{else}}-{{end}}</td>
+                  <td>{{if .RespondedAt}}{{ date "01/02/2006" .RespondedAt }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
             </tbody>
@@ -379,11 +379,11 @@
                   </div>
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
                      <p class="field-label">تم الإرسال بواسطة:</p>
-                     <p class="field-value">{{if $exception.SubmittedByAr}}{{ $exception.SubmittedByAr }}{{else}}-{{end}} {{if $exception.SubmittedAtFormatted}}({{ $exception.SubmittedAtFormatted }}){{end}}</p>
+                     <p class="field-value">{{if $exception.SubmittedByAr}}{{ $exception.SubmittedByAr }}{{else}}-{{end}} {{if $exception.SubmittedAt}}({{ date "01/02/2006" $exception.SubmittedAt }}){{end}}</p>
                   </div>
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
                      <p class="field-label">تمت الموافقة بواسطة:</p>
-                     <p class="field-value">{{if $exception.ApprovedByAr}}{{ $exception.ApprovedByAr }}{{else}}-{{end}} {{if $exception.ApprovedAtFormatted}}({{ $exception.ApprovedAtFormatted }}){{end}}</p>
+                     <p class="field-value">{{if $exception.ApprovedByAr}}{{ $exception.ApprovedByAr }}{{else}}-{{end}} {{if $exception.ApprovedAt}}({{ date "01/02/2006" $exception.ApprovedAt }}){{end}}</p>
                   </div>
                </div>
 
@@ -422,7 +422,7 @@
                                     </td>
                                     <td style="width: 28%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">{{$review.ActionDateLabelAr}}</p>
-                                       <p class="timeline-value">{{if $review.CreatedAtString}}{{$review.CreatedAtString}}{{else}}-{{end}}</p>
+                                       <p class="timeline-value">{{if $review.CreatedAt}}{{ date "Jan 2, 2006 03:04 PM" $review.CreatedAt }}{{else}}-{{end}}</p>
                                     </td>
                                     <td style="width: 38%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">{{$review.ActionByLabelAr}}</p>

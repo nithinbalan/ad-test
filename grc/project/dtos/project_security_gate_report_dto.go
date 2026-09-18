@@ -9,36 +9,36 @@ import (
 
 // Carries both languages to feed either PDF template
 type ProjectSecurityGateReportDTO struct {
-	ProjectTitleEn     string                                   `json:"project_title_en"`
-	ProjectTitleAr     string                                   `json:"project_title_ar"`
-	Stage              *ProjectSecurityGateStageDTO             `json:"stage"`
-	TemplateVersion    *ProjectSecurityGateTemplateVersionDTO   `json:"template_version"`
-	BusinessOwner      *organizationDTOs.UserMinimalDTO         `json:"business_owner"`
-	ReadinessStatus    *ProjectSecurityGateReadinessStatusDTO   `json:"readiness_status"`
-	Notes              *string                                  `json:"notes"`
-	Classifications    []*ProjectSecurityGateClassificationDTO  `json:"classifications"`
-	CreatedByUser      *organizationDTOs.UserMinimalDTO         `json:"created_by"`
-	CreatedAtFormatted string                                   `json:"created_at_formatted"`
-	UpdatedByUser      *organizationDTOs.UserMinimalDTO         `json:"updated_by"`
-	UpdatedAtFormatted string                                   `json:"updated_at_formatted"`
-	GeneratedAt        string                                   `json:"generated_at"`
-	Summary            *ProjectSecurityGateChecklistSummaryDTO  `json:"summary"`
-	Checklists         []*ProjectSecurityGateReportChecklistDTO `json:"checklists"`
-	Exceptions         []*ProjectSecurityGateReportExceptionDTO `json:"exceptions,omitempty"`
-	Controls           []*ProjectSecurityGateReportControlDTO   `json:"controls"`
-	Risks              []*ProjectSecurityGateReportRiskDTO      `json:"risks"`
+	ProjectTitleEn  string                                   `json:"project_title_en"`
+	ProjectTitleAr  string                                   `json:"project_title_ar"`
+	Stage           *ProjectSecurityGateStageDTO             `json:"stage"`
+	TemplateVersion *ProjectSecurityGateTemplateVersionDTO   `json:"template_version"`
+	BusinessOwner   *organizationDTOs.UserMinimalDTO         `json:"business_owner"`
+	ReadinessStatus *ProjectSecurityGateReadinessStatusDTO   `json:"readiness_status"`
+	Notes           *string                                  `json:"notes"`
+	Classifications []*ProjectSecurityGateClassificationDTO  `json:"classifications"`
+	CreatedByUser   *organizationDTOs.UserMinimalDTO         `json:"created_by"`
+	CreatedAt       *time.Time                               `json:"created_at"`
+	UpdatedByUser   *organizationDTOs.UserMinimalDTO         `json:"updated_by"`
+	UpdatedAt       *time.Time                               `json:"updated_at"`
+	GeneratedAt     *time.Time                               `json:"generated_at,omitempty"`
+	Summary         *ProjectSecurityGateChecklistSummaryDTO  `json:"summary"`
+	Checklists      []*ProjectSecurityGateReportChecklistDTO `json:"checklists"`
+	Exceptions      []*ProjectSecurityGateReportExceptionDTO `json:"exceptions,omitempty"`
+	Controls        []*ProjectSecurityGateReportControlDTO   `json:"controls"`
+	Risks           []*ProjectSecurityGateReportRiskDTO      `json:"risks"`
 }
 
 type ProjectSecurityGateReportChecklistDTO struct {
-	ChecklistID          uint                                           `json:"checklist_id"`
-	TitleEn              string                                         `json:"title_en"`
-	TitleAr              string                                         `json:"title_ar"`
-	IsCritical           bool                                           `json:"is_critical"`
-	IsException          bool                                           `json:"is_exception"`
-	ResponseStatus       *ProjectSecurityGateChecklistResponseStatusDTO `json:"response_status"`
-	Comment              string                                         `json:"comment"`
-	RespondedBy          *organizationDTOs.UserMinimalDTO               `json:"responded_by"`
-	RespondedAtFormatted string                                         `json:"responded_at_formatted"`
+	ChecklistID    uint                                           `json:"checklist_id"`
+	TitleEn        string                                         `json:"title_en"`
+	TitleAr        string                                         `json:"title_ar"`
+	IsCritical     bool                                           `json:"is_critical"`
+	IsException    bool                                           `json:"is_exception"`
+	ResponseStatus *ProjectSecurityGateChecklistResponseStatusDTO `json:"response_status"`
+	Comment        string                                         `json:"comment"`
+	RespondedBy    *organizationDTOs.UserMinimalDTO               `json:"responded_by"`
+	RespondedAt    *time.Time                                     `json:"responded_at"`
 }
 
 type ProjectSecurityGateReportExceptionDTO struct {
@@ -53,10 +53,8 @@ type ProjectSecurityGateReportExceptionDTO struct {
 	WorkflowStatusType      string                                `json:"workflow_status_type"`
 	SubmittedByEn           string                                `json:"submitted_by_en"`
 	SubmittedByAr           string                                `json:"submitted_by_ar"`
-	SubmittedAtFormatted    string                                `json:"submitted_at_formatted"`
 	ApprovedByEn            string                                `json:"approved_by_en"`
 	ApprovedByAr            string                                `json:"approved_by_ar"`
-	ApprovedAtFormatted     string                                `json:"approved_at_formatted"`
 	Reviews                 []*ProjectSecurityGateReportReviewDTO `json:"reviews"`
 
 	// New structured fields for exception report
@@ -74,7 +72,7 @@ type ProjectSecurityGateReportReviewDTO struct {
 	ActionDateLabelAr string                           `json:"action_date_label_ar"`
 	ActionByLabelEn   string                           `json:"action_by_label_en"`
 	ActionByLabelAr   string                           `json:"action_by_label_ar"`
-	CreatedAtString   string                           `json:"created_at_string"`
+	CreatedAt         *time.Time                       `json:"created_at"`
 	CreatedBy         *organizationDTOs.UserMinimalDTO `json:"created_by"`
 }
 
@@ -90,18 +88,18 @@ type ProjectSecurityGateReportControlDTO struct {
 }
 
 type ProjectSecurityGateReportRiskDTO struct {
-	RiskID                    uint                                  `json:"risk_id"`
-	ChecklistTitleEn          string                                `json:"checklist_title_en"`
-	ChecklistTitleAr          string                                `json:"checklist_title_ar"`
-	ReferenceNumber           string                                `json:"reference_number"`
-	RiskCode                  string                                `json:"risk_code"`
-	Title                     string                                `json:"title"`
-	RiskStatus                *riskDTOs.RiskStatusDTO               `json:"risk_status"`
-	RiskCategory              *riskDTOs.RiskCategoryDTO             `json:"risk_category"`
-	Division                  *organizationDTOs.OrganizationUnitDTO `json:"division"`
-	ResponsibleUnit           *organizationDTOs.OrganizationUnitDTO `json:"responsible_unit"`
-	ResponsibleUser           *organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
-	RegistrationDateFormatted string                                `json:"registration_date_formatted"`
+	RiskID           uint                                  `json:"risk_id"`
+	ChecklistTitleEn string                                `json:"checklist_title_en"`
+	ChecklistTitleAr string                                `json:"checklist_title_ar"`
+	ReferenceNumber  string                                `json:"reference_number"`
+	RiskCode         string                                `json:"risk_code"`
+	Title            string                                `json:"title"`
+	RiskStatus       *riskDTOs.RiskStatusDTO               `json:"risk_status"`
+	RiskCategory     *riskDTOs.RiskCategoryDTO             `json:"risk_category"`
+	Division         *organizationDTOs.OrganizationUnitDTO `json:"division"`
+	ResponsibleUnit  *organizationDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser  *organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
+	RegistrationDate *time.Time                            `json:"registration_date"`
 }
 
 // Exception report payload: stored on create, then served by details and rendered into the pdf
@@ -109,8 +107,8 @@ type ProjectSecurityGateExceptionReportDataDTO struct {
 	Title         string                                   `json:"title"`
 	GeneratedByEn string                                   `json:"generated_by_en"`
 	GeneratedByAr string                                   `json:"generated_by_ar"`
-	GeneratedAt   string                                   `json:"generated_at"`
-	ExportedAt    string                                   `json:"exported_at"`
+	GeneratedAt   time.Time                                `json:"generated_at"`
+	ExportedAt    *time.Time                               `json:"exported_at,omitempty"`
 	Projects      []*ProjectSecurityGateReportProjectDTO   `json:"projects"`
 	Sections      []*ProjectSecurityGateReportSectionDTO   `json:"sections"`
 	SecurityGates []*ProjectSecurityGateExceptionReportDTO `json:"security_gates"`
@@ -121,19 +119,19 @@ type ProjectSecurityGateExceptionReportDataDTO struct {
 }
 
 type ProjectSecurityGateExceptionReportDTO struct {
-	ProjectTitleEn     string                                  `json:"project_title_en"`
-	ProjectTitleAr     string                                  `json:"project_title_ar"`
-	Stage              *ProjectSecurityGateStageDTO            `json:"stage"`
-	TemplateVersion    *ProjectSecurityGateTemplateVersionDTO  `json:"template_version"`
-	BusinessOwner      *organizationDTOs.UserMinimalDTO        `json:"business_owner"`
-	ReadinessStatus    *ProjectSecurityGateReadinessStatusDTO  `json:"readiness_status"`
-	Notes              *string                                 `json:"notes"`
-	Classifications    []*ProjectSecurityGateClassificationDTO `json:"classifications"`
-	CreatedByUser      *organizationDTOs.UserMinimalDTO        `json:"created_by"`
-	CreatedAtFormatted string                                  `json:"created_at_formatted"`
-	UpdatedByUser      *organizationDTOs.UserMinimalDTO        `json:"updated_by"`
-	UpdatedAtFormatted string                                  `json:"updated_at_formatted"`
-	Exceptions         []*ProjectSecurityGateExceptionItemDTO  `json:"exceptions"`
+	ProjectTitleEn  string                                  `json:"project_title_en"`
+	ProjectTitleAr  string                                  `json:"project_title_ar"`
+	Stage           *ProjectSecurityGateStageDTO            `json:"stage"`
+	TemplateVersion *ProjectSecurityGateTemplateVersionDTO  `json:"template_version"`
+	BusinessOwner   *organizationDTOs.UserMinimalDTO        `json:"business_owner"`
+	ReadinessStatus *ProjectSecurityGateReadinessStatusDTO  `json:"readiness_status"`
+	Notes           *string                                 `json:"notes"`
+	Classifications []*ProjectSecurityGateClassificationDTO `json:"classifications"`
+	CreatedByUser   *organizationDTOs.UserMinimalDTO        `json:"created_by"`
+	CreatedAt       *time.Time                              `json:"created_at"`
+	UpdatedByUser   *organizationDTOs.UserMinimalDTO        `json:"updated_by"`
+	UpdatedAt       *time.Time                              `json:"updated_at"`
+	Exceptions      []*ProjectSecurityGateExceptionItemDTO  `json:"exceptions"`
 }
 
 type ProjectSecurityGateExceptionItemDTO struct {
@@ -164,11 +162,11 @@ type WorkflowStatusDTO struct {
 
 // Checklist report payload: stored on create, then served by details and rendered into the pdf
 type ProjectSecurityGateReportDataDTO struct {
-	Title         string                                 `json:"title"`
-	GeneratedByEn string                                 `json:"generated_by_en"`
-	GeneratedByAr string                                 `json:"generated_by_ar"`
-	GeneratedAt   string                                 `json:"generated_at"`
-	ExportedAt    string                                 `json:"exported_at"`
+	Title         string    `json:"title"`
+	GeneratedByEn string    `json:"generated_by_en"`
+	GeneratedByAr string    `json:"generated_by_ar"`
+	GeneratedAt   time.Time `json:"generated_at"`
+	ExportedAt    *time.Time                             `json:"exported_at,omitempty"`
 	Projects      []*ProjectSecurityGateReportProjectDTO `json:"projects"`
 	Sections      []*ProjectSecurityGateReportSectionDTO `json:"sections"`
 	SecurityGates []*ProjectSecurityGateReportDTO        `json:"security_gates"`
@@ -214,7 +212,7 @@ type ProjectSecurityGateReportListQueryParamsDTO struct {
 type ProjectSecurityGateReportListDTO struct {
 	ID                          uint                      `json:"id"`
 	Title                       string                    `json:"title"`
-	CreatedAt                   string                    `json:"created_at"`
+	CreatedAt                   time.Time                 `json:"created_at"`
 	CreatedUserID               uint                      `json:"created_user_id"`
 	CreatedUserFirstNameEn      string                    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string                    `json:"created_user_first_name_ar"`

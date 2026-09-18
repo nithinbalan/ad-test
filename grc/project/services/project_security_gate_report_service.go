@@ -78,7 +78,8 @@ func (psgrs *ProjectSecurityGateReportService) GetProjectSecurityGateReportExpor
 		return "", err
 	}
 
-	reportDTO.GeneratedAt = time.Now().Format("2006-01-02 03:04 PM")
+	generatedAt := time.Now()
+	reportDTO.GeneratedAt = &generatedAt
 
 	bodyTemplate := "project/templates/pdf/project_security_gate_report.html"
 	coverTemplate := "project/templates/pdf/project_security_gate_report_cover.html"
@@ -304,7 +305,8 @@ func (psgrs *ProjectSecurityGateReportService) ExportSecurityGateExceptionReport
 	}
 
 	// the payload is frozen, only the export moment is fresh
-	reportData.ExportedAt = time.Now().Format("2006-01-02 03:04 PM")
+	exportedAt := time.Now()
+	reportData.ExportedAt = &exportedAt
 
 	bodyTemplate := "project/templates/pdf/project_security_gate_exception_report.html"
 	coverTemplate := "project/templates/pdf/project_security_gate_exception_report_cover.html"
@@ -455,7 +457,8 @@ func (psgrs *ProjectSecurityGateReportService) ExportSecurityGateReport(id uint,
 	}
 
 	// the payload is frozen, only the export moment is fresh
-	reportData.ExportedAt = time.Now().Format("2006-01-02 03:04 PM")
+	exportedAt := time.Now()
+	reportData.ExportedAt = &exportedAt
 
 	bodyTemplate := "project/templates/pdf/project_security_gate_multi_report.html"
 	coverTemplate := "project/templates/pdf/project_security_gate_multi_report_cover.html"
@@ -512,10 +515,8 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 		return nil, err
 	}
 
-	report.CreatedAtFormatted = securityGate.CreatedAt.Format("01/02/2006")
-	if securityGate.UpdatedAt != nil {
-		report.UpdatedAtFormatted = securityGate.UpdatedAt.Format("01/02/2006")
-	}
+	report.CreatedAt = &securityGate.CreatedAt
+	report.UpdatedAt = securityGate.UpdatedAt
 
 	report.Classifications = make([]*dtos.ProjectSecurityGateClassificationDTO, 0, len(securityGate.Classifications))
 	for _, mapping := range securityGate.Classifications {
@@ -604,9 +605,9 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 			}
 
 			if checklist.UpdatedAt != nil {
-				checklistItem.RespondedAtFormatted = checklist.UpdatedAt.Format("01/02/2006")
-			} else if checklist.CreatedAt != nil {
-				checklistItem.RespondedAtFormatted = checklist.CreatedAt.Format("01/02/2006")
+				checklistItem.RespondedAt = checklist.UpdatedAt
+			} else {
+				checklistItem.RespondedAt = checklist.CreatedAt
 			}
 		}
 		report.Checklists = append(report.Checklists, checklistItem)
@@ -649,10 +650,7 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 				exception.SubmittedByAr = strings.TrimSpace(checklist.SubmittedByUser.FirstNameAr + " " + checklist.SubmittedByUser.LastNameAr)
 				exception.SubmittedBy = psgrs.mapReportUser(checklist.SubmittedByUser)
 			}
-			if checklist.SubmittedAt != nil {
-				exception.SubmittedAtFormatted = checklist.SubmittedAt.Format("01/02/2006")
-				exception.SubmittedAt = checklist.SubmittedAt
-			}
+			exception.SubmittedAt = checklist.SubmittedAt
 			if checklist.ApprovedByUser != nil {
 				exception.ApprovedByEn = strings.TrimSpace(checklist.ApprovedByUser.FirstNameEn + " " + checklist.ApprovedByUser.LastNameEn)
 				exception.ApprovedByAr = strings.TrimSpace(checklist.ApprovedByUser.FirstNameAr + " " + checklist.ApprovedByUser.LastNameAr)
@@ -664,10 +662,7 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 			if exception.ApprovedByAr == "" {
 				exception.ApprovedByAr = exception.ApprovedByEn
 			}
-			if checklist.ApprovedAt != nil {
-				exception.ApprovedAtFormatted = checklist.ApprovedAt.Format("01/02/2006")
-				exception.ApprovedAt = checklist.ApprovedAt
-			}
+			exception.ApprovedAt = checklist.ApprovedAt
 
 			report.Exceptions = append(report.Exceptions, exception)
 		}
@@ -746,9 +741,7 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 				}
 			}
 			risk.ResponsibleUser = psgrs.mapReportUser(mapping.RiskRegister.ResponsibleUser)
-			if mapping.RiskRegister.RegistrationDate != nil {
-				risk.RegistrationDateFormatted = mapping.RiskRegister.RegistrationDate.Format("01/02/2006")
-			}
+			risk.RegistrationDate = mapping.RiskRegister.RegistrationDate
 			report.Risks = append(report.Risks, risk)
 		}
 
@@ -767,7 +760,7 @@ func (psgrs *ProjectSecurityGateReportService) buildReportData(currentUserID uin
 		Title:         title,
 		GeneratedByEn: generatedByEn,
 		GeneratedByAr: generatedByAr,
-		GeneratedAt:   time.Now().Format("2006-01-02 03:04 PM"),
+		GeneratedAt:   time.Now(),
 		Projects:      make([]*dtos.ProjectSecurityGateReportProjectDTO, 0, len(securityGates)),
 		SecurityGates: make([]*dtos.ProjectSecurityGateReportDTO, 0, len(securityGates)),
 	}
@@ -795,7 +788,7 @@ func (psgrs *ProjectSecurityGateReportService) buildExceptionReportData(currentU
 		Title:         title,
 		GeneratedByEn: generatedByEn,
 		GeneratedByAr: generatedByAr,
-		GeneratedAt:   time.Now().Format("2006-01-02 03:04 PM"),
+		GeneratedAt:   time.Now(),
 		Projects:      make([]*dtos.ProjectSecurityGateReportProjectDTO, 0, len(securityGates)),
 		SecurityGates: make([]*dtos.ProjectSecurityGateExceptionReportDTO, 0, len(securityGates)),
 		TotalCount:    0,
@@ -814,19 +807,19 @@ func (psgrs *ProjectSecurityGateReportService) buildExceptionReportData(currentU
 		reportData.Projects = append(reportData.Projects, project)
 
 		exceptionGateDTO := &dtos.ProjectSecurityGateExceptionReportDTO{
-			ProjectTitleEn:     gateDTO.ProjectTitleEn,
-			ProjectTitleAr:     gateDTO.ProjectTitleAr,
-			Stage:              gateDTO.Stage,
-			TemplateVersion:    gateDTO.TemplateVersion,
-			BusinessOwner:      gateDTO.BusinessOwner,
-			ReadinessStatus:    gateDTO.ReadinessStatus,
-			Notes:              gateDTO.Notes,
-			Classifications:    gateDTO.Classifications,
-			CreatedByUser:      gateDTO.CreatedByUser,
-			CreatedAtFormatted: gateDTO.CreatedAtFormatted,
-			UpdatedByUser:      gateDTO.UpdatedByUser,
-			UpdatedAtFormatted: gateDTO.UpdatedAtFormatted,
-			Exceptions:         make([]*dtos.ProjectSecurityGateExceptionItemDTO, 0, len(gateDTO.Exceptions)),
+			ProjectTitleEn:  gateDTO.ProjectTitleEn,
+			ProjectTitleAr:  gateDTO.ProjectTitleAr,
+			Stage:           gateDTO.Stage,
+			TemplateVersion: gateDTO.TemplateVersion,
+			BusinessOwner:   gateDTO.BusinessOwner,
+			ReadinessStatus: gateDTO.ReadinessStatus,
+			Notes:           gateDTO.Notes,
+			Classifications: gateDTO.Classifications,
+			CreatedByUser:   gateDTO.CreatedByUser,
+			CreatedAt:       gateDTO.CreatedAt,
+			UpdatedByUser:   gateDTO.UpdatedByUser,
+			UpdatedAt:       gateDTO.UpdatedAt,
+			Exceptions:      make([]*dtos.ProjectSecurityGateExceptionItemDTO, 0, len(gateDTO.Exceptions)),
 		}
 
 		for _, exception := range gateDTO.Exceptions {
@@ -1082,11 +1075,8 @@ func (psgrs *ProjectSecurityGateReportService) parseIDList(value string) []uint 
 
 func (psgrs *ProjectSecurityGateReportService) buildExceptionReviewItem(level int, actionAt *time.Time, workflowStatus *models.WorkflowStatus, actionByUser *models.User) *dtos.ProjectSecurityGateReportReviewDTO {
 	review := &dtos.ProjectSecurityGateReportReviewDTO{
-		Level: level,
-	}
-
-	if actionAt != nil {
-		review.CreatedAtString = actionAt.Format("Jan 2, 2006 03:04 PM")
+		Level:     level,
+		CreatedAt: actionAt,
 	}
 
 	statusTitleEn := ""

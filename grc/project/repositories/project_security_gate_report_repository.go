@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
@@ -310,20 +311,20 @@ func (repo *ProjectSecurityGateReportRepository) GetAllSecurityGateReports(param
 
 	offset := (params.Page - 1) * params.PageSize
 	var rawReports []struct {
-		ID                          uint   `gorm:"column:id"`
-		Title                       string `gorm:"column:title"`
-		CreatedAt                   string `gorm:"column:created_at"`
-		SecurityGateIDs             string `gorm:"column:security_gate_ids"`
-		ResponseStatusIDs           string `gorm:"column:response_status_ids"`
-		CreatedUserID               uint   `gorm:"column:created_user_id"`
-		CreatedUserFirstNameEn      string `gorm:"column:created_user_first_name_en"`
-		CreatedUserFirstNameAr      string `gorm:"column:created_user_first_name_ar"`
-		CreatedUserLastNameEn       string `gorm:"column:created_user_last_name_en"`
-		CreatedUserLastNameAr       string `gorm:"column:created_user_last_name_ar"`
-		CreatedUserInitial          string `gorm:"column:created_user_initial"`
-		CreatedUserColor            string `gorm:"column:created_user_color"`
-		CreatedUserEmail            string `gorm:"column:created_user_email"`
-		CreatedUserProfileImagePath string `gorm:"column:created_user_profile_image_path"`
+		ID                          uint      `gorm:"column:id"`
+		Title                       string    `gorm:"column:title"`
+		CreatedAt                   time.Time `gorm:"column:created_at"`
+		SecurityGateIDs             string    `gorm:"column:security_gate_ids"`
+		ResponseStatusIDs           string    `gorm:"column:response_status_ids"`
+		CreatedUserID               uint      `gorm:"column:created_user_id"`
+		CreatedUserFirstNameEn      string    `gorm:"column:created_user_first_name_en"`
+		CreatedUserFirstNameAr      string    `gorm:"column:created_user_first_name_ar"`
+		CreatedUserLastNameEn       string    `gorm:"column:created_user_last_name_en"`
+		CreatedUserLastNameAr       string    `gorm:"column:created_user_last_name_ar"`
+		CreatedUserInitial          string    `gorm:"column:created_user_initial"`
+		CreatedUserColor            string    `gorm:"column:created_user_color"`
+		CreatedUserEmail            string    `gorm:"column:created_user_email"`
+		CreatedUserProfileImagePath string    `gorm:"column:created_user_profile_image_path"`
 	}
 	if err := query.
 		Order(params.SortBy + " " + params.Sort).
@@ -452,19 +453,19 @@ func (repo *ProjectSecurityGateReportRepository) GetAllSecurityGateExceptionRepo
 
 	offset := (params.Page - 1) * params.PageSize
 	var rawReports []struct {
-		ID                          uint   `gorm:"column:id"`
-		Title                       string `gorm:"column:title"`
-		CreatedAt                   string `gorm:"column:created_at"`
-		SecurityGateIDs             string `gorm:"column:security_gate_ids"`
-		CreatedUserID               uint   `gorm:"column:created_user_id"`
-		CreatedUserFirstNameEn      string `gorm:"column:created_user_first_name_en"`
-		CreatedUserFirstNameAr      string `gorm:"column:created_user_first_name_ar"`
-		CreatedUserLastNameEn       string `gorm:"column:created_user_last_name_en"`
-		CreatedUserLastNameAr       string `gorm:"column:created_user_last_name_ar"`
-		CreatedUserInitial          string `gorm:"column:created_user_initial"`
-		CreatedUserColor            string `gorm:"column:created_user_color"`
-		CreatedUserEmail            string `gorm:"column:created_user_email"`
-		CreatedUserProfileImagePath string `gorm:"column:created_user_profile_image_path"`
+		ID                          uint      `gorm:"column:id"`
+		Title                       string    `gorm:"column:title"`
+		CreatedAt                   time.Time `gorm:"column:created_at"`
+		SecurityGateIDs             string    `gorm:"column:security_gate_ids"`
+		CreatedUserID               uint      `gorm:"column:created_user_id"`
+		CreatedUserFirstNameEn      string    `gorm:"column:created_user_first_name_en"`
+		CreatedUserFirstNameAr      string    `gorm:"column:created_user_first_name_ar"`
+		CreatedUserLastNameEn       string    `gorm:"column:created_user_last_name_en"`
+		CreatedUserLastNameAr       string    `gorm:"column:created_user_last_name_ar"`
+		CreatedUserInitial          string    `gorm:"column:created_user_initial"`
+		CreatedUserColor            string    `gorm:"column:created_user_color"`
+		CreatedUserEmail            string    `gorm:"column:created_user_email"`
+		CreatedUserProfileImagePath string    `gorm:"column:created_user_profile_image_path"`
 	}
 	if err := query.
 		Order(params.SortBy + " " + params.Sort).
