@@ -522,21 +522,13 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 		periodStartDate, periodEndDate = krs.calculatePeriodDates(today, frequency.Type)
 		periodLabel = krs.formatPeriodLabel(periodStartDate, periodEndDate, frequency.Type)
 
-		if dates.StartDate != nil {
-			periodStartDate = dates.StartDate
-		}
-		if dates.EndDate != nil {
-			periodEndDate = dates.EndDate
-		}
+		existingKPIRegister.StartDate = periodStartDate
+		existingKPIRegister.EndDate = periodEndDate
 
-		if dates.StartDate == nil {
-			existingKPIRegister.StartDate = periodStartDate
-		}
-
-		if dates.EndDate == nil {
-			existingKPIRegister.EndDate = periodEndDate
-		}
 		nextReviewDate := periodEndDate.AddDate(0, 0, 1)
+		existingKPIRegister.NextReviewDate = &nextReviewDate
+	} else if dates.EndDate != nil {
+		nextReviewDate := dates.EndDate.AddDate(0, 0, 1)
 		existingKPIRegister.NextReviewDate = &nextReviewDate
 	}
 

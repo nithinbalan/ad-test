@@ -931,40 +931,48 @@ func (repo *KPIDashboardRepository) GetKPIByReviewStatus(params *dtos.KPIDashboa
 
 	results := []*dtos.KPIReviewStatusDistributionDTO{}
 
-	latestValueSubQuery := repo.db.
-		Table("kpi_value_updates").
-		Select(`
-			id,
-			kpi_register_id,
-			kpi_review_status_id,
-			reviewed_date,
-			ROW_NUMBER() OVER (
-				PARTITION BY kpi_register_id 
-				ORDER BY reviewed_date DESC, id DESC
-			) AS rn
-		`).
-		Where("reviewed_date IS NOT NULL")
+	krSubQuery := repo.db.
+		Table("kpi_register kr").
+		Select("kr.id, kr.kpi_review_status_id").
+		Joins("LEFT JOIN review_frequencies rf ON rf.id = kr.review_frequency_id")
 
-	if params != nil && params.StartDate != nil && params.EndDate != nil {
-		latestValueSubQuery = latestValueSubQuery.
-			Where("reviewed_date BETWEEN ? AND ?", *params.StartDate, *params.EndDate)
+	if params != nil && params.DomainID != nil {
+		krSubQuery = krSubQuery.Where("kr.kpi_category_id = ?", *params.DomainID)
 	}
-
-	krJoinCondition := "1=1"
-	krJoinArgs := []interface{}{}
 
 	if params != nil && params.Filters != nil {
 		for columnName, values := range params.Filters {
 			if len(values) > 0 {
-				krJoinCondition += " AND kr." + columnName + " IN (?)"
-				krJoinArgs = append(krJoinArgs, values)
+				krSubQuery = krSubQuery.Where("kr."+columnName+" IN (?)", values)
 			}
 		}
 	}
 
 	if params != nil && len(params.QuickFilter) > 0 {
-		krJoinCondition += " AND kr.type IN (?)"
-		krJoinArgs = append(krJoinArgs, params.QuickFilter)
+		krSubQuery = krSubQuery.Where("kr.type IN (?)", params.QuickFilter)
+	}
+
+	if params != nil && params.StartDate != nil && params.EndDate != nil {
+		krSubQuery = krSubQuery.Where("kr.start_date <= ? AND kr.end_date >= ?", *params.EndDate, *params.StartDate)
+	}
+
+	if params != nil && params.PeriodType != nil {
+		var freqTypes []string
+
+		switch *params.PeriodType {
+		case "this-month":
+			freqTypes = []string{"daily", "weekly", "biweekly", "monthly"}
+		case "this-quarter":
+			freqTypes = []string{"daily", "weekly", "biweekly", "monthly", "quarterly"}
+		case "this-half-year":
+			freqTypes = []string{"daily", "weekly", "biweekly", "monthly", "quarterly", "half-yearly"}
+		case "this-year", "custom-range":
+			freqTypes = []string{"daily", "weekly", "biweekly", "monthly", "quarterly", "half-yearly", "annually"}
+		}
+
+		if len(freqTypes) > 0 {
+			krSubQuery = krSubQuery.Where("rf.type IN ? OR rf.type IS NULL", freqTypes)
+		}
 	}
 
 	query := repo.db.
@@ -975,36 +983,10 @@ func (repo *KPIDashboardRepository) GetKPIByReviewStatus(params *dtos.KPIDashboa
 			krs.title_ar,
 			krs.color_code,
 			krs.type,
-
-			COUNT(DISTINCT CASE 
-				WHEN kvu.id IS NOT NULL THEN kr.id 
-			END) AS count
+			COUNT(DISTINCT kr.id) AS count
 		`).
 		Where("krs.status = ?", "active").
-		Joins("LEFT JOIN kpi_register kr ON "+krJoinCondition, krJoinArgs...).
-		Joins("LEFT JOIN (?) kvu ON kvu.kpi_register_id = kr.id AND kvu.rn = 1 AND kvu.kpi_review_status_id = krs.id", latestValueSubQuery).
-		Joins("LEFT JOIN review_frequencies rf ON rf.id = kr.review_frequency_id")
-
-	if params != nil && params.PeriodType != nil {
-		var freqTypes []string
-
-		switch *params.PeriodType {
-		case "this-month":
-			freqTypes = []string{"daily", "weekly", "monthly"}
-		case "this-quarter":
-			freqTypes = []string{"daily", "weekly", "monthly", "quarterly"}
-		case "this-half-year":
-			freqTypes = []string{"daily", "weekly", "monthly", "quarterly", "half-yearly"}
-		case "this-year", "custom-range":
-			freqTypes = []string{"daily", "weekly", "monthly", "quarterly", "half-yearly", "annually"}
-		}
-
-		if len(freqTypes) > 0 {
-			query = query.Where("rf.type IN ? OR rf.type IS NULL", freqTypes)
-		}
-	}
-
-	query = query.
+		Joins("LEFT JOIN (?) kr ON kr.kpi_review_status_id = krs.id", krSubQuery).
 		Group("krs.id, krs.title_en, krs.title_ar, krs.color_code, krs.type").
 		Order("krs.id")
 
