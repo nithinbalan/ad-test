@@ -345,7 +345,7 @@
                                  <tr>
                                     <td style="width: 22%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">الحالة</p>
-                                       <span class="timeline-status" style="color: {{$review.StatusTextColor}}; border-color: {{$review.StatusBorderColor}}; background: {{$review.StatusBackgroundColor}};">{{if $review.StatusTitleAr}}{{$review.StatusTitleAr}}{{else}}-{{end}}</span>
+                                       <span class="timeline-status" style="color: {{if $review.Status}}{{$review.Status.TextColor}}{{end}}; border-color: {{if $review.Status}}{{$review.Status.BorderColor}}{{end}}; background: {{if $review.Status}}{{$review.Status.BackgroundColor}}{{end}};">{{if $review.Status}}{{if $review.Status.TitleAr}}{{$review.Status.TitleAr}}{{else}}{{$review.Status.TitleEn}}{{end}}{{else}}-{{end}}</span>
                                     </td>
                                     <td style="width: 12%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">المستوى</p>
@@ -358,10 +358,10 @@
                                     <td style="width: 38%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">{{$review.ActionByLabelAr}}</p>
                                        <div class="timeline-value">
-                                          {{if $review.UserInitialAr}}
-                                          <span class="timeline-avatar">{{$review.UserInitialAr}}</span>
+                                          {{if and $review.CreatedBy $review.CreatedBy.Initial}}
+                                          <span class="timeline-avatar">{{$review.CreatedBy.Initial}}</span>
                                           {{end}}
-                                          <span style="vertical-align: middle;">{{if $review.UserFullNameAr}}{{$review.UserFullNameAr}}{{else}}-{{end}}</span>
+                                          <span style="vertical-align: middle;">{{if $review.CreatedBy}}{{if $review.CreatedBy.FirstNameAR}}{{$review.CreatedBy.FirstNameAR}} {{$review.CreatedBy.LastNameAR}}{{else}}{{$review.CreatedBy.FirstNameEN}} {{$review.CreatedBy.LastNameEN}}{{end}}{{else}}-{{end}}</span>
                                        </div>
                                     </td>
                                  </tr>

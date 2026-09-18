@@ -17,6 +17,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/project/dtos"
 	"jethur/grc/project/repositories"
+	riskDTOs "jethur/grc/risk/dtos"
 	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
 
@@ -582,9 +583,14 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 			checklistItem.IsCritical = checklist.Requirement.IsCritical
 		}
 		if checklist.ResponseStatus != nil {
-			checklistItem.ResponseStatusTitleEn = checklist.ResponseStatus.TitleEn
-			checklistItem.ResponseStatusTitleAr = checklist.ResponseStatus.TitleAr
-			checklistItem.ResponseStatusColorCode = checklist.ResponseStatus.ColorCode
+			checklistItem.ResponseStatus = &dtos.ProjectSecurityGateChecklistResponseStatusDTO{
+				ID:        int(checklist.ResponseStatus.ID),
+				TitleEn:   checklist.ResponseStatus.TitleEn,
+				TitleAr:   checklist.ResponseStatus.TitleAr,
+				Type:      checklist.ResponseStatus.Type,
+				ColorCode: checklist.ResponseStatus.ColorCode,
+				Status:    checklist.ResponseStatus.Status,
+			}
 		}
 		if checklist.Comment != nil {
 			checklistItem.Comment = *checklist.Comment
@@ -592,14 +598,9 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 
 		if checklist.ResponseStatusID != nil || checklist.IsException {
 			if checklist.UpdatedByUser != nil {
-				checklistItem.RespondedByEn = strings.TrimSpace(checklist.UpdatedByUser.FirstNameEn + " " + checklist.UpdatedByUser.LastNameEn)
-				checklistItem.RespondedByAr = strings.TrimSpace(checklist.UpdatedByUser.FirstNameAr + " " + checklist.UpdatedByUser.LastNameAr)
+				checklistItem.RespondedBy = psgrs.mapReportUser(checklist.UpdatedByUser)
 			} else if checklist.CreatedByUser != nil {
-				checklistItem.RespondedByEn = strings.TrimSpace(checklist.CreatedByUser.FirstNameEn + " " + checklist.CreatedByUser.LastNameEn)
-				checklistItem.RespondedByAr = strings.TrimSpace(checklist.CreatedByUser.FirstNameAr + " " + checklist.CreatedByUser.LastNameAr)
-			}
-			if checklistItem.RespondedByAr == "" {
-				checklistItem.RespondedByAr = checklistItem.RespondedByEn
+				checklistItem.RespondedBy = psgrs.mapReportUser(checklist.CreatedByUser)
 			}
 
 			if checklist.UpdatedAt != nil {
@@ -677,6 +678,7 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 			}
 
 			control := &dtos.ProjectSecurityGateReportControlDTO{
+				ControlID:        mapping.Control.ID,
 				ChecklistTitleEn: checklistTitleEn,
 				ChecklistTitleAr: checklistTitleAr,
 				ReferenceNumber:  mapping.Control.ReferenceNumber,
@@ -698,6 +700,7 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 			}
 
 			risk := &dtos.ProjectSecurityGateReportRiskDTO{
+				RiskID:           mapping.RiskRegister.ID,
 				ChecklistTitleEn: checklistTitleEn,
 				ChecklistTitleAr: checklistTitleAr,
 				Title:            mapping.RiskRegister.Title,
@@ -709,24 +712,40 @@ func (psgrs *ProjectSecurityGateReportService) buildGateReportDTO(id uint, respo
 				risk.RiskCode = *mapping.RiskRegister.RiskCode
 			}
 			if mapping.RiskRegister.RiskStatus != nil {
-				risk.RiskStatusTitleEn = mapping.RiskRegister.RiskStatus.TitleEn
-				risk.RiskStatusTitleAr = mapping.RiskRegister.RiskStatus.TitleAr
-			}
-			if mapping.RiskRegister.RiskCategory != nil {
-				risk.RiskCategoryTitleEn = mapping.RiskRegister.RiskCategory.TitleEn
-				risk.RiskCategoryTitleAr = mapping.RiskRegister.RiskCategory.TitleAr
-			}
-			if mapping.RiskRegister.ResponsibleUnit != nil {
-				risk.ResponsibleUnitTitleEn = mapping.RiskRegister.ResponsibleUnit.TitleEn
-				risk.ResponsibleUnitTitleAr = mapping.RiskRegister.ResponsibleUnit.TitleAr
-			}
-			if mapping.RiskRegister.ResponsibleUser != nil {
-				risk.ResponsibleUserEn = strings.TrimSpace(mapping.RiskRegister.ResponsibleUser.FirstNameEn + " " + mapping.RiskRegister.ResponsibleUser.LastNameEn)
-				risk.ResponsibleUserAr = strings.TrimSpace(mapping.RiskRegister.ResponsibleUser.FirstNameAr + " " + mapping.RiskRegister.ResponsibleUser.LastNameAr)
-				if risk.ResponsibleUserAr == "" {
-					risk.ResponsibleUserAr = risk.ResponsibleUserEn
+				risk.RiskStatus = &riskDTOs.RiskStatusDTO{
+					ID:            int(mapping.RiskRegister.RiskStatus.ID),
+					TitleEn:       mapping.RiskRegister.RiskStatus.TitleEn,
+					TitleAr:       mapping.RiskRegister.RiskStatus.TitleAr,
+					DescriptionEn: mapping.RiskRegister.RiskStatus.DescriptionEn,
+					DescriptionAr: mapping.RiskRegister.RiskStatus.DescriptionAr,
+					ColorCode:     mapping.RiskRegister.RiskStatus.ColorCode,
+					Type:          mapping.RiskRegister.RiskStatus.Type,
+					Status:        mapping.RiskRegister.RiskStatus.Status,
 				}
 			}
+			if mapping.RiskRegister.RiskCategory != nil {
+				risk.RiskCategory = &riskDTOs.RiskCategoryDTO{
+					ID:      int(mapping.RiskRegister.RiskCategory.ID),
+					TitleEn: mapping.RiskRegister.RiskCategory.TitleEn,
+					TitleAr: mapping.RiskRegister.RiskCategory.TitleAr,
+					Status:  mapping.RiskRegister.RiskCategory.Status,
+				}
+			}
+			if mapping.RiskRegister.Division != nil {
+				risk.Division = &organizationDTOs.OrganizationUnitDTO{
+					ID:      mapping.RiskRegister.Division.ID,
+					TitleEn: mapping.RiskRegister.Division.TitleEn,
+					TitleAr: mapping.RiskRegister.Division.TitleAr,
+				}
+			}
+			if mapping.RiskRegister.ResponsibleUnit != nil {
+				risk.ResponsibleUnit = &organizationDTOs.OrganizationUnitDTO{
+					ID:      mapping.RiskRegister.ResponsibleUnit.ID,
+					TitleEn: mapping.RiskRegister.ResponsibleUnit.TitleEn,
+					TitleAr: mapping.RiskRegister.ResponsibleUnit.TitleAr,
+				}
+			}
+			risk.ResponsibleUser = psgrs.mapReportUser(mapping.RiskRegister.ResponsibleUser)
 			if mapping.RiskRegister.RegistrationDate != nil {
 				risk.RegistrationDateFormatted = mapping.RiskRegister.RegistrationDate.Format("01/02/2006")
 			}
@@ -1070,80 +1089,64 @@ func (psgrs *ProjectSecurityGateReportService) buildExceptionReviewItem(level in
 		review.CreatedAtString = actionAt.Format("Jan 2, 2006 03:04 PM")
 	}
 
+	statusTitleEn := ""
+	statusTitleAr := ""
+	statusType := ""
 	if workflowStatus != nil {
-		review.StatusTitleEn = workflowStatus.TitleEn
-		review.StatusTitleAr = workflowStatus.TitleAr
-		review.StatusType = workflowStatus.Type
-		review.StatusTextColor, review.StatusBorderColor, review.StatusBackgroundColor =
+		statusTitleEn = workflowStatus.TitleEn
+		statusTitleAr = workflowStatus.TitleAr
+		statusType = workflowStatus.Type
+
+		textColor, borderColor, backgroundColor :=
 			utility.ResolveStatusBadgeColors(workflowStatus.ColorCode, workflowStatus.Type, workflowStatus.TitleEn)
+		review.Status = &dtos.WorkflowStatusDTO{
+			ID:              workflowStatus.ID,
+			TitleEn:         workflowStatus.TitleEn,
+			TitleAr:         workflowStatus.TitleAr,
+			Type:            workflowStatus.Type,
+			ColorCode:       workflowStatus.ColorCode,
+			Status:          workflowStatus.Status,
+			TextColor:       textColor,
+			BorderColor:     borderColor,
+			BackgroundColor: backgroundColor,
+		}
 	}
 
 	review.ActionDateLabelEn = "Action at"
 	review.ActionByLabelEn = "Action By"
 	review.ActionDateLabelAr = "الإجراء في"
 	review.ActionByLabelAr = "الإجراء بواسطة"
-	lowerStatus := strings.ToLower(review.StatusTitleEn)
-	if lowerStatus == "approved" || review.StatusType == "approve" {
+	lowerStatus := strings.ToLower(statusTitleEn)
+	if lowerStatus == "approved" || statusType == "approve" {
 		review.ActionDateLabelEn = "Approved at"
 		review.ActionByLabelEn = "Approved By"
 		review.ActionDateLabelAr = "تمت الموافقة في"
 		review.ActionByLabelAr = "تمت الموافقة بواسطة"
-	} else if lowerStatus == "submitted" || lowerStatus == "resubmitted" || review.StatusType == "submit" {
+	} else if lowerStatus == "submitted" || lowerStatus == "resubmitted" || statusType == "submit" {
 		review.ActionDateLabelEn = "Submitted at"
 		review.ActionByLabelEn = "Submitted By"
 		review.ActionDateLabelAr = "تم الإرسال في"
 		review.ActionByLabelAr = "تم الإرسال بواسطة"
-	} else if lowerStatus == "rejected" || review.StatusType == "reject" {
+	} else if lowerStatus == "rejected" || statusType == "reject" {
 		review.ActionDateLabelEn = "Rejected at"
 		review.ActionByLabelEn = "Rejected By"
 		review.ActionDateLabelAr = "تم الرفض في"
 		review.ActionByLabelAr = "تم الرفض بواسطة"
-	} else if lowerStatus == "reverted" || review.StatusType == "revert" {
+	} else if lowerStatus == "reverted" || statusType == "revert" {
 		review.ActionDateLabelEn = "Reverted at"
 		review.ActionByLabelEn = "Reverted By"
 		review.ActionDateLabelAr = "تمت الإعادة في"
 		review.ActionByLabelAr = "تمت الإعادة بواسطة"
-	} else if review.StatusTitleEn != "" {
-		review.ActionDateLabelEn = fmt.Sprintf("%s at", review.StatusTitleEn)
-		review.ActionByLabelEn = fmt.Sprintf("%s By", review.StatusTitleEn)
-		if review.StatusTitleAr != "" {
-			review.ActionDateLabelAr = fmt.Sprintf("%s في", review.StatusTitleAr)
-			review.ActionByLabelAr = fmt.Sprintf("%s بواسطة", review.StatusTitleAr)
+	} else if statusTitleEn != "" {
+		review.ActionDateLabelEn = fmt.Sprintf("%s at", statusTitleEn)
+		review.ActionByLabelEn = fmt.Sprintf("%s By", statusTitleEn)
+		if statusTitleAr != "" {
+			review.ActionDateLabelAr = fmt.Sprintf("%s في", statusTitleAr)
+			review.ActionByLabelAr = fmt.Sprintf("%s بواسطة", statusTitleAr)
 		}
 	}
 
-	if actionByUser != nil {
-		review.UserFullNameEn = strings.TrimSpace(actionByUser.FirstNameEn + " " + actionByUser.LastNameEn)
-		review.UserFullNameAr = strings.TrimSpace(actionByUser.FirstNameAr + " " + actionByUser.LastNameAr)
-		if review.UserFullNameAr == "" {
-			review.UserFullNameAr = review.UserFullNameEn
-		}
-
-		review.UserInitial = actionByUser.Initial
-		if review.UserInitial == "" {
-			firstName := strings.TrimSpace(actionByUser.FirstNameEn)
-			lastName := strings.TrimSpace(actionByUser.LastNameEn)
-			if len(firstName) > 0 {
-				review.UserInitial += string([]rune(firstName)[0:1])
-			}
-			if len(lastName) > 0 {
-				review.UserInitial += string([]rune(lastName)[0:1])
-			}
-			review.UserInitial = strings.ToUpper(review.UserInitial)
-		}
-
-		firstNameAr := strings.TrimSpace(actionByUser.FirstNameAr)
-		lastNameAr := strings.TrimSpace(actionByUser.LastNameAr)
-		if len(firstNameAr) > 0 {
-			review.UserInitialAr += string([]rune(firstNameAr)[0:1])
-		}
-		if len(lastNameAr) > 0 {
-			review.UserInitialAr += string([]rune(lastNameAr)[0:1])
-		}
-		if review.UserInitialAr == "" {
-			review.UserInitialAr = review.UserInitial
-		}
-	}
+	review.CreatedBy = psgrs.mapReportUser(actionByUser)
 
 	return review
 }

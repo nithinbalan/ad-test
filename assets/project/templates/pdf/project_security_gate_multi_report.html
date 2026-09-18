@@ -354,15 +354,15 @@
                   <td>{{ .TitleEn }}</td>
                   <td>{{if .IsCritical}}Yes{{else}}No{{end}}</td>
                   <td>
-                     {{if .ResponseStatusTitleEn}}
-                     <span class="badge" style="background: #E5F4F0; color: {{if .ResponseStatusColorCode}}{{.ResponseStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
-                        {{ .ResponseStatusTitleEn }}
+                     {{if .ResponseStatus}}
+                     <span class="badge" style="background: #E5F4F0; color: {{if .ResponseStatus.ColorCode}}{{.ResponseStatus.ColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
+                        {{ .ResponseStatus.TitleEn }}
                      </span>
                      {{else}}-{{end}}
                   </td>
                   <td>{{if .IsException}}Yes{{else}}No{{end}}</td>
                   <td>{{if .Comment}}{{ .Comment }}{{else}}-{{end}}</td>
-                  <td>{{if .RespondedByEn}}{{ .RespondedByEn }}{{else}}-{{end}}</td>
+                  <td>{{if .RespondedBy}}{{ .RespondedBy.FirstNameEN }} {{ .RespondedBy.LastNameEN }}{{else}}-{{end}}</td>
                   <td>{{if .RespondedAtFormatted}}{{ .RespondedAtFormatted }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
@@ -431,9 +431,9 @@
                   <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
                   <td>{{if .RiskCode}}{{ .RiskCode }}{{else}}-{{end}}</td>
                   <td>{{ .Title }}</td>
-                  <td>{{if .RiskStatusTitleEn}}{{ .RiskStatusTitleEn }}{{else}}-{{end}}</td>
-                  <td>{{if .RiskCategoryTitleEn}}{{ .RiskCategoryTitleEn }}{{else}}-{{end}}</td>
-                  <td>{{if .ResponsibleUserEn}}{{ .ResponsibleUserEn }}{{else}}-{{end}}</td>
+                  <td>{{if .RiskStatus}}{{ .RiskStatus.TitleEn }}{{else}}-{{end}}</td>
+                  <td>{{if .RiskCategory}}{{ .RiskCategory.TitleEn }}{{else}}-{{end}}</td>
+                  <td>{{if .ResponsibleUser}}{{ .ResponsibleUser.FirstNameEN }} {{ .ResponsibleUser.LastNameEN }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
             </tbody>

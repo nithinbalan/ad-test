@@ -3,6 +3,7 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	riskDTOs "jethur/grc/risk/dtos"
 	"time"
 )
 
@@ -29,18 +30,15 @@ type ProjectSecurityGateReportDTO struct {
 }
 
 type ProjectSecurityGateReportChecklistDTO struct {
-	ChecklistID             uint   `json:"checklist_id"`
-	TitleEn                 string `json:"title_en"`
-	TitleAr                 string `json:"title_ar"`
-	IsCritical              bool   `json:"is_critical"`
-	IsException             bool   `json:"is_exception"`
-	ResponseStatusTitleEn   string `json:"response_status_title_en"`
-	ResponseStatusTitleAr   string `json:"response_status_title_ar"`
-	ResponseStatusColorCode string `json:"response_status_color_code"`
-	Comment                 string `json:"comment"`
-	RespondedByEn           string `json:"responded_by_en"`
-	RespondedByAr           string `json:"responded_by_ar"`
-	RespondedAtFormatted    string `json:"responded_at_formatted"`
+	ChecklistID          uint                                           `json:"checklist_id"`
+	TitleEn              string                                         `json:"title_en"`
+	TitleAr              string                                         `json:"title_ar"`
+	IsCritical           bool                                           `json:"is_critical"`
+	IsException          bool                                           `json:"is_exception"`
+	ResponseStatus       *ProjectSecurityGateChecklistResponseStatusDTO `json:"response_status"`
+	Comment              string                                         `json:"comment"`
+	RespondedBy          *organizationDTOs.UserMinimalDTO               `json:"responded_by"`
+	RespondedAtFormatted string                                         `json:"responded_at_formatted"`
 }
 
 type ProjectSecurityGateReportExceptionDTO struct {
@@ -70,25 +68,18 @@ type ProjectSecurityGateReportExceptionDTO struct {
 }
 
 type ProjectSecurityGateReportReviewDTO struct {
-	Level                 int    `json:"level"`
-	StatusTitleEn         string `json:"status_title_en"`
-	StatusTitleAr         string `json:"status_title_ar"`
-	StatusType            string `json:"status_type"`
-	StatusTextColor       string `json:"status_text_color"`
-	StatusBorderColor     string `json:"status_border_color"`
-	StatusBackgroundColor string `json:"status_background_color"`
-	ActionDateLabelEn     string `json:"action_date_label_en"`
-	ActionDateLabelAr     string `json:"action_date_label_ar"`
-	ActionByLabelEn       string `json:"action_by_label_en"`
-	ActionByLabelAr       string `json:"action_by_label_ar"`
-	CreatedAtString       string `json:"created_at_string"`
-	UserInitial           string `json:"user_initial"`
-	UserInitialAr         string `json:"user_initial_ar"`
-	UserFullNameEn        string `json:"user_full_name_en"`
-	UserFullNameAr        string `json:"user_full_name_ar"`
+	Level             int                              `json:"level"`
+	Status            *WorkflowStatusDTO               `json:"status"`
+	ActionDateLabelEn string                           `json:"action_date_label_en"`
+	ActionDateLabelAr string                           `json:"action_date_label_ar"`
+	ActionByLabelEn   string                           `json:"action_by_label_en"`
+	ActionByLabelAr   string                           `json:"action_by_label_ar"`
+	CreatedAtString   string                           `json:"created_at_string"`
+	CreatedBy         *organizationDTOs.UserMinimalDTO `json:"created_by"`
 }
 
 type ProjectSecurityGateReportControlDTO struct {
+	ControlID        uint   `json:"control_id"`
 	ChecklistTitleEn string `json:"checklist_title_en"`
 	ChecklistTitleAr string `json:"checklist_title_ar"`
 	ReferenceNumber  string `json:"reference_number"`
@@ -99,20 +90,18 @@ type ProjectSecurityGateReportControlDTO struct {
 }
 
 type ProjectSecurityGateReportRiskDTO struct {
-	ChecklistTitleEn          string `json:"checklist_title_en"`
-	ChecklistTitleAr          string `json:"checklist_title_ar"`
-	ReferenceNumber           string `json:"reference_number"`
-	RiskCode                  string `json:"risk_code"`
-	Title                     string `json:"title"`
-	RiskStatusTitleEn         string `json:"risk_status_title_en"`
-	RiskStatusTitleAr         string `json:"risk_status_title_ar"`
-	RiskCategoryTitleEn       string `json:"risk_category_title_en"`
-	RiskCategoryTitleAr       string `json:"risk_category_title_ar"`
-	ResponsibleUnitTitleEn    string `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr    string `json:"responsible_unit_title_ar"`
-	ResponsibleUserEn         string `json:"responsible_user_en"`
-	ResponsibleUserAr         string `json:"responsible_user_ar"`
-	RegistrationDateFormatted string `json:"registration_date_formatted"`
+	RiskID                    uint                                  `json:"risk_id"`
+	ChecklistTitleEn          string                                `json:"checklist_title_en"`
+	ChecklistTitleAr          string                                `json:"checklist_title_ar"`
+	ReferenceNumber           string                                `json:"reference_number"`
+	RiskCode                  string                                `json:"risk_code"`
+	Title                     string                                `json:"title"`
+	RiskStatus                *riskDTOs.RiskStatusDTO               `json:"risk_status"`
+	RiskCategory              *riskDTOs.RiskCategoryDTO             `json:"risk_category"`
+	Division                  *organizationDTOs.OrganizationUnitDTO `json:"division"`
+	ResponsibleUnit           *organizationDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser           *organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
+	RegistrationDateFormatted string                                `json:"registration_date_formatted"`
 }
 
 // Exception report payload: stored on create, then served by details and rendered into the pdf

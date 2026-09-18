@@ -335,15 +335,15 @@
                   <td>{{if .TitleAr}}{{ .TitleAr }}{{else}}{{ .TitleEn }}{{end}}</td>
                   <td>{{if .IsCritical}}نعم{{else}}لا{{end}}</td>
                   <td>
-                     {{if .ResponseStatusTitleAr}}
-                     <span class="badge" style="background: #E5F4F0; color: {{if .ResponseStatusColorCode}}{{.ResponseStatusColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
-                        {{ .ResponseStatusTitleAr }}
+                     {{if .ResponseStatus}}
+                     <span class="badge" style="background: #E5F4F0; color: {{if .ResponseStatus.ColorCode}}{{.ResponseStatus.ColorCode}}{{else}}#0B7A55{{end}}; border: 1px solid #AFD6CC;">
+                        {{if .ResponseStatus.TitleAr}}{{ .ResponseStatus.TitleAr }}{{else}}{{ .ResponseStatus.TitleEn }}{{end}}
                      </span>
                      {{else}}-{{end}}
                   </td>
                   <td>{{if .IsException}}نعم{{else}}لا{{end}}</td>
                   <td>{{if .Comment}}{{ .Comment }}{{else}}-{{end}}</td>
-                  <td>{{if .RespondedByAr}}{{ .RespondedByAr }}{{else}}-{{end}}</td>
+                  <td>{{if .RespondedBy}}{{if .RespondedBy.FirstNameAR}}{{ .RespondedBy.FirstNameAR }} {{ .RespondedBy.LastNameAR }}{{else}}{{ .RespondedBy.FirstNameEN }} {{ .RespondedBy.LastNameEN }}{{end}}{{else}}-{{end}}</td>
                   <td>{{if .RespondedAtFormatted}}{{ .RespondedAtFormatted }}{{else}}-{{end}}</td>
                </tr>
                {{end}}
@@ -402,7 +402,7 @@
                      <tr>
                         <!-- Step Number Node Column -->
                         <td class="timeline-node">
-                           <span class="timeline-step">{{$review.StepNumber}}</span>
+                           <span class="timeline-step">{{ add $reviewIndex 1 }}</span>
                            {{if not $isLast}}
                            <div class="timeline-connector"></div>
                            {{end}}
@@ -414,7 +414,7 @@
                                  <tr>
                                     <td style="width: 22%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">الحالة</p>
-                                       <span class="timeline-status" style="color: {{$review.StatusTextColor}}; border-color: {{$review.StatusBorderColor}}; background: {{$review.StatusBackgroundColor}};">{{if $review.StatusTitleAr}}{{$review.StatusTitleAr}}{{else}}-{{end}}</span>
+                                       <span class="timeline-status" style="color: {{if $review.Status}}{{$review.Status.TextColor}}{{end}}; border-color: {{if $review.Status}}{{$review.Status.BorderColor}}{{end}}; background: {{if $review.Status}}{{$review.Status.BackgroundColor}}{{end}};">{{if $review.Status}}{{if $review.Status.TitleAr}}{{$review.Status.TitleAr}}{{else}}{{$review.Status.TitleEn}}{{end}}{{else}}-{{end}}</span>
                                     </td>
                                     <td style="width: 12%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">المستوى</p>
@@ -427,10 +427,10 @@
                                     <td style="width: 38%; vertical-align: top; padding: 0;">
                                        <p class="timeline-label">{{$review.ActionByLabelAr}}</p>
                                        <div class="timeline-value">
-                                          {{if $review.UserInitialAr}}
-                                          <span class="timeline-avatar">{{$review.UserInitialAr}}</span>
+                                          {{if and $review.CreatedBy $review.CreatedBy.Initial}}
+                                          <span class="timeline-avatar">{{$review.CreatedBy.Initial}}</span>
                                           {{end}}
-                                          <span style="vertical-align: middle;">{{if $review.UserFullNameAr}}{{$review.UserFullNameAr}}{{else}}-{{end}}</span>
+                                          <span style="vertical-align: middle;">{{if $review.CreatedBy}}{{if $review.CreatedBy.FirstNameAR}}{{$review.CreatedBy.FirstNameAR}} {{$review.CreatedBy.LastNameAR}}{{else}}{{$review.CreatedBy.FirstNameEN}} {{$review.CreatedBy.LastNameEN}}{{end}}{{else}}-{{end}}</span>
                                        </div>
                                     </td>
                                  </tr>
@@ -505,9 +505,9 @@
                   <td>{{if .ReferenceNumber}}{{ .ReferenceNumber }}{{else}}-{{end}}</td>
                   <td>{{if .RiskCode}}{{ .RiskCode }}{{else}}-{{end}}</td>
                   <td>{{ .Title }}</td>
-                  <td>{{if .RiskStatusTitleAr}}{{ .RiskStatusTitleAr }}{{else}}-{{end}}</td>
-                  <td>{{if .RiskCategoryTitleAr}}{{ .RiskCategoryTitleAr }}{{else}}-{{end}}</td>
-                  <td>{{if .ResponsibleUserAr}}{{ .ResponsibleUserAr }}{{else}}-{{end}}</td>
+                  <td>{{if .RiskStatus}}{{if .RiskStatus.TitleAr}}{{ .RiskStatus.TitleAr }}{{else}}{{ .RiskStatus.TitleEn }}{{end}}{{else}}-{{end}}</td>
+                  <td>{{if .RiskCategory}}{{if .RiskCategory.TitleAr}}{{ .RiskCategory.TitleAr }}{{else}}{{ .RiskCategory.TitleEn }}{{end}}{{else}}-{{end}}</td>
+                  <td>{{if .ResponsibleUser}}{{if .ResponsibleUser.FirstNameAR}}{{ .ResponsibleUser.FirstNameAR }} {{ .ResponsibleUser.LastNameAR }}{{else}}{{ .ResponsibleUser.FirstNameEN }} {{ .ResponsibleUser.LastNameEN }}{{end}}{{else}}-{{end}}</td>
                </tr>
                {{end}}
             </tbody>

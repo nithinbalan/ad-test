@@ -101,6 +101,7 @@ func (repo *ProjectSecurityGateReportRepository) GetAllChecklists(securityGateID
 		Preload("Risks.RiskRegister").
 		Preload("Risks.RiskRegister.RiskStatus").
 		Preload("Risks.RiskRegister.RiskCategory").
+		Preload("Risks.RiskRegister.Division").
 		Preload("Risks.RiskRegister.ResponsibleUnit").
 		Preload("Risks.RiskRegister.ResponsibleUser").
 		Joins("JOIN project_security_gate_checklist_template_requirements AS requirements ON requirements.id = project_security_gate_checklists.requirement_id").
@@ -133,6 +134,7 @@ func (repo *ProjectSecurityGateReportRepository) GetAllChecklistsByResponseStatu
 		Preload("Risks.RiskRegister").
 		Preload("Risks.RiskRegister.RiskStatus").
 		Preload("Risks.RiskRegister.RiskCategory").
+		Preload("Risks.RiskRegister.Division").
 		Preload("Risks.RiskRegister.ResponsibleUnit").
 		Preload("Risks.RiskRegister.ResponsibleUser").
 		Joins("JOIN project_security_gate_checklist_template_requirements AS requirements ON requirements.id = project_security_gate_checklists.requirement_id").
