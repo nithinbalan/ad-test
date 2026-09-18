@@ -194,6 +194,23 @@ func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interf
 		cell := fmt.Sprintf("%s1", toAlphaString(i))
 		f.SetCellValue(sheetName, cell, header)
 		f.SetCellStyle(sheetName, cell, cell, boldStyle)
+
+		// Set comfortable column width with padding
+		headerLen := len(fmt.Sprint(header))
+		maxWidth := headerLen
+		for _, row := range data[1:] {
+			if i < len(row) {
+				w := len(fmt.Sprint(row[i]))
+				if w > maxWidth {
+					maxWidth = w
+				}
+			}
+		}
+		if maxWidth < 12 {
+			maxWidth = 12
+		}
+		colLetter := toAlphaString(i)
+		_ = f.SetColWidth(sheetName, colLetter, colLetter, float64(maxWidth+4))
 	}
 
 	for colIndex, header := range headers {
@@ -240,7 +257,14 @@ func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interf
 		// Set data validation for rows 2 to 100
 		dv := excelize.NewDataValidation(true)
 		dv.Sqref = fmt.Sprintf("%s2:%s100", colLetter, colLetter)
-		dv.SetDropList(dropList)
+		if err := dv.SetDropList(dropList); err != nil {
+			valCol := "A"
+			if headerStr == "Clause" && len(optionsData) > 1 && len(optionsData[1]) > 1 {
+				valCol = "B"
+			}
+			sheetRef := fmt.Sprintf("'%s'!$%s$2:$%s$%d", headerStr, valCol, valCol, len(dropList)+1)
+			dv.SetSqrefDropList(sheetRef)
+		}
 		dv.ShowErrorMessage = true
 		errTitle := "Invalid Input"
 		errMsg := "Please select a value from the dropdown."

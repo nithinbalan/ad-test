@@ -952,9 +952,10 @@ func (krs *KPIRegisterService) GenerateKPIRegisterTemplate() (*os.File, error) {
 	templateHeaders := []string{
 		"Title",
 		"Type",
-		"Description",
+		"Objective",
 		"Domain",
 		"Responsible User",
+		"Review User",
 		"Review Frequency",
 		"Calculation Type",
 		"Formula",
@@ -983,10 +984,24 @@ func (krs *KPIRegisterService) GenerateKPIRegisterTemplate() (*os.File, error) {
 
 	userSheet := [][]interface{}{{"Responsible User"}}
 	for _, u := range users {
-		userSheet = append(
-			userSheet,
-			[]interface{}{strings.TrimSpace(u.FirstNameEN + " " + u.LastNameEN)},
-		)
+		if strings.TrimSpace(u.PrimaryUnit) == "" {
+			continue
+		}
+		name := strings.TrimSpace(u.FirstNameEN + " " + u.LastNameEN)
+		if name != "" {
+			userSheet = append(userSheet, []interface{}{name})
+		}
+	}
+
+	reviewUserSheet := [][]interface{}{{"Review User"}}
+	for _, u := range users {
+		if strings.TrimSpace(u.PrimaryUnit) == "" {
+			continue
+		}
+		name := strings.TrimSpace(u.FirstNameEN + " " + u.LastNameEN)
+		if name != "" {
+			reviewUserSheet = append(reviewUserSheet, []interface{}{name})
+		}
 	}
 
 	reviewFrequencySheet := [][]interface{}{{"Review Frequency"}}
@@ -1025,6 +1040,7 @@ func (krs *KPIRegisterService) GenerateKPIRegisterTemplate() (*os.File, error) {
 		"Type":             true,
 		"Domain":           true,
 		"Responsible User": true,
+		"Review User":      true,
 		"Review Frequency": true,
 		"Calculation Type": true,
 		"Unit":             true,
@@ -1044,6 +1060,7 @@ func (krs *KPIRegisterService) GenerateKPIRegisterTemplate() (*os.File, error) {
 			"Type":             typeSheet,
 			"Domain":           categorySheet,
 			"Responsible User": userSheet,
+			"Review User":      reviewUserSheet,
 			"Review Frequency": reviewFrequencySheet,
 			"Calculation Type": calculationTypeSheet,
 			"Unit":             unitSheet,
@@ -1073,9 +1090,10 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 	headersWithType := []string{
 		"Title",
 		"Type",
-		"Description",
+		"Objective",
 		"Domain",
 		"Responsible User",
+		"Review User",
 		"Review Frequency",
 		"Calculation Type",
 		"Formula",
@@ -1090,9 +1108,10 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 	snakeHeadersWithType := []string{
 		"title",
 		"type",
-		"description",
+		"objective",
 		"kpi_category",
 		"responsible_user",
+		"review_user",
 		"review_frequency",
 		"calculation_type",
 		"formula",
@@ -1106,9 +1125,10 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 
 	headersWithoutType := []string{
 		"Title",
-		"Description",
+		"Objective",
 		"Domain",
 		"Responsible User",
+		"Review User",
 		"Review Frequency",
 		"Calculation Type",
 		"Formula",
@@ -1122,9 +1142,10 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 
 	snakeHeadersWithoutType := []string{
 		"title",
-		"description",
+		"objective",
 		"kpi_category",
 		"responsible_user",
+		"review_user",
 		"review_frequency",
 		"calculation_type",
 		"formula",
@@ -1151,8 +1172,8 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 			if strings.EqualFold(excelHeaders[1], "Indicator Type") || strings.EqualFold(excelHeaders[1], "Type") {
 				temp[1] = excelHeaders[1]
 			}
-			if strings.EqualFold(excelHeaders[12], "Type") || strings.EqualFold(excelHeaders[12], "Achievement Type") {
-				temp[12] = excelHeaders[12]
+			if strings.EqualFold(excelHeaders[13], "Type") || strings.EqualFold(excelHeaders[13], "Achievement Type") {
+				temp[13] = excelHeaders[13]
 			}
 			headersValid = utility.ValidateHeaders(temp, excelHeaders)
 		}
@@ -1164,8 +1185,8 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 		if !headersValid {
 			temp := make([]string, len(headersWithoutType))
 			copy(temp, headersWithoutType)
-			if strings.EqualFold(excelHeaders[11], "Type") || strings.EqualFold(excelHeaders[11], "Achievement Type") {
-				temp[11] = excelHeaders[11]
+			if strings.EqualFold(excelHeaders[12], "Type") || strings.EqualFold(excelHeaders[12], "Achievement Type") {
+				temp[12] = excelHeaders[12]
 			}
 			headersValid = utility.ValidateHeaders(temp, excelHeaders)
 		}
@@ -1183,7 +1204,7 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 	}
 
 	// ------------------------------------------------
-	// Parse rows + build DataInputs from A–D
+	// Parse rows + build DataInputs from A–B
 	// ------------------------------------------------
 
 	var input []map[string]interface{}
@@ -1201,15 +1222,19 @@ func (krs *KPIRegisterService) ValidateKPIRegisterTemplate(file io.Reader) ([]ma
 			}
 		}
 
+		if obj, ok := record["objective"]; ok && obj != nil {
+			record["description"] = obj
+		}
+
 		// --------------------------------------------
-		// Build DataInputs from A, B, C, D
+		// Build DataInputs from A, B
 		// --------------------------------------------
 
 		var dataInputs []*kpiDTOs.InputDataFormDTO
 
 		for _, v := range []string{"a", "b"} {
 			val := strings.TrimSpace(fmt.Sprint(record[v]))
-			if val != "" {
+			if val != "" && val != "<nil>" {
 				dataInputs = append(dataInputs, &kpiDTOs.InputDataFormDTO{
 					Variable: strings.ToUpper(v),
 					Input:    val,
@@ -1268,7 +1293,13 @@ func (krs *KPIRegisterService) validateKPIRegisters(input []map[string]interface
 
 	userMap := map[string]uint{}
 	for _, u := range users {
-		userMap[normalize(u.FirstNameEN+" "+u.LastNameEN)] = uint(u.ID)
+		if strings.TrimSpace(u.PrimaryUnit) == "" {
+			continue
+		}
+		name := strings.TrimSpace(u.FirstNameEN + " " + u.LastNameEN)
+		if name != "" {
+			userMap[normalize(name)] = uint(u.ID)
+		}
 	}
 
 	validAchievementLogicIDs := map[uint]*models.KPIAchievementLogic{}
@@ -1359,6 +1390,25 @@ func (krs *KPIRegisterService) validateKPIRegisters(input []map[string]interface
 			out["indicator_type"] = "KPI"
 		}
 
+		// ---------- Objective / Description (optional) ----------
+		var descStr string
+		if rawDesc, ok := record["description"]; ok && rawDesc != nil {
+			s := strings.TrimSpace(fmt.Sprint(rawDesc))
+			if s != "" && s != "<nil>" {
+				descStr = s
+			}
+		}
+		if descStr == "" {
+			if rawObj, ok := record["objective"]; ok && rawObj != nil {
+				s := strings.TrimSpace(fmt.Sprint(rawObj))
+				if s != "" && s != "<nil>" {
+					descStr = s
+				}
+			}
+		}
+		out["description"] = descStr
+		out["objective"] = descStr
+
 		// ---------- KPI Category ----------
 		if key := normalize(fmt.Sprint(record["kpi_category"])); key == "" {
 			rowErrors["kpi_category"] = "Domain is required"
@@ -1375,6 +1425,50 @@ func (krs *KPIRegisterService) validateKPIRegisters(input []map[string]interface
 			rowErrors["responsible_user"] = "Invalid Responsible User"
 		} else {
 			out["responsible_user_id"] = id
+		}
+
+		// ---------- Review User (optional) ----------
+		if rawRevUser, ok := record["review_user"]; ok && rawRevUser != nil {
+			revUserStr := strings.TrimSpace(fmt.Sprint(rawRevUser))
+			if revUserStr != "" && revUserStr != "<nil>" {
+				key := normalize(revUserStr)
+				if id, ok := userMap[key]; ok {
+					out["review_user_id"] = id
+					out["review_user"] = revUserStr
+				} else {
+					rowErrors["review_user"] = "Invalid Review User"
+				}
+			} else {
+				out["review_user"] = ""
+			}
+		} else if rawRevID, ok := record["review_user_id"]; ok && rawRevID != nil {
+			var rID uint
+			switch v := rawRevID.(type) {
+			case uint:
+				rID = v
+			case int:
+				rID = uint(v)
+			case float64:
+				rID = uint(v)
+			case string:
+				if parsed, err := strconv.ParseUint(strings.TrimSpace(v), 10, 32); err == nil {
+					rID = uint(parsed)
+				}
+			}
+			if rID > 0 {
+				found := false
+				for _, uid := range userMap {
+					if uid == rID {
+						found = true
+						break
+					}
+				}
+				if found {
+					out["review_user_id"] = rID
+				} else {
+					rowErrors["review_user"] = "Invalid Review User"
+				}
+			}
 		}
 
 		// ---------- Review Frequency ----------
@@ -1620,6 +1714,18 @@ func (krs *KPIRegisterService) ImportKPIRegisters(input []map[string]interface{}
 		}
 	}
 
+	users, _ := krs.userSvc.GetAllUsers()
+	userMap := map[string]uint{}
+	for _, u := range users {
+		if strings.TrimSpace(u.PrimaryUnit) == "" {
+			continue
+		}
+		name := strings.TrimSpace(u.FirstNameEN + " " + u.LastNameEN)
+		if name != "" {
+			userMap[normalize(name)] = uint(u.ID)
+		}
+	}
+
 	for _, record := range input {
 
 		var kpiCategoryID uint
@@ -1855,13 +1961,68 @@ func (krs *KPIRegisterService) ImportKPIRegisters(input []map[string]interface{}
 			}
 		}
 
+		// ---------- Review User (optional) ----------
+		var reviewUserID *uint
+		if v, ok := record["review_user_id"]; ok && v != nil {
+			switch r := v.(type) {
+			case uint:
+				if r > 0 {
+					reviewUserID = &r
+				}
+			case int:
+				if r > 0 {
+					u := uint(r)
+					reviewUserID = &u
+				}
+			case float64:
+				if r > 0 {
+					u := uint(r)
+					reviewUserID = &u
+				}
+			case string:
+				if parsed, err := strconv.ParseUint(strings.TrimSpace(r), 10, 32); err == nil && parsed > 0 {
+					u := uint(parsed)
+					reviewUserID = &u
+				}
+			}
+		}
+
+		if reviewUserID == nil {
+			if revStr, ok := record["review_user"].(string); ok {
+				revStr = strings.TrimSpace(revStr)
+				if revStr != "" && revStr != "<nil>" {
+					if id, ok := userMap[normalize(revStr)]; ok {
+						reviewUserID = &id
+					}
+				}
+			}
+		}
+
+		// ---------- Objective / Description (optional) ----------
+		var desc *string
+		if v, ok := record["description"]; ok && v != nil {
+			s := strings.TrimSpace(fmt.Sprint(v))
+			if s != "" && s != "<nil>" {
+				desc = &s
+			}
+		}
+		if desc == nil {
+			if v, ok := record["objective"]; ok && v != nil {
+				s := strings.TrimSpace(fmt.Sprint(v))
+				if s != "" && s != "<nil>" {
+					desc = &s
+				}
+			}
+		}
+
 		// ---------- Build DTO ----------
 		dto := &kpiDTOs.KPIRegisterFormDTO{
 			Title:                 strings.TrimSpace(fmt.Sprint(record["title"])),
 			IsKRI:                 isKRI,
-			Description:           strPtr(fmt.Sprint(record["description"])),
+			Description:           desc,
 			KPICategoryID:         kpiCategoryID,
 			ResponsibleUserID:     uintPtr(responsibleUserID),
+			ReviewUserID:          reviewUserID,
 			ReviewFrequencyID:     uintPtr(reviewFrequencyID),
 			CalculationTypeID:     uintPtr(calculationTypeID),
 			Formula:               formula,
