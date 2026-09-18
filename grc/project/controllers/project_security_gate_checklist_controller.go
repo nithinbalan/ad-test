@@ -114,6 +114,28 @@ func (psgcc *ProjectSecurityGateChecklistController) GetProjectSecurityGateCheck
 	c.JSON(http.StatusOK, summary)
 }
 
+func (psgcc *ProjectSecurityGateChecklistController) GetProjectSecurityGateChecklistBreakdownByResponseStatus(c *gin.Context) {
+	securityGateID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	breakdown, err := psgcc.service.GetChecklistBreakdownByResponseStatus(uint(securityGateID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(psgcc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, breakdown)
+}
+
 func (psgcc *ProjectSecurityGateChecklistController) GetProjectSecurityGateChecklistDetails(c *gin.Context) {
 	securityGateID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {

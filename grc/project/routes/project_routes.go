@@ -314,6 +314,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Project Security Gate Checklist
 	projectRoutes.GET("/project-security-gates/:id/checklists", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistController.GetAllProjectSecurityGateChecklists)
 	projectRoutes.GET("/project-security-gates/:id/checklists/summary", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistController.GetProjectSecurityGateChecklistSummary)
+	projectRoutes.GET("/project-security-gates/:id/checklists/by-response-status", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistController.GetProjectSecurityGateChecklistBreakdownByResponseStatus)
 	projectRoutes.GET("/project-security-gates/:id/checklists/:checklistId", middlewares.RolePermissionMiddleware(db, "project_security_gate", "view"), projectSecurityGateChecklistController.GetProjectSecurityGateChecklistDetails)
 	projectRoutes.POST("/project-security-gates/:id/checklists/:checklistId/response", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistController.CreateProjectSecurityGateChecklistResponse)
 	projectRoutes.PUT("/project-security-gates/:id/checklists/:checklistId/response", middlewares.RolePermissionMiddleware(db, "project_security_gate", "modify"), projectSecurityGateChecklistController.UpdateProjectSecurityGateChecklistResponse)

@@ -104,3 +104,18 @@ type ProjectSecurityGateChecklistSummaryDTO struct {
 	Outstanding          int64   `json:"outstanding"`
 	CompletionPercentage float64 `json:"completion_percentage"`
 }
+
+type ProjectSecurityGateChecklistBreakdownItemDTO struct {
+	ID         uint    `json:"id"`
+	TitleEn    string  `json:"title_en"`
+	TitleAr    string  `json:"title_ar"`
+	Type       string  `json:"type"`
+	ColorCode  string  `json:"color_code"`
+	Count      int64   `json:"count"`
+	Percentage float64 `json:"percentage"`
+}
+
+type ProjectSecurityGateChecklistsByResponseStatusDTO struct {
+	Total    int64                                          `json:"total"`
+	Statuses []ProjectSecurityGateChecklistBreakdownItemDTO `json:"statuses"`
+}

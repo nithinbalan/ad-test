@@ -374,108 +374,9 @@
          </div>
       </div>
 
-      <!-- 4. Exceptions & Approvals -->
+      <!-- 4. Associated Controls -->
       <div style="margin-top: 20px; margin-left: 10px;">
-         <h3 class="section-title">{{ add $gateIndex 1 }}.4 Exceptions &amp; Approvals</h3>
-         <div style="margin-left: 16px;">
-         {{if $gate.Exceptions}}
-            {{range $index, $exception := $gate.Exceptions}}
-            <div class="keep-together" style="margin-top: 14px;">
-               <h4 class="sub-section-title">{{ add $gateIndex 1 }}.4.{{ add $index 1 }} {{ $exception.TitleEn }}</h4>
-
-               <div style="margin-top: 5px;">
-                  <div style="width: 24%; display: inline-block; vertical-align: top;">
-                     <p class="field-label">Critical:</p>
-                     <p class="field-value">{{if $exception.IsCritical}}Yes{{else}}No{{end}}</p>
-                  </div>
-                  <div style="width: 24%; display: inline-block; vertical-align: top;">
-                     <p class="field-label">Workflow Status:</p>
-                     <p class="field-value">
-                        {{if $exception.WorkflowStatusTitleEn}}
-                        <span class="badge" style="background: #FFF4E5; color: {{if $exception.WorkflowStatusColorCode}}{{$exception.WorkflowStatusColorCode}}{{else}}#B26A00{{end}}; border: 1px solid #FFD9A8;">
-                           {{ $exception.WorkflowStatusTitleEn }}
-                        </span>
-                        {{else}}-{{end}}
-                     </p>
-                  </div>
-                  <div style="width: 24%; display: inline-block; vertical-align: top;">
-                     <p class="field-label">Submitted By:</p>
-                     <p class="field-value">{{if $exception.SubmittedByEn}}{{ $exception.SubmittedByEn }}{{else}}-{{end}} {{if $exception.SubmittedAtFormatted}}({{ $exception.SubmittedAtFormatted }}){{end}}</p>
-                  </div>
-                  <div style="width: 24%; display: inline-block; vertical-align: top;">
-                     <p class="field-label">Approved By:</p>
-                     <p class="field-value">{{if $exception.ApprovedByEn}}{{ $exception.ApprovedByEn }}{{else}}-{{end}} {{if $exception.ApprovedAtFormatted}}({{ $exception.ApprovedAtFormatted }}){{end}}</p>
-                  </div>
-               </div>
-
-               <div style="margin-top: 5px;">
-                  <p class="field-label">Justification:</p>
-                  <div class="field-value">{{if $exception.Justification}}{{ $exception.Justification | safeHTML }}{{else}}-{{end}}</div>
-               </div>
-
-               {{if $exception.Reviews}}
-               <div class="sub-section-title">Review History</div>
-               <div style="margin-top: 10px;">
-                  {{$totalReviews := len $exception.Reviews}}
-                  {{range $reviewIndex, $review := $exception.Reviews}}
-                  {{$isLast := eq (add $reviewIndex 1) $totalReviews}}
-                  <table class="timeline-table">
-                     <tr>
-                        <!-- Step Number Node Column -->
-                        <td class="timeline-node">
-                           <span class="timeline-step">{{$review.StepNumber}}</span>
-                           {{if not $isLast}}
-                           <div class="timeline-connector"></div>
-                           {{end}}
-                        </td>
-                        <!-- Review Card Column -->
-                        <td class="timeline-card-cell">
-                           <div class="timeline-card">
-                              <table class="timeline-card-table">
-                                 <tr>
-                                    <td style="width: 22%; vertical-align: top; padding: 0;">
-                                       <p class="timeline-label">Status</p>
-                                       <span class="timeline-status" style="color: {{$review.StatusTextColor}}; border-color: {{$review.StatusBorderColor}}; background: {{$review.StatusBackgroundColor}};">{{if $review.StatusTitleEn}}{{$review.StatusTitleEn}}{{else}}-{{end}}</span>
-                                    </td>
-                                    <td style="width: 12%; vertical-align: top; padding: 0;">
-                                       <p class="timeline-label">Level</p>
-                                       <p class="timeline-value">{{$review.Level}}</p>
-                                    </td>
-                                    <td style="width: 28%; vertical-align: top; padding: 0;">
-                                       <p class="timeline-label">{{$review.ActionDateLabelEn}}</p>
-                                       <p class="timeline-value">{{if $review.CreatedAtString}}{{$review.CreatedAtString}}{{else}}-{{end}}</p>
-                                    </td>
-                                    <td style="width: 38%; vertical-align: top; padding: 0;">
-                                       <p class="timeline-label">{{$review.ActionByLabelEn}}</p>
-                                       <div class="timeline-value">
-                                          {{if $review.UserInitial}}
-                                          <span class="timeline-avatar">{{$review.UserInitial}}</span>
-                                          {{end}}
-                                          <span style="vertical-align: middle;">{{if $review.UserFullNameEn}}{{$review.UserFullNameEn}}{{else}}-{{end}}</span>
-                                       </div>
-                                    </td>
-                                 </tr>
-                              </table>
-                           </div>
-                        </td>
-                     </tr>
-                  </table>
-                  {{end}}
-               </div>
-               {{else}}
-               <p class="empty-note">No review history recorded.</p>
-               {{end}}
-            </div>
-            {{end}}
-         {{else}}
-         <p class="empty-note">No exceptions raised.</p>
-         {{end}}
-         </div>
-      </div>
-
-      <!-- 5. Associated Controls -->
-      <div style="margin-top: 20px; margin-left: 10px;">
-         <h3 class="section-title">{{ add $gateIndex 1 }}.5 Associated Controls</h3>
+         <h3 class="section-title">{{ add $gateIndex 1 }}.4 Associated Controls</h3>
          <div style="margin-left: 16px;">
          {{if $gate.Controls}}
          <table>
@@ -506,9 +407,9 @@
          </div>
       </div>
 
-      <!-- 6. Identified Risks -->
+      <!-- 5. Identified Risks -->
       <div style="margin-top: 20px; margin-left: 10px;">
-         <h3 class="section-title">{{ add $gateIndex 1 }}.6 Identified Risks</h3>
+         <h3 class="section-title">{{ add $gateIndex 1 }}.5 Identified Risks</h3>
          <div style="margin-left: 16px;">
          {{if $gate.Risks}}
          <table>

@@ -26,6 +26,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	identityAccessReviewDashboardController := app.KPIModule.IdentityAccessReviewDashboardController
 	auditDashboardController := app.KPIModule.AuditDashboardController
 	projectDashboardController := app.KPIModule.ProjectDashboardController
+	projectSecurityGateDashboardController := app.KPIModule.ProjectSecurityGateDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -184,4 +185,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/project/by-status", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDashboardController.GetProjectsByStatus)
 	kpiRoutes.GET("/kpis/project/completion", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDashboardController.GetProjectCompletion)
 	kpiRoutes.GET("/kpis/project/due-soon-and-overdue", middlewares.RolePermissionMiddleware(db, "project_register", "view"), projectDashboardController.GetProjectsDueSoonAndOverdue)
+
+	// Project Security Gate Dashboard
+	kpiRoutes.GET("/kpis/project-security-gate/summary", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetSummary)
+	kpiRoutes.GET("/kpis/project-security-gate/exception-summary", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetExceptionSummary)
+	kpiRoutes.GET("/kpis/project-security-gate/assessment-summary", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetAssessmentSummary)
+	kpiRoutes.GET("/kpis/project-security-gate/by-response-status", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetChecklistsByResponseStatus)
+	kpiRoutes.GET("/kpis/project-security-gate/by-readiness-status", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetByReadinessStatus)
+	kpiRoutes.GET("/kpis/project-security-gate/by-classification", middlewares.RolePermissionMiddleware(db, "project_dashboard", "view"), projectSecurityGateDashboardController.GetByClassification)
 }
