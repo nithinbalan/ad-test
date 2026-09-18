@@ -683,7 +683,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) notifyWorkflo
 	entity := "project-security-gate-checklist-exception-review"
 	action := "review-user-assign"
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%s/projects/security-gate/%d/checklists/%d", appURL, securityGateID, checklistID)
+	redirectURL := fmt.Sprintf("%s/projects/security-gate/%d/checklist?id=%d", appURL, securityGateID, checklistID)
 
 	for _, participant := range workflowLevel.Participants {
 		reviewUser, err := psgcers.userSvc.GetByID(participant.UserID)
@@ -764,7 +764,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) notifyReverte
 	entity := "project-security-gate-checklist-exception-review"
 	action := "reverted"
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%s/projects/security-gate/%d/checklists/%d", appURL, securityGateID, checklistID)
+	redirectURL := fmt.Sprintf("%s/projects/security-gate/%d/checklist?id=%d", appURL, securityGateID, checklistID)
 
 	for _, participant := range workflowLevel.Participants {
 		reviewUser, err := psgcers.userSvc.GetByID(participant.UserID)
@@ -855,7 +855,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) sendApprovalN
 	entity := "project-security-gate-checklist-exception-review"
 	action := "approval"
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%s/projects/security-gate/%d/checklists/%d", appURL, securityGateID, checklistID)
+	redirectURL := fmt.Sprintf("%s/projects/security-gate/%d/checklist?id=%d", appURL, securityGateID, checklistID)
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserIDs:              []uint{*notifyUserID},
@@ -938,7 +938,7 @@ func (psgcers *ProjectSecurityGateChecklistExceptionReviewService) sendRevertNot
 	entity := "project-security-gate-checklist-exception-review"
 	action := "reverted"
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%s/projects/security-gate/%d/checklists/%d", appURL, securityGateID, checklistID)
+	redirectURL := fmt.Sprintf("%s/projects/security-gate/%d/checklist?id=%d", appURL, securityGateID, checklistID)
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserIDs:              []uint{*notifyUserID},
