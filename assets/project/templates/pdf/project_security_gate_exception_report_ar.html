@@ -271,10 +271,12 @@
          <h3 class="section-title">3. الاستثناءات والموافقات</h3>
          <div style="margin-right: 16px;">
          {{if .Data.SecurityGates}}
+            {{$exceptionNumber := 0}}
             {{range $gateIndex, $gate := .Data.SecurityGates}}
             {{range $excIndex, $exception := $gate.Exceptions}}
+            {{$exceptionNumber = add $exceptionNumber 1}}
             <div class="keep-together" style="margin-top: 14px;">
-               <h4 class="sub-section-title">3.{{ add $excIndex 1 }} {{if $gate.ProjectTitleAr}}{{ $gate.ProjectTitleAr }}{{else}}{{ $gate.ProjectTitleEn }}{{end}} &mdash; {{if $exception.TitleAr}}{{ $exception.TitleAr }}{{else}}-{{end}}</h4>
+               <h4 class="sub-section-title">3.{{ $exceptionNumber }} {{if $gate.ProjectTitleAr}}{{ $gate.ProjectTitleAr }}{{else}}{{ $gate.ProjectTitleEn }}{{end}} &mdash; {{if $exception.TitleAr}}{{ $exception.TitleAr }}{{else}}-{{end}}</h4>
 
                <div style="margin-top: 5px;">
                   <div style="width: 24%; display: inline-block; vertical-align: top;">
