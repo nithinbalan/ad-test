@@ -303,6 +303,7 @@ func (repo *ProjectDashboardRepository) GetProjectCompletion(params *dtos.Projec
 		PhaseID               *uint     `gorm:"column:phase_id"`
 		PhaseTitleEn          *string   `gorm:"column:phase_title_en"`
 		PhaseTitleAr          *string   `gorm:"column:phase_title_ar"`
+		PhaseColorCode        *string   `gorm:"column:phase_color_code"`
 		ClassificationID      *uint     `gorm:"column:classification_id"`
 		ClassificationTitleEn *string   `gorm:"column:classification_title_en"`
 		ClassificationTitleAr *string   `gorm:"column:classification_title_ar"`
@@ -324,6 +325,7 @@ func (repo *ProjectDashboardRepository) GetProjectCompletion(params *dtos.Projec
 			p.project_phase_id AS phase_id,
 			ph.title_en AS phase_title_en,
 			ph.title_ar AS phase_title_ar,
+			ph.color_code AS phase_color_code,
 			p.project_classification_id AS classification_id,
 			pc.title_en AS classification_title_en,
 			pc.title_ar AS classification_title_ar,
@@ -372,6 +374,7 @@ func (repo *ProjectDashboardRepository) GetProjectCompletion(params *dtos.Projec
 			ProjectPhaseID:               r.PhaseID,
 			ProjectPhaseTitleEn:          r.PhaseTitleEn,
 			ProjectPhaseTitleAr:          r.PhaseTitleAr,
+			ProjectPhaseColorCode:        r.PhaseColorCode,
 			ProjectClassificationID:      r.ClassificationID,
 			ProjectClassificationTitleEn: r.ClassificationTitleEn,
 			ProjectClassificationTitleAr: r.ClassificationTitleAr,
@@ -408,6 +411,7 @@ func (repo *ProjectDashboardRepository) GetProjectsDueSoonAndOverdue(params *dto
 		PhaseTitleEn          *string   `gorm:"column:phase_title_en"`
 		PhaseTitleAr          *string   `gorm:"column:phase_title_ar"`
 		PhaseType             *string   `gorm:"column:phase_type"`
+		PhaseColorCode        *string   `gorm:"column:phase_color_code"`
 		ClassificationID      *uint     `gorm:"column:classification_id"`
 		ClassificationTitleEn *string   `gorm:"column:classification_title_en"`
 		ClassificationTitleAr *string   `gorm:"column:classification_title_ar"`
@@ -429,6 +433,7 @@ func (repo *ProjectDashboardRepository) GetProjectsDueSoonAndOverdue(params *dto
 			ph.title_en AS phase_title_en,
 			ph.title_ar AS phase_title_ar,
 			ph.type AS phase_type,
+			ph.color_code AS phase_color_code,
 			p.project_classification_id AS classification_id,
 			pc.title_en AS classification_title_en,
 			pc.title_ar AS classification_title_ar,
@@ -523,6 +528,7 @@ func (repo *ProjectDashboardRepository) GetProjectsDueSoonAndOverdue(params *dto
 			ProjectPhaseTitleEn:          r.PhaseTitleEn,
 			ProjectPhaseTitleAr:          r.PhaseTitleAr,
 			ProjectPhaseType:             r.PhaseType,
+			ProjectPhaseColorCode:        r.PhaseColorCode,
 			ProjectClassificationID:      r.ClassificationID,
 			ProjectClassificationTitleEn: r.ClassificationTitleEn,
 			ProjectClassificationTitleAr: r.ClassificationTitleAr,

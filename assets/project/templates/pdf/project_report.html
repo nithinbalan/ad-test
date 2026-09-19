@@ -108,7 +108,13 @@
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Phase:</p>
-               <p class="field-value">{{if .Data.ProjectPhase}}{{ .Data.ProjectPhase.TitleEn }}{{else}}-{{end}}</p>
+               <p class="field-value">
+                  {{if .Data.ProjectPhase}}
+                  <span class="badge" style="background: {{if .Data.ProjectPhase.ColorCode}}{{.Data.ProjectPhase.ColorCode}}{{else}}#0B7A55{{end}}; color: #ffffff; border: 1px solid {{if .Data.ProjectPhase.ColorCode}}{{.Data.ProjectPhase.ColorCode}}{{else}}#0B7A55{{end}};">
+                     {{ .Data.ProjectPhase.TitleEn }}
+                  </span>
+                  {{else}}-{{end}}
+               </p>
             </div>
             <div style="width: 24%; display: inline-block; vertical-align: top;">
                <p class="field-label">Type:</p>
@@ -219,7 +225,13 @@
                      </span>
                      {{else}}-{{end}}
                   </td>
-                  <td>{{if .ProjectPhaseTitleEn}}{{ .ProjectPhaseTitleEn }}{{else}}-{{end}}</td>
+                  <td style="white-space: nowrap;">
+                     {{if .ProjectPhaseTitleEn}}
+                     <span class="badge" style="background: {{if .ProjectPhaseColorCode}}{{.ProjectPhaseColorCode}}{{else}}#0B7A55{{end}}; color: #ffffff; border: 1px solid {{if .ProjectPhaseColorCode}}{{.ProjectPhaseColorCode}}{{else}}#0B7A55{{end}};">
+                        {{ .ProjectPhaseTitleEn }}
+                     </span>
+                     {{else}}-{{end}}
+                  </td>
                </tr>
                {{end}}
             </tbody>

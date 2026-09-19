@@ -587,6 +587,17 @@ func (prs *ProjectReportService) GetProjectReportDetails(id uint) (*dtos.Project
 			}
 		}
 
+		var projectStatusColorCode *string
+		var projectPhaseColorCode *string
+		if rp.Project != nil {
+			if rp.Project.ProjectStatus != nil && rp.Project.ProjectStatus.ColorCode != "" {
+				projectStatusColorCode = &rp.Project.ProjectStatus.ColorCode
+			}
+			if rp.Project.ProjectPhase != nil && rp.Project.ProjectPhase.ColorCode != "" {
+				projectPhaseColorCode = &rp.Project.ProjectPhase.ColorCode
+			}
+		}
+
 		projectDetail := &dtos.ProjectReportProjectDetailDTO{
 			ID:                           rp.ID,
 			ProjectID:                    rp.ProjectID,
@@ -602,8 +613,10 @@ func (prs *ProjectReportService) GetProjectReportDetails(id uint) (*dtos.Project
 			ProjectTypeTitleAr:           rp.ProjectTypeTitleAr,
 			ProjectStatusTitleEn:         rp.ProjectStatusTitleEn,
 			ProjectStatusTitleAr:         rp.ProjectStatusTitleAr,
+			ProjectStatusColorCode:       projectStatusColorCode,
 			ProjectPhaseTitleEn:          rp.ProjectPhaseTitleEn,
 			ProjectPhaseTitleAr:          rp.ProjectPhaseTitleAr,
+			ProjectPhaseColorCode:        projectPhaseColorCode,
 			ProjectClassificationTitleEn: rp.ProjectClassificationTitleEn,
 			ProjectClassificationTitleAr: rp.ProjectClassificationTitleAr,
 			ResponsibleUserNameEn:        rp.ResponsibleUserNameEn,

@@ -75,6 +75,7 @@ type ProjectCompletionListDTO struct {
 	ProjectPhaseID               *uint   `json:"project_phase_id"`
 	ProjectPhaseTitleEn          *string `json:"project_phase_title_en"`
 	ProjectPhaseTitleAr          *string `json:"project_phase_title_ar"`
+	ProjectPhaseColorCode        *string `json:"project_phase_color_code"`
 	ProjectClassificationID      *uint   `json:"project_classification_id"`
 	ProjectClassificationTitleEn *string `json:"project_classification_title_en"`
 	ProjectClassificationTitleAr *string `json:"project_classification_title_ar"`
@@ -99,6 +100,7 @@ type ProjectDueSoonOverdueListDTO struct {
 	ProjectPhaseTitleEn          *string `json:"project_phase_title_en"`
 	ProjectPhaseTitleAr          *string `json:"project_phase_title_ar"`
 	ProjectPhaseType             *string `json:"project_phase_type"`
+	ProjectPhaseColorCode        *string `json:"project_phase_color_code"`
 	ProjectClassificationID      *uint   `json:"project_classification_id"`
 	ProjectClassificationTitleEn *string `json:"project_classification_title_en"`
 	ProjectClassificationTitleAr *string `json:"project_classification_title_ar"`

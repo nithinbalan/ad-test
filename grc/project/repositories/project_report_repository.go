@@ -111,6 +111,7 @@ func (r *ProjectReportRepository) GetAllMilestones(projectID uint) ([]*dtos.Proj
 			project_milestones.project_phase_id,
 			phase.title_en AS project_phase_title_en,
 			phase.title_ar AS project_phase_title_ar,
+			phase.color_code AS project_phase_color_code,
 			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -858,6 +859,8 @@ func (r *ProjectReportRepository) GetReportDetailsByID(reportID uint, tx ...util
 		Preload("Projects").
 		Preload("Projects.Documents").
 		Preload("Projects.Project").
+		Preload("Projects.Project.ProjectStatus").
+		Preload("Projects.Project.ProjectPhase").
 		Preload("Projects.Project.IncidentActionPlan").
 		Preload("Projects.Project.IncidentActionPlan.ActionPlanStatus").
 		Preload("Projects.Project.IncidentActionPlan.ResponsibleUser").

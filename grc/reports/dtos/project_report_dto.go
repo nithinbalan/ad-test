@@ -16,10 +16,11 @@ type ProjectByStatusDTO struct {
 }
 
 type ProjectByPhaseDTO struct {
-	ID      uint   `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Count   uint   `json:"count"`
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     uint   `json:"count"`
 }
 
 type ProjectByClassificationDTO struct {

@@ -147,8 +147,10 @@ type ProjectReportProjectDetailDTO struct {
 	ProjectTypeTitleAr           *string                                           `json:"project_type_title_ar"`
 	ProjectStatusTitleEn         *string                                           `json:"project_status_title_en"`
 	ProjectStatusTitleAr         *string                                           `json:"project_status_title_ar"`
+	ProjectStatusColorCode       *string                                           `json:"project_status_color_code,omitempty"`
 	ProjectPhaseTitleEn          *string                                           `json:"project_phase_title_en"`
 	ProjectPhaseTitleAr          *string                                           `json:"project_phase_title_ar"`
+	ProjectPhaseColorCode        *string                                           `json:"project_phase_color_code,omitempty"`
 	ProjectClassificationTitleEn *string                                           `json:"project_classification_title_en"`
 	ProjectClassificationTitleAr *string                                           `json:"project_classification_title_ar"`
 	ResponsibleUserNameEn        string                                            `json:"responsible_user_name_en"`

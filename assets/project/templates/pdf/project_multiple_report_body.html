@@ -175,15 +175,17 @@
             <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Status:</p>
             <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
               {{if $proj.ProjectStatusTitleEn}}
-              <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #0e7b61; color: #fff; font-size: 12px; white-space: nowrap;">{{$proj.ProjectStatusTitleEn}}</span>
+              <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $proj.ProjectStatusColorCode}}{{$proj.ProjectStatusColorCode}}{{else}}#0e7b61{{end}}; color: #fff; font-size: 12px; white-space: nowrap;">{{$proj.ProjectStatusTitleEn}}</span>
               {{else}}-{{end}}
             </p>
           </div>
 
           <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
             <p style="margin: 0 0 2px 0; color: #000; font-size: 13px; font-weight: 300;">Phase:</p>
-            <p style="margin: 0 0 13px 0; color: #000; font-size: 14px; font-weight: 400;">
-              {{if $proj.ProjectPhaseTitleEn}}{{$proj.ProjectPhaseTitleEn}}{{else}}-{{end}}
+            <p style="margin: 0 0 13px 0; font-size: 14px; margin-top: 5px;">
+              {{if $proj.ProjectPhaseTitleEn}}
+              <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: {{if $proj.ProjectPhaseColorCode}}{{$proj.ProjectPhaseColorCode}}{{else}}#0e7b61{{end}}; color: #fff; font-size: 12px; white-space: nowrap;">{{$proj.ProjectPhaseTitleEn}}</span>
+              {{else}}-{{end}}
             </p>
           </div>
           <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">

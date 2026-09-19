@@ -79,9 +79,10 @@ func (repo *ProjectReportRepository) GetProjectByPhase(params *reportDTOs.Report
 		Select(`project_phases.id,
 				project_phases.title_en,
 				project_phases.title_ar,
+				project_phases.color_code,
 				COUNT(projects.id) AS count`).
 		Joins("LEFT JOIN projects ON projects.project_phase_id = project_phases.id").
-		Group("project_phases.id, project_phases.title_en, project_phases.title_ar").
+		Group("project_phases.id, project_phases.title_en, project_phases.title_ar, project_phases.color_code").
 		Order("COUNT(projects.id) DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {

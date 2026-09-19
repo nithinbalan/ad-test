@@ -59,6 +59,7 @@ func (r *ProjectRepository) GetAll(params *dtos.ProjectListQueryParamsDTO) (*dto
 			project_phases.id AS project_phase_id,
 			project_phases.title_en AS project_phase_title_en,
 			project_phases.title_ar AS project_phase_title_ar,
+			project_phases.color_code AS project_phase_color_code,
 			project_classifications.id AS project_classification_id,
 			project_classifications.title_en AS project_classification_title_en,
 			project_classifications.title_ar AS project_classification_title_ar,
